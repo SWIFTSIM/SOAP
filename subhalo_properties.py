@@ -18,6 +18,7 @@ from stellar_age_calculator import StellarAgeCalculator
 from property_table import PropertyTable
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
+from parameter_file import ParameterFile
 
 rbandindex = 2
 
@@ -808,12 +809,17 @@ class SubhaloProperties(HaloProperty):
     def __init__(
         self,
         cellgrid,
+        parameters,
         recently_heated_gas_filter,
         stellar_age_calculator,
         category_filter,
         bound_only=True,
     ):
         super().__init__(cellgrid)
+
+        self.property_mask = parameters.get_property_mask(
+            "SubhaloProperties", [prop[1] for prop in self.property_list]
+        )
 
         self.bound_only = bound_only
         self.filter = recently_heated_gas_filter
@@ -921,6 +927,10 @@ class SubhaloProperties(HaloProperty):
         # back to snapshot units in the end
         registry = part_props.mass.units.registry
         for prop in self.property_list:
+            outputname = prop[1]
+            # skip properties that are masked
+            if not self.property_mask[outputname]:
+                continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
             if do_calculation["DMO"] and not is_dmo:
@@ -956,11 +966,14 @@ class SubhaloProperties(HaloProperty):
         else:
             prefix = "FOFSubhaloProperties"
         for prop in self.property_list:
+            outputname = prop[1]
+            # skip properties that are masked
+            if not self.property_mask[outputname]:
+                continue
             is_dmo = prop[8]
             if do_calculation["DMO"] and not is_dmo:
                 continue
             name = prop[0]
-            outputname = prop[1]
             description = prop[5]
             halo_result.update(
                 {
@@ -986,23 +999,31 @@ def test_subhalo_properties():
     # initialise the DummyHaloGenerator with a random seed
     dummy_halos = DummyHaloGenerator(16902)
     cat_filter = CategoryFilter()
+    parameters = ParameterFile()
+    parameters.get_halo_type_variations(
+        "SubhaloProperties",
+        {"FOF": {"bound_only": False}, "Bound": {"bound_only": True}},
+    )
 
     recently_heated_gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())
 
     property_calculator_bound = SubhaloProperties(
         dummy_halos.get_cell_grid(),
+        parameters,
         recently_heated_gas_filter,
         stellar_age_calculator,
         cat_filter,
     )
     property_calculator_both = SubhaloProperties(
         dummy_halos.get_cell_grid(),
+        parameters,
         recently_heated_gas_filter,
         stellar_age_calculator,
         cat_filter,
         False,
     )
+    parameters.write_parameters("subhalo.used_parameters.yml")
 
     # generate 100 random halos
     for i in range(100):

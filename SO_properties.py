@@ -17,6 +17,7 @@ from property_table import PropertyTable
 from dataset_names import mass_dataset
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
+from parameter_file import ParameterFile
 
 # index of elements O and Fe in the SmoothedElementMassFractions dataset
 indexO = 4
@@ -1146,12 +1147,17 @@ class SOProperties(HaloProperty):
     def __init__(
         self,
         cellgrid,
+        parameters,
         recently_heated_gas_filter,
         category_filter,
         SOval,
         type="mean",
     ):
         super().__init__(cellgrid)
+
+        self.property_mask = parameters.get_property_mask(
+            "SOProperties", [prop[1] for prop in self.property_list]
+        )
 
         if not type in ["mean", "crit", "physical", "BN98"]:
             raise AttributeError(f"Unknown SO type: {type}!")
@@ -1248,6 +1254,10 @@ class SOProperties(HaloProperty):
         # we need to use the custom unit registry so that everything can be converted
         # back to snapshot units in the end
         for prop in self.property_list:
+            outputname = prop[1]
+            # skip properties that are masked
+            if not self.property_mask[outputname]:
+                continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
             if do_calculation["DMO"] and not is_dmo:
@@ -1293,6 +1303,10 @@ class SOProperties(HaloProperty):
             if SO_exists:
 
                 for prop in self.property_list:
+                    outputname = prop[1]
+                    # skip properties that are masked
+                    if not self.property_mask[outputname]:
+                        continue
                     # skip non-DMO properties in DMO run mode
                     is_dmo = prop[8]
                     if do_calculation["DMO"] and not is_dmo:
@@ -1317,12 +1331,15 @@ class SOProperties(HaloProperty):
         # Return value should be a dict containing unyt_arrays and descriptions.
         # The dict keys will be used as HDF5 dataset names in the output.
         for prop in self.property_list:
+            outputname = prop[1]
+            # skip properties that are masked
+            if not self.property_mask[outputname]:
+                continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
             if do_calculation["DMO"] and not is_dmo:
                 continue
             name = prop[0]
-            outputname = prop[1]
             description = prop[5]
             halo_result.update(
                 {
@@ -1346,6 +1363,7 @@ class RadiusMultipleSOProperties(SOProperties):
     def __init__(
         self,
         cellgrid,
+        parameters,
         recently_heated_gas_filter,
         category_filter,
         SOval,
@@ -1359,7 +1377,12 @@ class RadiusMultipleSOProperties(SOProperties):
 
         # initialise the SOProperties object using a conservative physical radius estimate
         super().__init__(
-            cellgrid, recently_heated_gas_filter, category_filter, 3000.0, "physical"
+            cellgrid,
+            parameters,
+            recently_heated_gas_filter,
+            category_filter,
+            3000.0,
+            "physical",
         )
 
         # overwrite the name, SO_name and label
@@ -1396,22 +1419,35 @@ def test_SO_properties():
     dummy_halos = DummyHaloGenerator(4251)
     filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
     cat_filter = CategoryFilter()
+    parameters = ParameterFile()
+    parameters.get_halo_type_variations(
+        "SOProperties",
+        {
+            "50_kpc": {"value": 50.0, "type": "physical"},
+            "2500_mean": {"value": 2500.0, "type": "mean"},
+            "2500_crit": {"value": 2500.0, "type": "crit"},
+            "BN98": {"value": 0.0, "type": "BN98"},
+            "5xR2500_mean": {"value": 2500.0, "type": "mean", "radius_multiple": 5.0},
+        },
+    )
 
     property_calculator_50kpc = SOProperties(
-        dummy_halos.get_cell_grid(), filter, cat_filter, 50.0, "physical"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 50.0, "physical"
     )
     property_calculator_2500mean = SOProperties(
-        dummy_halos.get_cell_grid(), filter, cat_filter, 2500.0, "mean"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, "mean"
     )
     property_calculator_2500crit = SOProperties(
-        dummy_halos.get_cell_grid(), filter, cat_filter, 2500.0, "crit"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, "crit"
     )
     property_calculator_BN98 = SOProperties(
-        dummy_halos.get_cell_grid(), filter, cat_filter, 0.0, "BN98"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 0.0, "BN98"
     )
     property_calculator_5x2500mean = RadiusMultipleSOProperties(
-        dummy_halos.get_cell_grid(), filter, cat_filter, 2500.0, 5.0, "mean"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, 5.0, "mean"
     )
+
+    parameters.write_parameters("SO.used_values.yml")
 
     for i in range(100):
         (

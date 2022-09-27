@@ -10,6 +10,7 @@ from property_table import PropertyTable
 from kinematic_properties import get_projected_axis_lengths
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
+from parameter_file import ParameterFile
 
 
 class ProjectedApertureParticleData:
@@ -509,8 +510,12 @@ class ProjectedApertureProperties(HaloProperty):
         ],
     }
 
-    def __init__(self, cellgrid, physical_radius_kpc, category_filter):
+    def __init__(self, cellgrid, parameters, physical_radius_kpc, category_filter):
         super().__init__(cellgrid)
+
+        self.property_mask = parameters.get_property_mask(
+            "ProjectedApertureProperties", [prop[1] for prop in self.property_list]
+        )
 
         # No density criterion
         self.mean_density_multiple = None
@@ -561,6 +566,10 @@ class ProjectedApertureProperties(HaloProperty):
             # we need to use the custom unit registry so that everything can be converted
             # back to snapshot units in the end
             for prop in self.property_list:
+                outputname = prop[1]
+                # skip properties that are masked
+                if not self.property_mask[outputname]:
+                    continue
                 # skip non-DMO properties in DMO run mode
                 is_dmo = prop[8]
                 if do_calculation["DMO"] and not is_dmo:
@@ -594,12 +603,15 @@ class ProjectedApertureProperties(HaloProperty):
                 f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc/{projname}"
             )
             for prop in self.property_list:
+                outputname = prop[1]
+                # skip properties that are masked
+                if not self.property_mask[outputname]:
+                    continue
                 # skip non-DMO properties in DMO run mode
                 is_dmo = prop[8]
                 if do_calculation["DMO"] and not is_dmo:
                     continue
                 name = prop[0]
-                outputname = prop[1]
                 description = prop[5]
                 halo_result.update(
                     {f"{prefix}/{outputname}": (projected_aperture[name], description)}
@@ -621,11 +633,17 @@ def test_projected_aperture_properties():
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(127)
-
     category_filter = CategoryFilter()
-    property_calculator = ProjectedApertureProperties(
-        dummy_halos.get_cell_grid(), 30.0, category_filter
+    parameters = ParameterFile()
+    parameters.get_halo_type_variations(
+        "ProjectedApertureProperties", {"30_kpc": {"radius_in_kpc": 30.0}}
     )
+
+    property_calculator = ProjectedApertureProperties(
+        dummy_halos.get_cell_grid(), parameters, 30.0, category_filter
+    )
+
+    parameters.write_parameters("projected_apertures.used_parameters.yml")
 
     for i in range(100):
         input_halo, data, _, _, _, particle_numbers = dummy_halos.get_random_halo(
