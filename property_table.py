@@ -1070,6 +1070,16 @@ class PropertyTable:
             "FMantissa9",
             False,
         ),
+        "LastSupernovaEventMaximumGasDensity": (
+            "LastSupernovaEventMaximumGasDensity",
+            1,
+            np.float32,
+            "g/cm**3",
+            "Maximum gas density at the last supernova event for the last supernova event of each gas particle.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
     }
 
     # we should really use removeprefix("VR") instead of [2:], but that only
