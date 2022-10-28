@@ -82,32 +82,20 @@ def find_SO_radius_and_mass(
     # Compute a mask that marks particles above the threshold. We do this
     # exactly once.
     above_mask = density > reference_density
-    if np.any(above_mask):
+    if above_mask[0]:
         # Get the complementary mask of particles below the threshold.
         # By using the complementary, we avoid any ambiguity about '>' vs '<='
         below_mask = ~above_mask
         # Find smallest radius where the density is below the threshold
         i = np.argmax(below_mask)
         if i == 0:
-            if below_mask[i]:
-                # we know that there are points above the threshold
-                # unfortunately, the centre is not
-                # find the next one that is:
-                offset = np.argmax(above_mask)
-                # now get the next point below the threshold relative w.r.t. this point
-                i = np.argmax(below_mask[offset:])
-                # +offset because i is now relative w.r.t. offset
-                i += offset
-            else:
-                # 'i==0' can also mean no particles are below the threshold
-                # in this case, we need to increase the search radius
-                if ordered_radius[-1] > 20.0 * unyt.Mpc:
-                    raise RuntimeError(
-                        "Cannot find SO radius, but search radius is already larger than 20 Mpc!"
-                    )
-                raise ReadRadiusTooSmallError(
-                    "SO radius multiple estimate was too small!"
+            # There are no particles below the threshold
+            # We need to increase the search radius
+            if ordered_radius[-1] > 20.0 * unyt.Mpc:
+                raise RuntimeError(
+                    "Cannot find SO radius, but search radius is already larger than 20 Mpc!"
                 )
+            raise ReadRadiusTooSmallError("SO radius multiple estimate was too small!")
     else:
         # all non-zero radius particles are below the threshold
         # we linearly interpolate the mass from 0 to the particle radius

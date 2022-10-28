@@ -169,6 +169,14 @@ class SWIFTCellGrid:
             for name in infile["Cosmology"].attrs:
                 self.cosmology[name] = infile["Cosmology"].attrs[name][0]
 
+            # Read constants
+            self.constants = {}
+            for name in infile["PhysicalConstants"]["CGS"].attrs:
+                self.constants[name] = infile["PhysicalConstants"]["CGS"].attrs[name][0]
+            self.constants_internal = {}
+            for name in infile["PhysicalConstants"]["InternalUnits"].attrs:
+                self.constants_internal[name] = infile["PhysicalConstants"]["InternalUnits"].attrs[name][0]
+
             # Store units groups
             self.swift_units_group = {}
             for name in infile["Units"].attrs:
@@ -195,7 +203,18 @@ class SWIFTCellGrid:
             self.critical_density = unyt.unyt_quantity(
                 critical_density, units=internal_density_unit
             )
-            self.mean_density = self.critical_density * self.cosmology["Omega_m"]
+
+            # Compute mean density at the redshift of the snapshot:
+            # Here we compute the mean density in internal units at z=0 using
+            # constants from the snapshot. The comoving mean density is
+            # constant so we can then just scale by a**3 to get the physical
+            # mean density.
+            H0 = self.cosmology["H0 [internal units]"]
+            G  = self.constants_internal["newton_G"]
+            critical_density_z0_internal = 3*(H0**2) / (8*np.pi*G)
+            mean_density_z0_internal = critical_density_z0_internal * self.cosmology["Omega_m"]
+            mean_density_internal = mean_density_z0_internal / (self.a**3)
+            self.mean_density = unyt.unyt_quantity(mean_density_internal, units=internal_density_unit)
 
             # Compute the BN98 critical density multiple
             Omega_k = self.cosmology["Omega_k"]
@@ -235,11 +254,6 @@ class SWIFTCellGrid:
 
             # Get the number of files
             self.nr_files = infile["Header"].attrs["NumFilesPerSnapshot"][0]
-
-            # Read constants
-            self.constants = {}
-            for name in infile["PhysicalConstants"]["CGS"].attrs:
-                self.constants[name] = infile["PhysicalConstants"]["CGS"].attrs[name][0]
 
             # Read cell meta data
             self.ptypes = []
