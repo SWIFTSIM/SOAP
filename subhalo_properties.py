@@ -846,39 +846,45 @@ class SubhaloProperties(HaloProperty):
         # snapshot, that type will not be read in and will not have
         # an entry in the data argument to calculate(), below.
         # (E.g. gas, star or BH particles in DMO runs)
+        # Most arrays are linked to a particular property and are only
+        # read if that particular property is actually requested
+        # Some basic properties are always required; these are added below
         self.particle_properties = {
             "PartType0": [
                 "Coordinates",
-                "LastAGNFeedbackScaleFactors",
                 "Masses",
-                "MetalMassFractions",
-                "StarFormationRates",
-                "Temperatures",
                 "Velocities",
                 self.grnr,
             ],
             "PartType1": ["Coordinates", "Masses", "Velocities", self.grnr],
             "PartType4": [
-                "BirthScaleFactors",
                 "Coordinates",
-                "InitialMasses",
-                "Luminosities",
                 "Masses",
-                "MetalMassFractions",
                 "Velocities",
                 self.grnr,
             ],
             "PartType5": [
-                "AccretionRates",
                 "Coordinates",
                 "DynamicalMasses",
-                "LastAGNFeedbackScaleFactors",
-                "ParticleIDs",
-                "SubgridMasses",
                 "Velocities",
                 self.grnr,
             ],
         }
+
+        for prop in self.property_list:
+            outputname = prop[1]
+            if not self.property_mask[outputname]:
+                continue
+            is_dmo = prop[8]
+            if self.category_filter.dmo and not is_dmo:
+                continue
+            partprops = prop[9]
+            for partprop in partprops:
+                pgroup, dset = partprop.split("/")
+                if not pgroup in self.particle_properties:
+                    self.particle_properties[pgroup] = []
+                if not dset in self.particle_properties[pgroup]:
+                    self.particle_properties[pgroup].append(dset)
 
     def calculate(self, input_halo, search_radius, data, halo_result):
         """
@@ -1051,6 +1057,65 @@ def test_subhalo_properties():
             # check that the calculation returns the correct values
             for prop in prop_calc.property_list:
                 outputname = prop[1]
+                size = prop[2]
+                dtype = prop[3]
+                unit_string = prop[4]
+                full_name = f"{subhalo_name}/{outputname}"
+                assert full_name in halo_result
+                result = halo_result[full_name][0]
+                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
+                assert result.dtype == dtype
+                unit = unyt.Unit(unit_string)
+                assert result.units.same_dimensions_as(unit.units)
+
+    # Now test the calculation for each property individually, to make sure that
+    # all properties read all the datasets they require
+    all_parameters = parameters.get_parameters()
+    for property in all_parameters["SubhaloProperties"]["properties"]:
+        print(f"Testing only {property}...")
+        single_property = dict(all_parameters)
+        for other_property in all_parameters["SubhaloProperties"]["properties"]:
+            single_property["SubhaloProperties"]["properties"][other_property] = (
+                other_property == property
+            ) or other_property.startswith("NumberOf")
+        single_parameters = ParameterFile(parameter_dictionary=single_property)
+        property_calculator_bound = SubhaloProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            recently_heated_gas_filter,
+            stellar_age_calculator,
+            cat_filter,
+        )
+        property_calculator_both = SubhaloProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            recently_heated_gas_filter,
+            stellar_age_calculator,
+            cat_filter,
+            False,
+        )
+        halo_result = {}
+        for subhalo_name, prop_calc in [
+            ("FOFSubhaloProperties", property_calculator_both),
+            ("BoundSubhaloProperties", property_calculator_bound),
+        ]:
+            input_data = {}
+            for ptype in prop_calc.particle_properties:
+                if ptype in data:
+                    input_data[ptype] = {}
+                    for dset in prop_calc.particle_properties[ptype]:
+                        input_data[ptype][dset] = data[ptype][dset]
+            input_halo_copy = input_halo.copy()
+            input_data_copy = input_data.copy()
+            prop_calc.calculate(input_halo, 0.0 * unyt.kpc, input_data, halo_result)
+            assert input_halo == input_halo_copy
+            assert input_data == input_data_copy
+
+            # check that the calculation returns the correct values
+            for prop in prop_calc.property_list:
+                outputname = prop[1]
+                if not outputname == property:
+                    continue
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]

@@ -4,12 +4,18 @@ import yaml
 
 
 class ParameterFile:
-    def __init__(self, file_name=None):
+    def __init__(self, file_name=None, parameter_dictionary=None):
         if file_name is not None:
             with open(file_name, "r") as handle:
                 self.parameters = yaml.safe_load(handle)
         else:
-            self.parameters = {}
+            if parameter_dictionary is not None:
+                self.parameters = parameter_dictionary
+            else:
+                self.parameters = {}
+
+    def get_parameters(self):
+        return dict(self.parameters)
 
     def write_parameters(self, file_name="SOAP.used_parameters.yml"):
         with open(file_name, "w") as handle:
