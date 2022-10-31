@@ -1010,53 +1010,6 @@ class SOParticleData:
 
 class SOProperties(HaloProperty):
 
-    # Arrays which must be read in for this calculation.
-    # Note that if there are no particles of a given type in the
-    # snapshot, that type will not be read in and will not have
-    # an entry in the data argument to calculate(), below.
-    # (E.g. gas, star or BH particles in DMO runs)
-    particle_properties = {
-        "PartType0": [
-            "ComptonYParameters",
-            "Coordinates",
-            "Densities",
-            "ElectronNumberDensities",
-            "GroupNr_bound",
-            "LastAGNFeedbackScaleFactors",
-            "Masses",
-            "MetalMassFractions",
-            "Pressures",
-            "SmoothedElementMassFractions",
-            "StarFormationRates",
-            "Temperatures",
-            "Velocities",
-            "XrayLuminosities",
-            "XrayPhotonLuminosities",
-        ],
-        "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
-        "PartType4": [
-            "Coordinates",
-            "GroupNr_bound",
-            "InitialMasses",
-            "Luminosities",
-            "Masses",
-            "MetalMassFractions",
-            "SmoothedElementMassFractions",
-            "Velocities",
-        ],
-        "PartType5": [
-            "AccretionRates",
-            "Coordinates",
-            "DynamicalMasses",
-            "GroupNr_bound",
-            "LastAGNFeedbackScaleFactors",
-            "ParticleIDs",
-            "SubgridMasses",
-            "Velocities",
-        ],
-        "PartType6": ["Coordinates", "Masses", "Weights"],
-    }
-
     # get the properties we want from the table
     property_list = [
         (prop, *PropertyTable.full_property_list[prop])
@@ -1215,6 +1168,48 @@ class SOProperties(HaloProperty):
             )
             self.SO_name = "BN98"
             self.label = f"within which the density is {self.critical_density_multiple:.2f} times the critical value"
+
+        # Arrays which must be read in for this calculation.
+        # Note that if there are no particles of a given type in the
+        # snapshot, that type will not be read in and will not have
+        # an entry in the data argument to calculate(), below.
+        # (E.g. gas, star or BH particles in DMO runs)
+        self.particle_properties = {
+            "PartType0": [
+                "Coordinates",
+                "GroupNr_bound",
+                "Masses",
+                "Velocities",
+            ],
+            "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
+            "PartType4": [
+                "Coordinates",
+                "GroupNr_bound",
+                "Masses",
+                "Velocities",
+            ],
+            "PartType5": [
+                "Coordinates",
+                "DynamicalMasses",
+                "GroupNr_bound",
+                "Velocities",
+            ],
+            "PartType6": ["Coordinates", "Masses", "Weights"],
+        }
+        for prop in self.property_list:
+            outputname = prop[1]
+            if not self.property_mask[outputname]:
+                continue
+            is_dmo = prop[8]
+            if self.category_filter.dmo and not is_dmo:
+                continue
+            partprops = prop[9]
+            for partprop in partprops:
+                pgroup, dset = partprop.split("/")
+                if not pgroup in self.particle_properties:
+                    self.particle_properties[pgroup] = []
+                if not dset in self.particle_properties[pgroup]:
+                    self.particle_properties[pgroup].append(dset)
 
     def calculate(self, input_halo, search_radius, data, halo_result):
         """
@@ -1573,6 +1568,146 @@ def test_SO_properties():
 
             for prop in prop_calc.property_list:
                 outputname = prop[1]
+                size = prop[2]
+                dtype = prop[3]
+                unit_string = prop[4]
+                full_name = f"SO/{SO_name}/{outputname}"
+                assert full_name in halo_result
+                result = halo_result[full_name][0]
+                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
+                assert result.dtype == dtype
+                unit = unyt.Unit(unit_string)
+                assert result.units.same_dimensions_as(unit.units)
+
+    # Now test the calculation for each property individually, to make sure that
+    # all properties read all the datasets they require
+    all_parameters = parameters.get_parameters()
+    for property in all_parameters["SOProperties"]["properties"]:
+        print(f"Testing only {property}...")
+        single_property = dict(all_parameters)
+        for other_property in all_parameters["SOProperties"]["properties"]:
+            single_property["SOProperties"]["properties"][other_property] = (
+                other_property == property
+            ) or other_property.startswith("NumberOf")
+        single_parameters = ParameterFile(parameter_dictionary=single_property)
+
+        property_calculator_50kpc = SOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            filter,
+            cat_filter,
+            50.0,
+            "physical",
+        )
+        property_calculator_2500mean = SOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            filter,
+            cat_filter,
+            2500.0,
+            "mean",
+        )
+        property_calculator_2500crit = SOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            filter,
+            cat_filter,
+            2500.0,
+            "crit",
+        )
+        property_calculator_BN98 = SOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            filter,
+            cat_filter,
+            0.0,
+            "BN98",
+        )
+        property_calculator_5x2500mean = RadiusMultipleSOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            filter,
+            cat_filter,
+            2500.0,
+            5.0,
+            "mean",
+        )
+
+        halo_result_template = {
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType0"],
+                    dtype=PropertyTable.full_property_list["Ngas"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Ngas for filter",
+            ),
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType1"],
+                    dtype=PropertyTable.full_property_list["Ndm"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Ndm for filter",
+            ),
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType4"],
+                    dtype=PropertyTable.full_property_list["Nstar"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Nstar for filter",
+            ),
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType5"],
+                    dtype=PropertyTable.full_property_list["Nbh"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Nbh for filter",
+            ),
+        }
+        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax**3)
+
+        # force the SO radius to be within the search sphere
+        property_calculator_2500mean.reference_density = 2.0 * rho_ref
+        property_calculator_2500crit.reference_density = 2.0 * rho_ref
+        property_calculator_BN98.reference_density = 2.0 * rho_ref
+
+        for SO_name, prop_calc in [
+            ("50_kpc", property_calculator_50kpc),
+            ("2500_mean", property_calculator_2500mean),
+            ("2500_crit", property_calculator_2500crit),
+            ("BN98", property_calculator_BN98),
+            ("5xR_2500_mean", property_calculator_5x2500mean),
+        ]:
+
+            halo_result = dict(halo_result_template)
+            # make sure the radius multiple is found this time
+            if SO_name == "5xR_2500_mean":
+                halo_result[
+                    f"SO/2500_mean/{property_calculator_5x2500mean.radius_name}"
+                ] = (
+                    0.1 * rmax,
+                    "Dummy value to force correct behaviour",
+                )
+            input_data = {}
+            for ptype in prop_calc.particle_properties:
+                if ptype in data:
+                    input_data[ptype] = {}
+                    for dset in prop_calc.particle_properties[ptype]:
+                        input_data[ptype][dset] = data[ptype][dset]
+            input_halo_copy = input_halo.copy()
+            input_data_copy = input_data.copy()
+            prop_calc.calculate(input_halo, rmax, input_data, halo_result)
+            # make sure the calculation does not change the input
+            assert input_halo_copy == input_halo
+            assert input_data_copy == input_data
+
+            for prop in prop_calc.property_list:
+                outputname = prop[1]
+                if not outputname == property:
+                    continue
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]

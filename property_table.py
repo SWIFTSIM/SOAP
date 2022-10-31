@@ -335,6 +335,7 @@ class PropertyTable:
                 "PartType0/Coordinates",
                 "PartType0/Velocities",
                 "PartType0/ElectronNumberDensities",
+                "PartType0/Densities",
             ],
         ),
         "DtoTgas": (
@@ -520,7 +521,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Density", "PartType0/Pressure", "PartType0/Masses"],
+            ["PartType0/Densities", "PartType0/Pressures", "PartType0/Masses"],
         ),
         "GasAxisLengths": (
             "GasAxisLengths",
@@ -644,7 +645,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Density", "PartType0/LastSNIIThermalFeedbackScaleFactors"],
+            ["PartType0/Densities", "PartType0/LastSNIIThermalFeedbackScaleFactors"],
         ),
         "Lbaryons": (
             "AngularMomentumBaryons",
@@ -765,7 +766,7 @@ class PropertyTable:
                 "PartType0/Masses",
                 "PartType1/Masses",
                 "PartType4/Masses",
-                "PartType5/Masses",
+                "PartType5/DynamicalMasses",
                 "PartType0/GroupNr_bound",
                 "PartType1/GroupNr_bound",
                 "PartType4/GroupNr_bound",
@@ -1227,7 +1228,11 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/XrayLuminosities", "PartType0/LastAGNFeedbackScaleFactors"],
+            [
+                "PartType0/XrayLuminosities",
+                "PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/Temperatures",
+            ],
         ),
         "Xrayphlum": (
             "XRayPhotonLuminosity",
@@ -1251,7 +1256,8 @@ class PropertyTable:
             False,
             [
                 "PartType0/XrayPhotonLuminosities",
-                "PartType0/PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/Temperatures",
             ],
         ),
         "com": (
@@ -1316,7 +1322,11 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/ComptonYParameters", "PartType0/LastAGNFeedbackScaleFactors"],
+            [
+                "PartType0/ComptonYParameters",
+                "PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/Temperatures",
+            ],
         ),
         "gasFefrac": (
             "GasMassFractionInIron",
