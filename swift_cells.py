@@ -183,7 +183,7 @@ class SWIFTCellGrid:
                 column_names = infile["SubgridScheme"]["NamedColumns"][name][:]
                 self.named_columns[name] = {}
                 for iname, colname in enumerate(column_names):
-                   self.named_columns[name][colname] = iname
+                   self.named_columns[name][colname.decode("utf-8")] = iname
             print(self.named_columns)
 
             # Store units groups
