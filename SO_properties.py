@@ -19,10 +19,6 @@ from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
 
-# index of elements O and Fe in the SmoothedElementMassFractions dataset
-indexO = 4
-indexFe = 8
-
 
 def cumulative_mass_intersection(r, rho_dim, slope_dim):
     """
@@ -166,11 +162,15 @@ class SOParticleData:
         recently_heated_gas_filter,
         nu_density,
         observer_position,
+        indexO,
+        indexFe,
     ):
         self.input_halo = input_halo
         self.data = data
         self.types_present = types_present
         self.recently_heated_gas_filter = recently_heated_gas_filter
+        self.indexO = indexO
+        self.indexFe = indexFe
         self.nu_density = nu_density
         self.observer_position = observer_position
         self.compute_basics()
@@ -607,22 +607,26 @@ class SOParticleData:
     def gasOfrac(self):
         if self.Ngas == 0:
             return None
+        if self.indexO is None:
+            raise RuntimeError("Index of Oxygen not found in snapshot!")
         return (
             self.gas_masses
             * self.data["PartType0"]["SmoothedElementMassFractions"][
                 self.gas_selection
-            ][:, indexO]
+            ][:, self.indexO]
         ).sum() / self.Mgas
 
     @lazy_property
     def gasFefrac(self):
         if self.Ngas == 0:
             return None
+        if self.indexFe is None:
+            raise RuntimeError("Index of Iron not found in snapshot!")
         return (
             self.gas_masses
             * self.data["PartType0"]["SmoothedElementMassFractions"][
                 self.gas_selection
-            ][:, indexFe]
+            ][:, self.indexFe]
         ).sum() / self.Mgas
 
     @lazy_property
@@ -880,22 +884,26 @@ class SOParticleData:
     def starOfrac(self):
         if self.Nstar == 0:
             return None
+        if self.indexO is None:
+            raise RuntimeError("Index of Oxygen not found in snapshot!")
         return (
             self.star_masses
             * self.data["PartType4"]["SmoothedElementMassFractions"][
                 self.star_selection
-            ][:, indexO]
+            ][:, self.indexO]
         ).sum() / self.Mstar
 
     @lazy_property
     def starFefrac(self):
         if self.Nstar == 0:
             return None
+        if self.indexFe is None:
+            raise RuntimeError("Index of Iron not found in snapshot!")
         return (
             self.star_masses
             * self.data["PartType4"]["SmoothedElementMassFractions"][
                 self.star_selection
-            ][:, indexFe]
+            ][:, self.indexFe]
         ).sum() / self.Mstar
 
     @lazy_property
@@ -1107,6 +1115,13 @@ class SOProperties(HaloProperty):
         self.filter = recently_heated_gas_filter
         self.category_filter = category_filter
 
+        if "ElementMassFractions" in cellgrid.named_columns:
+            self.indexO = cellgrid.named_columns["ElementMassFractions"]["Oxygen"]
+            self.indexFe = cellgrid.named_columns["ElementMassFractions"]["Iron"]
+        else:
+            self.indexO = None
+            self.indexFe = None
+
         self.observer_position = cellgrid.observer_position
 
         # in the neutrino model, the mean neutrino density is implicitly
@@ -1267,6 +1282,8 @@ class SOProperties(HaloProperty):
                 self.filter,
                 self.nu_density,
                 self.observer_position,
+                self.indexO,
+                self.indexFe,
             )
 
             # we need to make sure the physical radius uses the correct unit

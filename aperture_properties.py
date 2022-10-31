@@ -20,12 +20,6 @@ from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
 
-# index of elements O and Fe in the SmoothedElementMassFractions dataset
-indexO = 4
-indexFe = 8
-
-rbandindex = 2
-
 
 class ApertureParticleData:
     def __init__(
@@ -37,6 +31,9 @@ class ApertureParticleData:
         aperture_radius,
         stellar_age_calculator,
         recently_heated_gas_filter,
+        rbandindex,
+        indexO,
+        indexFe,
     ):
         self.input_halo = input_halo
         self.data = data
@@ -45,6 +42,9 @@ class ApertureParticleData:
         self.aperture_radius = aperture_radius
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
+        self.rbandindex = rbandindex
+        self.indexO = indexO
+        self.indexFe = indexFe
         self.compute_basics()
 
     def compute_basics(self):
@@ -243,11 +243,13 @@ class ApertureParticleData:
     def stellar_MstarO(self):
         if self.Nstar == 0:
             return None
+        if self.indexO is None:
+            raise RuntimeError("Index of Oxygen not found in snapshot!")
         return (
             self.mass_star
             * self.data["PartType4"]["SmoothedElementMassFractions"][
                 self.star_mask_all
-            ][self.star_mask_ap][:, indexO]
+            ][self.star_mask_ap][:, self.indexO]
         )
 
     @lazy_property
@@ -260,11 +262,13 @@ class ApertureParticleData:
     def stellar_MstarFe(self):
         if self.Nstar == 0:
             return None
+        if self.indexFe is None:
+            raise RuntimeError("Index of Iron not found in snapshot!")
         return (
             self.mass_star
             * self.data["PartType4"]["SmoothedElementMassFractions"][
                 self.star_mask_all
-            ][self.star_mask_ap][:, indexFe]
+            ][self.star_mask_ap][:, self.indexFe]
         )
 
     @lazy_property
@@ -298,7 +302,9 @@ class ApertureParticleData:
     def stellar_age_lw(self):
         if self.Nstar == 0:
             return None
-        Lr = self.stellar_luminosities[:, rbandindex]
+        if self.rbandindex is None:
+            raise RuntimeError("R band index not found in snapshot!")
+        Lr = self.stellar_luminosities[:, self.rbandindex]
         Lrtot = Lr.sum()
         if Lrtot == 0:
             return None
@@ -684,11 +690,13 @@ class ApertureParticleData:
     def gas_MgasO(self):
         if self.Ngas == 0:
             return None
+        if self.indexO is None:
+            raise RuntimeError("Index of Oxygen not found in snapshot!")
         return (
             self.mass_gas
             * self.data["PartType0"]["SmoothedElementMassFractions"][self.gas_mask_all][
                 self.gas_mask_ap
-            ][:, indexO]
+            ][:, self.indexO]
         )
 
     @lazy_property
@@ -707,11 +715,13 @@ class ApertureParticleData:
     def gas_MgasFe(self):
         if self.Ngas == 0:
             return None
+        if self.indexFe is None:
+            raise RuntimeError("Index of Iron not found in snapshot!")
         return (
             self.mass_gas
             * self.data["PartType0"]["SmoothedElementMassFractions"][self.gas_mask_all][
                 self.gas_mask_ap
-            ][:, indexFe]
+            ][:, self.indexFe]
         )
 
     @lazy_property
@@ -892,6 +902,17 @@ class ApertureProperties(HaloProperty):
         self.stellar_ages = stellar_age_calculator
         self.category_filter = category_filter
 
+        if "Luminosities" in cellgrid.named_columns:
+            self.rbandindex = cellgrid.named_columns["Luminosities"]["GAMA_r"]
+        else:
+            self.rbandindex = None
+        if "ElementMassFractions" in cellgrid.named_columns:
+            self.indexO = cellgrid.named_columns["ElementMassFractions"]["Oxygen"]
+            self.indexFe = cellgrid.named_columns["ElementMassFractions"]["Iron"]
+        else:
+            self.indexO = None
+            self.indexFe = None
+
         # no density criterion for these properties
         self.mean_density_multiple = None
         self.critical_density_multiple = None
@@ -967,6 +988,9 @@ class ApertureProperties(HaloProperty):
             self.physical_radius_mpc * unyt.Mpc,
             self.stellar_ages,
             self.filter,
+            self.rbandindex,
+            self.indexO,
+            self.indexFe,
         )
 
         do_calculation = self.category_filter.get_filters(halo_result)

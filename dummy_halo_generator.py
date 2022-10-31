@@ -141,6 +141,12 @@ class DummyCellGrid:
         self.boxsize = unyt.unyt_quantity(100.0, units=comoving_length_unit)
         self.observer_position = unyt.unyt_array([50.0] * 3, units=comoving_length_unit)
 
+        # Named columns
+        self.named_columns = {
+            "ElementMassFractions": {"Oxygen": 4, "Iron": 8},
+            "Luminosities": {"GAMA_r": 2},
+        }
+
 
 class DummyHaloGenerator:
     """

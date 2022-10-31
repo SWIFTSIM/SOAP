@@ -177,6 +177,15 @@ class SWIFTCellGrid:
             for name in infile["PhysicalConstants"]["InternalUnits"].attrs:
                 self.constants_internal[name] = infile["PhysicalConstants"]["InternalUnits"].attrs[name][0]
 
+            # Read named columns
+            self.named_columns = {}
+            for name in infile["SubgridScheme"]["NamedColumns"]:
+                column_names = infile["SubgridScheme"]["NamedColumns"][name][:]
+                self.named_columns[name] = {}
+                for iname, colname in enumerate(column_names):
+                   self.named_columns[name][colname] = iname
+            print(self.named_columns)
+
             # Store units groups
             self.swift_units_group = {}
             for name in infile["Units"].attrs:

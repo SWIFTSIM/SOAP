@@ -20,8 +20,6 @@ from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
 
-rbandindex = 2
-
 
 class SubhaloParticleData:
     def __init__(
@@ -32,6 +30,7 @@ class SubhaloParticleData:
         grnr,
         stellar_age_calculator,
         recently_heated_gas_filter,
+        rbandindex,
     ):
         self.input_halo = input_halo
         self.data = data
@@ -39,6 +38,7 @@ class SubhaloParticleData:
         self.grnr = grnr
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
+        self.rbandindex = rbandindex
         self.compute_basics()
 
     def compute_basics(self):
@@ -229,7 +229,9 @@ class SubhaloParticleData:
     def stellar_age_lw(self):
         if self.Nstar == 0:
             return None
-        Lr = self.stellar_luminosities[:, rbandindex]
+        if self.rbandindex is None:
+            raise RuntimeError("R band index required but not found in snapshot!")
+        Lr = self.stellar_luminosities[:, self.rbandindex]
         Lrtot = Lr.sum()
         return ((Lr / Lrtot) * self.stellar_ages).sum()
 
@@ -825,6 +827,10 @@ class SubhaloProperties(HaloProperty):
         self.filter = recently_heated_gas_filter
         self.stellar_ages = stellar_age_calculator
         self.category_filter = category_filter
+        if "Luminosities" in cellgrid.named_columns:
+            self.rbandindex = cellgrid.named_columns["Luminosities"]["GAMA_r"]
+        else:
+            self.rbandindex = None
 
         # This specifies how large a sphere is read in:
         self.mean_density_multiple = None
@@ -910,6 +916,7 @@ class SubhaloProperties(HaloProperty):
             self.grnr,
             self.stellar_ages,
             self.filter,
+            self.rbandindex,
         )
 
         if not self.bound_only:
