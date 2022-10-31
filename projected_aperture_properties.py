@@ -481,35 +481,6 @@ class ProjectedApertureProperties(HaloProperty):
         ]
     ]
 
-    # Particle properties that are used
-    particle_properties = {
-        "PartType0": [
-            "Coordinates",
-            "GroupNr_bound",
-            "Masses",
-            "StarFormationRates",
-            "Velocities",
-        ],
-        "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
-        "PartType4": [
-            "Coordinates",
-            "GroupNr_bound",
-            "InitialMasses",
-            "Luminosities",
-            "Masses",
-            "Velocities",
-        ],
-        "PartType5": [
-            "Coordinates",
-            "DynamicalMasses",
-            "GroupNr_bound",
-            "LastAGNFeedbackScaleFactors",
-            "ParticleIDs",
-            "SubgridMasses",
-            "Velocities",
-        ],
-    }
-
     def __init__(self, cellgrid, parameters, physical_radius_kpc, category_filter):
         super().__init__(cellgrid)
 
@@ -527,6 +498,43 @@ class ProjectedApertureProperties(HaloProperty):
         self.category_filter = category_filter
 
         self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
+
+        # Particle properties that are used
+        self.particle_properties = {
+            "PartType0": [
+                "Coordinates",
+                "GroupNr_bound",
+                "Masses",
+                "Velocities",
+            ],
+            "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
+            "PartType4": [
+                "Coordinates",
+                "GroupNr_bound",
+                "Masses",
+                "Velocities",
+            ],
+            "PartType5": [
+                "Coordinates",
+                "DynamicalMasses",
+                "GroupNr_bound",
+                "Velocities",
+            ],
+        }
+        for prop in self.property_list:
+            outputname = prop[1]
+            if not self.property_mask[outputname]:
+                continue
+            is_dmo = prop[8]
+            if self.category_filter.dmo and not is_dmo:
+                continue
+            partprops = prop[9]
+            for partprop in partprops:
+                pgroup, dset = partprop.split("/")
+                if not pgroup in self.particle_properties:
+                    self.particle_properties[pgroup] = []
+                if not dset in self.particle_properties[pgroup]:
+                    self.particle_properties[pgroup].append(dset)
 
     def calculate(self, input_halo, search_radius, data, halo_result):
         """
@@ -702,6 +710,90 @@ def test_projected_aperture_properties():
         for proj in ["projx", "projy", "projz"]:
             for prop in property_calculator.property_list:
                 outputname = prop[1]
+                size = prop[2]
+                dtype = prop[3]
+                unit_string = prop[4]
+                full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
+                assert full_name in halo_result
+                result = halo_result[full_name][0]
+                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
+                assert result.dtype == dtype
+                unit = unyt.Unit(unit_string)
+                assert result.units.same_dimensions_as(unit.units)
+
+    # Now test the calculation for each property individually, to make sure that
+    # all properties read all the datasets they require
+    all_parameters = parameters.get_parameters()
+    for property in all_parameters["ProjectedApertureProperties"]["properties"]:
+        print(f"Testing only {property}...")
+        single_property = dict(all_parameters)
+        for other_property in all_parameters["ProjectedApertureProperties"][
+            "properties"
+        ]:
+            single_property["ProjectedApertureProperties"]["properties"][
+                other_property
+            ] = (other_property == property) or other_property.startswith("NumberOf")
+        single_parameters = ParameterFile(parameter_dictionary=single_property)
+
+        property_calculator = ProjectedApertureProperties(
+            dummy_halos.get_cell_grid(), single_parameters, 30.0, category_filter
+        )
+
+        halo_result_template = {
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType0"],
+                    dtype=PropertyTable.full_property_list["Ngas"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Ngas for filter",
+            ),
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType1"],
+                    dtype=PropertyTable.full_property_list["Ndm"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Ndm for filter",
+            ),
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType4"],
+                    dtype=PropertyTable.full_property_list["Nstar"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Nstar for filter",
+            ),
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType5"],
+                    dtype=PropertyTable.full_property_list["Nbh"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Nbh for filter",
+            ),
+        }
+
+        input_data = {}
+        for ptype in property_calculator.particle_properties:
+            if ptype in data:
+                input_data[ptype] = {}
+                for dset in property_calculator.particle_properties[ptype]:
+                    input_data[ptype][dset] = data[ptype][dset]
+        input_halo_copy = input_halo.copy()
+        input_data_copy = input_data.copy()
+        halo_result = dict(halo_result_template)
+        property_calculator.calculate(
+            input_halo, 0.0 * unyt.kpc, input_data, halo_result
+        )
+        assert input_halo == input_halo_copy
+        assert input_data == input_data_copy
+
+        for proj in ["projx", "projy", "projz"]:
+            for prop in property_calculator.property_list:
+                outputname = prop[1]
+                if not outputname == property:
+                    continue
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
