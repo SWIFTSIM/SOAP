@@ -880,7 +880,7 @@ class SubhaloProperties(HaloProperty):
                 continue
             partprops = prop[9]
             for partprop in partprops:
-                pgroup, dset = partprop.split("/")
+                pgroup, dset = parameters.get_particle_property(partprop)
                 if not pgroup in self.particle_properties:
                     self.particle_properties[pgroup] = []
                 if not dset in self.particle_properties[pgroup]:
@@ -1005,7 +1005,14 @@ def test_subhalo_properties():
     # initialise the DummyHaloGenerator with a random seed
     dummy_halos = DummyHaloGenerator(16902)
     cat_filter = CategoryFilter()
-    parameters = ParameterFile()
+    parameters = ParameterFile(
+        parameter_dictionary={
+            "aliases": {
+                "PartType0/ElementMassFractions": "PartType0/SmoothedElementMassFractions",
+                "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
+            }
+        }
+    )
     parameters.get_halo_type_variations(
         "SubhaloProperties",
         {"FOF": {"bound_only": False}, "Bound": {"bound_only": True}},

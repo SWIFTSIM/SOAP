@@ -47,3 +47,14 @@ class ParameterFile:
                     default_variations[variation]
                 )
         return dict(self.parameters[halo_type]["variations"])
+
+    def get_particle_property(self, property_name):
+        if "aliases" in self.parameters:
+            if property_name in self.parameters["aliases"]:
+                property_name = self.parameters["aliases"][property_name]
+        parts = property_name.split("/")
+        if not len(parts) == 2:
+            raise RuntimeError(
+                f'Unable to parse particle property name "{property_name}"!'
+            )
+        return parts[0], parts[1]

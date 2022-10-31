@@ -530,7 +530,7 @@ class ProjectedApertureProperties(HaloProperty):
                 continue
             partprops = prop[9]
             for partprop in partprops:
-                pgroup, dset = partprop.split("/")
+                pgroup, dset = parameters.get_particle_property(partprop)
                 if not pgroup in self.particle_properties:
                     self.particle_properties[pgroup] = []
                 if not dset in self.particle_properties[pgroup]:
@@ -642,7 +642,14 @@ def test_projected_aperture_properties():
 
     dummy_halos = DummyHaloGenerator(127)
     category_filter = CategoryFilter()
-    parameters = ParameterFile()
+    parameters = ParameterFile(
+        parameter_dictionary={
+            "aliases": {
+                "PartType0/ElementMassFractions": "PartType0/SmoothedElementMassFractions",
+                "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
+            }
+        }
+    )
     parameters.get_halo_type_variations(
         "ProjectedApertureProperties", {"30_kpc": {"radius_in_kpc": 30.0}}
     )
