@@ -34,6 +34,7 @@ class ParameterFile:
                 mask[property] = self.parameters[halo_type]["properties"][property]
             else:
                 mask[property] = True
+                self.parameters[halo_type]["properties"][property] = True
         return mask
 
     def get_halo_type_variations(self, halo_type, default_variations={}):
