@@ -1327,7 +1327,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Masses", "PartType0/ElementMassFractions"],
+            ["PartType0/Masses", "PartType0/SmoothedElementMassFractions"],
         ),
         "gasFefrac_SF": (
             "StarFormingGasMassFractionInIron",
@@ -1340,7 +1340,7 @@ class PropertyTable:
             False,
             [
                 "PartType0/Masses",
-                "PartType0/ElementMassFractions",
+                "PartType0/SmoothedElementMassFractions",
                 "PartType0/StarFormationRates",
             ],
         ),
@@ -1353,7 +1353,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Masses", "PartType0/ElementMassFractions"],
+            ["PartType0/Masses", "PartType0/SmoothedElementMassFractions"],
         ),
         "gasOfrac_SF": (
             "StarFormingGasMassFractionInOxygen",
@@ -1366,7 +1366,7 @@ class PropertyTable:
             False,
             [
                 "PartType0/Masses",
-                "PartType0/ElementMassFractions",
+                "PartType0/SmoothedElementMassFractions",
                 "PartType0/StarFormationRates",
             ],
         ),
@@ -1525,7 +1525,7 @@ class PropertyTable:
             "star",
             "FMantissa9",
             False,
-            ["PartType4/Masses", "PartType4/ElementMassFractions"],
+            ["PartType4/Masses", "PartType4/SmoothedElementMassFractions"],
         ),
         "starMgfrac": (
             "StellarMassFractionInMagnesium",
@@ -1536,7 +1536,7 @@ class PropertyTable:
             "star",
             "FMantissa9",
             False,
-            ["PartType4/Masses", "PartType4/ElementMassFractions"],
+            ["PartType4/Masses", "PartType4/SmoothedElementMassFractions"],
         ),
         "starOfrac": (
             "StellarMassFractionInOxygen",
@@ -1547,7 +1547,7 @@ class PropertyTable:
             "star",
             "FMantissa9",
             False,
-            ["PartType4/Masses", "PartType4/ElementMassFractions"],
+            ["PartType4/Masses", "PartType4/SmoothedElementMassFractions"],
         ),
         "starmetalfrac": (
             "StellarMassFractionInMetals",

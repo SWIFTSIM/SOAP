@@ -799,43 +799,6 @@ class ApertureProperties(HaloProperty):
     are bound to the halo.
     """
 
-    # List of particle properties we need to read in
-    particle_properties = {
-        "PartType0": [
-            "Coordinates",
-            "GroupNr_bound",
-            "LastAGNFeedbackScaleFactors",
-            "Masses",
-            "MetalMassFractions",
-            "SmoothedElementMassFractions",
-            "StarFormationRates",
-            "Temperatures",
-            "Velocities",
-        ],
-        "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
-        "PartType4": [
-            "BirthScaleFactors",
-            "Coordinates",
-            "GroupNr_bound",
-            "InitialMasses",
-            "Luminosities",
-            "Masses",
-            "MetalMassFractions",
-            "SmoothedElementMassFractions",
-            "Velocities",
-        ],
-        "PartType5": [
-            "AccretionRates",
-            "Coordinates",
-            "DynamicalMasses",
-            "GroupNr_bound",
-            "LastAGNFeedbackScaleFactors",
-            "ParticleIDs",
-            "SubgridMasses",
-            "Velocities",
-        ],
-    }
-
     # get the properties we want from the table
     property_list = [
         (prop, *PropertyTable.full_property_list[prop])
@@ -942,6 +905,43 @@ class ApertureProperties(HaloProperty):
             self.name = f"inclusive_sphere_{physical_radius_kpc:.0f}kpc"
         else:
             self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
+
+        # List of particle properties we need to read in
+        self.particle_properties = {
+            "PartType0": [
+                "Coordinates",
+                "GroupNr_bound",
+                "Masses",
+                "Velocities",
+            ],
+            "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
+            "PartType4": [
+                "Coordinates",
+                "GroupNr_bound",
+                "Masses",
+                "Velocities",
+            ],
+            "PartType5": [
+                "Coordinates",
+                "DynamicalMasses",
+                "GroupNr_bound",
+                "Velocities",
+            ],
+        }
+        for prop in self.property_list:
+            outputname = prop[1]
+            if not self.property_mask[outputname]:
+                continue
+            is_dmo = prop[8]
+            if self.category_filter.dmo and not is_dmo:
+                continue
+            partprops = prop[9]
+            for partprop in partprops:
+                pgroup, dset = partprop.split("/")
+                if not pgroup in self.particle_properties:
+                    self.particle_properties[pgroup] = []
+                if not dset in self.particle_properties[pgroup]:
+                    self.particle_properties[pgroup].append(dset)
 
     def calculate(self, input_halo, search_radius, data, halo_result):
         """
@@ -1186,6 +1186,101 @@ def test_aperture_properties():
             # check that the calculation returns the correct values
             for prop in pc_calc.property_list:
                 outputname = prop[1]
+                size = prop[2]
+                dtype = prop[3]
+                unit_string = prop[4]
+                full_name = f"{pc_type}/50kpc/{outputname}"
+                assert full_name in halo_result
+                result = halo_result[full_name][0]
+                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
+                assert result.dtype == dtype
+                unit = unyt.Unit(unit_string)
+                assert result.units.same_dimensions_as(unit.units)
+
+    # Now test the calculation for each property individually, to make sure that
+    # all properties read all the datasets they require
+    all_parameters = parameters.get_parameters()
+    for property in all_parameters["ApertureProperties"]["properties"]:
+        print(f"Testing only {property}...")
+        single_property = dict(all_parameters)
+        for other_property in all_parameters["ApertureProperties"]["properties"]:
+            single_property["ApertureProperties"]["properties"][other_property] = (
+                other_property == property
+            ) or other_property.startswith("NumberOf")
+        single_parameters = ParameterFile(parameter_dictionary=single_property)
+        pc_exclusive = ExclusiveSphereProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            50.0,
+            filter,
+            stellar_age_calculator,
+            cat_filter,
+        )
+        pc_inclusive = InclusiveSphereProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            50.0,
+            filter,
+            stellar_age_calculator,
+            cat_filter,
+        )
+
+        halo_result_template = {
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType0"],
+                    dtype=PropertyTable.full_property_list["Ngas"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Ngas for filter",
+            ),
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType1"],
+                    dtype=PropertyTable.full_property_list["Ndm"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Ndm for filter",
+            ),
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType4"],
+                    dtype=PropertyTable.full_property_list["Nstar"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Nstar for filter",
+            ),
+            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType5"],
+                    dtype=PropertyTable.full_property_list["Nbh"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Nbh for filter",
+            ),
+        }
+        for pc_type, pc_calc in [
+            ("ExclusiveSphere", pc_exclusive),
+            ("InclusiveSphere", pc_inclusive),
+        ]:
+            input_data = {}
+            for ptype in pc_calc.particle_properties:
+                if ptype in data:
+                    input_data[ptype] = {}
+                    for dset in pc_calc.particle_properties[ptype]:
+                        input_data[ptype][dset] = data[ptype][dset]
+            input_halo_copy = input_halo.copy()
+            input_data_copy = input_data.copy()
+            halo_result = dict(halo_result_template)
+            pc_calc.calculate(input_halo, 0.0 * unyt.kpc, input_data, halo_result)
+            assert input_halo == input_halo_copy
+            assert input_data == input_data_copy
+
+            # check that the calculation returns the correct values
+            for prop in pc_calc.property_list:
+                outputname = prop[1]
+                if not outputname == property:
+                    continue
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
