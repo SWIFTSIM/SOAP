@@ -11,11 +11,13 @@
 
 \title{SOAP -- Spherical Overdensity and Aperture Processor}
 \author{Bert Vandenbroucke, Joop Schaye, John Helly, Matthieu Schaller}
-\date{August 2022}
+\date{}
 
 \begin{document}
 
 \maketitle
+
+\input{timestamp}
 
 \section{Introduction}
 
@@ -133,11 +135,11 @@ The different categories are summarised in the table below.
 \begin{longtable}{ll}
 Name & criterion \\
 \hline{}basic & (all halos) \\
-general & $N_{\rm{}gas}+N_{\rm{}dm}+N_{\rm{}star}+N_{\rm{}BH} > 100$ \\
-gas & $N_{\rm{}gas} > 50$ \\
-dm & $N_{\rm{}dm} > 100$ \\
-star & $N_{\rm{}star} > 50$ \\
-baryon & $N_{\rm{}gas}+N_{\rm{}star} > 100$ \\
+general & $N_{\rm{}gas}+N_{\rm{}dm}+N_{\rm{}star}+N_{\rm{}BH} \geq{} 100$ \\
+gas & $N_{\rm{}gas} \geq{} 100$ \\
+dm & $N_{\rm{}dm} \geq{} 100$ \\
+star & $N_{\rm{}star} \geq{} 100$ \\
+baryon & $N_{\rm{}gas}+N_{\rm{}star} \geq{} 100$ \\
 \end{longtable}
 
 \section{Overview table}
@@ -149,6 +151,10 @@ Superscript numbers refer to more detailed explanations for some of the properti
 the next section. The properties at the end of the table that are categorised as `VR' correspond to properties 
 that are directly copied from the VR catalogue and are only listed for completeness. These do not belong to 
 any type. Properties colored violet are also computed when SOAP is run in dark matter only (DMO) mode.
+
+Note that all units are always physical, and that the SOAP output contains all the relevant meta-data to 
+convert between physical and co-moving units, i.e. information about how the quantity depends on the 
+scale-factor and what the conversion factor to and from CGS units is. All quantities are $h$-free.
 
 \input{table}
 
@@ -171,7 +177,7 @@ inconsistent, in the sense that the condition
 is not guaranteed to be true, and will be especially violated for large radial bins (the bins are generated 
 from the particle radii by sorting the particles, so we have no control over their width). We instead opt to 
 guarantee this condition by only finding $R_{\rm{}SO}$ or $M_{\rm{}SO}$ by interpolation and using eq. 
-\ref{eq:MSO_condition} to derive the other quantity.
+(\ref{eq:MSO_condition}) to derive the other quantity.
 
 \begin{figure}
     \centering
@@ -220,25 +226,22 @@ For clarity, this is the full set of rules for determining the SO radius in SOAP
     \begin{enumerate}
         \item If there are none, analytically compute $R_{\rm{}SO}=\sqrt{3M_1/(4\pi{}R_1\rho_{\rm{}target})}$, 
         where $R_1$ and $M_1$ are the first non zero radius and the corresponding cumulative mass. This is a 
-        special case of Eq. \ref{eq:RSO}. Unless there are multiple particles at the exact centre of potential 
+        special case of Eq. (\ref{eq:RSO}). Unless there are multiple particles at the exact centre of potential 
         position, this radius estimate will then be based on just two particles.
-        \item If the first intersection point has a positive slope, i.e. the density was actually below the 
-        threshold in the centre, we use the next intersection point, which then necessarily should have a 
-        negative slope (if such a point does not exist, we need to increase the search radius).
-        \item In all other cases, we use $R_{1,2}$ and $M_{1,2}$ as input for Eq. \ref{eq:RSO} and solve for 
+        \item In all other cases, we use $R_{1,2}$ and $M_{1,2}$ as input for Eq. (\ref{eq:RSO}) and solve for 
         $R_{\rm{}SO}$. The only exception is the special case where $R_1 = R_2$. If that happens, we simply 
         move further down the line until we find a suitable interval.
 
     \end{enumerate}
-    \item From $R_{\rm{}SO}$, we determine $M_{\rm{}SO}$ using Eq. \ref{eq:MSO_condition}.
+    \item From $R_{\rm{}SO}$, we determine $M_{\rm{}SO}$ using Eq. (\ref{eq:MSO_condition}).
 \end{enumerate}
 
-\paragraph{Neutrinos are included} in the inclusive sphere calculation (and only here, since neutrino 
-particles cannot be bound to a halo) by adding both their weighted masses (which can be negative), as well as 
-the contribution from the background neutrino density. The latter is achieved by explicitly adding the 
-cumulative mass profile at constant neutrino density to the total cumulative mass profile before computing the 
-density profile. This is the only place where neutrinos explicitly enter the algorithm, except for the 
-neutrino masses computed for the SOs. Neutrinos are not included in the calculation of the centre of mass and 
-centre of mass velocity.
+\paragraph{Neutrinos -- if present in the model -- are included} in the inclusive sphere calculation (and only 
+here, since neutrino particles cannot be bound to a halo) by adding both their weighted masses (which can be 
+negative), as well as the contribution from the background neutrino density. The latter is achieved by 
+explicitly adding the cumulative mass profile at constant neutrino density to the total cumulative mass 
+profile before computing the density profile. This is the only place where neutrinos explicitly enter the 
+algorithm, except for the neutrino masses computed for the SOs. Neutrinos are not included in the calculation 
+of the centre of mass and centre of mass velocity.
 
 \end{document}

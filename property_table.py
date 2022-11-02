@@ -2,6 +2,22 @@
 
 import numpy as np
 import unyt
+import subprocess
+import datetime
+import os
+
+
+def get_version_string():
+    handle = subprocess.run("git describe --always", shell=True, stdout=subprocess.PIPE)
+    if handle.returncode != 0:
+        git_version = "Unknown SOAP version"
+    else:
+        git_version = handle.stdout.decode("utf-8").strip()
+        git_version = f"SOAP version ``{git_version}''"
+    timestamp = datetime.datetime.now().strftime("%A %-d %B %Y, %H:%M:%S")
+    username = os.getlogin()
+    hostname = os.uname().nodename
+    return f"{git_version} -- Compiled by user ``{username}'' on {hostname} on {timestamp}."
 
 
 class PropertyTable:
@@ -1149,7 +1165,7 @@ class PropertyTable:
             3,
             np.float64,
             "Mpc",
-            "Centre of potential, as identified by VR. Used as reference for all relative positions.",
+            "Centre of potential, as identified by VR. Used as reference for all relative positions. Equal to the position of the most bound particle in the subhalo.",
             "VR",
             "DScale5",
             True,
@@ -1788,7 +1804,7 @@ class PropertyTable:
             )
         print("}")
 
-    def print_table(self, tablefile, footnotefile):
+    def print_table(self, tablefile, footnotefile, timestampfile):
         prop_names = sorted(
             self.properties.keys(),
             key=lambda key: (
@@ -1868,6 +1884,8 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
         tablestr += """\\end{longtable}
 \\end{landscape}"""
         tailstr = "\\end{document}"
+        with open(timestampfile, "w") as ofile:
+            ofile.write(get_version_string())
         with open(tablefile, "w") as ofile:
             ofile.write(tablestr)
         with open(footnotefile, "w") as ofile:
@@ -1901,7 +1919,11 @@ if __name__ == "__main__":
     table.add_properties(SubhaloProperties)
     table.add_properties(DummyProperties)
 
-    if True:
+    if False:
         table.print_dictionary()
     else:
-        table.print_table("documentation/table.tex", "documentation/footnotes.tex")
+        table.print_table(
+            "documentation/table.tex",
+            "documentation/footnotes.tex",
+            "documentation/timestamp.tex",
+        )
