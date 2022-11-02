@@ -54,7 +54,7 @@ class SubhaloParticleData:
         velocity = []
         types = []
         for ptype in self.types_present:
-            grnr = self.data[ptype][self.grnr]
+            grnr = self.get_dataset(f"{ptype}/{self.grnr}")
             in_halo = grnr == self.index
             mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
             pos = (
