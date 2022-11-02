@@ -903,8 +903,6 @@ class PropertyTable:
                 "PartType1/Masses",
                 "PartType4/Masses",
                 "PartType5/DynamicalMasses",
-                "PartType6/Masses",
-                "PartType6/Weights",
             ],
         ),
         "Nbh": (
