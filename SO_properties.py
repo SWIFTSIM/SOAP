@@ -162,18 +162,20 @@ class SOParticleData:
         recently_heated_gas_filter,
         nu_density,
         observer_position,
-        indexO,
-        indexFe,
+        snapshot_datasets,
     ):
         self.input_halo = input_halo
         self.data = data
+        self.has_neutrinos = "PartType6" in data
         self.types_present = types_present
         self.recently_heated_gas_filter = recently_heated_gas_filter
-        self.indexO = indexO
-        self.indexFe = indexFe
         self.nu_density = nu_density
         self.observer_position = observer_position
+        self.snapshot_datasets = snapshot_datasets
         self.compute_basics()
+
+    def get_dataset(self, name):
+        return self.snapshot_datasets.get_dataset(name, self.data)
 
     def compute_basics(self):
         self.centre = self.input_halo["cofp"]
@@ -191,16 +193,16 @@ class SOParticleData:
                 # add neutrinos separately, since we need to treat them
                 # differently
                 continue
-            mass.append(self.data[ptype][mass_dataset(ptype)])
-            pos = self.data[ptype]["Coordinates"] - self.centre[None, :]
+            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}"))
+            pos = self.get_dataset(f"{ptype}/Coordinates") - self.centre[None, :]
             position.append(pos)
             r = np.sqrt(np.sum(pos**2, axis=1))
             radius.append(r)
-            velocity.append(self.data[ptype]["Velocities"])
+            velocity.append(self.get_dataset(f"{ptype}/Velocities"))
             typearr = np.zeros(r.shape, dtype="U9")
             typearr[:] = ptype
             types.append(typearr)
-            groupnr.append(self.data[ptype]["GroupNr_bound"])
+            groupnr.append(self.get_dataset(f"{ptype}/GroupNr_bound"))
         self.mass = unyt.array.uconcatenate(mass)
         self.radius = unyt.array.uconcatenate(radius)
         self.position = unyt.array.uconcatenate(position)
@@ -214,11 +216,11 @@ class SOParticleData:
 
     def compute_SO_radius_and_mass(self, reference_density, physical_radius):
         # add neutrinos
-        if "PartType6" in self.data:
-            numass = (
-                self.data["PartType6"]["Masses"] * self.data["PartType6"]["Weights"]
+        if self.has_neutrinos:
+            numass = self.get_dataset("PartType6/Masses") * self.get_dataset(
+                "PartType6/Weights"
             )
-            pos = self.data["PartType6"]["Coordinates"] - self.centre[None, :]
+            pos = self.get_dataset("PartType6/Coordinates") - self.centre[None, :]
             nur = np.sqrt(np.sum(pos**2, axis=1))
             all_mass = unyt.array.uconcatenate([self.mass, numass])
             all_r = unyt.array.uconcatenate([self.radius, nur])
@@ -594,7 +596,7 @@ class SOParticleData:
             return None
         return (
             self.gas_masses
-            * self.data["PartType0"]["MetalMassFractions"][self.gas_selection]
+            * self.get_dataset("PartType0/MetalMassFractions")[self.gas_selection]
         )
 
     @lazy_property
@@ -607,33 +609,33 @@ class SOParticleData:
     def gasOfrac(self):
         if self.Ngas == 0:
             return None
-        if self.indexO is None:
-            raise RuntimeError("Index of Oxygen not found in snapshot!")
         return (
             self.gas_masses
-            * self.data["PartType0"]["SmoothedElementMassFractions"][
-                self.gas_selection
-            ][:, self.indexO]
+            * self.get_dataset("PartType0/ElementMassFractions")[self.gas_selection][
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Oxygen"
+                ),
+            ]
         ).sum() / self.Mgas
 
     @lazy_property
     def gasFefrac(self):
         if self.Ngas == 0:
             return None
-        if self.indexFe is None:
-            raise RuntimeError("Index of Iron not found in snapshot!")
         return (
             self.gas_masses
-            * self.data["PartType0"]["SmoothedElementMassFractions"][
-                self.gas_selection
-            ][:, self.indexFe]
+            * self.get_dataset("PartType0/ElementMassFractions")[self.gas_selection][
+                :,
+                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+            ]
         ).sum() / self.Mgas
 
     @lazy_property
     def gas_temperatures(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["Temperatures"][self.gas_selection]
+        return self.get_dataset("PartType0/Temperatures")[self.gas_selection]
 
     @lazy_property
     def Tgas(self):
@@ -667,7 +669,7 @@ class SOParticleData:
     def gas_SFR(self):
         if self.Ngas == 0:
             return None
-        SFR = self.data["PartType0"]["StarFormationRates"][self.gas_selection]
+        SFR = self.get_dataset("PartType0/StarFormationRates")[self.gas_selection]
         is_SFR = SFR > 0.0
         SFR[~is_SFR] = 0.0
         return SFR
@@ -694,7 +696,7 @@ class SOParticleData:
     def gas_xraylum(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["XrayLuminosities"][self.gas_selection]
+        return self.get_dataset("PartType0/XrayLuminosities")[self.gas_selection]
 
     @lazy_property
     def Xraylum(self):
@@ -706,7 +708,7 @@ class SOParticleData:
     def gas_xrayphlum(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["XrayPhotonLuminosities"][self.gas_selection]
+        return self.get_dataset("PartType0/XrayPhotonLuminosities")[self.gas_selection]
 
     @lazy_property
     def Xrayphlum(self):
@@ -718,7 +720,7 @@ class SOParticleData:
     def gas_compY(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["ComptonYParameters"][self.gas_selection]
+        return self.get_dataset("PartType0/ComptonYParameters")[self.gas_selection]
 
     @lazy_property
     def compY_unit(self):
@@ -740,7 +742,7 @@ class SOParticleData:
     def gas_no_agn(self):
         if self.Ngas == 0:
             return None
-        last_agn_gas = self.data["PartType0"]["LastAGNFeedbackScaleFactors"][
+        last_agn_gas = self.get_dataset("PartType0/LastAGNFeedbackScaleFactors")[
             self.gas_selection
         ]
         return ~self.recently_heated_gas_filter.is_recently_heated(
@@ -812,7 +814,7 @@ class SOParticleData:
     def gas_densities(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["Densities"][self.gas_selection]
+        return self.get_dataset("PartType0/Densities")[self.gas_selection]
 
     @lazy_property
     def Etherm_gas(self):
@@ -821,7 +823,7 @@ class SOParticleData:
         etherm_gas = (
             1.5
             * self.gas_masses
-            * self.data["PartType0"]["Pressures"][self.gas_selection]
+            * self.get_dataset("PartType0/Pressures")[self.gas_selection]
             / self.gas_densities
         )
         etherm_gas = unyt.unyt_array(
@@ -833,7 +835,7 @@ class SOParticleData:
     def DopplerB(self):
         if self.Ngas == 0:
             return None
-        ne = self.data["PartType0"]["ElectronNumberDensities"][self.gas_selection]
+        ne = self.get_dataset("PartType0/ElectronNumberDensities")[self.gas_selection]
         # note: the positions where relative to the centre, so we have
         # to make them absolute again before subtracting the observer
         # position
@@ -869,7 +871,7 @@ class SOParticleData:
     def Mstar_init(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["InitialMasses"][self.star_selection].sum()
+        return self.get_dataset("PartType4/InitialMasses")[self.star_selection].sum()
 
     @lazy_property
     def starmetalfrac(self):
@@ -877,40 +879,42 @@ class SOParticleData:
             return None
         return (
             self.star_masses
-            * self.data["PartType4"]["MetalMassFractions"][self.star_selection]
+            * self.get_dataset("PartType4/MetalMassFractions")[self.star_selection]
         ).sum() / self.Mstar
 
     @lazy_property
     def starOfrac(self):
         if self.Nstar == 0:
             return None
-        if self.indexO is None:
-            raise RuntimeError("Index of Oxygen not found in snapshot!")
         return (
             self.star_masses
-            * self.data["PartType4"]["SmoothedElementMassFractions"][
-                self.star_selection
-            ][:, self.indexO]
+            * self.get_dataset("PartType4/ElementMassFractions")[self.star_selection][
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Oxygen"
+                ),
+            ]
         ).sum() / self.Mstar
 
     @lazy_property
     def starFefrac(self):
         if self.Nstar == 0:
             return None
-        if self.indexFe is None:
-            raise RuntimeError("Index of Iron not found in snapshot!")
         return (
             self.star_masses
-            * self.data["PartType4"]["SmoothedElementMassFractions"][
-                self.star_selection
-            ][:, self.indexFe]
+            * self.get_dataset("PartType4/ElementMassFractions")[self.star_selection][
+                :,
+                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+            ]
         ).sum() / self.Mstar
 
     @lazy_property
     def StellarLuminosity(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["Luminosities"][self.star_selection].sum(axis=0)
+        return self.get_dataset("PartType4/Luminosities")[self.star_selection].sum(
+            axis=0
+        )
 
     @lazy_property
     def Ekin_star(self):
@@ -931,16 +935,24 @@ class SOParticleData:
         return self.bh_selection.sum()
 
     @lazy_property
+    def BH_subgrid_masses(self):
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/SubgridMasses")[self.bh_selection]
+
+    @lazy_property
     def Mbh_subgrid(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_selection].sum()
+        return self.BH_subgrid_masses.sum()
 
     @lazy_property
     def agn_eventa(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["LastAGNFeedbackScaleFactors"][self.bh_selection]
+        return self.get_dataset("PartType5/LastAGNFeedbackScaleFactors")[
+            self.bh_selection
+        ]
 
     @lazy_property
     def BHlasteventa(self):
@@ -952,37 +964,39 @@ class SOParticleData:
     def iBHmax(self):
         if self.Nbh == 0:
             return None
-        return np.argmax(self.data["PartType5"]["SubgridMasses"][self.bh_selection])
+        return np.argmax(self.BH_subgrid_masses)
 
     @lazy_property
     def BHmaxM(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_selection][self.iBHmax]
+        return self.BH_subgrid_masses[self.iBHmax]
 
     @lazy_property
     def BHmaxID(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["ParticleIDs"][self.bh_selection][self.iBHmax]
+        return self.get_dataset("PartType5/ParticleIDs")[self.bh_selection][self.iBHmax]
 
     @lazy_property
     def BHmaxpos(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Coordinates"][self.bh_selection][self.iBHmax]
+        return self.get_dataset("PartType5/Coordinates")[self.bh_selection][self.iBHmax]
 
     @lazy_property
     def BHmaxvel(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Velocities"][self.bh_selection][self.iBHmax]
+        return self.get_dataset("PartType5/Velocities")[self.bh_selection][self.iBHmax]
 
     @lazy_property
     def BHmaxAR(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["AccretionRates"][self.bh_selection][self.iBHmax]
+        return self.get_dataset("PartType5/AccretionRates")[self.bh_selection][
+            self.iBHmax
+        ]
 
     @lazy_property
     def BHmaxlasteventa(self):
@@ -992,8 +1006,8 @@ class SOParticleData:
 
     @lazy_property
     def Nnu(self):
-        if "PartType6" in self.data:
-            pos = self.data["PartType6"]["Coordinates"] - self.centre[None, :]
+        if self.has_neutrinos:
+            pos = self.get_dataset("PartType6/Coordinates") - self.centre[None, :]
             nur = np.sqrt(np.sum(pos**2, axis=1))
             self.nu_selection = nur < self.SO_r
             return self.nu_selection.sum()
@@ -1004,15 +1018,15 @@ class SOParticleData:
     def Mnu(self):
         if self.Nnu == 0:
             return None
-        return self.data["PartType6"]["Masses"][self.nu_selection].sum()
+        return self.get_dataset("PartType6/Masses")[self.nu_selection].sum()
 
     @lazy_property
     def MnuNS(self):
         if self.Nnu == 0:
             return None
         return (
-            self.data["PartType6"]["Masses"][self.nu_selection]
-            * self.data["PartType6"]["Weights"][self.nu_selection]
+            self.get_dataset("PartType6/Masses")[self.nu_selection]
+            * self.get_dataset("PartType6/Weights")[self.nu_selection]
         ).sum() + self.nu_density * self.SO_volume
 
 
@@ -1114,13 +1128,7 @@ class SOProperties(HaloProperty):
 
         self.filter = recently_heated_gas_filter
         self.category_filter = category_filter
-
-        if "ElementMassFractions" in cellgrid.named_columns:
-            self.indexO = cellgrid.named_columns["ElementMassFractions"]["Oxygen"]
-            self.indexFe = cellgrid.named_columns["ElementMassFractions"]["Iron"]
-        else:
-            self.indexO = None
-            self.indexFe = None
+        self.snapshot_datasets = cellgrid.snapshot_datasets
 
         self.observer_position = cellgrid.observer_position
 
@@ -1282,8 +1290,7 @@ class SOProperties(HaloProperty):
                 self.filter,
                 self.nu_density,
                 self.observer_position,
-                self.indexO,
-                self.indexFe,
+                self.snapshot_datasets,
             )
 
             # we need to make sure the physical radius uses the correct unit
@@ -1428,6 +1435,9 @@ def test_SO_properties():
                 "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
             }
         }
+    )
+    dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
+        parameters.get_aliases()
     )
     parameters.get_halo_type_variations(
         "SOProperties",
@@ -1744,6 +1754,8 @@ def test_SO_properties():
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string)
                 assert result.units.same_dimensions_as(unit.units)
+
+    dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
 
 
 if __name__ == "__main__":

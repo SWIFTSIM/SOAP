@@ -111,6 +111,12 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Temperatures",
                 "LastAGNFeedbackScaleFactors",
                 "StarFormationRates",
+                "XrayLuminosities",
+                "XrayPhotonLuminosities",
+                "ComptonYParameters",
+                "Pressures",
+                "Densities",
+                "ElectronNumberDensities",
             ],
             "PartType1": [
                 "Coordinates",
@@ -202,12 +208,6 @@ class DummyCellGrid:
         self.observer_position = unyt.unyt_array([50.0] * 3, units=comoving_length_unit)
 
         self.snapshot_datasets = DummySnapshotDatasets()
-
-        # Named columns
-        self.named_columns = {
-            "ElementMassFractions": {"Oxygen": 4, "Iron": 8},
-            "Luminosities": {"GAMA_r": 2},
-        }
 
 
 class DummyHaloGenerator:
