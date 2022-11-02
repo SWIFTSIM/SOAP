@@ -107,6 +107,7 @@ class PropertyTable:
 
     compression_description = {
         "FMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
+        "DMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
         "DScale5": "10 pc accurate",
         "DScale1": "0.1 km/s accurate",
         "Nbit40": "Store less bits",
@@ -199,7 +200,7 @@ class PropertyTable:
             "kpc",
             "Position of most massive black hole.",
             "general",
-            "FMantissa9",
+            "DScale5",
             False,
             ["PartType5/Coordinates", "PartType5/SubgridMasses"],
         ),
@@ -513,7 +514,7 @@ class PropertyTable:
             "erg",
             "Total kinetic energy of the gas, relative to the gas centre of mass velocity.",
             "gas",
-            "FMantissa9",
+            "DMantissa9",
             False,
             ["PartType0/Masses", "PartType0/Velocities"],
         ),
@@ -524,7 +525,7 @@ class PropertyTable:
             "erg",
             "Total kinetic energy of the stars, relative to the stellar centre of mass velocity.",
             "star",
-            "FMantissa9",
+            "DMantissa9",
             False,
             ["PartType4/Masses", "PartType4/Velocities"],
         ),
@@ -535,7 +536,7 @@ class PropertyTable:
             "erg",
             "Total thermal energy of the gas.",
             "gas",
-            "FMantissa9",
+            "DMantissa9",
             False,
             ["PartType0/Densities", "PartType0/Pressures", "PartType0/Masses"],
         ),
@@ -1231,7 +1232,7 @@ class PropertyTable:
             "erg/s",
             "Total rest-frame Xray luminosity in three bands.",
             "gas",
-            "FMantissa9",
+            "DMantissa9",
             False,
             ["PartType0/XrayLuminosities"],
         ),
@@ -1242,7 +1243,7 @@ class PropertyTable:
             "erg/s",
             "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN.",
             "gas",
-            "FMantissa9",
+            "DMantissa9",
             False,
             [
                 "PartType0/XrayLuminosities",
@@ -1257,7 +1258,7 @@ class PropertyTable:
             "1/s",
             "Total rest-frame Xray photon luminosity in three bands.",
             "gas",
-            "FMantissa9",
+            "DMantissa9",
             False,
             ["PartType0/XrayPhotonLuminosities"],
         ),
@@ -1268,7 +1269,7 @@ class PropertyTable:
             "1/s",
             "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
             "gas",
-            "FMantissa9",
+            "DMantissa9",
             False,
             [
                 "PartType0/XrayPhotonLuminosities",
@@ -1325,7 +1326,7 @@ class PropertyTable:
             "cm**2",
             "Total Compton y parameter.",
             "gas",
-            "FMantissa9",
+            "DMantissa9",
             False,
             ["PartType0/ComptonYParameters"],
         ),
@@ -1336,7 +1337,7 @@ class PropertyTable:
             "cm**2",
             "Total Compton y parameter. Excludes gas that was recently heated by AGN.",
             "gas",
-            "FMantissa9",
+            "DMantissa9",
             False,
             [
                 "PartType0/ComptonYParameters",
@@ -1800,7 +1801,7 @@ class PropertyTable:
             ) = self.properties[name]["raw"]
             raw_dtype = f"np.{raw_dtype.__name__}"
             print(
-                f'  "{raw_name}": ("{raw_outputname}", {raw_shape}, {raw_dtype}, "{raw_units}", "{raw_description}", "{raw_cat}", "{raw_comp}", {raw_dmo}, ["PartType0/Coordinates"]),'
+                f'  "{raw_name}": ("{raw_outputname}", {raw_shape}, {raw_dtype}, "{raw_units}", "{raw_description}", "{raw_cat}", "{raw_comp}", {raw_dmo}, {raw_partprops}),'
             )
         print("}")
 
