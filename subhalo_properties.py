@@ -30,7 +30,7 @@ class SubhaloParticleData:
         grnr,
         stellar_age_calculator,
         recently_heated_gas_filter,
-        rbandindex,
+        snapshot_datasets,
     ):
         self.input_halo = input_halo
         self.data = data
@@ -38,8 +38,11 @@ class SubhaloParticleData:
         self.grnr = grnr
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
-        self.rbandindex = rbandindex
+        self.snapshot_datasets = snapshot_datasets
         self.compute_basics()
+
+    def get_dataset(self, name):
+        return self.snapshot_datasets.get_dataset(name, self.data)
 
     def compute_basics(self):
         self.centre = self.input_halo["cofp"]
@@ -53,12 +56,15 @@ class SubhaloParticleData:
         for ptype in self.types_present:
             grnr = self.data[ptype][self.grnr]
             in_halo = grnr == self.index
-            mass.append(self.data[ptype][mass_dataset(ptype)][in_halo])
-            pos = self.data[ptype]["Coordinates"][in_halo, :] - self.centre[None, :]
+            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
+            pos = (
+                self.get_dataset(f"{ptype}/Coordinates")[in_halo, :]
+                - self.centre[None, :]
+            )
             position.append(pos)
             r = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2 + pos[:, 2] ** 2)
             radius.append(r)
-            velocity.append(self.data[ptype]["Velocities"][in_halo, :])
+            velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
             typearr = np.zeros(r.shape, dtype="U9")
             typearr[:] = ptype
             types.append(typearr)
@@ -177,13 +183,13 @@ class SubhaloParticleData:
     def star_mask_all(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"][self.grnr] == self.index
+        return self.get_dataset(f"PartType4/{self.grnr}") == self.index
 
     @lazy_property
     def mass_star_init(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["InitialMasses"][self.star_mask_all]
+        return self.get_dataset("PartType4/InitialMasses")[self.star_mask_all]
 
     @lazy_property
     def Mstar_init(self):
@@ -195,7 +201,7 @@ class SubhaloParticleData:
     def stellar_luminosities(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["Luminosities"][self.star_mask_all]
+        return self.get_dataset("PartType4/Luminosities")[self.star_mask_all]
 
     @lazy_property
     def StellarLuminosity(self):
@@ -209,14 +215,14 @@ class SubhaloParticleData:
             return None
         return (
             self.mass_star
-            * self.data["PartType4"]["MetalMassFractions"][self.star_mask_all]
+            * self.get_dataset("PartType4/MetalMassFractions")[self.star_mask_all]
         ).sum() / self.Mstar
 
     @lazy_property
     def stellar_ages(self):
         if self.Nstar == 0:
             return None
-        birth_a = self.data["PartType4"]["BirthScaleFactors"][self.star_mask_all]
+        birth_a = self.get_dataset("PartType4/BirthScaleFactors")[self.star_mask_all]
         return self.stellar_age_calculator.stellar_age(birth_a)
 
     @lazy_property
@@ -229,9 +235,9 @@ class SubhaloParticleData:
     def stellar_age_lw(self):
         if self.Nstar == 0:
             return None
-        if self.rbandindex is None:
-            raise RuntimeError("R band index required but not found in snapshot!")
-        Lr = self.stellar_luminosities[:, self.rbandindex]
+        Lr = self.stellar_luminosities[
+            :, self.snapshot_datasets.get_column_index("Luminosities", "GAMA_r")
+        ]
         Lrtot = Lr.sum()
         return ((Lr / Lrtot) * self.stellar_ages).sum()
 
@@ -239,19 +245,21 @@ class SubhaloParticleData:
     def bh_mask_all(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"][self.grnr] == self.index
+        return self.get_dataset(f"PartType5/{self.grnr}") == self.index
 
     @lazy_property
     def Mbh_subgrid(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_mask_all].sum()
+        return self.get_dataset("PartType5/SubgridMasses")[self.bh_mask_all].sum()
 
     @lazy_property
     def agn_eventa(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["LastAGNFeedbackScaleFactors"][self.bh_mask_all]
+        return self.get_dataset("PartType5/LastAGNFeedbackScaleFactors")[
+            self.bh_mask_all
+        ]
 
     @lazy_property
     def BHlasteventa(self):
@@ -260,40 +268,48 @@ class SubhaloParticleData:
         return np.max(self.agn_eventa)
 
     @lazy_property
+    def BH_subgrid_masses(self):
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/SubgridMasses")[self.bh_mask_all]
+
+    @lazy_property
     def iBHmax(self):
         if self.Nbh == 0:
             return None
-        return np.argmax(self.data["PartType5"]["SubgridMasses"][self.bh_mask_all])
+        return np.argmax(self.BH_subgrid_masses)
 
     @lazy_property
     def BHmaxM(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_mask_all][self.iBHmax]
+        return self.BH_subgrid_masses[self.iBHmax]
 
     @lazy_property
     def BHmaxID(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["ParticleIDs"][self.bh_mask_all][self.iBHmax]
+        return self.get_dataset("PartType5/ParticleIDs")[self.bh_mask_all][self.iBHmax]
 
     @lazy_property
     def BHmaxpos(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Coordinates"][self.bh_mask_all][self.iBHmax]
+        return self.get_dataset("PartType5/Coordinates")[self.bh_mask_all][self.iBHmax]
 
     @lazy_property
     def BHmaxvel(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Velocities"][self.bh_mask_all][self.iBHmax]
+        return self.get_dataset("PartType5/Velocities")[self.bh_mask_all][self.iBHmax]
 
     @lazy_property
     def BHmaxAR(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["AccretionRates"][self.bh_mask_all][self.iBHmax]
+        return self.get_dataset("PartType5/AccretionRates")[self.bh_mask_all][
+            self.iBHmax
+        ]
 
     @lazy_property
     def BHmaxlasteventa(self):
@@ -592,14 +608,14 @@ class SubhaloParticleData:
 
     @lazy_property
     def gas_mask_all(self):
-        return self.data["PartType0"][self.grnr] == self.index
+        return self.get_dataset(f"PartType0/{self.grnr}") == self.index
 
     @lazy_property
     def gas_SFR(self):
         if self.Ngas == 0:
             return None
         # remember: SFR < 0. is not SFR at all!
-        all_SFR = self.data["PartType0"]["StarFormationRates"][self.gas_mask_all]
+        all_SFR = self.get_dataset("PartType0/StarFormationRates")[self.gas_mask_all]
         all_SFR[all_SFR < 0.0] = 0.0
         return all_SFR
 
@@ -615,7 +631,7 @@ class SubhaloParticleData:
             return None
         return (
             self.mass_gas
-            * self.data["PartType0"]["MetalMassFractions"][self.gas_mask_all]
+            * self.get_dataset("PartType0/MetalMassFractions")[self.gas_mask_all]
         )
 
     @lazy_property
@@ -640,13 +656,15 @@ class SubhaloParticleData:
     def gas_temp(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["Temperatures"][self.gas_mask_all]
+        return self.get_dataset("PartType0/Temperatures")[self.gas_mask_all]
 
     @lazy_property
     def last_agn_gas(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["LastAGNFeedbackScaleFactors"][self.gas_mask_all]
+        return self.get_dataset("PartType0/LastAGNFeedbackScaleFactors")[
+            self.gas_mask_all
+        ]
 
     @lazy_property
     def gas_no_agn(self):
@@ -827,10 +845,7 @@ class SubhaloProperties(HaloProperty):
         self.filter = recently_heated_gas_filter
         self.stellar_ages = stellar_age_calculator
         self.category_filter = category_filter
-        if "Luminosities" in cellgrid.named_columns:
-            self.rbandindex = cellgrid.named_columns["Luminosities"]["GAMA_r"]
-        else:
-            self.rbandindex = None
+        self.snapshot_datasets = cellgrid.snapshot_datasets
 
         # This specifies how large a sphere is read in:
         self.mean_density_multiple = None
@@ -916,7 +931,7 @@ class SubhaloProperties(HaloProperty):
             self.grnr,
             self.stellar_ages,
             self.filter,
-            self.rbandindex,
+            self.snapshot_datasets,
         )
 
         if not self.bound_only:
@@ -1011,7 +1026,9 @@ def test_subhalo_properties():
 
     # initialise the DummyHaloGenerator with a random seed
     dummy_halos = DummyHaloGenerator(16902)
-    cat_filter = CategoryFilter()
+    cat_filter = CategoryFilter(
+        {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
+    )
     parameters = ParameterFile(
         parameter_dictionary={
             "aliases": {
@@ -1019,6 +1036,9 @@ def test_subhalo_properties():
                 "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
             }
         }
+    )
+    dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
+        parameters.get_aliases()
     )
     parameters.get_halo_type_variations(
         "SubhaloProperties",
@@ -1140,6 +1160,8 @@ def test_subhalo_properties():
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string)
                 assert result.units.same_dimensions_as(unit.units)
+
+    dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
 
 
 if __name__ == "__main__":

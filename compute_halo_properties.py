@@ -127,13 +127,17 @@ def compute_halo_properties():
     )
 
     parameter_file = ParameterFile(args.parameters)
+    cellgrid.snapshot_datasets.setup_aliases(parameter_file.get_aliases())
 
     recently_heated_gas_filter = RecentlyHeatedGasFilter(
         cellgrid, 15.0 * unyt.Myr, 0.0, 0.0
     )
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
     category_filter = CategoryFilter(
-        Ngeneral=100, Ngas=100, Ndm=100, Nstar=100, Nbaryon=100, dmo=args.dmo
+        parameter_file.get_filter_values(
+            {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        ),
+        dmo=args.dmo,
     )
 
     # Get the full list of property calculations we can do
@@ -400,8 +404,16 @@ def compute_halo_properties():
 
     # Combine chunks into a single output file
     with MPITimer("Sorting %d halo properties" % len(ref_metadata), comm_world):
-        combine_chunks(args, cellgrid, halo_prop_list, scratch_file_format,
-                       ref_metadata, nr_chunks, comm_world, category_filter)
+        combine_chunks(
+            args,
+            cellgrid,
+            halo_prop_list,
+            scratch_file_format,
+            ref_metadata,
+            nr_chunks,
+            comm_world,
+            category_filter,
+        )
 
     # Delete scratch files
     comm_world.barrier()

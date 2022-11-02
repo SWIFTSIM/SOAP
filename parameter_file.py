@@ -37,7 +37,7 @@ class ParameterFile:
                 self.parameters[halo_type]["properties"][property] = True
         return mask
 
-    def get_halo_type_variations(self, halo_type, default_variations={}):
+    def get_halo_type_variations(self, halo_type, default_variations):
         if not halo_type in self.parameters:
             self.parameters[halo_type] = {}
         if not "variations" in self.parameters[halo_type]:
@@ -58,3 +58,17 @@ class ParameterFile:
                 f'Unable to parse particle property name "{property_name}"!'
             )
         return parts[0], parts[1]
+
+    def get_aliases(self):
+      if "aliases" in self.parameters:
+        return dict(self.parameters["aliases"])
+      else:
+        return dict()
+
+    def get_filter_values(self, default_filters):
+        filter_values = dict(default_filters)
+        if "filters" in self.parameters:
+          for category in default_filters:
+            if category in self.parameters["filters"]:
+              filter_values[category] = self.parameters["filters"][category]
+        return filter_values

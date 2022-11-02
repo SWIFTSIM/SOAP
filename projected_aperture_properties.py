@@ -20,12 +20,17 @@ class ProjectedApertureParticleData:
         data,
         types_present,
         aperture_radius,
+        snapshot_datasets,
     ):
         self.input_halo = input_halo
         self.data = data
         self.types_present = types_present
         self.aperture_radius = aperture_radius
+        self.snapshot_datasets = snapshot_datasets
         self.compute_basics()
+
+    def get_dataset(self, name):
+        return self.snapshot_datasets.get_dataset(name, self.data)
 
     def compute_basics(self):
         self.centre = self.input_halo["cofp"]
@@ -39,10 +44,13 @@ class ProjectedApertureParticleData:
         velocity = []
         types = []
         for ptype in self.types_present:
-            grnr = self.data[ptype]["GroupNr_bound"]
+            grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
             in_halo = grnr == self.index
-            mass.append(self.data[ptype][mass_dataset(ptype)][in_halo])
-            pos = self.data[ptype]["Coordinates"][in_halo, :] - self.centre[None, :]
+            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
+            pos = (
+                self.get_dataset(f"{ptype}/Coordinates")[in_halo, :]
+                - self.centre[None, :]
+            )
             position.append(pos)
             rprojx = np.sqrt(pos[:, 1] ** 2 + pos[:, 2] ** 2)
             radius_projx.append(rprojx)
@@ -50,7 +58,7 @@ class ProjectedApertureParticleData:
             radius_projy.append(rprojy)
             rprojz = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2)
             radius_projz.append(rprojz)
-            velocity.append(self.data[ptype]["Velocities"][in_halo, :])
+            velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
             typearr = np.zeros(rprojx.shape, dtype="U9")
             typearr[:] = ptype
             types.append(typearr)
@@ -70,7 +78,7 @@ class ProjectedApertureParticleData:
 
 class SingleProjectionProjectedApertureParticleData:
     def __init__(self, part_props, projection):
-        self.data = part_props.data
+        self.part_props = part_props
         self.index = part_props.index
         self.centre = part_props.centre
         self.types = part_props.types
@@ -185,23 +193,23 @@ class SingleProjectionProjectedApertureParticleData:
     def star_mask_all(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["GroupNr_bound"] == self.index
+        return self.part_props.get_dataset("PartType4/GroupNr_bound") == self.index
 
     @lazy_property
     def Mstar_init(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["InitialMasses"][self.star_mask_all][
-            self.star_mask_ap
-        ].sum()
+        return self.part_props.get_dataset("PartType4/InitialMasses")[
+            self.star_mask_all
+        ][self.star_mask_ap].sum()
 
     @lazy_property
     def stellar_luminosities(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["Luminosities"][self.star_mask_all][
-            self.star_mask_ap
-        ]
+        return self.part_props.get_dataset("PartType4/Luminosities")[
+            self.star_mask_all
+        ][self.star_mask_ap]
 
     @lazy_property
     def StellarLuminosity(self):
@@ -213,23 +221,29 @@ class SingleProjectionProjectedApertureParticleData:
     def bh_mask_all(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["GroupNr_bound"] == self.index
+        return self.part_props.get_dataset("PartType5/GroupNr_bound") == self.index
+
+    @lazy_property
+    def BH_subgrid_masses(self):
+        if self.Nbh == 0:
+            return None
+        return self.part_props.get_dataset("PartType5/SubgridMasses")[self.bh_mask_all][
+            self.bh_mask_ap
+        ]
 
     @lazy_property
     def Mbh_subgrid(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_mask_all][
-            self.bh_mask_ap
-        ].sum()
+        return self.BH_subgrid_masses.sum()
 
     @lazy_property
     def agn_eventa(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["LastAGNFeedbackScaleFactors"][self.bh_mask_all][
-            self.bh_mask_ap
-        ]
+        return self.part_props.get_dataset("PartType5/LastAGNFeedbackScaleFactors")[
+            self.bh_mask_all
+        ][self.bh_mask_ap]
 
     @lazy_property
     def BHlasteventa(self):
@@ -241,49 +255,45 @@ class SingleProjectionProjectedApertureParticleData:
     def iBHmax(self):
         if self.Nbh == 0:
             return None
-        return np.argmax(
-            self.data["PartType5"]["SubgridMasses"][self.bh_mask_all][self.bh_mask_ap]
-        )
+        return np.argmax(self.BH_subgrid_masses)
 
     @lazy_property
     def BHmaxM(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_mask_all][
-            self.bh_mask_ap
-        ][self.iBHmax]
+        return self.BH_subgrid_masses[self.iBHmax]
 
     @lazy_property
     def BHmaxID(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["ParticleIDs"][self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/ParticleIDs")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def BHmaxpos(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Coordinates"][self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/Coordinates")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def BHmaxvel(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Velocities"][self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/Velocities")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def BHmaxAR(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["AccretionRates"][self.bh_mask_all][
-            self.bh_mask_ap
-        ][self.iBHmax]
+        return self.part_props.get_dataset("PartType5/AccretionRates")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def BHmaxlasteventa(self):
@@ -381,15 +391,15 @@ class SingleProjectionProjectedApertureParticleData:
     def gas_mask_all(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["GroupNr_bound"] == self.index
+        return self.part_props.get_dataset("PartType0/GroupNr_bound") == self.index
 
     @lazy_property
     def gas_SFR(self):
         if self.Ngas == 0:
             return None
-        raw_SFR = self.data["PartType0"]["StarFormationRates"][self.gas_mask_all][
-            self.gas_mask_ap
-        ]
+        raw_SFR = self.part_props.get_dataset("PartType0/StarFormationRates")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
         # Negative SFR are not SFR at all!
         raw_SFR[raw_SFR < 0] = 0
         return raw_SFR
@@ -496,6 +506,7 @@ class ProjectedApertureProperties(HaloProperty):
         self.physical_radius_mpc = 0.001 * physical_radius_kpc
 
         self.category_filter = category_filter
+        self.snapshot_datasets = cellgrid.snapshot_datasets
 
         self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
 
@@ -557,6 +568,7 @@ class ProjectedApertureProperties(HaloProperty):
             data,
             types_present,
             self.physical_radius_mpc * unyt.Mpc,
+            self.snapshot_datasets,
         )
 
         do_calculation = self.category_filter.get_filters(halo_result)
@@ -641,7 +653,9 @@ def test_projected_aperture_properties():
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(127)
-    category_filter = CategoryFilter()
+    category_filter = CategoryFilter(
+        {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+    )
     parameters = ParameterFile(
         parameter_dictionary={
             "aliases": {
@@ -649,6 +663,9 @@ def test_projected_aperture_properties():
                 "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
             }
         }
+    )
+    dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
+        parameters.get_aliases()
     )
     parameters.get_halo_type_variations(
         "ProjectedApertureProperties", {"30_kpc": {"radius_in_kpc": 30.0}}
@@ -811,6 +828,8 @@ def test_projected_aperture_properties():
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string)
                 assert result.units.same_dimensions_as(unit.units)
+
+    dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
 
 
 if __name__ == "__main__":

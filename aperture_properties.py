@@ -1,4 +1,4 @@
-#!/bin/env python
+#! /usr/bin/env python
 
 import numpy as np
 import unyt
@@ -31,9 +31,7 @@ class ApertureParticleData:
         aperture_radius,
         stellar_age_calculator,
         recently_heated_gas_filter,
-        rbandindex,
-        indexO,
-        indexFe,
+        snapshot_datasets,
     ):
         self.input_halo = input_halo
         self.data = data
@@ -42,10 +40,11 @@ class ApertureParticleData:
         self.aperture_radius = aperture_radius
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
-        self.rbandindex = rbandindex
-        self.indexO = indexO
-        self.indexFe = indexFe
+        self.snapshot_datasets = snapshot_datasets
         self.compute_basics()
+
+    def get_dataset(self, name):
+        return self.snapshot_datasets.get_dataset(name, self.data)
 
     def compute_basics(self):
         self.centre = self.input_halo["cofp"]
@@ -56,17 +55,20 @@ class ApertureParticleData:
         velocity = []
         types = []
         for ptype in self.types_present:
-            grnr = self.data[ptype]["GroupNr_bound"]
+            grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
             if self.inclusive:
                 in_halo = np.ones(grnr.shape, dtype=bool)
             else:
                 in_halo = grnr == self.index
-            mass.append(self.data[ptype][mass_dataset(ptype)][in_halo])
-            pos = self.data[ptype]["Coordinates"][in_halo, :] - self.centre[None, :]
+            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
+            pos = (
+                self.get_dataset(f"{ptype}/Coordinates")[in_halo, :]
+                - self.centre[None, :]
+            )
             position.append(pos)
             r = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2 + pos[:, 2] ** 2)
             radius.append(r)
-            velocity.append(self.data[ptype]["Velocities"][in_halo, :])
+            velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
             typearr = np.zeros(r.shape, dtype="U9")
             typearr[:] = ptype
             types.append(typearr)
@@ -201,16 +203,17 @@ class ApertureParticleData:
     def star_mask_all(self):
         if self.Nstar == 0:
             return None
+        groupnr_bound = self.get_dataset("PartType4/GroupNr_bound")
         if self.inclusive:
-            return np.ones(self.data["PartType4"]["GroupNr_bound"].shape, dtype=bool)
+            return np.ones(groupnr_bound.shape, dtype=bool)
         else:
-            return self.data["PartType4"]["GroupNr_bound"] == self.index
+            return groupnr_bound == self.index
 
     @lazy_property
     def Mstar_init(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["InitialMasses"][self.star_mask_all][
+        return self.get_dataset("PartType4/InitialMasses")[self.star_mask_all][
             self.star_mask_ap
         ].sum()
 
@@ -218,7 +221,7 @@ class ApertureParticleData:
     def stellar_luminosities(self):
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["Luminosities"][self.star_mask_all][
+        return self.get_dataset("PartType4/Luminosities")[self.star_mask_all][
             self.star_mask_ap
         ]
 
@@ -234,7 +237,7 @@ class ApertureParticleData:
             return None
         return (
             self.mass_star
-            * self.data["PartType4"]["MetalMassFractions"][self.star_mask_all][
+            * self.get_dataset("PartType4/MetalMassFractions")[self.star_mask_all][
                 self.star_mask_ap
             ]
         ).sum() / self.Mstar
@@ -243,13 +246,16 @@ class ApertureParticleData:
     def stellar_MstarO(self):
         if self.Nstar == 0:
             return None
-        if self.indexO is None:
-            raise RuntimeError("Index of Oxygen not found in snapshot!")
         return (
             self.mass_star
-            * self.data["PartType4"]["SmoothedElementMassFractions"][
-                self.star_mask_all
-            ][self.star_mask_ap][:, self.indexO]
+            * self.get_dataset("PartType4/ElementMassFractions")[self.star_mask_all][
+                self.star_mask_ap
+            ][
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Oxygen"
+                ),
+            ]
         )
 
     @lazy_property
@@ -262,13 +268,14 @@ class ApertureParticleData:
     def stellar_MstarFe(self):
         if self.Nstar == 0:
             return None
-        if self.indexFe is None:
-            raise RuntimeError("Index of Iron not found in snapshot!")
         return (
             self.mass_star
-            * self.data["PartType4"]["SmoothedElementMassFractions"][
-                self.star_mask_all
-            ][self.star_mask_ap][:, self.indexFe]
+            * self.get_dataset("PartType4/ElementMassFractions")[self.star_mask_all][
+                self.star_mask_ap
+            ][
+                :,
+                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+            ]
         )
 
     @lazy_property
@@ -281,7 +288,7 @@ class ApertureParticleData:
     def stellar_ages(self):
         if self.Nstar == 0:
             return None
-        birth_a = self.data["PartType4"]["BirthScaleFactors"][self.star_mask_all][
+        birth_a = self.get_dataset("PartType4/BirthScaleFactors")[self.star_mask_all][
             self.star_mask_ap
         ]
         return self.stellar_age_calculator.stellar_age(birth_a)
@@ -302,9 +309,9 @@ class ApertureParticleData:
     def stellar_age_lw(self):
         if self.Nstar == 0:
             return None
-        if self.rbandindex is None:
-            raise RuntimeError("R band index not found in snapshot!")
-        Lr = self.stellar_luminosities[:, self.rbandindex]
+        Lr = self.stellar_luminosities[
+            :, self.snapshot_datasets.get_column_index("Luminosities", "GAMA_r")
+        ]
         Lrtot = Lr.sum()
         if Lrtot == 0:
             return None
@@ -314,26 +321,31 @@ class ApertureParticleData:
     def bh_mask_all(self):
         if self.Nbh == 0:
             return None
+        groupnr_bound = self.get_dataset("PartType5/GroupNr_bound")
         if self.inclusive:
-            return np.ones(self.data["PartType5"]["GroupNr_bound"].shape, dtype=bool)
+            return np.ones(groupnr_bound.shape, dtype=bool)
         else:
-            return self.data["PartType5"]["GroupNr_bound"] == self.index
+            return groupnr_bound == self.index
+
+    @lazy_property
+    def BH_subgrid_masses(self):
+        return self.get_dataset("PartType5/SubgridMasses")[self.bh_mask_all][
+            self.bh_mask_ap
+        ]
 
     @lazy_property
     def Mbh_subgrid(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_mask_all][
-            self.bh_mask_ap
-        ].sum()
+        return self.BH_subgrid_masses.sum()
 
     @lazy_property
     def agn_eventa(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["LastAGNFeedbackScaleFactors"][self.bh_mask_all][
-            self.bh_mask_ap
-        ]
+        return self.get_dataset("PartType5/LastAGNFeedbackScaleFactors")[
+            self.bh_mask_all
+        ][self.bh_mask_ap]
 
     @lazy_property
     def BHlasteventa(self):
@@ -345,47 +357,43 @@ class ApertureParticleData:
     def iBHmax(self):
         if self.Nbh == 0:
             return None
-        return np.argmax(
-            self.data["PartType5"]["SubgridMasses"][self.bh_mask_all][self.bh_mask_ap]
-        )
+        return np.argmax(self.BH_subgrid_masses)
 
     @lazy_property
     def BHmaxM(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_mask_all][
-            self.bh_mask_ap
-        ][self.iBHmax]
+        return self.BH_subgrid_masses[self.iBHmax]
 
     @lazy_property
     def BHmaxID(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["ParticleIDs"][self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/ParticleIDs")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def BHmaxpos(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Coordinates"][self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/Coordinates")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def BHmaxvel(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Velocities"][self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/Velocities")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def BHmaxAR(self):
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["AccretionRates"][self.bh_mask_all][
+        return self.get_dataset("PartType5/AccretionRates")[self.bh_mask_all][
             self.bh_mask_ap
         ][self.iBHmax]
 
@@ -629,16 +637,17 @@ class ApertureParticleData:
     def gas_mask_all(self):
         if self.Ngas == 0:
             return None
+        groupnr_bound = self.get_dataset("PartType0/GroupNr_bound")
         if self.inclusive:
-            return np.ones(self.data["PartType0"]["GroupNr_bound"].shape, dtype=bool)
+            return np.ones(groupnr_bound.shape, dtype=bool)
         else:
-            return self.data["PartType0"]["GroupNr_bound"] == self.index
+            return groupnr_bound == self.index
 
     @lazy_property
     def gas_SFR(self):
         if self.Ngas == 0:
             return None
-        raw_SFR = self.data["PartType0"]["StarFormationRates"][self.gas_mask_all][
+        raw_SFR = self.get_dataset("PartType0/StarFormationRates")[self.gas_mask_all][
             self.gas_mask_ap
         ]
         # Negative SFR are not SFR at all!
@@ -669,7 +678,7 @@ class ApertureParticleData:
             return None
         return (
             self.mass_gas
-            * self.data["PartType0"]["MetalMassFractions"][self.gas_mask_all][
+            * self.get_dataset("PartType0/MetalMassFractions")[self.gas_mask_all][
                 self.gas_mask_ap
             ]
         )
@@ -690,13 +699,16 @@ class ApertureParticleData:
     def gas_MgasO(self):
         if self.Ngas == 0:
             return None
-        if self.indexO is None:
-            raise RuntimeError("Index of Oxygen not found in snapshot!")
         return (
             self.mass_gas
-            * self.data["PartType0"]["SmoothedElementMassFractions"][self.gas_mask_all][
+            * self.get_dataset("PartType0/ElementMassFractions")[self.gas_mask_all][
                 self.gas_mask_ap
-            ][:, self.indexO]
+            ][
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Oxygen"
+                ),
+            ]
         )
 
     @lazy_property
@@ -715,13 +727,14 @@ class ApertureParticleData:
     def gas_MgasFe(self):
         if self.Ngas == 0:
             return None
-        if self.indexFe is None:
-            raise RuntimeError("Index of Iron not found in snapshot!")
         return (
             self.mass_gas
-            * self.data["PartType0"]["SmoothedElementMassFractions"][self.gas_mask_all][
+            * self.get_dataset("PartType0/ElementMassFractions")[self.gas_mask_all][
                 self.gas_mask_ap
-            ][:, self.indexFe]
+            ][
+                :,
+                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+            ]
         )
 
     @lazy_property
@@ -740,7 +753,7 @@ class ApertureParticleData:
     def gas_temp(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["Temperatures"][self.gas_mask_all][
+        return self.get_dataset("PartType0/Temperatures")[self.gas_mask_all][
             self.gas_mask_ap
         ]
 
@@ -748,7 +761,7 @@ class ApertureParticleData:
     def gas_no_agn(self):
         if self.Ngas == 0:
             return None
-        last_agn_gas = self.data["PartType0"]["LastAGNFeedbackScaleFactors"][
+        last_agn_gas = self.get_dataset("PartType0/LastAGNFeedbackScaleFactors")[
             self.gas_mask_all
         ][self.gas_mask_ap]
         return ~self.recently_heated_gas_filter.is_recently_heated(
@@ -901,17 +914,7 @@ class ApertureProperties(HaloProperty):
         self.filter = recently_heated_gas_filter
         self.stellar_ages = stellar_age_calculator
         self.category_filter = category_filter
-
-        if "Luminosities" in cellgrid.named_columns:
-            self.rbandindex = cellgrid.named_columns["Luminosities"]["GAMA_r"]
-        else:
-            self.rbandindex = None
-        if "ElementMassFractions" in cellgrid.named_columns:
-            self.indexO = cellgrid.named_columns["ElementMassFractions"]["Oxygen"]
-            self.indexFe = cellgrid.named_columns["ElementMassFractions"]["Iron"]
-        else:
-            self.indexO = None
-            self.indexFe = None
+        self.snapshot_datasets = cellgrid.snapshot_datasets
 
         # no density criterion for these properties
         self.mean_density_multiple = None
@@ -988,9 +991,7 @@ class ApertureProperties(HaloProperty):
             self.physical_radius_mpc * unyt.Mpc,
             self.stellar_ages,
             self.filter,
-            self.rbandindex,
-            self.indexO,
-            self.indexFe,
+            self.snapshot_datasets,
         )
 
         do_calculation = self.category_filter.get_filters(halo_result)
@@ -1121,7 +1122,9 @@ def test_aperture_properties():
     dummy_halos = DummyHaloGenerator(3256)
     filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())
-    cat_filter = CategoryFilter()
+    cat_filter = CategoryFilter(
+        {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
+    )
     parameters = ParameterFile(
         parameter_dictionary={
             "aliases": {
@@ -1129,6 +1132,9 @@ def test_aperture_properties():
                 "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
             }
         }
+    )
+    dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
+        parameters.get_aliases()
     )
     parameters.get_halo_type_variations(
         "ApertureProperties",
@@ -1322,6 +1328,8 @@ def test_aperture_properties():
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string)
                 assert result.units.same_dimensions_as(unit.units)
+
+    dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
 
 
 if __name__ == "__main__":

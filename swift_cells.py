@@ -12,6 +12,7 @@ import scipy.spatial
 import swift_units
 import task_queue
 import shared_array
+from snapshot_datasets import SnapshotDatasets
 
 # HDF5 chunk cache parameters:
 # SWIFT writes datasets with large chunks so the default 1Mb may be too small
@@ -156,6 +157,8 @@ class SWIFTCellGrid:
         # Open the input file
         with h5py.File(snap_filename % {"file_nr": 0}, "r") as infile:
 
+            self.snapshot_datasets = SnapshotDatasets(infile)
+
             # Get the snapshot unit system
             self.snap_unit_registry = swift_units.unit_registry_from_snapshot(infile)
             self.a_unit = self.get_unit("a")
@@ -176,15 +179,6 @@ class SWIFTCellGrid:
             self.constants_internal = {}
             for name in infile["PhysicalConstants"]["InternalUnits"].attrs:
                 self.constants_internal[name] = infile["PhysicalConstants"]["InternalUnits"].attrs[name][0]
-
-            # Read named columns
-            self.named_columns = {}
-            for name in infile["SubgridScheme"]["NamedColumns"]:
-                column_names = infile["SubgridScheme"]["NamedColumns"][name][:]
-                self.named_columns[name] = {}
-                for iname, colname in enumerate(column_names):
-                   self.named_columns[name][colname.decode("utf-8")] = iname
-            print(self.named_columns)
 
             # Store units groups
             self.swift_units_group = {}

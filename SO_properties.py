@@ -1418,7 +1418,9 @@ def test_SO_properties():
 
     dummy_halos = DummyHaloGenerator(4251)
     filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
-    cat_filter = CategoryFilter()
+    cat_filter = CategoryFilter(
+        {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+    )
     parameters = ParameterFile(
         parameter_dictionary={
             "aliases": {

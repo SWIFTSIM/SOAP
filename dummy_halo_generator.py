@@ -4,6 +4,7 @@ import numpy as np
 import unyt
 import types
 from swift_units import unit_registry_from_snapshot
+from snapshot_datasets import SnapshotDatasets
 
 
 class DummySnapshot:
@@ -99,6 +100,65 @@ class DummySnapshot:
         return x
 
 
+class DummySnapshotDatasets(SnapshotDatasets):
+    def __init__(self):
+        self.datasets_in_file = {
+            "PartType0": [
+                "Coordinates",
+                "Masses",
+                "Velocities",
+                "MetalMassFractions",
+                "Temperatures",
+                "LastAGNFeedbackScaleFactors",
+                "StarFormationRates",
+            ],
+            "PartType1": [
+                "Coordinates",
+                "Masses",
+                "Velocities",
+            ],
+            "PartType4": [
+                "Coordinates",
+                "Masses",
+                "Velocities",
+                "InitialMasses",
+                "Luminosities",
+                "MetalMassFractions",
+                "BirthScaleFactors",
+            ],
+            "PartType5": [
+                "Coordinates",
+                "DynamicalMasses",
+                "Velocities",
+                "SubgridMasses",
+                "LastAGNFeedbackScaleFactors",
+                "ParticleIDs",
+                "AccretionRates",
+            ],
+            "PartType6": ["Coordinates", "Masses", "Weights"],
+        }
+
+        self.named_columns = {
+            "Luminosities": {"GAMA_r": 2},
+            "SmoothedElementMassFractions": {"Oxygen": 4, "Iron": 8},
+        }
+
+        self.datasets_used = set()
+        self.columns_used = set()
+
+    def get_dataset(self, name, data):
+        self.datasets_used.add(name)
+        return super().get_dataset(name, data)
+
+    def get_column_index(self, name, column):
+        self.columns_used.add(f"{name}/{column}")
+        return super().get_column_index(name, column)
+
+    def print_dataset_log(self):
+        print(f"Datasets used: {self.datasets_used}")
+        print(f"Columns used: {self.columns_used}")
+
+
 class DummyCellGrid:
     """
     Minimal CellGrid, that contains just enough information to be passed on to
@@ -140,6 +200,8 @@ class DummyCellGrid:
         comoving_length_unit = self.get_unit("snap_length", reg) * self.a_unit
         self.boxsize = unyt.unyt_quantity(100.0, units=comoving_length_unit)
         self.observer_position = unyt.unyt_array([50.0] * 3, units=comoving_length_unit)
+
+        self.snapshot_datasets = DummySnapshotDatasets()
 
         # Named columns
         self.named_columns = {

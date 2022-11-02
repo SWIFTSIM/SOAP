@@ -21,18 +21,14 @@ class CategoryFilter:
 
     def __init__(
         self,
-        Ngeneral=100,
-        Ngas=50,
-        Ndm=100,
-        Nstar=50,
-        Nbaryon=100,
+        filter_values,
         dmo=False,
     ):
-        self.Ngeneral = Ngeneral
-        self.Ngas = Ngas
-        self.Ndm = Ndm
-        self.Nstar = Nstar
-        self.Nbaryon = Nbaryon
+        self.Ngeneral = filter_values["general"]
+        self.Ngas = filter_values["gas"]
+        self.Ndm = filter_values["dm"]
+        self.Nstar = filter_values["star"]
+        self.Nbaryon = filter_values["baryon"]
         self.dmo = dmo
 
     def get_filters_direct(self, Ngas, Ndm, Nstar, Nbh):
