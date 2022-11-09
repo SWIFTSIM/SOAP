@@ -118,6 +118,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Densities",
                 "ElectronNumberDensities",
                 "SpeciesFractions",
+                "DustMassFractions",
             ],
             "PartType1": [
                 "Coordinates",
@@ -170,6 +171,14 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "H2": 7,
                 "H2p": 8,
                 "H3p": 9,
+            },
+            "DustMassFractions": {
+                "GraphiteLarge": 0,
+                "MgSilicatesLarge": 1,
+                "FeSilicatesLarge": 2,
+                "GraphiteSmall": 3,
+                "MgSilicatesSmall": 4,
+                "FeSilicatesSmall": 5,
             },
         }
 
@@ -273,6 +282,10 @@ class DummyHaloGenerator:
           "ComptonYParameters": (np.float32, snap_length**2, 0., 5.e-9),
           "Coordinates": (np.float64, a*snap_length, 0., boxsize),
           "Densities": (np.float32, snap_mass/(a**3*snap_length**3), 0.1, 1.e8),
+          "DustMassFractions":
+            (np.float32, dimensionless,
+             [0., 0., 0., 0., 0., 0.],
+             [6.7e-3, 5.3e-3, 1.1e-2, 4.4e-3, 4.1e-3, 1.1e-2]),
           "ElectronNumberDensities": (np.float64, 1/snap_length**3, 0., 3.4e73),
           "GroupNr_bound": (np.int32, dimensionless, N/A),
           "LastAGNFeedbackScaleFactors": (np.float32, dimensionless, 0., 1.),
@@ -430,6 +443,16 @@ class DummyHaloGenerator:
                 dtype=np.float32,
                 units="snap_mass/(a**3*snap_length**3)",
                 registry=reg,
+            )
+            dmf = np.zeros((Ngas, 6))
+            dmf[:, 0] = 6.7e-3 * np.random.random(Ngas)
+            dmf[:, 1] = 5.3e-3 * np.random.random(Ngas)
+            dmf[:, 2] = 1.1e-2 * np.random.random(Ngas)
+            dmf[:, 3] = 4.4e-3 * np.random.random(Ngas)
+            dmf[:, 4] = 4.1e-3 * np.random.random(Ngas)
+            dmf[:, 5] = 1.1e-2 * np.random.random(Ngas)
+            data["PartType0"]["DustMassFractions"] = unyt.unyt_array(
+                dmf, dtype=np.float32, units=unyt.dimensionless, registry=reg
             )
             data["PartType0"]["ElectronNumberDensities"] = unyt.unyt_array(
                 10.0 ** (65.0 + 8.0 * np.random.random(Ngas)),

@@ -912,6 +912,170 @@ class ApertureParticleData:
         return self.gas_mass_HI.sum()
 
     @lazy_property
+    def gas_dust_mass_fractions(self):
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][
+            self.gas_mask_ap
+        ]
+
+    @lazy_property
+    def gas_dust_mass_fractions_graphite_large(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_dust_mass_fractions[
+            :,
+            self.snapshot_datasets.get_column_index(
+                "DustMassFractions", "GraphiteLarge"
+            ),
+        ]
+
+    @lazy_property
+    def gas_dust_mass_fractions_silicates_large(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_dust_mass_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "DustMassFractions", "MgSilicatesLarge"
+                ),
+            ]
+            + self.gas_dust_mass_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "DustMassFractions", "FeSilicatesLarge"
+                ),
+            ]
+        )
+
+    @lazy_property
+    def gas_dust_mass_fractions_graphite_small(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_dust_mass_fractions[
+            :,
+            self.snapshot_datasets.get_column_index(
+                "DustMassFractions", "GraphiteSmall"
+            ),
+        ]
+
+    @lazy_property
+    def gas_dust_mass_fractions_silicates_small(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_dust_mass_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "DustMassFractions", "MgSilicatesSmall"
+                ),
+            ]
+            + self.gas_dust_mass_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "DustMassFractions", "FeSilicatesSmall"
+                ),
+            ]
+        )
+
+    @lazy_property
+    def gas_graphite_mass_fractions(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_dust_mass_fractions_graphite_large
+            + self.gas_dust_mass_fractions_graphite_small
+        )
+
+    @lazy_property
+    def gas_silicates_mass_fractions(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_dust_mass_fractions_silicates_large
+            + self.gas_dust_mass_fractions_silicates_small
+        )
+
+    @lazy_property
+    def gas_large_dust_mass_fractions(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_dust_mass_fractions_graphite_large
+            + self.gas_dust_mass_fractions_silicates_large
+        )
+
+    @lazy_property
+    def gas_small_dust_mass_fractions(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_dust_mass_fractions_graphite_small
+            + self.gas_dust_mass_fractions_silicates_small
+        )
+
+    @lazy_property
+    def DustGraphiteMass(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_graphite_mass_fractions * self.mass_gas).sum()
+
+    @lazy_property
+    def DustGraphiteMassInAtomicGas(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_graphite_mass_fractions * self.gas_mass_HI).sum()
+
+    @lazy_property
+    def DustGraphiteMassInMolecularGas(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_graphite_mass_fractions * self.gas_mass_H2).sum()
+
+    @lazy_property
+    def DustSilicatesMass(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_silicates_mass_fractions * self.mass_gas).sum()
+
+    @lazy_property
+    def DustSilicatesMassInAtomicGas(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_silicates_mass_fractions * self.gas_mass_HI).sum()
+
+    @lazy_property
+    def DustSilicatesMassInMolecularGas(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_silicates_mass_fractions * self.gas_mass_H2).sum()
+
+    @lazy_property
+    def DustLargeGrainMass(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_large_dust_mass_fractions * self.mass_gas).sum()
+
+    @lazy_property
+    def DustLargeGrainMassInMolecularGas(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_large_dust_mass_fractions * self.gas_mass_H2).sum()
+
+    @lazy_property
+    def DustSmallGrainMass(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_small_dust_mass_fractions * self.mass_gas).sum()
+
+    @lazy_property
+    def DustSmallGrainMassInMolecularGas(self):
+        if self.Ngas == 0:
+            return None
+        return (self.gas_small_dust_mass_fractions * self.gas_mass_H2).sum()
+
+    @lazy_property
     def HalfMassRadiusGas(self):
         return get_half_mass_radius(
             self.radius[self.type == "PartType0"], self.mass_gas, self.Mgas
@@ -1016,6 +1180,16 @@ class ApertureProperties(HaloProperty):
             "MolecularHydrogenMass",
             "AtomicHydrogenMass",
             "starMgfrac",
+            "DustGraphiteMass",
+            "DustGraphiteMassInAtomicGas",
+            "DustGraphiteMassInMolecularGas",
+            "DustLargeGrainMass",
+            "DustLargeGrainMassInMolecularGas",
+            "DustSilicatesMass",
+            "DustSilicatesMassInAtomicGas",
+            "DustSilicatesMassInMolecularGas",
+            "DustSmallGrainMass",
+            "DustSmallGrainMassInMolecularGas",
         ]
     ]
 

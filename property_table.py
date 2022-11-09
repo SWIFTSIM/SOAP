@@ -401,7 +401,12 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Masses", "PartType0/DustMassFractions"],
+            [
+                "PartType0/Masses",
+                "PartType0/DustMassFractions",
+                "PartType0/ElementMassFractions",
+                "PartType0/SpeciesFractions",
+            ],
         ),
         "DustGraphiteMassInMolecularGas": (
             "DustGraphiteMassInMolecularGas",
@@ -416,6 +421,7 @@ class PropertyTable:
                 "PartType0/Masses",
                 "PartType0/DustMassFractions",
                 "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
             ],
         ),
         "DustLargeGrainMass": (
@@ -442,6 +448,7 @@ class PropertyTable:
                 "PartType0/Masses",
                 "PartType0/DustMassFractions",
                 "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
             ],
         ),
         "DustSilicatesMass": (
@@ -468,6 +475,7 @@ class PropertyTable:
                 "PartType0/Masses",
                 "PartType0/DustMassFractions",
                 "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
             ],
         ),
         "DustSilicatesMassInMolecularGas": (
@@ -483,6 +491,7 @@ class PropertyTable:
                 "PartType0/Masses",
                 "PartType0/DustMassFractions",
                 "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
             ],
         ),
         "DustSmallGrainMass": (
@@ -494,7 +503,11 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Masses", "PartType0/DustMassFractions"],
+            [
+                "PartType0/Masses",
+                "PartType0/DustMassFractions",
+                "PartType0/ElementMassFractions",
+            ],
         ),
         "DustSmallGrainMassInMolecularGas": (
             "DustSmallGrainMassInMolecularGas",
@@ -509,6 +522,7 @@ class PropertyTable:
                 "PartType0/Masses",
                 "PartType0/DustMassFractions",
                 "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
             ],
         ),
         "Ekin_gas": (
