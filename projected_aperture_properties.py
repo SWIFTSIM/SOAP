@@ -411,6 +411,41 @@ class SingleProjectionProjectedApertureParticleData:
         return self.gas_SFR.sum()
 
     @lazy_property
+    def gas_metal_mass(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.part_props.get_dataset("PartType0/MetalMassFractions")[
+                self.gas_mask_all
+            ][self.gas_mask_ap]
+            * self.proj_mass_gas
+        )
+
+    @lazy_property
+    def gasmetalfrac(self):
+        if self.Ngas == 0 or self.Mgas == 0.0:
+            return None
+        return self.gas_metal_mass.sum() / self.Mgas
+
+    @lazy_property
+    def gas_is_star_forming(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_SFR > 0
+
+    @lazy_property
+    def Mgas_SF(self):
+        if self.Ngas == 0:
+            return None
+        return self.proj_mass_gas[self.gas_is_star_forming].sum()
+
+    @lazy_property
+    def gasmetalfrac_SF(self):
+        if self.Ngas == 0 or self.Mgas_SF == 0.0:
+            return None
+        return self.gas_metal_mass[self.gas_is_star_forming].sum() / self.Mgas_SF
+
+    @lazy_property
     def gas_element_fractions(self):
         if self.Ngas == 0:
             return None
@@ -671,6 +706,8 @@ class ProjectedApertureProperties(HaloProperty):
             "starMgfrac",
             "starOfrac",
             "starmetalfrac",
+            "gasmetalfrac",
+            "gasmetalfrac_SF",
         ]
     ]
 

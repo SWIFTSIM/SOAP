@@ -318,6 +318,14 @@ class ApertureParticleData:
         return ((Lr / Lrtot) * self.stellar_ages).sum()
 
     @lazy_property
+    def TotalSNIaRate(self):
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/SNIaRates")[self.star_mask_all][
+            self.star_mask_ap
+        ].sum()
+
+    @lazy_property
     def bh_mask_all(self):
         if self.Nbh == 0:
             return None
@@ -886,6 +894,7 @@ class ApertureProperties(HaloProperty):
             "starFefrac",
             "stellar_age_mw",
             "stellar_age_lw",
+            "TotalSNIaRate",
         ]
     ]
 

@@ -132,6 +132,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Luminosities",
                 "MetalMassFractions",
                 "BirthScaleFactors",
+                "SNIaRates",
             ],
             "PartType5": [
                 "Coordinates",
@@ -310,6 +311,7 @@ class DummyHaloGenerator:
           "Luminosities": (np.float32, dimensionless, 1.e5, 1.e10),
           "Masses": (np.float32, snap_mass, 0.06, 0.1),
           "MetalMassFractions": (np.float32, dimensionless, 0., 0.075),
+          "SNIaRates": (np.float64, 1/snap_time, 0., 5.36e7),
           "Velocities": (np.float32, snap_length/snap_time, -1.e3, 1.e3),
         }
         "PartType5": {
@@ -590,6 +592,12 @@ class DummyHaloGenerator:
                 semf,
                 dtype=np.float32,
                 units=unyt.dimensionless,
+                registry=reg,
+            )
+            data["PartType4"]["SNIaRates"] = unyt.unyt_array(
+                5.36e7 * np.random.random(Nstar),
+                dtype=np.float64,
+                units="1/snap_time",
                 registry=reg,
             )
             data["PartType4"]["Velocities"] = vs[star_mask]
