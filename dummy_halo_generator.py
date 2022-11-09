@@ -117,6 +117,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Pressures",
                 "Densities",
                 "ElectronNumberDensities",
+                "SpeciesFractions",
             ],
             "PartType1": [
                 "Coordinates",
@@ -146,7 +147,29 @@ class DummySnapshotDatasets(SnapshotDatasets):
 
         self.named_columns = {
             "Luminosities": {"GAMA_r": 2},
-            "SmoothedElementMassFractions": {"Oxygen": 4, "Iron": 8},
+            "SmoothedElementMassFractions": {
+                "Hydrogen": 0,
+                "Helium": 1,
+                "Carbon": 2,
+                "Nitrogen": 3,
+                "Oxygen": 4,
+                "Neon": 5,
+                "Magnesium": 6,
+                "Silicon": 7,
+                "Iron": 8,
+            },
+            "SpeciesFractions": {
+                "elec": 0,
+                "HI": 1,
+                "HII": 2,
+                "Hm": 3,
+                "HeI": 4,
+                "HeII": 5,
+                "HeIII": 6,
+                "H2": 7,
+                "H2p": 8,
+                "H3p": 9,
+            },
         }
 
         self.datasets_used = set()
@@ -241,7 +264,8 @@ class DummyHaloGenerator:
         If npart is a list, a random element of the list is chosen.
 
         To get a rough idea of the ranges found in a typical halo, this is the
-        input for one halo from a test run on a 400 Mpc FLAMINGO box:
+        input for one halo from a test run on a 400 Mpc FLAMINGO box (we later
+        added values from COLIBRE runs as well):
         (input_type, units, min value, max value)
         types = [
         "PartType0": {
@@ -259,6 +283,10 @@ class DummyHaloGenerator:
             (np.float32, dimensionless,
              [0.68, 0.24, 0., 0., 0., 0., 0., 0., 0.],
              [0.75, 0.29, 0.006, 0.001, 0.01, 0.002, 0.0008, 0.002, 0.002]),
+          "SpeciesFractions":
+            (np.float32, dimensionless,
+             [3.94e-5, 0., 1.78e-5, 0., 0., 2.05e-10, 0., 0., 0., 0.],
+             [1.26, 1., 1., 2.53e-8, 0.134, 0.122, 0.125, 0.5, 9.67e-6, 2.14e-5]),
           "StarFormationRates": (np.float32, snap_mass/snap_time, -0.99, 246.5),
           "Temperatures": (np.float32, snap_temperature, 1.e3, 1.e10),
           "Velocities": (np.float32, snap_length/snap_time, -1.e3, 1.e3),
@@ -448,6 +476,24 @@ class DummyHaloGenerator:
             semf[:, 8] = 0.002 * np.random.random(Ngas)
             data["PartType0"]["SmoothedElementMassFractions"] = unyt.unyt_array(
                 semf,
+                dtype=np.float32,
+                units=unyt.dimensionless,
+                registry=reg,
+            )
+            # same for the species fractions
+            specfrac = np.zeros((Ngas, 10))
+            specfrac[:, 0] = 3.94e-5 + 1.25 * np.random.random(Ngas)
+            specfrac[:, 1] = np.random.random(Ngas)
+            specfrac[:, 2] = 1.78e-5 + (1.0 - 1.78e-5) * np.random.random(Ngas)
+            specfrac[:, 3] = 2.53e-8 * np.random.random(Ngas)
+            specfrac[:, 4] = 0.134 * np.random.random(Ngas)
+            specfrac[:, 5] = 2.05e-10 + 0.122 * np.random.random(Ngas)
+            specfrac[:, 6] = 0.125 * np.random.random(Ngas)
+            specfrac[:, 7] = 0.5 * np.random.random()
+            specfrac[:, 8] = 9.67e-6 * np.random.random()
+            specfrac[:, 9] = 2.14e-5 * np.random.random()
+            data["PartType0"]["SpeciesFractions"] = unyt.unyt_array(
+                specfrac,
                 dtype=np.float32,
                 units=unyt.dimensionless,
                 registry=reg,

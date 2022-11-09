@@ -411,6 +411,181 @@ class SingleProjectionProjectedApertureParticleData:
         return self.gas_SFR.sum()
 
     @lazy_property
+    def gas_element_fractions(self):
+        if self.Ngas == 0:
+            return None
+        return self.part_props.get_dataset("PartType0/ElementMassFractions")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+
+    @lazy_property
+    def gas_mass_H(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_element_fractions[
+                :,
+                self.part_props.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Hydrogen"
+                ),
+            ]
+            * self.proj_mass_gas
+        )
+
+    @lazy_property
+    def gas_mass_He(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_element_fractions[
+                :,
+                self.part_props.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Helium"
+                ),
+            ]
+            * self.proj_mass_gas
+        )
+
+    @lazy_property
+    def gas_species_fractions(self):
+        if self.Ngas == 0:
+            return None
+        return self.part_props.get_dataset("PartType0/SpeciesFractions")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+
+    @lazy_property
+    def gas_mass_HI(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_mass_H
+            * self.gas_species_fractions[
+                :,
+                self.part_props.snapshot_datasets.get_column_index(
+                    "SpeciesFractions", "HI"
+                ),
+            ]
+        )
+
+    @lazy_property
+    def gas_mass_H2(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_mass_H
+            * self.gas_species_fractions[
+                :,
+                self.part_props.snapshot_datasets.get_column_index(
+                    "SpeciesFractions", "H2"
+                ),
+            ]
+        )
+
+    @lazy_property
+    def HydrogenMass(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_mass_H.sum()
+
+    @lazy_property
+    def HeliumMass(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_mass_He.sum()
+
+    @lazy_property
+    def MolecularHydrogenMass(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_mass_H2.sum()
+
+    @lazy_property
+    def AtomicHydrogenMass(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_mass_HI.sum()
+
+    @lazy_property
+    def star_element_fractions(self):
+        if self.Nstar == 0:
+            return None
+        return self.part_props.get_dataset("PartType4/ElementMassFractions")[
+            self.star_mask_all
+        ][self.star_mask_ap]
+
+    @lazy_property
+    def star_mass_O(self):
+        if self.Nstar == 0:
+            return None
+        return (
+            self.star_element_fractions[
+                :,
+                self.part_props.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Oxygen"
+                ),
+            ]
+            * self.proj_mass_star
+        )
+
+    @lazy_property
+    def star_mass_Mg(self):
+        if self.Nstar == 0:
+            return None
+        return (
+            self.star_element_fractions[
+                :,
+                self.part_props.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Magnesium"
+                ),
+            ]
+            * self.proj_mass_star
+        )
+
+    @lazy_property
+    def star_mass_Fe(self):
+        if self.Nstar == 0:
+            return None
+        return (
+            self.star_element_fractions[
+                :,
+                self.part_props.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Iron"
+                ),
+            ]
+            * self.proj_mass_star
+        )
+
+    @lazy_property
+    def starOfrac(self):
+        if self.Nstar == 0 or self.Mstar == 0.0:
+            return None
+        return self.star_mass_O.sum() / self.Mstar
+
+    @lazy_property
+    def starMgfrac(self):
+        if self.Nstar == 0 or self.Mstar == 0.0:
+            return None
+        return self.star_mass_Mg.sum() / self.Mstar
+
+    @lazy_property
+    def starFefrac(self):
+        if self.Nstar == 0 or self.Mstar == 0.0:
+            return None
+        return self.star_mass_Fe.sum() / self.Mstar
+
+    @lazy_property
+    def starmetalfrac(self):
+        if self.Nstar == 0 or self.Mstar == 0.0:
+            return None
+        return (
+            self.part_props.get_dataset("PartType4/MetalMassFractions")[
+                self.star_mask_all
+            ][self.star_mask_ap]
+            * self.proj_mass_star
+        ).sum() / self.Mstar
+
+    @lazy_property
     def HalfMassRadiusGas(self):
         return get_half_mass_radius(
             self.proj_radius[self.proj_type == "PartType0"],
@@ -488,6 +663,14 @@ class ProjectedApertureProperties(HaloProperty):
             "ProjectedGasAxisLengths",
             "ProjectedStellarAxisLengths",
             "ProjectedBaryonAxisLengths",
+            "HydrogenMass",
+            "HeliumMass",
+            "MolecularHydrogenMass",
+            "AtomicHydrogenMass",
+            "starFefrac",
+            "starMgfrac",
+            "starOfrac",
+            "starmetalfrac",
         ]
     ]
 
