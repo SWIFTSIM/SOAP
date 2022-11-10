@@ -516,6 +516,14 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_gas / self.Mgas
 
     @lazy_property
+    def veldisp_matrix_gas(self):
+        if self.Mgas == 0:
+            return None
+        return get_velocity_dispersion_matrix(
+            self.gas_mass_fraction, self.vel_gas, self.vcom_gas
+        )
+
+    @lazy_property
     def Ekin_gas(self):
         if self.Mgas == 0:
             return None
@@ -544,6 +552,14 @@ class ApertureParticleData:
         if self.Mdm == 0:
             return None
         return (self.dm_mass_fraction[:, None] * self.vel_dm).sum(axis=0)
+
+    @lazy_property
+    def veldisp_matrix_dm(self):
+        if self.Mdm == 0:
+            return None
+        return get_velocity_dispersion_matrix(
+            self.dm_mass_fraction, self.vel_dm, self.vcom_dm
+        )
 
     @lazy_property
     def Ldm(self):
@@ -607,6 +623,14 @@ class ApertureParticleData:
         if self.Mstar == 0:
             return None
         return get_axis_lengths(self.mass_star, self.pos_star)
+
+    @lazy_property
+    def veldisp_matrix_star(self):
+        if self.Mstar == 0:
+            return None
+        return get_velocity_dispersion_matrix(
+            self.star_mass_fraction, self.vel_star, self.vcom_star
+        )
 
     @lazy_property
     def Ekin_star(self):
@@ -1141,10 +1165,9 @@ class ApertureProperties(HaloProperty):
             "kappa_corot_star",
             "Lbaryons",
             "kappa_corot_baryons",
-            # temporarily (?) disabled
-            #            "veldisp_matrix_gas",
-            #            "veldisp_matrix_dm",
-            #            "veldisp_matrix_star",
+            "veldisp_matrix_gas",
+            "veldisp_matrix_dm",
+            "veldisp_matrix_star",
             "Ekin_gas",
             "Ekin_star",
             "Mgas_SF",
