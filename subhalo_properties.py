@@ -857,10 +857,10 @@ class SubhaloProperties(HaloProperty):
         # Give this calculation a name so we can select it on the command line
         if bound_only:
             self.grnr = "GroupNr_bound"
-            self.name = "subhalo_masses_bound"
+            self.name = "bound_subhalo_properties"
         else:
             self.grnr = "GroupNr_all"
-            self.name = "subhalo_masses_all"
+            self.name = "fof_subhalo_properties"
 
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the
