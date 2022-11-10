@@ -15,6 +15,7 @@ from kinematic_properties import (
 )
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from stellar_age_calculator import StellarAgeCalculator
+from cold_dense_gas_filter import ColdDenseGasFilter
 from property_table import PropertyTable
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
@@ -31,6 +32,7 @@ class ApertureParticleData:
         aperture_radius,
         stellar_age_calculator,
         recently_heated_gas_filter,
+        cold_dense_gas_filter,
         snapshot_datasets,
     ):
         self.input_halo = input_halo
@@ -40,6 +42,7 @@ class ApertureParticleData:
         self.aperture_radius = aperture_radius
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
+        self.cold_dense_gas_filter = cold_dense_gas_filter
         self.snapshot_datasets = snapshot_datasets
         self.compute_basics()
 
@@ -1223,6 +1226,7 @@ class ApertureProperties(HaloProperty):
         physical_radius_kpc,
         recently_heated_gas_filter,
         stellar_age_calculator,
+        cold_dense_gas_filter,
         category_filter,
         inclusive=False,
     ):
@@ -1240,6 +1244,7 @@ class ApertureProperties(HaloProperty):
 
         self.filter = recently_heated_gas_filter
         self.stellar_ages = stellar_age_calculator
+        self.cold_dense_gas_filter = cold_dense_gas_filter
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
 
@@ -1318,6 +1323,7 @@ class ApertureProperties(HaloProperty):
             self.physical_radius_mpc * unyt.Mpc,
             self.stellar_ages,
             self.filter,
+            self.cold_dense_gas_filter,
             self.snapshot_datasets,
         )
 
@@ -1399,6 +1405,7 @@ class ExclusiveSphereProperties(ApertureProperties):
         physical_radius_kpc,
         recently_heated_gas_filter,
         stellar_age_calculator,
+        cold_dense_gas_filter,
         category_filter,
     ):
         super().__init__(
@@ -1407,6 +1414,7 @@ class ExclusiveSphereProperties(ApertureProperties):
             physical_radius_kpc,
             recently_heated_gas_filter,
             stellar_age_calculator,
+            cold_dense_gas_filter,
             category_filter,
             False,
         )
@@ -1420,6 +1428,7 @@ class InclusiveSphereProperties(ApertureProperties):
         physical_radius_kpc,
         recently_heated_gas_filter,
         stellar_age_calculator,
+        cold_dense_gas_filter,
         category_filter,
     ):
         super().__init__(
@@ -1428,6 +1437,7 @@ class InclusiveSphereProperties(ApertureProperties):
             physical_radius_kpc,
             recently_heated_gas_filter,
             stellar_age_calculator,
+            cold_dense_gas_filter,
             category_filter,
             True,
         )
@@ -1449,6 +1459,7 @@ def test_aperture_properties():
     dummy_halos = DummyHaloGenerator(3256)
     filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())
+    cold_dense_gas_filter = ColdDenseGasFilter()
     cat_filter = CategoryFilter(
         {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
     )
@@ -1477,6 +1488,7 @@ def test_aperture_properties():
         50.0,
         filter,
         stellar_age_calculator,
+        cold_dense_gas_filter,
         cat_filter,
     )
     pc_inclusive = InclusiveSphereProperties(
@@ -1485,6 +1497,7 @@ def test_aperture_properties():
         50.0,
         filter,
         stellar_age_calculator,
+        cold_dense_gas_filter,
         cat_filter,
     )
 
@@ -1578,6 +1591,7 @@ def test_aperture_properties():
             50.0,
             filter,
             stellar_age_calculator,
+            cold_dense_gas_filter,
             cat_filter,
         )
         pc_inclusive = InclusiveSphereProperties(
@@ -1586,6 +1600,7 @@ def test_aperture_properties():
             50.0,
             filter,
             stellar_age_calculator,
+            cold_dense_gas_filter,
             cat_filter,
         )
 

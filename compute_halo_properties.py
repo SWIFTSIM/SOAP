@@ -38,6 +38,7 @@ from combine_chunks import combine_chunks, sub_snapnum
 import projected_aperture_properties
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from stellar_age_calculator import StellarAgeCalculator
+from cold_dense_gas_filter import ColdDenseGasFilter
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
 from mpi_timer import MPITimer
@@ -133,6 +134,7 @@ def compute_halo_properties():
         cellgrid, 15.0 * unyt.Myr, 0.0, 0.0
     )
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
+    cold_dense_gas_filter = ColdDenseGasFilter(10.**4.5 * unyt.K, 0.1/unyt.cm**3)
     category_filter = CategoryFilter(
         parameter_file.get_filter_values(
             {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
@@ -254,6 +256,7 @@ def compute_halo_properties():
                     aperture_variations[variation]["radius_in_kpc"],
                     recently_heated_gas_filter,
                     stellar_age_calculator,
+                    cold_dense_gas_filter,
                     category_filter,
                 )
             )
