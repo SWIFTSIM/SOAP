@@ -909,6 +909,17 @@ class PropertyTable:
             False,
             ["PartType0/Masses", "PartType0/Temperatures"],
         ),
+        "GasMassInColdDenseGas": (
+            "GasMassInColdDenseGas",
+            1,
+            np.float32,
+            "Msun",
+            "Total mass of gas in cold, dense gas.",
+            "gas",
+            "FMantissa9",
+            False,
+            ["PartType0/Masses", "PartType0/Densities", "PartType0/Temperatures"],
+        ),
         "MinimumStellarBirthDensity": (
             "MinimumStellarBirthDensity",
             1,

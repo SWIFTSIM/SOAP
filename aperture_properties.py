@@ -1153,6 +1153,12 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
+    def GasMassInColdDenseGas(self):
+        if self.Ngas == 0:
+            return None
+        return self.mass_gas[self.gas_is_cold_dense].sum()
+
+    @lazy_property
     def HalfMassRadiusGas(self):
         return get_half_mass_radius(
             self.radius[self.type == "PartType0"], self.mass_gas, self.Mgas
@@ -1270,6 +1276,7 @@ class ApertureProperties(HaloProperty):
             "DustSmallGrainMass",
             "DustSmallGrainMassInMolecularGas",
             "DustSmallGrainMassInColdDenseGas",
+            "GasMassInColdDenseGas",
         ]
     ]
 
