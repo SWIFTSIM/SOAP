@@ -756,6 +756,18 @@ class SubhaloParticleData:
         return self.stellar_birth_density.max()
 
     @lazy_property
+    def LastSupernovaEventMaximumGasDensity(self):
+        if self.Ngas == 0:
+            return None
+        rho_thermal = self.get_dataset("PartType0/LastSNIIThermalFeedbackDensities")[
+            self.gas_mask_all
+        ]
+        rho_kinetic = self.get_dataset("PartType0/LastSNIIKineticFeedbackDensities")[
+            self.gas_mask_all
+        ]
+        return max(rho_thermal.max(), rho_kinetic.max())
+
+    @lazy_property
     def HalfMassRadiusTot(self):
         return get_half_mass_radius(self.radius, self.mass, self.Mtot)
 
@@ -854,6 +866,7 @@ class SubhaloProperties(HaloProperty):
             "LogarithmicallyAveragedStellarBirthDensity",
             "MinimumStellarBirthDensity",
             "MaximumStellarBirthDensity",
+            "LastSupernovaEventMaximumGasDensity",
         ]
     ]
 

@@ -748,7 +748,10 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Densities", "PartType0/LastSNIIThermalFeedbackScaleFactors"],
+            [
+                "PartType0/LastSNIIThermalFeedbackDensities",
+                "PartType0/LastSNIIKineticFeedbackDensities",
+            ],
         ),
         "Lbaryons": (
             "AngularMomentumBaryons",

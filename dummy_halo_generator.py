@@ -119,6 +119,8 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "ElectronNumberDensities",
                 "SpeciesFractions",
                 "DustMassFractions",
+                "LastSNIIKineticFeedbackDensities",
+                "LastSNIIThermalFeedbackDensities",
             ],
             "PartType1": [
                 "Coordinates",
@@ -353,6 +355,10 @@ class DummyHaloGenerator:
           "ElectronNumberDensities": (np.float64, 1/snap_length**3, 0., 3.4e73),
           "GroupNr_bound": (np.int32, dimensionless, N/A),
           "LastAGNFeedbackScaleFactors": (np.float32, dimensionless, 0., 1.),
+          "LastSNIIKineticFeedbackDensities": (
+            np.float32, snap_mass/snap_length**3, 5.84e1, 1.56e10),
+          "LastSNIIThermalFeedbackDensities": (
+            np.float32, snap_mass/snap_length**3, 5.84e1, 1.56e10),
           "Masses": (np.float32, snap_mass, 0.1, 0.1),
           "MetalMassFractions": (np.float32, dimensionless, 0., 0.06),
           "Pressures": (np.float32, snap_mass/(a**5*snap_length*snap_time**2),
@@ -537,6 +543,28 @@ class DummyHaloGenerator:
                 units=unyt.dimensionless,
                 registry=reg,
             )
+            data["PartType0"]["LastSNIIKineticFeedbackDensities"] = unyt.unyt_array(
+                10.0 ** (1.77 + (10.2 - 1.77) * np.random.random(Ngas)),
+                dtype=np.float32,
+                units="snap_mass/snap_length**3",
+                registry=reg,
+            )
+            data["PartType0"]["LastSNIIThermalFeedbackDensities"] = unyt.unyt_array(
+                10.0 ** (1.77 + (10.2 - 1.77) * np.random.random(Ngas)),
+                dtype=np.float32,
+                units="snap_mass/snap_length**3",
+                registry=reg,
+            )
+            # randomly set some values to -1
+            data["PartType0"]["LastAGNFeedbackScaleFactors"][
+                np.random.random() > 0.9
+            ] = -1
+            data["PartType0"]["LastSNIIKineticFeedbackDensities"][
+                np.random.random() > 0.9
+            ] = -1
+            data["PartType0"]["LastSNIIThermalFeedbackDensities"][
+                np.random.random() > 0.9
+            ] = -1
             data["PartType0"]["Masses"] = mass[gas_mask]
             Mtot += data["PartType0"]["Masses"].sum()
             data["PartType0"]["MetalMassFractions"] = unyt.unyt_array(
@@ -718,6 +746,10 @@ class DummyHaloGenerator:
                 units=unyt.dimensionless,
                 registry=reg,
             )
+            # randomly set some values to -1
+            data["PartType5"]["LastAGNFeedbackScaleFactors"][
+                np.random.random() > 0.9
+            ] = -1
             # no need to do anything random for the IDs; we simply make sure
             # the IDs are non zero
             data["PartType5"]["ParticleIDs"] = unyt.unyt_array(
