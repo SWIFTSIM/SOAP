@@ -18,7 +18,9 @@ class ColdDenseGasFilter:
         self.maximum_temperature = maximum_temperature
         self.minimum_hydrogen_number_density = minimum_hydrogen_number_density
 
-    def is_recently_heated(self, temperature, hydrogen_number_density):
-        return (temperature < self.maximum_temperature) & (
-            hydrogen_number_density > self.minimum_hydrogen_number_density
+    def is_cold_and_dense(self, temperature, mass_density):
+        hydrogen_number_density = mass_density / unyt.mh
+        return (temperature < self.maximum_temperature.to(temperature.units)) & (
+            hydrogen_number_density
+            > self.minimum_hydrogen_number_density.to(hydrogen_number_density.units)
         )

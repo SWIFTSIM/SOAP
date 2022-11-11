@@ -817,6 +817,14 @@ class ApertureParticleData:
         ]
 
     @lazy_property
+    def gas_rho(self):
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/Densities")[self.gas_mask_all][
+            self.gas_mask_ap
+        ]
+
+    @lazy_property
     def gas_no_agn(self):
         if self.Ngas == 0:
             return None
@@ -1043,6 +1051,12 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def gas_is_cold_dense(self):
+        if self.Ngas == 0:
+            return None
+        return self.cold_dense_gas_filter.is_cold_and_dense(self.gas_temp, self.gas_rho)
+
+    @lazy_property
     def DustGraphiteMass(self):
         if self.Ngas == 0:
             return None
@@ -1059,6 +1073,15 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         return (self.gas_graphite_mass_fractions * self.gas_mass_H2).sum()
+
+    @lazy_property
+    def DustGraphiteMassInColdDenseGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_graphite_mass_fractions[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
 
     @lazy_property
     def DustSilicatesMass(self):
@@ -1079,6 +1102,15 @@ class ApertureParticleData:
         return (self.gas_silicates_mass_fractions * self.gas_mass_H2).sum()
 
     @lazy_property
+    def DustSilicatesMassInColdDenseGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_silicates_mass_fractions[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
     def DustLargeGrainMass(self):
         if self.Ngas == 0:
             return None
@@ -1091,6 +1123,15 @@ class ApertureParticleData:
         return (self.gas_large_dust_mass_fractions * self.gas_mass_H2).sum()
 
     @lazy_property
+    def DustLargeGrainMassInColdDenseGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_large_dust_mass_fractions[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
     def DustSmallGrainMass(self):
         if self.Ngas == 0:
             return None
@@ -1101,6 +1142,15 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         return (self.gas_small_dust_mass_fractions * self.gas_mass_H2).sum()
+
+    @lazy_property
+    def DustSmallGrainMassInColdDenseGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_small_dust_mass_fractions[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
 
     @lazy_property
     def HalfMassRadiusGas(self):
@@ -1209,13 +1259,17 @@ class ApertureProperties(HaloProperty):
             "DustGraphiteMass",
             "DustGraphiteMassInAtomicGas",
             "DustGraphiteMassInMolecularGas",
+            "DustGraphiteMassInColdDenseGas",
             "DustLargeGrainMass",
             "DustLargeGrainMassInMolecularGas",
+            "DustLargeGrainMassInColdDenseGas",
             "DustSilicatesMass",
             "DustSilicatesMassInAtomicGas",
             "DustSilicatesMassInMolecularGas",
+            "DustSilicatesMassInColdDenseGas",
             "DustSmallGrainMass",
             "DustSmallGrainMassInMolecularGas",
+            "DustSmallGrainMassInColdDenseGas",
         ]
     ]
 
