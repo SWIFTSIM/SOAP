@@ -22,14 +22,13 @@ class SnapshotDatasets:
             self.dust_grain_composition = file_handle["SubgridScheme"][
                 "GrainToElementMapping"
             ][:]
-        except AttributeError:
-            pass
-        try:
-            self.dust_grain_composition = file_handle["SubgridScheme"][
-                "DustMassFractionsToElementMassFractionsMapping"
-            ][:]
-        except AttributeError:
-            pass
+        except KeyError:
+            try:
+                self.dust_grain_composition = file_handle["SubgridScheme"][
+                    "DustMassFractionsToElementMassFractionsMapping"
+                ][:]
+            except KeyError:
+                pass
 
     def setup_aliases(self, aliases):
         self.dataset_map = {}
