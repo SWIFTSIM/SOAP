@@ -129,12 +129,15 @@ def compute_halo_properties():
 
     parameter_file = ParameterFile(args.parameters)
     cellgrid.snapshot_datasets.setup_aliases(parameter_file.get_aliases())
+    cellgrid.snapshot_datasets.setup_defined_constants(
+        parameter_file.get_defined_constants()
+    )
 
     recently_heated_gas_filter = RecentlyHeatedGasFilter(
         cellgrid, 15.0 * unyt.Myr, 0.0, 0.0
     )
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
-    cold_dense_gas_filter = ColdDenseGasFilter(10.**4.5 * unyt.K, 0.1/unyt.cm**3)
+    cold_dense_gas_filter = ColdDenseGasFilter(10.0**4.5 * unyt.K, 0.1 / unyt.cm**3)
     category_filter = CategoryFilter(
         parameter_file.get_filter_values(
             {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}

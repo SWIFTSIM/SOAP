@@ -153,6 +153,11 @@ class DummySnapshotDatasets(SnapshotDatasets):
             "PartType6": ["Coordinates", "Masses", "Weights"],
         }
 
+        self.defined_constants = {
+            "O_H_sun": 4.9e-04 * unyt.dimensionless,
+            "Fe_H_sun": 2.82e-5 * unyt.dimensionless,
+        }
+
         self.named_columns = {
             "Luminosities": {"GAMA_r": 2},
             "SmoothedElementMassFractions": {

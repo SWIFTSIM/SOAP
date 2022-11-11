@@ -1,7 +1,6 @@
 #!/bin/env python
 
 import yaml
-import unyt
 
 
 class ParameterFile:
@@ -78,10 +77,8 @@ class ParameterFile:
             self.parameters["filters"] = dict(default_filters)
         return filter_values
 
-    def get_defined_constant(self, constant_name):
-        try:
-            return unyt.from_string(self.parameters[constant_name])
-        except KeyError:
-            raise KeyError(
-                f'Cannot find defined constant "{constant_name}" in parameter file!'
-            )
+    def get_defined_constants(self):
+        if "defined_constants" in self.parameters:
+            return dict(self.parameters["defined_constants"])
+        else:
+            return dict()

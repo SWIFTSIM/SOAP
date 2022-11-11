@@ -1,5 +1,7 @@
 #!/bin/env python
 
+import unyt
+
 
 class SnapshotDatasets:
     def __init__(self, file_handle):
@@ -44,6 +46,17 @@ class SnapshotDatasets:
                 SOAP_dset not in self.named_columns
             ):
                 self.named_columns[SOAP_dset] = dict(self.named_columns[snap_dset])
+
+    def setup_defined_constants(self, defined_constants):
+        self.defined_constants = {}
+        for name, value in defined_constants.items():
+            self.defined_constants[name] = unyt.from_string(value)
+
+    def get_defined_constant(self, name):
+        try:
+            return self.defined_constants[name]
+        except KeyError:
+            raise KeyError(f'Defined constant "{name}" not found in parameter file!')
 
     def get_dataset(self, name, data_dict):
         try:
