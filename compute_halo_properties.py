@@ -268,6 +268,7 @@ def compute_halo_properties():
                     aperture_variations[variation]["radius_in_kpc"],
                     recently_heated_gas_filter,
                     stellar_age_calculator,
+                    cold_dense_gas_filter,
                     category_filter,
                 )
             )
