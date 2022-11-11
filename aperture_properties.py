@@ -1164,7 +1164,7 @@ class ApertureParticleData:
             return None
         return self.get_dataset("PartType4/BirthDensities")[self.star_mask_all][
             self.star_mask_ap
-        ].sum()
+        ]
 
     @lazy_property
     def LogarithmicallyAveragedStellarBirthDensity(self):
