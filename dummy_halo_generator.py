@@ -121,6 +121,8 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "DustMassFractions",
                 "LastSNIIKineticFeedbackDensities",
                 "LastSNIIThermalFeedbackDensities",
+                "ElementMassFractionsDiffuse",
+                "SmoothedElementMassFractions",
             ],
             "PartType1": [
                 "Coordinates",
@@ -137,6 +139,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "BirthScaleFactors",
                 "SNIaRates",
                 "BirthDensities",
+                "SmoothedElementMassFractions",
             ],
             "PartType5": [
                 "Coordinates",
@@ -598,6 +601,9 @@ class DummyHaloGenerator:
                 units=unyt.dimensionless,
                 registry=reg,
             )
+            data["PartType0"]["ElementMassFractionsDiffuse"] = data["PartType0"][
+                "SmoothedElementMassFractions"
+            ].copy()
             # same for the species fractions
             specfrac = np.zeros((Ngas, 10))
             specfrac[:, 0] = 3.94e-5 + 1.25 * np.random.random(Ngas)

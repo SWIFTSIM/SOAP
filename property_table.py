@@ -279,8 +279,7 @@ class PropertyTable:
             False,
             [
                 "PartType0/Masses",
-                "PartType0/DustMassFractions",
-                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractionsDiffuse",
             ],
         ),
         "DiffuseIronMass": (
@@ -294,8 +293,7 @@ class PropertyTable:
             False,
             [
                 "PartType0/Masses",
-                "PartType0/DustMassFractions",
-                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractionsDiffuse",
             ],
         ),
         "DiffuseMagnesiumMass": (
@@ -309,8 +307,7 @@ class PropertyTable:
             False,
             [
                 "PartType0/Masses",
-                "PartType0/DustMassFractions",
-                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractionsDiffuse",
             ],
         ),
         "DiffuseOxygenMass": (
@@ -324,8 +321,7 @@ class PropertyTable:
             False,
             [
                 "PartType0/Masses",
-                "PartType0/DustMassFractions",
-                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractionsDiffuse",
             ],
         ),
         "DiffuseSiliconMass": (
@@ -339,8 +335,7 @@ class PropertyTable:
             False,
             [
                 "PartType0/Masses",
-                "PartType0/DustMassFractions",
-                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractionsDiffuse",
             ],
         ),
         "DopplerB": (

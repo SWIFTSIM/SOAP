@@ -1189,6 +1189,112 @@ class ApertureParticleData:
         return self.stellar_birth_density.max()
 
     @lazy_property
+    def gas_diffuse_element_fractions(self):
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/ElementMassFractionsDiffuse")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+
+    @lazy_property
+    def gas_diffuse_carbon_mass(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_diffuse_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Carbon"
+                ),
+            ]
+            * self.mass_gas
+        )
+
+    @lazy_property
+    def gas_diffuse_oxygen_mass(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_diffuse_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Oxygen"
+                ),
+            ]
+            * self.mass_gas
+        )
+
+    @lazy_property
+    def gas_diffuse_magnesium_mass(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_diffuse_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Magnesium"
+                ),
+            ]
+            * self.mass_gas
+        )
+
+    @lazy_property
+    def gas_diffuse_silicon_mass(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_diffuse_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Silicon"
+                ),
+            ]
+            * self.mass_gas
+        )
+
+    @lazy_property
+    def gas_diffuse_iron_mass(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_diffuse_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+            ]
+            * self.mass_gas
+        )
+
+    @lazy_property
+    def DiffuseCarbonMass(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_diffuse_carbon_mass.sum()
+
+    @lazy_property
+    def DiffuseOxygenMass(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_diffuse_oxygen_mass.sum()
+
+    @lazy_property
+    def DiffuseMagnesiumMass(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_diffuse_magnesium_mass.sum()
+
+    @lazy_property
+    def DiffuseSiliconMass(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_diffuse_silicon_mass.sum()
+
+    @lazy_property
+    def DiffuseIronMass(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_diffuse_iron_mass.sum()
+
+    @lazy_property
     def HalfMassRadiusGas(self):
         return get_half_mass_radius(
             self.radius[self.type == "PartType0"], self.mass_gas, self.Mgas
@@ -1310,6 +1416,11 @@ class ApertureProperties(HaloProperty):
             "LogarithmicallyAveragedStellarBirthDensity",
             "MaximumStellarBirthDensity",
             "MinimumStellarBirthDensity",
+            "DiffuseCarbonMass",
+            "DiffuseOxygenMass",
+            "DiffuseMagnesiumMass",
+            "DiffuseSiliconMass",
+            "DiffuseIronMass",
         ]
     ]
 
