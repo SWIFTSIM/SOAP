@@ -1,6 +1,7 @@
 #!/bin/env python
 
 import yaml
+import unyt
 
 
 class ParameterFile:
@@ -60,15 +61,27 @@ class ParameterFile:
         return parts[0], parts[1]
 
     def get_aliases(self):
-      if "aliases" in self.parameters:
-        return dict(self.parameters["aliases"])
-      else:
-        return dict()
+        if "aliases" in self.parameters:
+            return dict(self.parameters["aliases"])
+        else:
+            return dict()
 
     def get_filter_values(self, default_filters):
         filter_values = dict(default_filters)
         if "filters" in self.parameters:
-          for category in default_filters:
-            if category in self.parameters["filters"]:
-              filter_values[category] = self.parameters["filters"][category]
+            for category in default_filters:
+                if category in self.parameters["filters"]:
+                    filter_values[category] = self.parameters["filters"][category]
+                else:
+                    self.parameters["filters"][category] = filter_values[category]
+        else:
+            self.parameters["filters"] = dict(default_filters)
         return filter_values
+
+    def get_defined_constant(self, constant_name):
+        try:
+            return unyt.from_string(self.parameters[constant_name])
+        except KeyError:
+            raise KeyError(
+                f'Cannot find defined constant "{constant_name}" in parameter file!'
+            )
