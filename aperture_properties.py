@@ -1159,6 +1159,36 @@ class ApertureParticleData:
         return self.mass_gas[self.gas_is_cold_dense].sum()
 
     @lazy_property
+    def stellar_birth_density(self):
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/BirthDensities")[self.star_mask_all][
+            self.star_mask_ap
+        ].sum()
+
+    @lazy_property
+    def LogarithmicallyAveragedStellarBirthDensity(self):
+        if self.Nstar == 0:
+            return None
+        # note: the stellar birth density cannot be zero for physical reasons
+        log_birth_density = np.log(
+            self.stellar_birth_density / self.stellar_birth_density.units
+        )
+        return np.exp(log_birth_density.mean()) * self.stellar_birth_density.units
+
+    @lazy_property
+    def MinimumStellarBirthDensity(self):
+        if self.Nstar == 0:
+            return None
+        return self.stellar_birth_density.min()
+
+    @lazy_property
+    def MaximumStellarBirthDensity(self):
+        if self.Nstar == 0:
+            return None
+        return self.stellar_birth_density.max()
+
+    @lazy_property
     def HalfMassRadiusGas(self):
         return get_half_mass_radius(
             self.radius[self.type == "PartType0"], self.mass_gas, self.Mgas
@@ -1277,6 +1307,9 @@ class ApertureProperties(HaloProperty):
             "DustSmallGrainMassInMolecularGas",
             "DustSmallGrainMassInColdDenseGas",
             "GasMassInColdDenseGas",
+            "LogarithmicallyAveragedStellarBirthDensity",
+            "MaximumStellarBirthDensity",
+            "MinimumStellarBirthDensity",
         ]
     ]
 

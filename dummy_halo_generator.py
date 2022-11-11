@@ -134,6 +134,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "MetalMassFractions",
                 "BirthScaleFactors",
                 "SNIaRates",
+                "BirthDensities",
             ],
             "PartType5": [
                 "Coordinates",
@@ -381,6 +382,7 @@ class DummyHaloGenerator:
           "Velocities": (np.float32, snap_length/snap_time, -1.e3, 1.e3),
         }
         "PartType4": {
+          "BirthDensities": (np.float32, snap_mass/snap_length**3, 2.5e5, 3.38e11),
           "Coordinates": (np.float64, a*snap_length, 0., boxsize),
           "GroupNr_bound": (np.int32, dimensionless, N/A),
           "InitialMasses": (np.float32, snap_mass, 0.1, 0.3),
@@ -631,6 +633,12 @@ class DummyHaloGenerator:
         Nstar = int(star_mask.sum())
         if Nstar > 0:
             data["PartType4"] = {}
+            data["PartType4"]["BirthDensities"] = unyt.unyt_array(
+                10.0 ** (4.4 + (11.5 - 4.4) * np.random.random(Nstar)),
+                dtype=np.float32,
+                units="snap_mass/snap_length**3",
+                registry=reg,
+            )
             data["PartType4"]["BirthScaleFactors"] = unyt.unyt_array(
                 1.0 / 1.1 + 0.01 * np.random.random(Nstar),
                 dtype=np.float32,
