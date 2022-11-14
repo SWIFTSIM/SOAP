@@ -515,6 +515,7 @@ class SingleProjectionProjectedApertureParticleData:
                     "SpeciesFractions", "H2"
                 ),
             ]
+            * 2.0
         )
 
     @lazy_property

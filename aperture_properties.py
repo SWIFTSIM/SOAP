@@ -920,6 +920,7 @@ class ApertureParticleData:
                 :,
                 self.snapshot_datasets.get_column_index("SpeciesFractions", "H2"),
             ]
+            * 2.0
         )
 
     @lazy_property
