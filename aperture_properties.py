@@ -1295,6 +1295,82 @@ class ApertureParticleData:
         return self.gas_diffuse_iron_mass.sum()
 
     @lazy_property
+    def gas_O_over_H_total(self):
+        if self.Ngas == 0:
+            return None
+        nH = self.gas_element_fractions[
+            :,
+            self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
+        ]
+        nO = self.gas_element_fractions[
+            :,
+            self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
+        ]
+        return nO / (16.0 * nH)
+
+    @lazy_property
+    def gas_O_over_H_diffuse(self):
+        if self.Ngas == 0:
+            return None
+        nH = self.gas_diffuse_element_fractions[
+            :,
+            self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
+        ]
+        nO = self.gas_diffuse_element_fractions[
+            :,
+            self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
+        ]
+        return nO / (16.0 * nH)
+
+    @lazy_property
+    def LinearMassWeightedOxygenOverHydrogenOfGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_O_over_H_total[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def gas_log10_O_over_H_diffuse(self):
+        if self.Ngas == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.gas_O_over_H_diffuse,
+                self.snapshot_datasets.get_defined_constant("O_H_sun") * 1.0e-4,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_log10_O_over_H_diffuse[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_log10_O_over_H_diffuse[self.gas_is_cold_dense]
+            * self.gas_mass_HI[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_log10_O_over_H_diffuse[self.gas_is_cold_dense]
+            * self.gas_mass_H2[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
     def HalfMassRadiusGas(self):
         return get_half_mass_radius(
             self.radius[self.type == "PartType0"], self.mass_gas, self.Mgas
@@ -1421,6 +1497,10 @@ class ApertureProperties(HaloProperty):
             "DiffuseMagnesiumMass",
             "DiffuseSiliconMass",
             "DiffuseIronMass",
+            "LinearMassWeightedOxygenOverHydrogenOfGas",
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGas",
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGas",
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGas",
         ]
     ]
 
