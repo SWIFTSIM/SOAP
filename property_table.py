@@ -1917,6 +1917,48 @@ class PropertyTable:
                 "PartType0/Densities",
             ],
         ),
+        "LinearMassWeightedIronOverHydrogenOfStars": (
+            "LinearMassWeightedIronOverHydrogenOfStars",
+            1,
+            np.float32,
+            "Msun",
+            "Linear sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass.",
+            "star",
+            "FMantissa9",
+            False,
+            [
+                "PartType4/Masses",
+                "PartType4/ElementMassFractions",
+            ],
+        ),
+        "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit": (
+            "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit",
+            1,
+            np.float32,
+            "Msun",
+            "Logarithmic sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-4 times solar Fe/H.",
+            "star",
+            "FMantissa9",
+            False,
+            [
+                "PartType4/Masses",
+                "PartType4/ElementMassFractions",
+            ],
+        ),
+        "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit": (
+            "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit",
+            1,
+            np.float32,
+            "Msun",
+            "Logarithmic sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-3 times solar Fe/H.",
+            "star",
+            "FMantissa9",
+            False,
+            [
+                "PartType4/Masses",
+                "PartType4/ElementMassFractions",
+            ],
+        ),
     }
 
     # we should really use removeprefix("VR") instead of [2:], but that only
