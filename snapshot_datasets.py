@@ -50,7 +50,7 @@ class SnapshotDatasets:
     def setup_defined_constants(self, defined_constants):
         self.defined_constants = {}
         for name, value in defined_constants.items():
-            self.defined_constants[name] = unyt.from_string(value)
+            self.defined_constants[name] = unyt.unyt_quantity.from_string(value)
 
     def get_defined_constant(self, name):
         try:
