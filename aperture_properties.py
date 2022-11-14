@@ -1323,13 +1323,25 @@ class ApertureParticleData:
         return nO / (16.0 * nH)
 
     @lazy_property
-    def gas_log10_O_over_H_diffuse(self):
+    def gas_log10_O_over_H_diffuse_low_limit(self):
         if self.Ngas == 0:
             return None
         return np.log10(
             np.clip(
                 self.gas_O_over_H_diffuse,
                 self.snapshot_datasets.get_defined_constant("O_H_sun") * 1.0e-4,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def gas_log10_O_over_H_diffuse_high_limit(self):
+        if self.Ngas == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.gas_O_over_H_diffuse,
+                self.snapshot_datasets.get_defined_constant("O_H_sun") * 1.0e-3,
                 np.inf,
             )
         )
@@ -1353,29 +1365,56 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGas(self):
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit(self):
         if self.Ngas == 0:
             return None
         return (
-            self.gas_log10_O_over_H_diffuse[self.gas_is_cold_dense]
+            self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
             * self.mass_gas[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGas(self):
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit(self):
         if self.Ngas == 0:
             return None
         return (
-            self.gas_log10_O_over_H_diffuse[self.gas_is_cold_dense]
+            self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
             * self.gas_mass_HI[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGas(self):
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit(self):
         if self.Ngas == 0:
             return None
         return (
-            self.gas_log10_O_over_H_diffuse[self.gas_is_cold_dense]
+            self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
+            * self.gas_mass_HI[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
+            * self.gas_mass_H2[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
             * self.gas_mass_H2[self.gas_is_cold_dense]
         ).sum()
 
@@ -1508,9 +1547,12 @@ class ApertureProperties(HaloProperty):
             "DiffuseIronMass",
             "LinearMassWeightedOxygenOverHydrogenOfGas",
             "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGas",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGas",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGas",
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit",
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit",
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit",
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit",
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit",
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit",
         ]
     ]
 
