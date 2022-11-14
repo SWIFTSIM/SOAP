@@ -1797,6 +1797,22 @@ class PropertyTable:
                 "PartType0/Densities",
             ],
         ),
+        "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas": (
+            "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas",
+            1,
+            np.float32,
+            "Msun",
+            "Linear sum of the diffuse oxygen over hydrogen ratio of gas, multiplied with the gas mass.",
+            "gas",
+            "FMantissa9",
+            False,
+            [
+                "PartType0/Masses",
+                "PartType0/ElementMassFractionsDiffuse",
+                "PartType0/Temperatures",
+                "PartType0/Densities",
+            ],
+        ),
         "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGas": (
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGas",
             1,

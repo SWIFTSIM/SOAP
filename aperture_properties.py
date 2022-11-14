@@ -1323,15 +1323,6 @@ class ApertureParticleData:
         return nO / (16.0 * nH)
 
     @lazy_property
-    def LinearMassWeightedOxygenOverHydrogenOfGas(self):
-        if self.Ngas == 0:
-            return None
-        return (
-            self.gas_O_over_H_total[self.gas_is_cold_dense]
-            * self.mass_gas[self.gas_is_cold_dense]
-        ).sum()
-
-    @lazy_property
     def gas_log10_O_over_H_diffuse(self):
         if self.Ngas == 0:
             return None
@@ -1342,6 +1333,24 @@ class ApertureParticleData:
                 np.inf,
             )
         )
+
+    @lazy_property
+    def LinearMassWeightedOxygenOverHydrogenOfGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_O_over_H_total[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LinearMassWeightedDiffuseOxygenOverHydrogenOfGas(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_O_over_H_diffuse[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGas(self):
@@ -1498,6 +1507,7 @@ class ApertureProperties(HaloProperty):
             "DiffuseSiliconMass",
             "DiffuseIronMass",
             "LinearMassWeightedOxygenOverHydrogenOfGas",
+            "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas",
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGas",
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGas",
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGas",
