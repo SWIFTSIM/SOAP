@@ -1975,6 +1975,21 @@ class PropertyTable:
                 "PartType0/Densities",
             ],
         ),
+        "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit": (
+            "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit",
+            1,
+            np.float32,
+            "Msun",
+            "Logarithmic sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass, where only iron from SNIa is included. Imposes a lower limit of 1.e-4 times solar Fe/H.",
+            "star",
+            "FMantissa9",
+            False,
+            [
+                "PartType4/Masses",
+                "PartType4/ElementMassFractions",
+                "PartType4/IronMassFractionsFromSNIa",
+            ],
+        ),
     }
 
     # we should really use removeprefix("VR") instead of [2:], but that only

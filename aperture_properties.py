@@ -1451,12 +1451,37 @@ class ApertureParticleData:
         return nFe / (55.845 * nH)
 
     @lazy_property
+    def star_Fe_from_SNIa_over_H(self):
+        if self.Nstar == 0:
+            return None
+        nH = self.star_element_fractions[
+            :,
+            self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
+        ]
+        nFe = self.get_dataset("PartType4/IronMassFractionsFromSNIa")[
+            self.star_mask_all
+        ][self.star_mask_ap]
+        return nFe / (55.845 * nH)
+
+    @lazy_property
     def star_log10_Fe_over_H_low_limit(self):
         if self.Nstar == 0:
             return None
         return np.log10(
             np.clip(
                 self.star_Fe_over_H,
+                self.snapshot_datasets.get_defined_constant("Fe_H_sun") * 1.0e-4,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def star_log10_Fe_from_SNIa_over_H_low_limit(self):
+        if self.Nstar == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.star_Fe_from_SNIa_over_H,
                 self.snapshot_datasets.get_defined_constant("Fe_H_sun") * 1.0e-4,
                 np.inf,
             )
@@ -1491,6 +1516,12 @@ class ApertureParticleData:
         if self.Nstar == 0:
             return None
         return (self.star_log10_Fe_over_H_high_limit * self.mass_star).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit(self):
+        if self.Nstar == 0:
+            return None
+        return (self.star_log10_Fe_from_SNIa_over_H_low_limit * self.mass_star).sum()
 
     @lazy_property
     def HalfMassRadiusGas(self):
@@ -1631,6 +1662,7 @@ class ApertureProperties(HaloProperty):
             "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit",
             "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit",
             "GasMassInColdDenseDiffuseMetals",
+            "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit",
         ]
     ]
 

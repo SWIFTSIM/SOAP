@@ -141,6 +141,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "SNIaRates",
                 "BirthDensities",
                 "SmoothedElementMassFractions",
+                "IronMassFractionsFromSNIa",
             ],
             "PartType5": [
                 "Coordinates",
@@ -731,6 +732,9 @@ class DummyHaloGenerator:
                 units=unyt.dimensionless,
                 registry=reg,
             )
+            data["PartType4"]["IronMassFractionsFromSNIa"] = data["PartType4"][
+                "SmoothedElementMassFractions"
+            ][:, 8].copy()
             data["PartType4"]["SNIaRates"] = unyt.unyt_array(
                 5.36e7 * np.random.random(Nstar),
                 dtype=np.float64,
