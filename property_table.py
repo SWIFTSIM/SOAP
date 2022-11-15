@@ -1,13 +1,65 @@
 #!/bin/env python
 
+"""
+property_table.py
+
+This file contains all the properties that can be calculated by SOAP, and some
+functionality to automatically generate the documentation (PDF) containing these
+properties.
+
+The rationale for having all of this in one file (and what is essentially one
+big dictionary) is consistency: every property is defined exactly once, with
+one data type, one unit, one description... Every type of halo still
+implements its own calculation of each property, but everything that is exposed
+to the user is guaranteed to be consistent for all halo types. To change the
+documentation, you need to change the dictionary, so you will automatically
+change the code as well. If you remember to regenerate the documentation, the
+code will hence always be consistent with its documentation. The documentation
+includes a version string to help identify it.
+
+When a specific type of halo wants to implement a property, it should import the
+property table from this file and grab all of the information for the
+corresponding dictionary element, e.g. (taken from aperture_properties.py)
+
+    from property_table import PropertyTable
+    property_list = [
+        (prop, *PropertyTable.full_property_list[prop])
+        for prop in [
+            "Mtot",
+            "Mgas",
+            "Mdm",
+            "Mstar",
+        ]
+    ]
+
+The elements of each row are documented later in this file.
+
+Note that this file contains some code that helps to regenerate the dictionary
+itself. That is useful for adding additional rows to the table.
+"""
+
 import numpy as np
 import unyt
 import subprocess
 import datetime
 import os
+from typing import Dict, List
+from halo_properties import HaloProperty
 
 
 def get_version_string():
+    """
+    Generate a version string that uniquely identifies the documentation file.
+
+    The version string will have the format
+      SOAP version a7baa6e -- Compiled by user ``vandenbroucke'' on winkel
+       on Tuesday 15 November 2022, 10:49:10
+    or
+      Unknown SOAP version -- Compiled by user ``vandenbroucke'' on winkel
+       on Tuesday 15 November 2022, 10:49:10
+    if no git version string can be obtained.
+    """
+
     handle = subprocess.run("git describe --always", shell=True, stdout=subprocess.PIPE)
     if handle.returncode != 0:
         git_version = "Unknown SOAP version"
@@ -21,8 +73,27 @@ def get_version_string():
 
 
 class PropertyTable:
+    """
+    Auxiliary object to manipulate the property table.
 
+    You should only create a PropertyTable object if you actually want to use
+    it to generate an updated version of the internal property dictionary or
+    to generate the documentation. If you just want to grab the information for
+    a particular property from the table, you should directly access the
+    static table, e.g.
+      Mstar_info = PropertyTable.full_property_list["Mstar"]
+    """
+
+    # categories: the first 6 are used for filtering, 'VR' is an extra
+    # category used for properties copied over directly from the Velociraptor
+    # output. VR properties should not be included by any of the halo types,
+    # they are only there to complete the documentation!
     categories = ["basic", "general", "gas", "dm", "star", "baryon", "VR"]
+    # some properties require an additional explanation in the form of a
+    # footnote. These footnotes are .tex files in the 'documentation' folder
+    # (that should exist). The name of the file acts as a key in the dictionary
+    # below; the corresponding value is a list of all properties that should
+    # include a footnote link to this particular explanation.
     explanation = {
         "footnote_MBH.tex": ["BHmaxM"],
         "footnote_com.tex": ["com", "vcom"],
@@ -105,6 +176,11 @@ class PropertyTable:
         ],
     }
 
+    # dictionary with human-friendly descriptions of the various lossy
+    # compression filters that can be applied to data.
+    # The key is the name of a lossy compression filter (same names as used
+    # by SWIFT), the value is the corresponding description, which can be either
+    # an actual description or a representative example.
     compression_description = {
         "FMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
         "DMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
@@ -118,14 +194,29 @@ class PropertyTable:
     # The key for each property is the name that is used internally in SOAP
     # For each property, we have the following columns:
     #  - name: Name of the property within the output file
-    #  - shape: Shape of this property for a single halo (1: scalar, 3: vector...)
-    #  - dtype: Data type that will be used. Should have enough precision to avoid over/underflow
+    #  - shape: Shape of this property for a single halo (1: scalar,
+    #      3: vector...)
+    #  - dtype: Data type that will be used. Should have enough precision to
+    #      avoid over/underflow
     #  - unit: Units that will be used internally and for the output.
-    #  - description: Description string that will be used to describe the property in the output.
-    #  - category: Category used to decide if this property should be calculated for a halo
-    #  - lossy compression filter: Lossy compression filter used in the output to reduce the file size
+    #  - description: Description string that will be used to describe the
+    #      property in the output.
+    #  - category: Category used to decide if this property should be calculated
+    #      for a particular halo (filtering), or 'VR' for properties that are
+    #      copied over from the Velociraptor output.
+    #  - lossy compression filter: Lossy compression filter used in the output
+    #      to reduce the file size. Note that SOAP does not actually compress
+    #      the output; this is done by a separate script. We support all lossy
+    #      compression filters available in SWIFT.
     #  - DMO property: Should this property be calculated for a DMO run?
-    #  - Particle properties: Particle fields that are required to compute this property.
+    #  - Particle properties: Particle fields that are required to compute this
+    #      property. Used to determine which particle fields to read for a
+    #      particular SOAP configuration (as defined in the parameter file).
+    #
+    # Note that there is no good reason to have a diffent internal name and
+    # output name; this was mostly done for historical reasons. This means that
+    # you can easily change the name in the output without having to change all
+    # of the other .py files that use this property.
     full_property_list = {
         "AtomicHydrogenMass": (
             "AtomicHydrogenMass",
@@ -1992,13 +2083,22 @@ class PropertyTable:
         ),
     }
 
+    # list of properties in the 'VR' category
     # we should really use removeprefix("VR") instead of [2:], but that only
     # exists since Python 3.9
     vr_properties = [
         vrname[2:] for vrname in full_property_list.keys() if vrname.startswith("VR")
     ]
 
-    def get_footnotes(self, name):
+    # object member variables
+    properties: Dict[str, Dict]
+    footnotes: List[str]
+
+    def get_footnotes(self, name: str):
+        """
+        List all of the footnotes for a particular property. Returns an empty
+        string for properties that have no footnotes.
+        """
         footnotes = []
         for fnote in self.explanation.keys():
             names = self.explanation[fnote]
@@ -2015,10 +2115,17 @@ class PropertyTable:
             return ""
 
     def __init__(self):
+        """
+        Constructor.
+        """
         self.properties = {}
         self.footnotes = []
 
-    def add_properties(self, halo_property):
+    def add_properties(self, halo_property: HaloProperty):
+        """
+        Add all the properties calculated for a particular halo type to the
+        internal dictionary.
+        """
         halo_type = halo_property.__name__
         props = halo_property.property_list
         for i, (
@@ -2090,6 +2197,12 @@ class PropertyTable:
                 }
 
     def print_dictionary(self):
+        """
+        Print the internal list of properties. Useful for regenerating the
+        property dictionary with additional information for each property.
+
+        Note that his will sort the dictionary alphabetically.
+        """
         names = sorted(list(self.properties.keys()))
         print("full_property_list = {")
         for name in names:
@@ -2111,7 +2224,25 @@ class PropertyTable:
             )
         print("}")
 
-    def print_table(self, tablefile, footnotefile, timestampfile):
+    def print_table(self, tablefile: str, footnotefile: str, timestampfile: str):
+        """
+        Print the table in .tex format and generate the documentation.
+
+        The documentation consists of
+          - a hand-written SOAP.tex file.
+          - a table .tex file, with the name given by 'tablefile'
+          - a footnote .tex file, with the name given by 'footnotefile', which
+            will contain the contents of the various hand-written footnote*.tex
+            files
+          - a version and time stamp .tex file, with the name given by
+            'timestampfile'
+
+        This function regenerates the last 3 files, based on the contents of
+        the internal property dictionary.
+        """
+
+        # sort the properties by category and then alphabetically within each
+        # category
         prop_names = sorted(
             self.properties.keys(),
             key=lambda key: (
@@ -2119,6 +2250,8 @@ class PropertyTable:
                 self.properties[key]["name"].lower(),
             ),
         )
+
+        # generate the LaTeX header for a standalone table file
         headstr = """\\documentclass{article}
 \\usepackage{amsmath}
 \\usepackage{amssymb}
@@ -2131,11 +2264,14 @@ class PropertyTable:
 
 \\begin{document}"""
 
+        # property table string: table header
         tablestr = """\\begin{landscape}
 \\begin{longtable}{lllllllllll}
 Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\\
 \\multicolumn{11}{l}{\\rule{30pt}{0pt}Description}\\\\
 \\hline{}\\endhead{}"""
+        # keep track of the previous category to draw a line when a category
+        # is finished
         prev_cat = None
         for prop_name in prop_names:
             prop = self.properties[prop_name]
@@ -2190,7 +2326,10 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
             tablestr += f"\\multicolumn{{11}}{{p{{24cm}}}}{{\\rule{{30pt}}{{0pt}}{prop_description}}}\\\\\n"
         tablestr += """\\end{longtable}
 \\end{landscape}"""
+        # standalone table file footer
         tailstr = "\\end{document}"
+
+        # generate the documentation files
         with open(timestampfile, "w") as ofile:
             ofile.write(get_version_string())
         with open(tablefile, "w") as ofile:
@@ -2201,10 +2340,18 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                     fnstr = ifile.read()
                 fnstr = fnstr.replace("$FOOTNOTE_NUMBER$", f"{i+1}")
                 ofile.write(f"{fnstr}\n\n")
+
+        # print the standalone table to the stdout
         print(f"{headstr}\n{tablestr}\n{tailstr}")
 
 
 class DummyProperties:
+    """
+    Dummy HaloProperty object used to ensure all properties are in the property
+    table, even if some of them are not computed for any halo type (e.g. the
+    'VR' properties).
+    """
+
     property_list = [
         (prop, *PropertyTable.full_property_list[prop])
         for prop in PropertyTable.full_property_list.keys()
@@ -2212,7 +2359,17 @@ class DummyProperties:
 
 
 if __name__ == "__main__":
+    """
+    Standalone script execution:
+    Create a PropertyTable object will all the properties from all the halo
+    types and print the property table or the documentation. The latter is the
+    default; the former can be achieved by changing the boolean in the condition
+    below.
+    """
 
+    # get all the halo types
+    # we only import them here to avoid circular imports when this script is
+    # imported from another script
     from aperture_properties import ExclusiveSphereProperties, InclusiveSphereProperties
     from projected_aperture_properties import ProjectedApertureProperties
     from SO_properties import SOProperties
@@ -2226,6 +2383,10 @@ if __name__ == "__main__":
     table.add_properties(SubhaloProperties)
     table.add_properties(DummyProperties)
 
+    # set to 'True' to print the internal property table
+    # the resulting stdout output can be directly copy-pasted above to replace
+    # the full_property_list (please run 'python3 -m black property_table.py'
+    # after that to reformat the table).
     if False:
         table.print_dictionary()
     else:
