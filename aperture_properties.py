@@ -1,5 +1,138 @@
 #! /usr/bin/env python
 
+"""
+aperture_properties.py
+
+Halo properties within 3D apertures. These include either all the particles
+(inclusive) or all the gravitionally bound particles (exclusive) of a subhalo,
+within a fixed physical radius.
+
+Just like the other HaloProperty implementations, the calculation of the
+properties is done lazily: only calculations that are actually needed are
+performed. To achieve this, we use a somewhat weird coding pattern: the
+halo property calculations correspond to methods of an ApertureParticleData
+object, decorated with the 'lazy_property' decorator. Consider the following
+naive calculation of the stellar mass and stellar metal mass fraction:
+
+  radius = data["PartType4/Radius"] # (this dataset does not actually exist)
+  aperture_mask = radius < aperture_radius
+  star_mass = data["PartType4/Masses"][aperture_mask]
+  Mstar = star_mass.sum()
+  metal_frac = data["PartType4/MetalMassFractions"][aperture_mask]
+  star_metal_mass = (star_mass * metal_frac).sum()
+  MetalFracStar = star_metal_mass / Mstar
+
+In this code excerpt, every line corresponds to a new variable that will be
+computed. The stellar mass and aperture mask are used multiple times. So far,
+everything is fine. Problems arise however if we want to disable the calculation
+of for example the stellar mass, based on some flag. We could write
+
+  radius = data["PartType4/Radius"]
+  aperture_mask = radius < aperture_radius
+  if flag:
+    star_mass = data["PartType4/Masses"][aperture_mask]
+    Mstar = star_mass.sum()
+  metal_frac = data["PartType4/MetalMassFractions"][aperture_mask]
+  star_metal_mass = (star_mass * metal_frac).sum()
+  MetalFracStar = star_metal_mass / Mstar
+
+but this is obviously wrong, since we still need 'star_mass' and 'Mstar' to
+compute the metal mass fraction. In a lot of cases, these dependencies are
+not that clear, and it becomes very tricky to figure out how to disable some
+properties without breaking other property calculations. It is possible, but
+it is painful to do and very prone to mistakes.
+
+Instead of figuring out all the depencies, we can instead use this:
+
+  class PropertyCalculations:
+    def __init__(self, data):
+      self.data = data
+
+    @lazy_property
+    def aperture_mask(self):
+      radius = self.data["PartType4/Radius"]
+      return radius < aperture_radius
+
+    @lazy_property
+    def star_mass(self):
+      return self.data["PartType4/Masses"][self.aperture_mask]
+
+    @lazy_property
+    def Mstar(self):
+      return self.star_mass.sum()
+
+    @lazy_property
+    def star_metal_mass(self):
+      metal_frac = self.data["PartType4/MetalMassFractions"][self.aperture_mask]
+      return (self.star_mass * metal_frac).sum()
+
+    @lazy_property
+    def MetalFracStar(self):
+      return self.star_metal_mass / self.Mstar
+
+This looks the same as the previous code excerpt, but then a lot more
+complicated. The key difference is that all of these methods are 'lazy', which
+means they only get evaluated when they are actually used. The advantage becomes
+clear when we consider the various scenarios:
+
+1. We want to compute Mstar, but not MetalFracStar:
+ - we call Mstar()
+ - Mstar() has not been called before, so it is run
+ - Mstar() calls star_mass()
+ - star_mass() has not been called before, so it is run
+ - star_mass() calls aperture_mask()
+ - aperture_mask() has not been called before, so it is run
+ - done.
+
+2. We want to compute MetalFracStar, but not Mstar:
+ - we call MetalFracStar()
+ - MetalFracStar() has not been called before, so it is run
+ - MetalFracStar() calls star_metal_mass() and Mstar()
+ - star_metal_mass() has not been called before, so it is run
+ - star_metal_mass() calls aperture_mask() and star_mass()
+ - aperture_mask() has not been called before, so it is run
+ - star_mass() has not been called before, so it is run
+ - star_mass() calls aperture_mask(), but that has already run
+ - Mstar() calls star_mass(), but that has already run
+ - done.
+
+3. We want to compute both Mstar and MetalFracStar:
+ - we call Mstar()
+ - Mstar() has not been called before, so it is run
+ - Mstar() calls star_mass()
+ - star_mass() has not been called before, so it is run
+ - star_mass() calls aperture_mask()
+ - aperture_mask() has not been called before, so it is run
+ - we call MetalFracStar()
+ - MetalFracStar() has not been called before, so it is run
+ - MetalFracStar() calls star_metal_mass() and Mstar(), but that has already
+    run
+ - star_metal_mass() has not been called before, so it is run
+ - star_metal_mass() calls aperture_mask() and star_mass(), both have already
+   run
+ - done.
+
+Depending on what we want to calculate, we get a different order in which
+variables are calculated (and methods are called), but only the variables that
+are actually used are calculated. This way to evaluate methods when they are
+needed dynamically adapts to the particular situation, without the need to
+figure out the dependencies yourself.
+
+In the HaloProperty implementation, we need at least one method for every
+halo property in the table (property_table.py) that we want to compute. But that
+does not eliminate the overhead of auxiliary variables (like aperture_mask) that
+are needed by multiple properties. To make this lazy evaluation work, you
+therefore need to determine which variables are used multiple times, and which
+variables are not and can hence stay local to a particular lazy method. There is
+still some decision making needed there.
+
+On top of that, we also need to deal with borderline cases, like computing the
+stellar mass for halos with no star particles. These need to be dealt with in
+each lazy method separately, because you cannot/should not expect that a lazy
+method will never be called in that case. That is why the implementation looks
+very messy and complex. But it is in fact quite neat and powerful.
+"""
+
 import numpy as np
 import unyt
 
@@ -20,21 +153,50 @@ from property_table import PropertyTable
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
+from snapshot_datasets import SnapshotDatasets
+from typing import Dict, List
+from numpy.typing import NDArray
 
 
 class ApertureParticleData:
+    """
+    Halo calculation class.
+
+    All properties we want to compute in apertures are implemented as lazy
+    methods of this class.
+
+    Note that this class internally uses and requires two different masks:
+     - *_mask_all: Mask that masks out particles belonging to this halo: either
+         only gravitationally bound particles (exclusive apertures) or all
+         particles (no mask -- inclusive apertures). This mask needs to be
+         applied _first_ to raw "PartTypeX" datasets.
+     - *_mask_ap: Mask that masks out particles that are inside the aperture
+         radius. This mask can only be applied after *_mask_all has been applied.
+    compute_basics() furthermore defines some arrays that contain variables
+    (e.g. masses, positions) for all particles that belong to the halo (so
+    after applying *_mask_all, but before applying *_mask_ap). To retrieve the
+    variables for a single particle type, these have to be masked with
+    "PartTypeX == 'type'".
+    All of these masks have different lengths, so using the wrong mask will
+    lead to errors. Those are captured by the unit tests, so make sure to run
+    those after you implement a new property!
+    """
+
     def __init__(
         self,
-        input_halo,
-        data,
-        types_present,
-        inclusive,
-        aperture_radius,
-        stellar_age_calculator,
-        recently_heated_gas_filter,
-        cold_dense_gas_filter,
-        snapshot_datasets,
+        input_halo: Dict,
+        data: Dict,
+        types_present: List[str],
+        inclusive: bool,
+        aperture_radius: unyt.unyt_quantity,
+        stellar_age_calculator: StellarAgeCalculator,
+        recently_heated_gas_filter: RecentlyHeatedGasFilter,
+        cold_dense_gas_filter: ColdDenseGasFilter,
+        snapshot_datasets: SnapshotDatasets,
     ):
+        """
+        Constructor.
+        """
         self.input_halo = input_halo
         self.data = data
         self.types_present = types_present
@@ -46,10 +208,17 @@ class ApertureParticleData:
         self.snapshot_datasets = snapshot_datasets
         self.compute_basics()
 
-    def get_dataset(self, name):
+    def get_dataset(self, name: str):
+        """
+        Local wrapper for SnapshotDatasets.get_dataset()
+        """
         return self.snapshot_datasets.get_dataset(name, self.data)
 
     def compute_basics(self):
+        """
+        Compute some properties that are always needed, regardless of which
+        properties we actually want to compute.
+        """
         self.centre = self.input_halo["cofp"]
         self.index = self.input_halo["index"]
         mass = []
@@ -91,119 +260,227 @@ class ApertureParticleData:
         self.type = self.types[self.mask]
 
     @lazy_property
-    def gas_mask_ap(self):
+    def gas_mask_ap(self) -> NDArray[bool]:
+        """
+        Mask that filters out gas particles that are inside the aperture radius.
+        This mask can be used on arrays of all gas particles that are included
+        in the calculation (so either the raw "PartType0" array for inclusive
+        apertures, or only the bound particles in that array for exclusive
+        apertures).
+        """
         return self.mask[self.types == "PartType0"]
 
     @lazy_property
-    def dm_mask_ap(self):
+    def dm_mask_ap(self) -> NDArray[bool]:
+        """
+        Mask that filters out DM particles that are inside the aperture radius.
+        This mask can be used on arrays of all DM particles that are included
+        in the calculation (so either the raw "PartType1" array for inclusive
+        apertures, or only the bound particles in that array for exclusive
+        apertures).
+        """
         return self.mask[self.types == "PartType1"]
 
     @lazy_property
-    def star_mask_ap(self):
+    def star_mask_ap(self) -> NDArray[bool]:
+        """
+        Mask that filters out star particles that are inside the aperture radius.
+        This mask can be used on arrays of all star particles that are included
+        in the calculation (so either the raw "PartType4" array for inclusive
+        apertures, or only the bound particles in that array for exclusive
+        apertures).
+        """
         return self.mask[self.types == "PartType4"]
 
     @lazy_property
-    def bh_mask_ap(self):
+    def bh_mask_ap(self) -> NDArray[bool]:
+        """
+        Mask that filters out BH particles that are inside the aperture radius.
+        This mask can be used on arrays of all BH particles that are included
+        in the calculation (so either the raw "PartType5" array for inclusive
+        apertures, or only the bound particles in that array for exclusive
+        apertures).
+        """
         return self.mask[self.types == "PartType5"]
 
     @lazy_property
-    def baryon_mask_ap(self):
+    def baryon_mask_ap(self) -> NDArray[bool]:
+        """
+        Mask that filters out baryon particles that are inside the aperture radius.
+        This mask can be used on arrays of all baryon particles that are included
+        in the calculation. Note that baryons are gas and star particles,
+        so "PartType0" and "PartType4".
+        """
         return self.mask[(self.types == "PartType0") | (self.types == "PartType4")]
 
     @lazy_property
-    def Ngas(self):
+    def Ngas(self) -> int:
+        """
+        Number of gas particles in the aperture.
+        """
         return self.gas_mask_ap.sum()
 
     @lazy_property
-    def Ndm(self):
+    def Ndm(self) -> int:
+        """
+        Number of DM particles in the aperture.
+        """
         return self.dm_mask_ap.sum()
 
     @lazy_property
-    def Nstar(self):
+    def Nstar(self) -> int:
+        """
+        Number of star particles in the aperture.
+        """
         return self.star_mask_ap.sum()
 
     @lazy_property
-    def Nbh(self):
+    def Nbh(self) -> int:
+        """
+        Number of BH particles in the aperture.
+        """
         return self.bh_mask_ap.sum()
 
     @lazy_property
-    def Nbaryon(self):
+    def Nbaryon(self) -> int:
+        """
+        Number of baryon particles in the aperture.
+        """
         return self.baryon_mask_ap.sum()
 
     @lazy_property
-    def mass_gas(self):
+    def mass_gas(self) -> unyt.unyt_array:
+        """
+        Mass of the gas particles.
+        """
         return self.mass[self.type == "PartType0"]
 
     @lazy_property
-    def mass_dm(self):
+    def mass_dm(self) -> unyt.unyt_array:
+        """
+        Mass of the DM particles.
+        """
         return self.mass[self.type == "PartType1"]
 
     @lazy_property
-    def mass_star(self):
+    def mass_star(self) -> unyt.unyt_array:
+        """
+        Mass of the star particles.
+        """
         return self.mass[self.type == "PartType4"]
 
     @lazy_property
-    def mass_baryons(self):
+    def mass_baryons(self) -> unyt.unyt_array:
+        """
+        Mass of the baryon particles (gas + stars).
+        """
         return self.mass[(self.type == "PartType0") | (self.type == "PartType4")]
 
     @lazy_property
-    def pos_gas(self):
+    def pos_gas(self) -> unyt.unyt_array:
+        """
+        Position of the gas particles.
+        """
         return self.position[self.type == "PartType0"]
 
     @lazy_property
-    def pos_dm(self):
+    def pos_dm(self) -> unyt.unyt_array:
+        """
+        Position of the DM particles.
+        """
         return self.position[self.type == "PartType1"]
 
     @lazy_property
-    def pos_star(self):
+    def pos_star(self) -> unyt.unyt_array:
+        """
+        Position of the star particles.
+        """
         return self.position[self.type == "PartType4"]
 
     @lazy_property
-    def pos_baryons(self):
+    def pos_baryons(self) -> unyt.unyt_array:
+        """
+        Position of the baryon (gas+stars) particles.
+        """
         return self.position[(self.type == "PartType0") | (self.type == "PartType4")]
 
     @lazy_property
-    def vel_gas(self):
+    def vel_gas(self) -> unyt.unyt_array:
+        """
+        Velocity of the gas particles.
+        """
         return self.velocity[self.type == "PartType0"]
 
     @lazy_property
-    def vel_dm(self):
+    def vel_dm(self) -> unyt.unyt_array:
+        """
+        Velocity of the DM particles.
+        """
         return self.velocity[self.type == "PartType1"]
 
     @lazy_property
-    def vel_star(self):
+    def vel_star(self) -> unyt.unyt_array:
+        """
+        Velocity of the star particles.
+        """
         return self.velocity[self.type == "PartType4"]
 
     @lazy_property
-    def vel_baryons(self):
+    def vel_baryons(self) -> unyt.unyt_array:
+        """
+        Velocity of the baryon (gas+star) particles.
+        """
         return self.velocity[(self.type == "PartType0") | (self.type == "PartType4")]
 
     @lazy_property
-    def Mtot(self):
+    def Mtot(self) -> unyt.unyt_quantity:
+        """
+        Total mass of all particles.
+        """
         return self.mass.sum()
 
     @lazy_property
-    def Mgas(self):
+    def Mgas(self) -> unyt.unyt_quantity:
+        """
+        Total mass of gas particles.
+        """
         return self.mass_gas.sum()
 
     @lazy_property
-    def Mdm(self):
+    def Mdm(self) -> unyt.unyt_quantity:
+        """
+        Total mass of DM particles.
+        """
         return self.mass_dm.sum()
 
     @lazy_property
-    def Mstar(self):
+    def Mstar(self) -> unyt.unyt_quantity:
+        """
+        Total mass of star particles.
+        """
         return self.mass_star.sum()
 
     @lazy_property
-    def Mbh_dynamical(self):
+    def Mbh_dynamical(self) -> unyt.unyt_quantity:
+        """
+        Total dynamical mass of BH particles.
+        """
         return self.mass[self.type == "PartType5"].sum()
 
     @lazy_property
-    def Mbaryons(self):
+    def Mbaryons(self) -> unyt.unyt_quantity:
+        """
+        Total mass of baryon (gas+star) particles.
+        """
         return self.Mgas + self.Mstar
 
     @lazy_property
-    def star_mask_all(self):
+    def star_mask_all(self) -> NDArray[bool]:
+        """
+        Mask for masking out star particles in raw PartType4 arrays.
+        This is the mask that masks out unbound particles for exclusive halos.
+        For inclusive halos, this mask does nothing.
+        """
         if self.Nstar == 0:
             return None
         groupnr_bound = self.get_dataset("PartType4/GroupNr_bound")
@@ -213,7 +490,10 @@ class ApertureParticleData:
             return groupnr_bound == self.index
 
     @lazy_property
-    def Mstar_init(self):
+    def Mstar_init(self) -> unyt.unyt_quantity:
+        """
+        Total initial mass of star particles.
+        """
         if self.Nstar == 0:
             return None
         return self.get_dataset("PartType4/InitialMasses")[self.star_mask_all][
@@ -221,7 +501,10 @@ class ApertureParticleData:
         ].sum()
 
     @lazy_property
-    def stellar_luminosities(self):
+    def stellar_luminosities(self) -> unyt.unyt_array:
+        """
+        Stellar luminosities.
+        """
         if self.Nstar == 0:
             return None
         return self.get_dataset("PartType4/Luminosities")[self.star_mask_all][
@@ -229,13 +512,22 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def StellarLuminosity(self):
+    def StellarLuminosity(self) -> unyt.unyt_array:
+        """
+        Total luminosity of star particles.
+
+        Note that this returns an array with total luminosities in multiple
+        bands.
+        """
         if self.Nstar == 0:
             return None
         return self.stellar_luminosities.sum(axis=0)
 
     @lazy_property
-    def starmetalfrac(self):
+    def starmetalfrac(self) -> unyt.unyt_quantity:
+        """
+        Total metal mass fraction of star particles.
+        """
         if self.Nstar == 0:
             return None
         return (
@@ -246,7 +538,10 @@ class ApertureParticleData:
         ).sum() / self.Mstar
 
     @lazy_property
-    def star_element_fractions(self):
+    def star_element_fractions(self) -> unyt.unyt_array:
+        """
+        Element mass fractions of star particles.
+        """
         if self.Nstar == 0:
             return None
         return self.get_dataset("PartType4/ElementMassFractions")[self.star_mask_all][
@@ -254,7 +549,10 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def star_mass_O(self):
+    def star_mass_O(self) -> unyt.unyt_array:
+        """
+        Oxygen masses of star particles.
+        """
         if self.Nstar == 0:
             return None
         return (
@@ -268,7 +566,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def star_mass_Mg(self):
+    def star_mass_Mg(self) -> unyt.unyt_array:
+        """
+        Magnesium mass fractions of star particles.
+        """
         if self.Nstar == 0:
             return None
         return (
@@ -282,7 +583,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def star_mass_Fe(self):
+    def star_mass_Fe(self) -> unyt.unyt_array:
+        """
+        Iron mass fractions of star particles.
+        """
         if self.Nstar == 0:
             return None
         return (
@@ -294,25 +598,41 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def starOfrac(self):
+    def starOfrac(self) -> unyt.unyt_quantity:
+        """
+        Total oxygen mass fraction of star particles.
+        """
         if self.Nstar == 0 or self.Mstar == 0.0:
             return None
         return self.star_mass_O.sum() / self.Mstar
 
     @lazy_property
-    def starMgfrac(self):
+    def starMgfrac(self) -> unyt.unyt_quantity:
+        """
+        Total magnesium mass fraction of star particles.
+        """
         if self.Nstar == 0 or self.Mstar == 0.0:
             return None
         return self.star_mass_Mg.sum() / self.Mstar
 
     @lazy_property
-    def starFefrac(self):
+    def starFefrac(self) -> unyt.unyt_quantity:
+        """
+        Total iron mass fraction of star particles.
+        """
         if self.Nstar == 0 or self.Mstar == 0.0:
             return None
         return self.star_mass_Fe.sum() / self.Mstar
 
     @lazy_property
-    def stellar_ages(self):
+    def stellar_ages(self) -> unyt.unyt_array:
+        """
+        Ages of star particles.
+
+        Note that these are computed from the birth scale factor using the
+        provided StellarAgeCalculator (which uses the correct cosmology and
+        snapshot redshift).
+        """
         if self.Nstar == 0:
             return None
         birth_a = self.get_dataset("PartType4/BirthScaleFactors")[self.star_mask_all][
@@ -321,19 +641,37 @@ class ApertureParticleData:
         return self.stellar_age_calculator.stellar_age(birth_a)
 
     @lazy_property
-    def star_mass_fraction(self):
+    def star_mass_fraction(self) -> unyt.unyt_array:
+        """
+        Mass fraction of each star particle.
+
+        Used to avoid numerical overflow in calculations like
+          com = (mass_star * pos_star).sum() / Mstar
+        by rewriting it as
+          com = ((mass_star / Mstar) * pos_star).sum()
+              = (star_mass_fraction * pos_star).sum()
+        This is more accurate, since the stellar mass fractions are numbers
+        of the order of 1e-5 or so, while the masses themselves can be much
+        larger, if expressed in the wrong units (and that is up to unyt).
+        """
         if self.Mstar == 0:
             return None
         return self.mass_star / self.Mstar
 
     @lazy_property
-    def stellar_age_mw(self):
+    def stellar_age_mw(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average stellar age.
+        """
         if self.Nstar == 0 or self.Mstar == 0:
             return None
         return (self.star_mass_fraction * self.stellar_ages).sum()
 
     @lazy_property
-    def stellar_age_lw(self):
+    def stellar_age_lw(self) -> unyt.unyt_quantity:
+        """
+        Luminosity-weighted average stellar age.
+        """
         if self.Nstar == 0:
             return None
         Lr = self.stellar_luminosities[
@@ -345,7 +683,10 @@ class ApertureParticleData:
         return ((Lr / Lrtot) * self.stellar_ages).sum()
 
     @lazy_property
-    def TotalSNIaRate(self):
+    def TotalSNIaRate(self) -> unyt.unyt_quantity:
+        """
+        Total SNIa rate.
+        """
         if self.Nstar == 0:
             return None
         return self.get_dataset("PartType4/SNIaRates")[self.star_mask_all][
@@ -353,7 +694,12 @@ class ApertureParticleData:
         ].sum()
 
     @lazy_property
-    def bh_mask_all(self):
+    def bh_mask_all(self) -> NDArray[bool]:
+        """
+        Mask for masking out BH particles in raw PartType5 arrays.
+        This is the mask that masks out unbound particles for exclusive halos.
+        For inclusive halos, this mask does nothing.
+        """
         if self.Nbh == 0:
             return None
         groupnr_bound = self.get_dataset("PartType5/GroupNr_bound")
@@ -363,13 +709,19 @@ class ApertureParticleData:
             return groupnr_bound == self.index
 
     @lazy_property
-    def BH_subgrid_masses(self):
+    def BH_subgrid_masses(self) -> unyt.unyt_array:
+        """
+        Subgrid masses of BH particles.
+        """
         return self.get_dataset("PartType5/SubgridMasses")[self.bh_mask_all][
             self.bh_mask_ap
         ]
 
     @lazy_property
-    def Mbh_subgrid(self):
+    def Mbh_subgrid(self) -> unyt.unyt_quantity:
+        """
+        Total subgrid mass of BH particles.
+        """
         if self.Nbh == 0:
             return None
         return self.BH_subgrid_masses.sum()
