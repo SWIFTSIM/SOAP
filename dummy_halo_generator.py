@@ -108,6 +108,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Masses",
                 "Velocities",
                 "MetalMassFractions",
+                "MetalMassFractionsDiffuse",
                 "Temperatures",
                 "LastAGNFeedbackScaleFactors",
                 "StarFormationRates",
@@ -581,6 +582,9 @@ class DummyHaloGenerator:
                 units=unyt.dimensionless,
                 registry=reg,
             )
+            data["PartType0"]["MetalMassFractionsDiffuse"] = data["PartType0"][
+                "MetalMassFractions"
+            ].copy()
             data["PartType0"]["Pressures"] = unyt.unyt_array(
                 10.0 ** (10.0 * np.random.random(Ngas)),
                 dtype=np.float32,

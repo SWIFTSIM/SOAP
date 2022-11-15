@@ -743,6 +743,23 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def gas_Mgasmetal_diffuse(self):
+        if self.Ngas == 0:
+            return None
+        return (
+            self.mass_gas
+            * self.get_dataset("PartType0/MetalMassFractionsDiffuse")[
+                self.gas_mask_all
+            ][self.gas_mask_ap]
+        )
+
+    @lazy_property
+    def GasMassInColdDenseDiffuseMetals(self):
+        if self.Ngas == 0:
+            return None
+        return self.gas_Mgasmetal_diffuse[self.gas_is_cold_dense].sum()
+
+    @lazy_property
     def gasmetalfrac_SF(self):
         if self.Ngas == 0 or self.Mgas_SF == 0.0:
             return None
@@ -1613,6 +1630,7 @@ class ApertureProperties(HaloProperty):
             "LinearMassWeightedIronOverHydrogenOfStars",
             "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit",
             "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit",
+            "GasMassInColdDenseDiffuseMetals",
         ]
     ]
 

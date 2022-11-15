@@ -1959,6 +1959,22 @@ class PropertyTable:
                 "PartType4/ElementMassFractions",
             ],
         ),
+        "GasMassInColdDenseDiffuseMetals": (
+            "GasMassInColdDenseDiffuseMetals",
+            1,
+            np.float32,
+            "Msun",
+            "Sum of the diffuse metal mass in cold, dense gas.",
+            "gas",
+            "FMantissa9",
+            False,
+            [
+                "PartType0/Masses",
+                "PartType0/MetalMassFractionsDiffuse",
+                "PartType0/Temperatures",
+                "PartType0/Densities",
+            ],
+        ),
     }
 
     # we should really use removeprefix("VR") instead of [2:], but that only
