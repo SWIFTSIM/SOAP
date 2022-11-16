@@ -727,7 +727,10 @@ class ApertureParticleData:
         return self.BH_subgrid_masses.sum()
 
     @lazy_property
-    def agn_eventa(self):
+    def agn_eventa(self) -> unyt.unyt_array:
+        """
+        Last AGN feedback event scale factors for BH particles.
+        """
         if self.Nbh == 0:
             return None
         return self.get_dataset("PartType5/LastAGNFeedbackScaleFactors")[
@@ -735,25 +738,37 @@ class ApertureParticleData:
         ][self.bh_mask_ap]
 
     @lazy_property
-    def BHlasteventa(self):
+    def BHlasteventa(self) -> unyt.unyt_quantity:
+        """
+        Maximum AGN feedback scale factor among all BH particles.
+        """
         if self.Nbh == 0:
             return None
         return np.max(self.agn_eventa)
 
     @lazy_property
-    def iBHmax(self):
+    def iBHmax(self) -> int:
+        """
+        Index of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
         return np.argmax(self.BH_subgrid_masses)
 
     @lazy_property
-    def BHmaxM(self):
+    def BHmaxM(self) -> unyt.unyt_quantity:
+        """
+        Sub-grid mass of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
         return self.BH_subgrid_masses[self.iBHmax]
 
     @lazy_property
-    def BHmaxID(self):
+    def BHmaxID(self) -> int:
+        """
+        ID of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
         return self.get_dataset("PartType5/ParticleIDs")[self.bh_mask_all][
@@ -761,7 +776,10 @@ class ApertureParticleData:
         ][self.iBHmax]
 
     @lazy_property
-    def BHmaxpos(self):
+    def BHmaxpos(self) -> unyt.unyt_array:
+        """
+        Position of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
         return self.get_dataset("PartType5/Coordinates")[self.bh_mask_all][
@@ -769,7 +787,10 @@ class ApertureParticleData:
         ][self.iBHmax]
 
     @lazy_property
-    def BHmaxvel(self):
+    def BHmaxvel(self) -> unyt.unyt_array:
+        """
+        Velocity of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
         return self.get_dataset("PartType5/Velocities")[self.bh_mask_all][
@@ -777,7 +798,10 @@ class ApertureParticleData:
         ][self.iBHmax]
 
     @lazy_property
-    def BHmaxAR(self):
+    def BHmaxAR(self) -> unyt.unyt_quantity:
+        """
+        Accretion rate of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
         return self.get_dataset("PartType5/AccretionRates")[self.bh_mask_all][
@@ -785,31 +809,47 @@ class ApertureParticleData:
         ][self.iBHmax]
 
     @lazy_property
-    def BHmaxlasteventa(self):
+    def BHmaxlasteventa(self) -> unyt.unyt_quantity:
+        """
+        Last feedback scale factor of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
         return self.agn_eventa[self.iBHmax]
 
     @lazy_property
-    def mass_fraction(self):
+    def mass_fraction(self) -> unyt.unyt_array:
+        """
+        Fractional mass of all particles. See the documentation of star_mass_fraction
+        for the rationale behind this.
+        """
         if self.Mtot == 0:
             return None
         return self.mass / self.Mtot
 
     @lazy_property
-    def com(self):
+    def com(self) -> unyt.unyt_array:
+        """
+        Centre of mass of all particles in the aperture.
+        """
         if self.Mtot == 0:
             return None
         return (self.mass_fraction[:, None] * self.position).sum(axis=0) + self.centre
 
     @lazy_property
-    def vcom(self):
+    def vcom(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of all particles in the aperture.
+        """
         if self.Mtot == 0:
             return None
         return (self.mass_fraction[:, None] * self.velocity).sum(axis=0)
 
     @lazy_property
-    def spin_parameter(self):
+    def spin_parameter(self) -> unyt.unyt_quantity:
+        """
+        Spin parameter of all particles in the aperture.
+        """
         if self.Mtot == 0:
             return None
         _, vmax = get_vmax(self.mass, self.radius)
@@ -822,18 +862,31 @@ class ApertureParticleData:
         return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax)
 
     @lazy_property
-    def gas_mass_fraction(self):
+    def gas_mass_fraction(self) -> unyt.unyt_array:
+        """
+        Fractional mass of gas particles. See the documentation of star_mass_fraction
+        for the rationale behind this.
+        """
         if self.Mgas == 0:
             return None
         return self.mass_gas / self.Mgas
 
     @lazy_property
-    def vcom_gas(self):
+    def vcom_gas(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of gas particles in the aperture.
+        """
         if self.Mgas == 0:
             return None
         return (self.gas_mass_fraction[:, None] * self.vel_gas).sum(axis=0)
 
     def compute_Lgas_props(self):
+        """
+        Compute the angular momentum and related properties for gas particles.
+
+        We need this method because Lgas, kappa_gas and Mcountrot_gas are
+        computed together.
+        """
         (
             self.internal_Lgas,
             self.internal_kappa_gas,
@@ -847,7 +900,13 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def Lgas(self):
+    def Lgas(self) -> unyt.unyt_array:
+        """
+        Angular momentum of gas particles.
+
+        This is computed together with kappa_gas and Mcountrot_gas
+        by compute_Lgas_props().
+        """
         if self.Mgas == 0:
             return None
         if not hasattr(self, "internal_Lgas"):
@@ -855,7 +914,13 @@ class ApertureParticleData:
         return self.internal_Lgas
 
     @lazy_property
-    def kappa_corot_gas(self):
+    def kappa_corot_gas(self) -> unyt.unyt_quantity:
+        """
+        Kinetic energy fraction of co-rotating gas particles.
+
+        This is computed together with Lgas and Mcountrot_gas
+        by compute_Lgas_props().
+        """
         if self.Mgas == 0:
             return None
         if not hasattr(self, "internal_kappa_gas"):
@@ -863,7 +928,13 @@ class ApertureParticleData:
         return self.internal_kappa_gas
 
     @lazy_property
-    def DtoTgas(self):
+    def DtoTgas(self) -> unyt.unyt_quantity:
+        """
+        Disk to total ratio of the gas.
+
+        This is computed together with Lgas and kappa_corot_gas
+        by compute_Lgas_props().
+        """
         if self.Mgas == 0:
             return None
         if not hasattr(self, "internal_Mcountrot_gas"):
@@ -871,7 +942,10 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_gas / self.Mgas
 
     @lazy_property
-    def veldisp_matrix_gas(self):
+    def veldisp_matrix_gas(self) -> unyt.unyt_array:
+        """
+        Velocity dispersion matrix of the gas.
+        """
         if self.Mgas == 0:
             return None
         return get_velocity_dispersion_matrix(
@@ -879,7 +953,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def Ekin_gas(self):
+    def Ekin_gas(self) -> unyt.unyt_quantity:
+        """
+        Kinetic energy of the gas.
+        """
         if self.Mgas == 0:
             return None
         # below we need to force conversion to np.float64 before summing
@@ -891,25 +968,38 @@ class ApertureParticleData:
         return 0.5 * ekin_gas.sum()
 
     @lazy_property
-    def GasAxisLengths(self):
+    def GasAxisLengths(self) -> unyt.unyt_array:
+        """
+        Axis lengths of th gas.
+        """
         if self.Mgas == 0:
             return None
         return get_axis_lengths(self.mass_gas, self.pos_gas)
 
     @lazy_property
-    def dm_mass_fraction(self):
+    def dm_mass_fraction(self) -> unyt.unyt_array:
+        """
+        Fractional mass of DM particles. See the documentation of star_mass_fraction
+        for the rationale behind this.
+        """
         if self.Mdm == 0:
             return None
         return self.mass_dm / self.Mdm
 
     @lazy_property
-    def vcom_dm(self):
+    def vcom_dm(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of DM particles.
+        """
         if self.Mdm == 0:
             return None
         return (self.dm_mass_fraction[:, None] * self.vel_dm).sum(axis=0)
 
     @lazy_property
-    def veldisp_matrix_dm(self):
+    def veldisp_matrix_dm(self) -> unyt.unyt_array:
+        """
+        Velocity dispersion matrix of DM particles.
+        """
         if self.Mdm == 0:
             return None
         return get_velocity_dispersion_matrix(
@@ -917,7 +1007,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def Ldm(self):
+    def Ldm(self) -> unyt.unyt_array:
+        """
+        Angular momentum of DM particles.
+        """
         if self.Mdm == 0:
             return None
         return get_angular_momentum(
@@ -925,18 +1018,30 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def DMAxisLengths(self):
+    def DMAxisLengths(self) -> unyt.unyt_array:
+        """
+        DM axis lengths.
+        """
         if self.Mdm == 0:
             return None
         return get_axis_lengths(self.mass_dm, self.pos_dm)
 
     @lazy_property
-    def vcom_star(self):
+    def vcom_star(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of star particles.
+        """
         if self.Mstar == 0:
             return None
         return (self.star_mass_fraction[:, None] * self.vel_star).sum(axis=0)
 
     def compute_Lstar_props(self):
+        """
+        Compute the angular momentum and related properties for star particles.
+
+        We need this method because Lstar, kappa_star and Mcountrot_star are
+        computed together.
+        """
         (
             self.internal_Lstar,
             self.internal_kappa_star,
@@ -950,7 +1055,13 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def Lstar(self):
+    def Lstar(self) -> unyt.unyt_array:
+        """
+        Angular momentum of star particles.
+
+        This is computed together with kappa_star and Mcountrot_star
+        by compute_Lstar_props().
+        """
         if self.Mstar == 0:
             return None
         if not hasattr(self, "internal_Lstar"):
@@ -958,7 +1069,13 @@ class ApertureParticleData:
         return self.internal_Lstar
 
     @lazy_property
-    def kappa_corot_star(self):
+    def kappa_corot_star(self) -> unyt.unyt_quantity:
+        """
+        Kinetic energy fraction of co-rotating star particles.
+
+        This is computed together with Lstar and Mcountrot_star
+        by compute_Lstar_props().
+        """
         if self.Mstar == 0:
             return None
         if not hasattr(self, "internal_kappa_star"):
@@ -966,7 +1083,13 @@ class ApertureParticleData:
         return self.internal_kappa_star
 
     @lazy_property
-    def DtoTstar(self):
+    def DtoTstar(self) -> unyt.unyt_quantity:
+        """
+        Disk to total ratio of the stars.
+
+        This is computed together with Lstar and kappa_corot_star
+        by compute_Lstar_props().
+        """
         if self.Mstar == 0:
             return None
         if not hasattr(self, "internal_Mcountrot_star"):
@@ -974,13 +1097,19 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
-    def StellarAxisLengths(self):
+    def StellarAxisLengths(self) -> unyt.unyt_array:
+        """
+        Stellar axis lengths.
+        """
         if self.Mstar == 0:
             return None
         return get_axis_lengths(self.mass_star, self.pos_star)
 
     @lazy_property
-    def veldisp_matrix_star(self):
+    def veldisp_matrix_star(self) -> unyt.unyt_array:
+        """
+        Velocity dispersion matrix of the stars.
+        """
         if self.Mstar == 0:
             return None
         return get_velocity_dispersion_matrix(
@@ -988,7 +1117,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def Ekin_star(self):
+    def Ekin_star(self) -> unyt.unyt_quantity:
+        """
+        Kinetic energy of star particles.
+        """
         if self.Mstar == 0:
             return None
         # below we need to force conversion to np.float64 before summing
@@ -1000,18 +1132,31 @@ class ApertureParticleData:
         return 0.5 * ekin_star.sum()
 
     @lazy_property
-    def baryon_mass_fraction(self):
+    def baryon_mass_fraction(self) -> unyt.unyt_array:
+        """
+        Fractional mass of baryon particles. See the documentation of star_mass_fraction
+        for the rationale behind this.
+        """
         if self.Mbaryons == 0:
             return None
         return self.mass_baryons / self.Mbaryons
 
     @lazy_property
-    def vcom_bar(self):
+    def vcom_bar(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of baryons (gas + stars).
+        """
         if self.Mbaryons == 0:
             return None
         return (self.baryon_mass_fraction[:, None] * self.vel_baryons).sum(axis=0)
 
     def compute_Lbar_props(self):
+        """
+        Compute the angular momentum and related properties for baryon particles.
+
+        We need this method because Lbaryon, kappa_baryon and Mcountrot_baryon are
+        computed together.
+        """
         (
             self.internal_Lbar,
             self.internal_kappa_bar,
@@ -1023,7 +1168,13 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def Lbaryons(self):
+    def Lbaryons(self) -> unyt.unyt_array:
+        """
+        Angular momentum of baryon (gas + stars) particles.
+
+        This is computed together with kappa_baryon and Mcountrot_baryon
+        by compute_Lbaryon_props().
+        """
         if self.Mbaryons == 0:
             return None
         if not hasattr(self, "internal_Lbar"):
@@ -1031,7 +1182,13 @@ class ApertureParticleData:
         return self.internal_Lbar
 
     @lazy_property
-    def kappa_corot_baryons(self):
+    def kappa_corot_baryons(self) -> unyt.unyt_quantity:
+        """
+        Kinetic energy fraction of co-rotating baryon (gas + stars) particles.
+
+        This is computed together with Lbaryon and Mcountrot_baryon
+        by compute_Lbaryon_props().
+        """
         if self.Mbaryons == 0:
             return None
         if not hasattr(self, "internal_kappa_bar"):
@@ -1039,13 +1196,21 @@ class ApertureParticleData:
         return self.internal_kappa_bar
 
     @lazy_property
-    def BaryonAxisLengths(self):
+    def BaryonAxisLengths(self) -> unyt.unyt_array:
+        """
+        Baryon (gas + stars) axis lengths.
+        """
         if self.Mbaryons == 0:
             return None
         return get_axis_lengths(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
-    def gas_mask_all(self):
+    def gas_mask_all(self) -> NDArray[bool]:
+        """
+        Mask for masking out gas particles in raw PartType0 arrays.
+        This is the mask that masks out unbound particles for exclusive halos.
+        For inclusive halos, this mask does nothing.
+        """
         if self.Ngas == 0:
             return None
         groupnr_bound = self.get_dataset("PartType0/GroupNr_bound")
@@ -1055,7 +1220,15 @@ class ApertureParticleData:
             return groupnr_bound == self.index
 
     @lazy_property
-    def gas_SFR(self):
+    def gas_SFR(self) -> unyt.unyt_array:
+        """
+        Star formation rates of star particles.
+
+        Note that older versions of SWIFT would hijack this dataset to also encode
+        other information, so that negative SFR values (which are unphysical) would
+        correspond to the last scale factor or time the gas was star-forming.
+        We need to mask out these negative values and set them to 0.
+        """
         if self.Ngas == 0:
             return None
         raw_SFR = self.get_dataset("PartType0/StarFormationRates")[self.gas_mask_all][
@@ -1066,25 +1239,37 @@ class ApertureParticleData:
         return raw_SFR
 
     @lazy_property
-    def is_SFR(self):
+    def is_SFR(self) -> NDArray[bool]:
+        """
+        Mask to select only star-forming gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_SFR > 0
 
     @lazy_property
-    def SFR(self):
+    def SFR(self) -> unyt.unyt_quantity:
+        """
+        Total star formation rate of the gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_SFR.sum()
 
     @lazy_property
-    def Mgas_SF(self):
+    def Mgas_SF(self) -> unyt.unyt_quantity:
+        """
+        Mass of star-forming gas.
+        """
         if self.Ngas == 0:
             return None
         return self.mass_gas[self.is_SFR].sum()
 
     @lazy_property
-    def gas_Mgasmetal(self):
+    def gas_Mgasmetal(self) -> unyt.unyt_array:
+        """
+        Metal masses of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1095,7 +1280,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_Mgasmetal_diffuse(self):
+    def gas_Mgasmetal_diffuse(self) -> unyt.unyt_array:
+        """
+        Metal masses of gas particles, without metals locked up in dust.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1106,25 +1294,37 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def GasMassInColdDenseDiffuseMetals(self):
+    def GasMassInColdDenseDiffuseMetals(self) -> unyt.unyt_quantity:
+        """
+        Mass of metals in cold, dense gas, excluding metals locked up in dust.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_Mgasmetal_diffuse[self.gas_is_cold_dense].sum()
 
     @lazy_property
-    def gasmetalfrac_SF(self):
+    def gasmetalfrac_SF(self) -> unyt.unyt_quantity:
+        """
+        Metal mass fraction of star-forming gas.
+        """
         if self.Ngas == 0 or self.Mgas_SF == 0.0:
             return None
         return self.gas_Mgasmetal[self.is_SFR].sum() / self.Mgas_SF
 
     @lazy_property
-    def gasmetalfrac(self):
+    def gasmetalfrac(self) -> unyt.unyt_quantity:
+        """
+        Metal mass fraction of gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_Mgasmetal.sum() / self.Mgas
 
     @lazy_property
-    def gas_MgasO(self):
+    def gas_MgasO(self) -> unyt.unyt_array:
+        """
+        Oxygen mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1140,13 +1340,19 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gasOfrac_SF(self):
+    def gasOfrac_SF(self) -> unyt.unyt_quantity:
+        """
+        Oxgen mass fraction of star-forming gas.
+        """
         if self.Ngas == 0 or self.Mgas_SF == 0.0:
             return None
         return self.gas_MgasO[self.is_SFR].sum() / self.Mgas_SF
 
     @lazy_property
-    def gasOfrac(self):
+    def gasOfrac(self) -> unyt.unyt_quantity:
+        """
+        Oxygen mass fraction of gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_MgasO.sum() / self.Mgas
