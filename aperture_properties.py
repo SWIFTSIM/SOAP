@@ -1358,7 +1358,10 @@ class ApertureParticleData:
         return self.gas_MgasO.sum() / self.Mgas
 
     @lazy_property
-    def gas_MgasFe(self):
+    def gas_MgasFe(self) -> unyt.unyt_array:
+        """
+        Iron mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1372,19 +1375,28 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gasFefrac_SF(self):
+    def gasFefrac_SF(self) -> unyt.unyt_quantity:
+        """
+        Iron mass fraction of star-forming gas.
+        """
         if self.Ngas == 0 or self.Mgas_SF == 0.0:
             return None
         return self.gas_MgasFe[self.is_SFR].sum() / self.Mgas_SF
 
     @lazy_property
-    def gasFefrac(self):
+    def gasFefrac(self) -> unyt.unyt_quantity:
+        """
+        Oxgen mass fraction of gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_MgasFe.sum() / self.Mgas
 
     @lazy_property
-    def gas_temp(self):
+    def gas_temp(self) -> unyt.unyt_array:
+        """
+        Temperature of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/Temperatures")[self.gas_mask_all][
@@ -1392,7 +1404,10 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def gas_rho(self):
+    def gas_rho(self) -> unyt.unyt_array:
+        """
+        Density of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/Densities")[self.gas_mask_all][
@@ -1400,7 +1415,12 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def gas_no_agn(self):
+    def gas_no_agn(self) -> NDArray[bool]:
+        """
+        Create a mask for gas particles that wer not recently heated by AGN.
+
+        The mask is created by negating the mask returned by the RecentlyHeatedGasFilter.
+        """
         if self.Ngas == 0:
             return None
         last_agn_gas = self.get_dataset("PartType0/LastAGNFeedbackScaleFactors")[
@@ -1411,13 +1431,20 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def Tgas(self):
+    def Tgas(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average temperature of the gas.
+        """
         if self.Mgas == 0 or self.Ngas == 0:
             return None
         return (self.gas_mass_fraction * self.gas_temp).sum()
 
     @lazy_property
-    def Tgas_no_agn(self):
+    def Tgas_no_agn(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average temperature of the gas, excluding gas that was
+        recently heated by AGN feedback.
+        """
         if self.Ngas == 0:
             return None
         if np.any(self.gas_no_agn):
@@ -1430,7 +1457,10 @@ class ApertureParticleData:
         return None
 
     @lazy_property
-    def gas_element_fractions(self):
+    def gas_element_fractions(self) -> unyt.unyt_array:
+        """
+        Element fractions of the gas particles.
+        """
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/ElementMassFractions")[self.gas_mask_all][
@@ -1438,7 +1468,10 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def gas_mass_H(self):
+    def gas_mass_H(self) -> unyt.unyt_array:
+        """
+        Hydrogen mass in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1452,7 +1485,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_mass_He(self):
+    def gas_mass_He(self) -> unyt.unyt_array:
+        """
+        Helium mass in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1466,7 +1502,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_species_fractions(self):
+    def gas_species_fractions(self) -> unyt.unyt_array:
+        """
+        Ion/molecule fractions in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/SpeciesFractions")[self.gas_mask_all][
@@ -1474,7 +1513,10 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def gas_mass_HI(self):
+    def gas_mass_HI(self) -> unyt.unyt_array:
+        """
+        Atomic hydrogen mass in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1486,7 +1528,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_mass_H2(self):
+    def gas_mass_H2(self) -> unyt.unyt_array:
+        """
+        Molecular hydrogen mass in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1499,31 +1544,46 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def HydrogenMass(self):
+    def HydrogenMass(self) -> unyt.unyt_quantity:
+        """
+        Hydrogen mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_mass_H.sum()
 
     @lazy_property
-    def HeliumMass(self):
+    def HeliumMass(self) -> unyt.unyt_quantity:
+        """
+        Helium mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_mass_He.sum()
 
     @lazy_property
-    def MolecularHydrogenMass(self):
+    def MolecularHydrogenMass(self) -> unyt.unyt_quantity:
+        """
+        Molecular hydrogen mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_mass_H2.sum()
 
     @lazy_property
-    def AtomicHydrogenMass(self):
+    def AtomicHydrogenMass(self) -> unyt.unyt_quantity:
+        """
+        Atomic hydrogen mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_mass_HI.sum()
 
     @lazy_property
-    def gas_dust_mass_fractions(self):
+    def gas_dust_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Dust mass fractions in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][
@@ -1531,7 +1591,10 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def gas_dust_mass_fractions_graphite_large(self):
+    def gas_dust_mass_fractions_graphite_large(self) -> unyt.unyt_array:
+        """
+        Dust mass fractions of large graphite grains in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_dust_mass_fractions[
@@ -1542,7 +1605,10 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def gas_dust_mass_fractions_silicates_large(self):
+    def gas_dust_mass_fractions_silicates_large(self) -> unyt.unyt_array:
+        """
+        Dust mass fractions of large silicates grains in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1561,7 +1627,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_dust_mass_fractions_graphite_small(self):
+    def gas_dust_mass_fractions_graphite_small(self) -> unyt.unyt_array:
+        """
+        Dust mass fractions of small graphite grains in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_dust_mass_fractions[
@@ -1572,7 +1641,10 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def gas_dust_mass_fractions_silicates_small(self):
+    def gas_dust_mass_fractions_silicates_small(self) -> unyt.unyt_array:
+        """
+        Dust mass fractions of small silicates grains in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1591,7 +1663,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_graphite_mass_fractions(self):
+    def gas_graphite_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Dust mass fractions of graphite grains in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1600,7 +1675,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_silicates_mass_fractions(self):
+    def gas_silicates_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Dust mass fractions of silicates grains in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1609,7 +1687,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_large_dust_mass_fractions(self):
+    def gas_large_dust_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Dust mass fractions of large grains in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1618,7 +1699,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_small_dust_mass_fractions(self):
+    def gas_small_dust_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Dust mass fractions of small grains in gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1627,31 +1711,48 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_is_cold_dense(self):
+    def gas_is_cold_dense(self) -> NDArray[bool]:
+        """
+        Mask for gas particles containing cold, dense gas.
+
+        The mask is created by the ColdDenseGasFilter.
+        """
         if self.Ngas == 0:
             return None
         return self.cold_dense_gas_filter.is_cold_and_dense(self.gas_temp, self.gas_rho)
 
     @lazy_property
-    def DustGraphiteMass(self):
+    def DustGraphiteMass(self) -> unyt.unyt_quantity:
+        """
+        Graphite dust mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_graphite_mass_fractions * self.mass_gas).sum()
 
     @lazy_property
-    def DustGraphiteMassInAtomicGas(self):
+    def DustGraphiteMassInAtomicGas(self) -> unyt.unyt_quantity:
+        """
+        Graphite dust mass in atomic gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_graphite_mass_fractions * self.gas_mass_HI).sum()
 
     @lazy_property
-    def DustGraphiteMassInMolecularGas(self):
+    def DustGraphiteMassInMolecularGas(self) -> unyt.unyt_quantity:
+        """
+        Graphite dust mass in molecular gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_graphite_mass_fractions * self.gas_mass_H2).sum()
 
     @lazy_property
-    def DustGraphiteMassInColdDenseGas(self):
+    def DustGraphiteMassInColdDenseGas(self) -> unyt.unyt_quantity:
+        """
+        Graphite dust mass in cold, dense gas.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1660,25 +1761,37 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def DustSilicatesMass(self):
+    def DustSilicatesMass(self) -> unyt.unyt_quantity:
+        """
+        Silicates dust mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_silicates_mass_fractions * self.mass_gas).sum()
 
     @lazy_property
-    def DustSilicatesMassInAtomicGas(self):
+    def DustSilicatesMassInAtomicGas(self) -> unyt.unyt_quantity:
+        """
+        Silicates dust mass in atomic gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_silicates_mass_fractions * self.gas_mass_HI).sum()
 
     @lazy_property
-    def DustSilicatesMassInMolecularGas(self):
+    def DustSilicatesMassInMolecularGas(self) -> unyt.unyt_quantity:
+        """
+        Silicates dust mass in molecular gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_silicates_mass_fractions * self.gas_mass_H2).sum()
 
     @lazy_property
-    def DustSilicatesMassInColdDenseGas(self):
+    def DustSilicatesMassInColdDenseGas(self) -> unyt.unyt_quantity:
+        """
+        Silicates dust mass in cold, dense gas.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1687,19 +1800,28 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def DustLargeGrainMass(self):
+    def DustLargeGrainMass(self) -> unyt.unyt_quantity:
+        """
+        Large dust grain mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_large_dust_mass_fractions * self.mass_gas).sum()
 
     @lazy_property
-    def DustLargeGrainMassInMolecularGas(self):
+    def DustLargeGrainMassInMolecularGas(self) -> unyt.unyt_quantity:
+        """
+        Large dust grain mass in molecular gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_large_dust_mass_fractions * self.gas_mass_H2).sum()
 
     @lazy_property
-    def DustLargeGrainMassInColdDenseGas(self):
+    def DustLargeGrainMassInColdDenseGas(self) -> unyt.unyt_quantity:
+        """
+        Large dust grain mass in cold, dense gas.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1708,19 +1830,28 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def DustSmallGrainMass(self):
+    def DustSmallGrainMass(self) -> unyt.unyt_quantity:
+        """
+        Small dust grain mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_small_dust_mass_fractions * self.mass_gas).sum()
 
     @lazy_property
-    def DustSmallGrainMassInMolecularGas(self):
+    def DustSmallGrainMassInMolecularGas(self) -> unyt.unyt_quantity:
+        """
+        Small dust grain mass in molecular gas.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_small_dust_mass_fractions * self.gas_mass_H2).sum()
 
     @lazy_property
-    def DustSmallGrainMassInColdDenseGas(self):
+    def DustSmallGrainMassInColdDenseGas(self) -> unyt.unyt_quantity:
+        """
+        Small dust grain mass in cold, dense gas.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1729,13 +1860,19 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def GasMassInColdDenseGas(self):
+    def GasMassInColdDenseGas(self) -> unyt.unyt_quantity:
+        """
+        Mass of cold, dense gas.
+        """
         if self.Ngas == 0:
             return None
         return self.mass_gas[self.gas_is_cold_dense].sum()
 
     @lazy_property
-    def stellar_birth_density(self):
+    def stellar_birth_density(self) -> unyt.unyt_array:
+        """
+        Stellar birth density of star particles.
+        """
         if self.Nstar == 0:
             return None
         return self.get_dataset("PartType4/BirthDensities")[self.star_mask_all][
@@ -1743,7 +1880,10 @@ class ApertureParticleData:
         ]
 
     @lazy_property
-    def LogarithmicallyAveragedStellarBirthDensity(self):
+    def LogarithmicallyAveragedStellarBirthDensity(self) -> unyt.unyt_quantity:
+        """
+        Logarithmic average of the stellar birth densities.
+        """
         if self.Nstar == 0:
             return None
         # note: the stellar birth density cannot be zero for physical reasons
@@ -1753,19 +1893,30 @@ class ApertureParticleData:
         return np.exp(log_birth_density.mean()) * self.stellar_birth_density.units
 
     @lazy_property
-    def MinimumStellarBirthDensity(self):
+    def MinimumStellarBirthDensity(self) -> unyt.unyt_quantity:
+        """
+        Minimum stellar birth density.
+        """
         if self.Nstar == 0:
             return None
         return self.stellar_birth_density.min()
 
     @lazy_property
-    def MaximumStellarBirthDensity(self):
+    def MaximumStellarBirthDensity(self) -> unyt.unyt_quantity:
+        """
+        Maximum stellar birth density.
+        """
         if self.Nstar == 0:
             return None
         return self.stellar_birth_density.max()
 
     @lazy_property
-    def gas_diffuse_element_fractions(self):
+    def gas_diffuse_element_fractions(self) -> unyt.unyt_array:
+        """
+        Diffuse element fractions of gas particles.
+
+        Diffuse means the contribution from dust has been removed.
+        """
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/ElementMassFractionsDiffuse")[
@@ -1773,7 +1924,10 @@ class ApertureParticleData:
         ][self.gas_mask_ap]
 
     @lazy_property
-    def gas_diffuse_carbon_mass(self):
+    def gas_diffuse_carbon_mass(self) -> unyt.unyt_array:
+        """
+        Diffuse carbon mass of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1787,7 +1941,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_diffuse_oxygen_mass(self):
+    def gas_diffuse_oxygen_mass(self) -> unyt.unyt_array:
+        """
+        Diffuse oxygen mass of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1801,7 +1958,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_diffuse_magnesium_mass(self):
+    def gas_diffuse_magnesium_mass(self) -> unyt.unyt_array:
+        """
+        Diffuse magnesium mass of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1815,7 +1975,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_diffuse_silicon_mass(self):
+    def gas_diffuse_silicon_mass(self) -> unyt.unyt_array:
+        """
+        Diffuse silicon mass of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1829,7 +1992,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_diffuse_iron_mass(self):
+    def gas_diffuse_iron_mass(self) -> unyt.unyt_array:
+        """
+        Diffuse iron mass of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -1841,37 +2007,55 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def DiffuseCarbonMass(self):
+    def DiffuseCarbonMass(self) -> unyt.unyt_quantity:
+        """
+        Diffuse carbon mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_diffuse_carbon_mass.sum()
 
     @lazy_property
-    def DiffuseOxygenMass(self):
+    def DiffuseOxygenMass(self) -> unyt.unyt_quantity:
+        """
+        Diffuse oxygen mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_diffuse_oxygen_mass.sum()
 
     @lazy_property
-    def DiffuseMagnesiumMass(self):
+    def DiffuseMagnesiumMass(self) -> unyt.unyt_quantity:
+        """
+        Diffuse magnesium mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_diffuse_magnesium_mass.sum()
 
     @lazy_property
-    def DiffuseSiliconMass(self):
+    def DiffuseSiliconMass(self) -> unyt.unyt_quantity:
+        """
+        Diffuse silicon mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_diffuse_silicon_mass.sum()
 
     @lazy_property
-    def DiffuseIronMass(self):
+    def DiffuseIronMass(self) -> unyt.unyt_quantity:
+        """
+        Diffuse iron mass in gas.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_diffuse_iron_mass.sum()
 
     @lazy_property
-    def gas_O_over_H_total(self):
+    def gas_O_over_H_total(self) -> unyt.unyt_array:
+        """
+        Total oxygen over hydrogen ratio of gas particles.
+        """
         if self.Ngas == 0:
             return None
         nH = self.gas_element_fractions[
@@ -1885,7 +2069,10 @@ class ApertureParticleData:
         return nO / (16.0 * nH)
 
     @lazy_property
-    def gas_O_over_H_diffuse(self):
+    def gas_O_over_H_diffuse(self) -> unyt.unyt_array:
+        """
+        Diffuse oxygen over hydrogen ratio of gas particles.
+        """
         if self.Ngas == 0:
             return None
         nH = self.gas_diffuse_element_fractions[
@@ -1899,7 +2086,13 @@ class ApertureParticleData:
         return nO / (16.0 * nH)
 
     @lazy_property
-    def gas_log10_O_over_H_diffuse_low_limit(self):
+    def gas_log10_O_over_H_diffuse_low_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the diffuse oxygen over hydrogen ratio of gas particles.
+
+        Uses a lower limit on the ratio of 1.e-4 times the solar ratio,
+        which is set in the parameter file.
+        """
         if self.Ngas == 0:
             return None
         return np.log10(
@@ -1911,7 +2104,13 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_log10_O_over_H_diffuse_high_limit(self):
+    def gas_log10_O_over_H_diffuse_high_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the diffuse oxygen over hydrogen ratio of gas particles.
+
+        Uses a lower limit on the ratio of 1.e-3 times the solar ratio,
+        which is set in the parameter file.
+        """
         if self.Ngas == 0:
             return None
         return np.log10(
@@ -1923,7 +2122,7 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def LinearMassWeightedOxygenOverHydrogenOfGas(self):
+    def LinearMassWeightedOxygenOverHydrogenOfGas(self) -> unyt.unyt_quantity:
         if self.Ngas == 0:
             return None
         return (
