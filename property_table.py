@@ -2061,7 +2061,8 @@ class PropertyTable:
             False,
             [
                 "PartType0/Masses",
-                "PartType0/MetalMassFractionsDiffuse",
+                "PartType0/MetalMassFractions",
+                "PartType0/DustMassFractions",
                 "PartType0/Temperatures",
                 "PartType0/Densities",
             ],

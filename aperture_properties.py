@@ -1266,18 +1266,24 @@ class ApertureParticleData:
         return self.mass_gas[self.is_SFR].sum()
 
     @lazy_property
+    def gas_metal_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Metal mass fractions of gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/MetalMassFractions")[self.gas_mask_all][
+            self.gas_mask_ap
+        ]
+
+    @lazy_property
     def gas_Mgasmetal(self) -> unyt.unyt_array:
         """
         Metal masses of gas particles.
         """
         if self.Ngas == 0:
             return None
-        return (
-            self.mass_gas
-            * self.get_dataset("PartType0/MetalMassFractions")[self.gas_mask_all][
-                self.gas_mask_ap
-            ]
-        )
+        return self.mass_gas * self.gas_metal_mass_fractions
 
     @lazy_property
     def gas_Mgasmetal_diffuse(self) -> unyt.unyt_array:
@@ -1286,11 +1292,8 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (
-            self.mass_gas
-            * self.get_dataset("PartType0/MetalMassFractionsDiffuse")[
-                self.gas_mask_all
-            ][self.gas_mask_ap]
+        return self.mass_gas * (
+            self.gas_metal_mass_fractions - self.gas_dust_mass_fractions.sum(axis=1)
         )
 
     @lazy_property
