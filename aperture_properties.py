@@ -147,7 +147,7 @@ from kinematic_properties import (
     get_axis_lengths,
 )
 
-# from swift_cells import SWIFTCellGrid
+from swift_cells import SWIFTCellGrid
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from stellar_age_calculator import StellarAgeCalculator
 from cold_dense_gas_filter import ColdDenseGasFilter
@@ -235,9 +235,9 @@ class ApertureParticleData:
         self.snapshot_datasets = snapshot_datasets
         self.compute_basics()
 
-    def get_dataset(self, name: str):
+    def get_dataset(self, name: str) -> unyt.unyt_array:
         """
-        Local wrapper for SnapshotDatasets.get_dataset()
+        Local wrapper for SnapshotDatasets.get_dataset().
         """
         return self.snapshot_datasets.get_dataset(name, self.data)
 
@@ -997,7 +997,7 @@ class ApertureParticleData:
     @lazy_property
     def GasAxisLengths(self) -> unyt.unyt_array:
         """
-        Axis lengths of th gas.
+        Axis lengths of the gas.
         """
         if self.Mgas == 0:
             return None
@@ -2562,7 +2562,7 @@ class ApertureProperties(HaloProperty):
 
     def __init__(
         self,
-        cellgrid,
+        cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
         physical_radius_kpc: float,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
@@ -2573,7 +2573,7 @@ class ApertureProperties(HaloProperty):
     ):
         """
         Construct an ApertureProperties object with the given physical
-        radius (in Mpc) that uses the given filter to filter out recently
+        radius (in kpc) that uses the given filter to filter out recently
         heated gas particles.
 
         Parameters:
@@ -2787,7 +2787,7 @@ class ExclusiveSphereProperties(ApertureProperties):
 
     def __init__(
         self,
-        cellgrid,
+        cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
         physical_radius_kpc: float,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
@@ -2844,7 +2844,7 @@ class InclusiveSphereProperties(ApertureProperties):
 
     def __init__(
         self,
-        cellgrid,
+        cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
         physical_radius_kpc: float,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
