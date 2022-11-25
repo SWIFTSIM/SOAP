@@ -146,6 +146,8 @@ from kinematic_properties import (
     get_vmax,
     get_axis_lengths,
 )
+
+# from swift_cells import SWIFTCellGrid
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from stellar_age_calculator import StellarAgeCalculator
 from cold_dense_gas_filter import ColdDenseGasFilter
@@ -154,7 +156,7 @@ from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
 from snapshot_datasets import SnapshotDatasets
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from numpy.typing import NDArray
 
 
@@ -196,6 +198,31 @@ class ApertureParticleData:
     ):
         """
         Constructor.
+
+        Parameters:
+         - input_halo: Dict
+           Dictionary containing properties of the halo read from the VR catalogue.
+         - data: Dict
+           Dictionary containing particle data.
+         - types_present: List
+           List of all particle types (e.g. 'PartType0') that are present in the data
+           dictionary.
+         - inclusive: bool
+           Whether or not to include particles not gravitationally bound to the subhalo
+           in the property calculations.
+         - aperture_radius: unyt.unyt_quantity
+           Aperture radius.
+         - stellar_age_calculator: StellarAgeCalculator
+           Object used to compute stellar ages from the current cosmological scale factor
+           and the birth scale factors of star particles.
+         - recently_heated_gas_filter: RecentlyHeatedGasFilter
+           Filter used to mask out gas particles that were recently heated by
+           AGN feedback.
+         - cold_dense_gas_filter: ColdDenseGasFilter
+           Filter used to mask out gas particles containing cold, dense gas.
+         - snapshot_datasets: SnapshotDatasets
+           Object containing metadata about the datasets in the snapshot, like
+           appropriate aliases and column names.
         """
         self.input_halo = input_halo
         self.data = data
@@ -2126,6 +2153,9 @@ class ApertureParticleData:
 
     @lazy_property
     def LinearMassWeightedOxygenOverHydrogenOfGas(self) -> unyt.unyt_quantity:
+        """
+        Mass-weigthed sum of the total oxygen over hydrogen ratio of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -2134,7 +2164,11 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def LinearMassWeightedDiffuseOxygenOverHydrogenOfGas(self):
+    def LinearMassWeightedDiffuseOxygenOverHydrogenOfGas(self) -> unyt.unyt_quantity:
+        """
+        Mass-weigthed sum of the diffuse oxygen over hydrogen ratio of gas particles,
+        excluding the contribution from dust.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -2143,7 +2177,14 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit(self):
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        particles, excluding the contribution from dust and using a lower limit on the ratio
+        of 1.e-4 times the solar ratio, set in the parameter file.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -2152,7 +2193,14 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit(self):
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        particles, excluding the contribution from dust and using a lower limit on the ratio
+        of 1.e-3 times the solar ratio, set in the parameter file.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -2161,7 +2209,14 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit(self):
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Atomic mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        particles, excluding the contribution from dust and using a lower limit on the ratio
+        of 1.e-4 times the solar ratio, set in the parameter file.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -2170,7 +2225,14 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit(self):
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Atomic mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        particles, excluding the contribution from dust and using a lower limit on the ratio
+        of 1.e-3 times the solar ratio, set in the parameter file.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -2179,7 +2241,14 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit(self):
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Molecular mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        particles, excluding the contribution from dust and using a lower limit on the ratio
+        of 1.e-4 times the solar ratio, set in the parameter file.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -2188,7 +2257,14 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit(self):
+    def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Molecular mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        particles, excluding the contribution from dust and using a lower limit on the ratio
+        of 1.e-3 times the solar ratio, set in the parameter file.
+        """
         if self.Ngas == 0:
             return None
         return (
@@ -2197,7 +2273,10 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def star_Fe_over_H(self):
+    def star_Fe_over_H(self) -> unyt.unyt_array:
+        """
+        Iron over hydrogen ratio of star particles.
+        """
         if self.Nstar == 0:
             return None
         nH = self.star_element_fractions[
@@ -2211,7 +2290,11 @@ class ApertureParticleData:
         return nFe / (55.845 * nH)
 
     @lazy_property
-    def star_Fe_from_SNIa_over_H(self):
+    def star_Fe_from_SNIa_over_H(self) -> unyt.unyt_array:
+        """
+        Iron over hydrogen ratio of star particles, only taking into account iron produced
+        by SNIa.
+        """
         if self.Nstar == 0:
             return None
         nH = self.star_element_fractions[
@@ -2224,7 +2307,11 @@ class ApertureParticleData:
         return nFe / (55.845 * nH)
 
     @lazy_property
-    def star_log10_Fe_over_H_low_limit(self):
+    def star_log10_Fe_over_H_low_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the iron over hydrogen ratio of star particles, using a lower limit
+        on the ratio of 1.e-4 times the solar ratio, set in the parameter file.
+        """
         if self.Nstar == 0:
             return None
         return np.log10(
@@ -2236,7 +2323,12 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def star_log10_Fe_from_SNIa_over_H_low_limit(self):
+    def star_log10_Fe_from_SNIa_over_H_low_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the iron over hydrogen ratio of star particles, using a lower limit
+        on the ratio of 1.e-4 times the solar ratio, set in the parameter file, and only
+        taking into account iron produced by SNIa.
+        """
         if self.Nstar == 0:
             return None
         return np.log10(
@@ -2248,7 +2340,11 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def star_log10_Fe_over_H_high_limit(self):
+    def star_log10_Fe_over_H_high_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the iron over hydrogen ratio of star particles, using a lower limit
+        on the ratio of 1.e-3 times the solar ratio, set in the parameter file.
+        """
         if self.Nstar == 0:
             return None
         return np.log10(
@@ -2260,49 +2356,83 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def LinearMassWeightedIronOverHydrogenOfStars(self):
+    def LinearMassWeightedIronOverHydrogenOfStars(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the iron over hydrogen ratio for star particles.
+        """
         if self.Nstar == 0:
             return None
         return (self.star_Fe_over_H * self.mass_star).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit(self):
+    def LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the iron over hydrogen ratio for star particles,
+        using a lower limit of 1.e-4 times the solar ratio, set in the parameter file.
+        """
         if self.Nstar == 0:
             return None
         return (self.star_log10_Fe_over_H_low_limit * self.mass_star).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit(self):
+    def LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the iron over hydrogen ratio for star particles,
+        using a lower limit of 1.e-3 times the solar ratio, set in the parameter file.
+        """
         if self.Nstar == 0:
             return None
         return (self.star_log10_Fe_over_H_high_limit * self.mass_star).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit(self):
+    def LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the iron over hydrogen ratio for star particles,
+        using a lower limit of 1.e-4 times the solar ratio, set in the parameter file, and
+        only taking into account iron produced by SNIa.
+        """
         if self.Nstar == 0:
             return None
         return (self.star_log10_Fe_from_SNIa_over_H_low_limit * self.mass_star).sum()
 
     @lazy_property
-    def HalfMassRadiusGas(self):
+    def HalfMassRadiusGas(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of gas.
+        """
         return get_half_mass_radius(
             self.radius[self.type == "PartType0"], self.mass_gas, self.Mgas
         )
 
     @lazy_property
-    def HalfMassRadiusDM(self):
+    def HalfMassRadiusDM(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of dark matter.
+        """
         return get_half_mass_radius(
             self.radius[self.type == "PartType1"], self.mass_dm, self.Mdm
         )
 
     @lazy_property
-    def HalfMassRadiusStar(self):
+    def HalfMassRadiusStar(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of stars.
+        """
         return get_half_mass_radius(
             self.radius[self.type == "PartType4"], self.mass_star, self.Mstar
         )
 
     @lazy_property
-    def HalfMassRadiusBaryon(self):
+    def HalfMassRadiusBaryon(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of baryons (gas + stars).
+        """
         return get_half_mass_radius(
             self.radius[(self.type == "PartType0") | (self.type == "PartType4")],
             self.mass_baryons,
@@ -2318,8 +2448,12 @@ class ApertureProperties(HaloProperty):
     are bound to the halo.
     """
 
-    # get the properties we want from the table
-    property_list = [
+    """
+    List of properties from the table that we want to compute.
+    Each property should have a corresponding method/property/lazy_property in
+    the ApertureParticleData class above.
+    """
+    property_list: List[Tuple] = [
         (prop, *PropertyTable.full_property_list[prop])
         for prop in [
             "Mtot",
@@ -2429,18 +2563,44 @@ class ApertureProperties(HaloProperty):
     def __init__(
         self,
         cellgrid,
-        parameters,
-        physical_radius_kpc,
-        recently_heated_gas_filter,
-        stellar_age_calculator,
-        cold_dense_gas_filter,
-        category_filter,
-        inclusive=False,
+        parameters: ParameterFile,
+        physical_radius_kpc: float,
+        recently_heated_gas_filter: RecentlyHeatedGasFilter,
+        stellar_age_calculator: StellarAgeCalculator,
+        cold_dense_gas_filter: ColdDenseGasFilter,
+        category_filter: CategoryFilter,
+        inclusive: bool = False,
     ):
         """
         Construct an ApertureProperties object with the given physical
         radius (in Mpc) that uses the given filter to filter out recently
         heated gas particles.
+
+        Parameters:
+         - cellgrid: SWIFTCellGrid
+           Container object containing global information about the snapshot,
+           like the cosmology and the dataset metadata.
+         - parameters: ParameterFile
+           Parameter file object containing the parameters from the parameter
+           file.
+         - physical_radius_kpc: float
+           Physical radius of the aperture. Unitless and assumed to be expressed
+           in units of kpc.
+         - recently_heated_gas_filter: RecentlyHeatedGasFilter
+           Filter used to mask out gas particles that were recently heated by
+           AGN feedback.
+         - stellar_age_calculator: StellarAgeCalculator
+           Object used to calculate stellar ages from the current cosmological
+           scale factor and the birth scale factor of the star particles.
+         - cold_dense_gas_filter: ColdDenseGasFilter
+           Filter used to mask out gas particles that represent cold, dense gas.
+         - category_filter: CategoryFilter
+           Filter used to determine which properties can be calculated for this halo.
+           This depends on the number of particles in the FOF subhalo and the category
+           of each property.
+         - inclusive: bool
+           Should properties include particles that are not gravitationally bound to the
+           subhalo?
         """
 
         super().__init__(cellgrid)
@@ -2470,6 +2630,8 @@ class ApertureProperties(HaloProperty):
             self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
 
         # List of particle properties we need to read in
+        # Coordinates, Masses and Velocities are always required, as is
+        # GroupNr_bound.
         self.particle_properties = {
             "PartType0": [
                 "Coordinates",
@@ -2491,6 +2653,8 @@ class ApertureProperties(HaloProperty):
                 "Velocities",
             ],
         }
+        # add additional particle properties based on the selected halo
+        # properties in the parameter file
         for prop in self.property_list:
             outputname = prop[1]
             if not self.property_mask[outputname]:
@@ -2506,18 +2670,27 @@ class ApertureProperties(HaloProperty):
                 if not dset in self.particle_properties[pgroup]:
                     self.particle_properties[pgroup].append(dset)
 
-    def calculate(self, input_halo, search_radius, data, halo_result):
+    def calculate(
+        self,
+        input_halo: Dict,
+        search_radius: unyt.unyt_quantity,
+        data: Dict,
+        halo_result: Dict,
+    ):
         """
         Compute centre of mass etc of bound particles
 
         input_halo       - dict with halo properties passed in from VR (see
                            halo_centres.py)
+        search_radius    - radius out to which the particle data is guaranteed to
+                           be complete
         data             - contains particle data. E.g. data["PartType1"]["Coordinates"]
                            has the particle coordinates for type 1
         halo_result      - dict with halo properties computed so far. Properties
                            computed here should be added to halo_result.
 
         Input particle data arrays are unyt_arrays.
+        The halo_result dictionary is updated with the properties computed by this function.
         """
 
         types_present = [type for type in self.particle_properties if type in data]
@@ -2577,6 +2750,7 @@ class ApertureProperties(HaloProperty):
                     else:
                         aperture_sphere[name] += val
 
+        # add the new properties to the halo_result dictionary
         if self.inclusive:
             prefix = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
         else:
@@ -2605,16 +2779,50 @@ class ApertureProperties(HaloProperty):
 
 
 class ExclusiveSphereProperties(ApertureProperties):
+    """
+    ApertureProperties specialization for exclusive apertures,
+    i.e. excluding particles not gravitationally bound to the
+    subhalo.
+    """
+
     def __init__(
         self,
         cellgrid,
-        parameters,
-        physical_radius_kpc,
-        recently_heated_gas_filter,
-        stellar_age_calculator,
-        cold_dense_gas_filter,
-        category_filter,
+        parameters: ParameterFile,
+        physical_radius_kpc: float,
+        recently_heated_gas_filter: RecentlyHeatedGasFilter,
+        stellar_age_calculator: StellarAgeCalculator,
+        cold_dense_gas_filter: ColdDenseGasFilter,
+        category_filter: CategoryFilter,
     ):
+        """
+        Construct an ExclusiveSphereProperties object with the given physical
+        radius (in Mpc) that uses the given filter to filter out recently
+        heated gas particles.
+
+        Parameters:
+         - cellgrid: SWIFTCellGrid
+           Container object containing global information about the snapshot,
+           like the cosmology and the dataset metadata.
+         - parameters: ParameterFile
+           Parameter file object containing the parameters from the parameter
+           file.
+         - physical_radius_kpc: float
+           Physical radius of the aperture. Unitless and assumed to be expressed
+           in units of kpc.
+         - recently_heated_gas_filter: RecentlyHeatedGasFilter
+           Filter used to mask out gas particles that were recently heated by
+           AGN feedback.
+         - stellar_age_calculator: StellarAgeCalculator
+           Object used to calculate stellar ages from the current cosmological
+           scale factor and the birth scale factor of the star particles.
+         - cold_dense_gas_filter: ColdDenseGasFilter
+           Filter used to mask out gas particles that represent cold, dense gas.
+         - category_filter: CategoryFilter
+           Filter used to determine which properties can be calculated for this halo.
+           This depends on the number of particles in the FOF subhalo and the category
+           of each property.
+        """
         super().__init__(
             cellgrid,
             parameters,
@@ -2628,16 +2836,50 @@ class ExclusiveSphereProperties(ApertureProperties):
 
 
 class InclusiveSphereProperties(ApertureProperties):
+    """
+    ApertureProperties specialization for inclusive apertures,
+    i.e. including particles not gravitationally bound to the
+    subhalo.
+    """
+
     def __init__(
         self,
         cellgrid,
-        parameters,
-        physical_radius_kpc,
-        recently_heated_gas_filter,
-        stellar_age_calculator,
-        cold_dense_gas_filter,
-        category_filter,
+        parameters: ParameterFile,
+        physical_radius_kpc: float,
+        recently_heated_gas_filter: RecentlyHeatedGasFilter,
+        stellar_age_calculator: StellarAgeCalculator,
+        cold_dense_gas_filter: ColdDenseGasFilter,
+        category_filter: CategoryFilter,
     ):
+        """
+        Construct an InclusiveSphereProperties object with the given physical
+        radius (in Mpc) that uses the given filter to filter out recently
+        heated gas particles.
+
+        Parameters:
+         - cellgrid: SWIFTCellGrid
+           Container object containing global information about the snapshot,
+           like the cosmology and the dataset metadata.
+         - parameters: ParameterFile
+           Parameter file object containing the parameters from the parameter
+           file.
+         - physical_radius_kpc: float
+           Physical radius of the aperture. Unitless and assumed to be expressed
+           in units of kpc.
+         - recently_heated_gas_filter: RecentlyHeatedGasFilter
+           Filter used to mask out gas particles that were recently heated by
+           AGN feedback.
+         - stellar_age_calculator: StellarAgeCalculator
+           Object used to calculate stellar ages from the current cosmological
+           scale factor and the birth scale factor of the star particles.
+         - cold_dense_gas_filter: ColdDenseGasFilter
+           Filter used to mask out gas particles that represent cold, dense gas.
+         - category_filter: CategoryFilter
+           Filter used to determine which properties can be calculated for this halo.
+           This depends on the number of particles in the FOF subhalo and the category
+           of each property.
+        """
         super().__init__(
             cellgrid,
             parameters,
@@ -2783,6 +3025,7 @@ def test_aperture_properties():
 
     # Now test the calculation for each property individually, to make sure that
     # all properties read all the datasets they require
+    # we reuse the last random halo for this
     all_parameters = parameters.get_parameters()
     for property in all_parameters["ApertureProperties"]["properties"]:
         print(f"Testing only {property}...")
