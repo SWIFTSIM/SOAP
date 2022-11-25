@@ -47,7 +47,7 @@ from typing import Dict, List
 from halo_properties import HaloProperty
 
 
-def get_version_string():
+def get_version_string() -> str:
     """
     Generate a version string that uniquely identifies the documentation file.
 
