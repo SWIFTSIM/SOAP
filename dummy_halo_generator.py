@@ -1,15 +1,35 @@
 #! /usr/bin/env python3
 
+"""
+dummy_halo_generator.py
+
+Auxiliary class used for unit testing.
+
+Since all halo property calculations require particle data, we need to
+provide some representative data in unit tests. This file contains
+"dummy" classes that can be used to generate such (random) data.
+We make sure all the particle data has the appropriate type, units and
+a representative range of values.
+"""
+
 import numpy as np
 import unyt
 import types
 from swift_units import unit_registry_from_snapshot
 from snapshot_datasets import SnapshotDatasets
+from typing import Dict, Union, List, Tuple
+import h5py
 
 
 class DummySnapshot:
+    """
+    Dummy SWIFT snapshot. Can be used to replace an actual snapshot in
+    some functions, e.g. unit_registry_from_snapshot().
+    """
+
     def __init__(self):
         """
+        Constructor.
         Values extracted from a 400 Mpc FLAMINGO snapshot at z=3.
         """
         self.metadata = {
@@ -92,7 +112,19 @@ class DummySnapshot:
             },
         }
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> types.SimpleNamespace:
+        """
+        [] override that tricks other objects into thinking
+        this object is actually an h5py file handle with a dataset
+        called 'name' that has a property called "attrs".
+
+        Parameters:
+         - name: str
+           "Dataset" path in the dummy HDF5 snapshot file.
+        Returns an object that contains the "attrs" attribute, which
+        looks and feels like an HDF5 attributes object, but is in fact
+        a Dict.
+        """
         if not name in self.metadata:
             raise AttributeError(f"No {name} in dummy snapshot file!")
         x = types.SimpleNamespace()
@@ -101,7 +133,21 @@ class DummySnapshot:
 
 
 class DummySnapshotDatasets(SnapshotDatasets):
+    """
+    Dummy SnapshotDatasets object that can be used to replace actual
+    snapshot metadata in unit tests.
+    """
+
     def __init__(self):
+        """
+        Constructor.
+        Set up a "snapshot file" that contains all the particle
+        datasets we need. Give it some named columns and defined
+        constants.
+
+        We also initialise two empty sets that can be used to track
+        dataset and column usage.
+        """
         self.datasets_in_file = {
             "PartType0": [
                 "Coordinates",
@@ -257,18 +303,60 @@ class DummySnapshotDatasets(SnapshotDatasets):
             ]
         )
 
+        # Sets used to track which elements are actually used by
+        # other parts of SOAP
         self.datasets_used = set()
         self.columns_used = set()
 
-    def get_dataset(self, name, data):
+    def get_dataset(self, name: str, data: Dict) -> unyt.unyt_array:
+        """
+        Get the dataset with the given name from the snapshot,
+        taking into account potential aliases.
+
+        Parameters:
+         - name: str
+           Generic dataset name. This dataset might not be present
+           in the snapshot under that name if an alias has been
+           defined.
+         - data: Dict
+           Raw particle data dictionary that only contains dataset
+           names actually present in the snapshot.
+
+        Returns the requested data, taking into account potential
+        aliases.
+        """
         self.datasets_used.add(name)
         return super().get_dataset(name, data)
 
-    def get_column_index(self, name, column):
+    def get_column_index(self, name: str, column: str) -> int:
+        """
+        Get the index number of a named column for a dataset with
+        the given name, taking into account potential aliases.
+        The named columns are read from the snapshot metadata.
+
+        Parameters:
+         - name: str
+           Generic dataset name. This dataset might not be present
+           in the snapshot under that name if an alias has been
+           defined.
+         - column: str
+           Column name. Needs to be present in the snapshot metadata
+           for this particular dataset, although the dataset can have
+           another name if an alias has been defined.
+        Returns the index that can be used to get this particular
+        column in a multidimensional dataset, e.g.
+          ["PartType0/ElementMassFractions"][:,0]
+        """
         self.columns_used.add(f"{name}/{column}")
         return super().get_column_index(name, column)
 
     def print_dataset_log(self):
+        """
+        Print out lists of all the dataset and column names that
+        have been used while this object existed.
+
+        Useful for checking the completeness of a unit test.
+        """
         print(f"Datasets used: {self.datasets_used}")
         print(f"Columns used: {self.columns_used}")
 
@@ -279,10 +367,31 @@ class DummyCellGrid:
     the HaloProperty and RecentlyHeatedGasFilter constructors.
     """
 
-    def get_unit(self, name, reg):
+    def get_unit(self, name: str, reg: unyt.UnitRegistry) -> unyt.Unit:
+        """
+        Static method that creates a new unit using the given unit
+        registry.
+
+        Parameter:
+         - name: str
+           Unit name.
+         - reg: unyt.UnitRegistry
+           Unit registry.
+
+        Returns the corresponding unyt.Unit.
+        """
         return unyt.Unit(name, registry=reg)
 
-    def __init__(self, reg, snap):
+    def __init__(self, reg: unyt.UnitRegistry, snap: h5py.File):
+        """
+        Constructor.
+
+        Parameters:
+         - reg: unyt.UnitRegistry
+           Registry used to keep track of units.
+         - snap: h5py.File (or DummySnapshot)
+           Snapshot from which metadata is read.
+        """
         self.a_unit = self.get_unit("a", reg)
         self.a = self.a_unit.base_value
         self.z = 1.0 / self.a - 1.0
@@ -326,10 +435,16 @@ class DummyHaloGenerator:
     in the right units and with realistic values.
     """
 
-    def __init__(self, seed):
+    def __init__(self, seed: int):
         """
         Set up an artificial snapshot and extract the unit system.
         Seed the random number generator.
+
+        Parameters:
+         - seed: int
+           Seed for the random number generator. Setting the same seed will
+           produce the same sequence of random halos (as long as no new properties
+           are added).
         """
         self.dummy_snapshot = DummySnapshot()
         self.unit_registry = unit_registry_from_snapshot(self.dummy_snapshot)
@@ -343,7 +458,9 @@ class DummyHaloGenerator:
         """
         return self.dummy_cellgrid
 
-    def get_random_halo(self, npart, has_neutrinos=False):
+    def get_random_halo(
+        self, npart: Union[int, List], has_neutrinos: bool = False
+    ) -> Tuple[Dict, Dict, unyt.unyt_quantity, unyt.unyt_quantity, int, Dict]:
         """
         Generate a random halo, with the given number of particles.
         If npart is a list, a random element of the list is chosen.
@@ -422,6 +539,30 @@ class DummyHaloGenerator:
           "Masses": (np.float32, snap_mass, 0.018, 0.018),
           "Weights": (np.float64, dimensionless, -0.46, 0.71),
         }
+
+        Parameters:
+         - npart: Union[int, List]
+           Number of particles the random halo should contain, or a list
+           of allowed particle numbers from which a random element will be
+           selected.
+         - has_neutrinos: bool
+           Whether or not the random halo should contain neutrinos
+           ("PartType6").
+
+        Returns:
+         - input_halo: Dict
+           Dictionary with halo metadata (as if it was read from a VR catalogue).
+         - data: Dict
+           Dictionary with particle data (as if it was read from a SWIFT snapshot).
+         - rmax: unyt.unyt_quantity
+           Maximum radius of any of the random particles in the halo.
+         - Mtot: unyt.unyt_quantity
+           Total mass of all the random particles in the halo.
+         - npart: int
+           Number of random particles in the halo.
+         - particle_numbers:
+           Number of particles of each type in the halo.
+        These values can be passed on to the calculate() method of a HaloProperty.
         """
 
         if isinstance(npart, list):
