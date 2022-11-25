@@ -26,6 +26,11 @@ class ColdDenseGasFilter:
     "cold and dense".
     """
 
+    # maximum temperature to be considered cold
+    maximum_temperature: unyt.unyt_quantity
+    # minimum hydrogen number density to be considered dense
+    minimum_hydrogen_number_density: unyt.unyt_quantity
+
     def __init__(
         self,
         maximum_temperature: unyt.unyt_quantity = 10.0**4.5 * unyt.K,

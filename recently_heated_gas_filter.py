@@ -41,6 +41,14 @@ class RecentlyHeatedGasFilter:
     the correct astropy.cosmology.
     """
 
+    # lower limit on the scale factor, below which events are no
+    # longer considered to be recent
+    a_limit: unyt.unyt_quantity
+    # temperature limits. Within this interval, a gas particle is
+    # considered to be "heated by AGN".
+    Tmin: unyt.unyt_quantity
+    Tmax: unyt.unyt_quantity
+
     def __init__(
         self,
         cellgrid: SWIFTCellGrid,
