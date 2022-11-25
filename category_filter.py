@@ -108,7 +108,23 @@ class CategoryFilter:
             Nbh = halo_result[bh_filter_name][0].value
         return self.get_filters_direct(Ngas, Ndm, Nstar, Nbh)
 
-    def get_compression_metadata(self, property_output_name):
+    def get_compression_metadata(self, property_output_name: str) -> Dict:
+        """
+        Get the dictionary with compression metadata for a particular property.
+
+        Parameters:
+         - property_output_name: str
+           Name of a halo property as it appears in the output file.
+
+        Returns a dictionary with (lossy) compression metadata. Currently, this
+        dictionary contains the following keys:
+         - Lossy Compression Algorithm: name of a lossy compression algorithm
+           (we support the same algorithms as SWIFT), or None for no lossy
+           compression.
+         - Is Compressed: whether or not the lossy compression algorithm was
+           actually applied to the data. Currently, this is always "False", since
+           the lossy compression is done by a post-processing script.
+        """
         base_output_name = property_output_name.split("/")[-1]
         compression = None
         for _, prop in PropertyTable.full_property_list.items():
@@ -119,7 +135,34 @@ class CategoryFilter:
         else:
             return {"Lossy Compression Algorithm": compression, "Is Compressed": False}
 
-    def get_filter_metadata(self, property_output_name):
+    def get_filter_metadata(self, property_output_name: str) -> Dict:
+        """
+        Get the dictionary with category filter metadata for a particular property.
+
+        Parameters:
+         - property_output_name: str
+           Name of a halo property as it appears in the output file.
+
+        Returns a dictionary with category filter metadata. Currently, this
+        dictionary contains the following keys:
+         - Masked: Whether or not some of the elements in the output have been
+           masked. This is purely based on the category of the property: if this
+           is "VR" or "basic", the flag is "False", otherwise it is "True" (even
+           if the threshold is set to 0, so that there is effectively no masking).
+         - Mask Datasets: Particle number datasets that were used for masking. This
+           is a list of dataset names as they appear in the SOAP output (full path),
+           e.g. [
+             "FOFSubhaloProperties/NumberOfGasParticles",
+             "FOFSubhaloProperties/NumberOfDarkMatterParticles"
+           ]
+           Only present if Masked==True.
+         - Mask Threshold: Threshold value used for masking. A row in the output is
+           masked (i.e. set to zero) if the sum of the elements in Mask Datasets is
+           strictly below this value.
+
+        Note that it is hence always possible to reproduce the mask for a dataset using
+        this metadata.
+        """
         base_output_name = property_output_name.split("/")[-1]
         category = None
         for _, prop in PropertyTable.full_property_list.items():
