@@ -1,7 +1,32 @@
 #!/bin/env python
 
-from property_table import PropertyTable
+"""
+category_filter.py
 
+Filter used to determine which halo properties should be computed.
+This decision is based on the number of particles in the FOF subhalo and
+the category a particular halo property belongs to.
+
+There are 6 categories:
+ - basic: Always computed.
+ - general: Only computed if the total number of particles exceeds a threshold.
+ - gas: Only computed if the number of gas particles exceeds a threshold.
+ - dm: Only computed if the number of dark matter particles exceeds a threshold.
+ - star: Only computed if the number of star particles exceeds a threshold.
+ - baryon: Only computed if the number of baryon (gas + star) particles exceeds a threshold.
+
+Additionally, this object also marks properties that should not be computed for DMO runs.
+
+The filter thresholds for the 5 categories that use a threshold are read from the parameter
+file. The corresponding particle numbers are hardcoded to be read from the
+FOFSubhaloProperties properties.
+"""
+
+from property_table import PropertyTable
+from typing import Dict
+
+# hardcoded names of the particle number data to use:
+# FOFSubhaloProperties/<correct name for Ngas/Ndm/Nstar/Nbh>
 gas_filter_name = f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}"
 dm_filter_name = f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}"
 star_filter_name = (
@@ -21,9 +46,20 @@ class CategoryFilter:
 
     def __init__(
         self,
-        filter_values,
-        dmo=False,
+        filter_values: Dict,
+        dmo: bool = False,
     ):
+        """
+        Construct the filter with the requested filter thresholds.
+
+        Parameters:
+         - filter_values: Dict
+           Dictionary containing the filter thresholds for the 5 categories that
+           require such a threshold. These should be read from the parameter file.
+         - dmo: bool
+           Whether or not SOAP is run in DMO mode, in which case only properties that
+           are marked for DMO calculation are actually computed.
+        """
         self.Ngeneral = filter_values["general"]
         self.Ngas = filter_values["gas"]
         self.Ndm = filter_values["dm"]
@@ -31,7 +67,16 @@ class CategoryFilter:
         self.Nbaryon = filter_values["baryon"]
         self.dmo = dmo
 
-    def get_filters_direct(self, Ngas, Ndm, Nstar, Nbh):
+    def get_filters_direct(self, Ngas: int, Ndm: int, Nstar: int, Nbh: int) -> Dict:
+        """
+        Get the mask for each category, directly based on the particle numbers of
+        gas, dm, stars and bh.
+
+        Parameters:
+         - Nx: int
+           Particle numbers for the FOF subhalo.
+        Returns a dictionary containing True/False for each property category.
+        """
         return {
             "basic": True,
             "general": Ngas + Ndm + Nstar + Nbh >= self.Ngeneral,
@@ -42,7 +87,16 @@ class CategoryFilter:
             "DMO": self.dmo,
         }
 
-    def get_filters(self, halo_result):
+    def get_filters(self, halo_result: Dict) -> Dict:
+        """
+        Get the mask for each category, based on the particle numbers of
+        the FOF subhalo group.
+
+        Parameters:
+         - halo_result: Dict
+           Halo result dictionary that contains the particle numbers for the FOF subhalo.
+        Returns a dictionary containing True/False for each property category.
+        """
         Ndm = halo_result[dm_filter_name][0].value
         if self.dmo:
             Ngas = 0
