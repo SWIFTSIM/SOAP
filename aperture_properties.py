@@ -876,6 +876,9 @@ class ApertureParticleData:
     def spin_parameter(self) -> unyt.unyt_quantity:
         """
         Spin parameter of all particles in the aperture.
+
+        Computed as in Bullock et al. (2021):
+          lambda = |Ltot| / (sqrt(2) * M * v_max * R)
         """
         if self.Mtot == 0:
             return None
