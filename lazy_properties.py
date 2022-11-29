@@ -53,4 +53,7 @@ def lazy_property(fn: Callable) -> Callable:
             setattr(self, attr_name, fn(self))
         return getattr(self, attr_name)
 
+    # make sure the documentation of the original function is used
+    _lazy_property.__doc__ = f"{fn.__doc__} (lazy property)"
+
     return _lazy_property
