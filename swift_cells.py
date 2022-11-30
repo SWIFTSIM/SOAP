@@ -12,6 +12,7 @@ import scipy.spatial
 import swift_units
 import task_queue
 import shared_array
+from snapshot_datasets import SnapshotDatasets
 
 # HDF5 chunk cache parameters:
 # SWIFT writes datasets with large chunks so the default 1Mb may be too small
@@ -155,6 +156,8 @@ class SWIFTCellGrid:
 
         # Open the input file
         with h5py.File(snap_filename % {"file_nr": 0}, "r") as infile:
+
+            self.snapshot_datasets = SnapshotDatasets(infile)
 
             # Get the snapshot unit system
             self.snap_unit_registry = swift_units.unit_registry_from_snapshot(infile)

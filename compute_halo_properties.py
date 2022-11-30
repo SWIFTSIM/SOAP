@@ -38,7 +38,9 @@ from combine_chunks import combine_chunks, sub_snapnum
 import projected_aperture_properties
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from stellar_age_calculator import StellarAgeCalculator
+from cold_dense_gas_filter import ColdDenseGasFilter
 from category_filter import CategoryFilter
+from parameter_file import ParameterFile
 from mpi_timer import MPITimer
 
 
@@ -125,191 +127,174 @@ def compute_halo_properties():
         (cellgrid, parsec_cgs, solar_mass_cgs, a)
     )
 
+    parameter_file = ParameterFile(args.parameters)
+    cellgrid.snapshot_datasets.setup_aliases(parameter_file.get_aliases())
+    cellgrid.snapshot_datasets.setup_defined_constants(
+        parameter_file.get_defined_constants()
+    )
+
     recently_heated_gas_filter = RecentlyHeatedGasFilter(
         cellgrid, 15.0 * unyt.Myr, 0.0, 0.0
     )
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
+    cold_dense_gas_filter = ColdDenseGasFilter(10.0**4.5 * unyt.K, 0.1 / unyt.cm**3)
     category_filter = CategoryFilter(
-        Ngeneral=100, Ngas=100, Ndm=100, Nstar=100, Nbaryon=100, dmo=args.dmo
+        parameter_file.get_filter_values(
+            {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        ),
+        dmo=args.dmo,
     )
 
     # Get the full list of property calculations we can do
     # Note that the order matters: we need to do the FOFSubhaloProperties first,
     # since quantities are filtered based on the particle numbers in there
-    # Similarly, SO 5xR500_crit can only be done after SO 500_crit for obvious
-    # reasons
-    halo_prop_list = [
-        subhalo_properties.SubhaloProperties(
-            cellgrid,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-            bound_only=False,
-        ),
-        subhalo_properties.SubhaloProperties(
-            cellgrid,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-            bound_only=True,
-        ),
-        SO_properties.SOProperties(
-            cellgrid, recently_heated_gas_filter, category_filter, 200.0, "mean"
-        ),
-        SO_properties.SOProperties(
-            cellgrid, recently_heated_gas_filter, category_filter, 50.0, "crit"
-        ),
-        SO_properties.SOProperties(
-            cellgrid, recently_heated_gas_filter, category_filter, 100.0, "crit"
-        ),
-        SO_properties.SOProperties(
-            cellgrid, recently_heated_gas_filter, category_filter, 200.0, "crit"
-        ),
-        SO_properties.SOProperties(
-            cellgrid, recently_heated_gas_filter, category_filter, 500.0, "crit"
-        ),
-        SO_properties.SOProperties(
-            cellgrid, recently_heated_gas_filter, category_filter, 1000.0, "crit"
-        ),
-        SO_properties.SOProperties(
-            cellgrid, recently_heated_gas_filter, category_filter, 2500.0, "crit"
-        ),
-        SO_properties.SOProperties(
-            cellgrid, recently_heated_gas_filter, category_filter, 0.0, "BN98"
-        ),
-        SO_properties.RadiusMultipleSOProperties(
-            cellgrid,
-            recently_heated_gas_filter,
-            category_filter,
-            500.0,
-            5.0,
-            type="crit",
-        ),
-        aperture_properties.InclusiveSphereProperties(
-            cellgrid,
-            10.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.InclusiveSphereProperties(
-            cellgrid,
-            30.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.InclusiveSphereProperties(
-            cellgrid,
-            50.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.InclusiveSphereProperties(
-            cellgrid,
-            100.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.InclusiveSphereProperties(
-            cellgrid,
-            300.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.InclusiveSphereProperties(
-            cellgrid,
-            500.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.InclusiveSphereProperties(
-            cellgrid,
-            1000.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.InclusiveSphereProperties(
-            cellgrid,
-            3000.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        projected_aperture_properties.ProjectedApertureProperties(
-            cellgrid, 10.0, category_filter
-        ),
-        projected_aperture_properties.ProjectedApertureProperties(
-            cellgrid, 30.0, category_filter
-        ),
-        projected_aperture_properties.ProjectedApertureProperties(
-            cellgrid, 50.0, category_filter
-        ),
-        projected_aperture_properties.ProjectedApertureProperties(
-            cellgrid, 100.0, category_filter
-        ),
-        aperture_properties.ExclusiveSphereProperties(
-            cellgrid,
-            10.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.ExclusiveSphereProperties(
-            cellgrid,
-            30.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.ExclusiveSphereProperties(
-            cellgrid,
-            50.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.ExclusiveSphereProperties(
-            cellgrid,
-            100.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.ExclusiveSphereProperties(
-            cellgrid,
-            300.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.ExclusiveSphereProperties(
-            cellgrid,
-            500.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.ExclusiveSphereProperties(
-            cellgrid,
-            1000.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-        aperture_properties.ExclusiveSphereProperties(
-            cellgrid,
-            3000.0,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            category_filter,
-        ),
-    ]
+    # Similarly, things like SO 5xR500_crit can only be done after
+    # SO 500_crit for obvious reasons
+    halo_prop_list = []
+    subhalo_variations = parameter_file.get_halo_type_variations(
+        "SubhaloProperties",
+        {"FOF": {"bound_only": False}, "Bound": {"bound_only": True}},
+    )
+    # make sure FOFSubhaloProperties is always first and is present
+    for variation in subhalo_variations:
+        if not subhalo_variations[variation]["bound_only"]:
+            halo_prop_list.append(
+                subhalo_properties.SubhaloProperties(
+                    cellgrid,
+                    parameter_file,
+                    recently_heated_gas_filter,
+                    stellar_age_calculator,
+                    category_filter,
+                    bound_only=subhalo_variations[variation]["bound_only"],
+                )
+            )
+    assert len(halo_prop_list) > 0
+    for variation in subhalo_variations:
+        if subhalo_variations[variation]["bound_only"]:
+            halo_prop_list.append(
+                subhalo_properties.SubhaloProperties(
+                    cellgrid,
+                    parameter_file,
+                    recently_heated_gas_filter,
+                    stellar_age_calculator,
+                    category_filter,
+                    bound_only=subhalo_variations[variation]["bound_only"],
+                )
+            )
+    SO_variations = parameter_file.get_halo_type_variations(
+        "SOProperties",
+        {
+            "200_mean": {"value": 200.0, "type": "mean"},
+            "50_crit": {"value": 50.0, "type": "crit"},
+            "100_crit": {"value": 100.0, "type": "crit"},
+            "200_crit": {"value": 200.0, "type": "crit"},
+            "500_crit": {"value": 500.0, "type": "crit"},
+            "1000_crit": {"value": 1000.0, "type": "crit"},
+            "2500_crit": {"value": 2500.0, "type": "crit"},
+            "BN98": {"value": 0.0, "type": "BN98"},
+            "5xR500_crit": {"value": 500.0, "type": "crit", "radius_multiple": 5.0},
+        },
+    )
+    # first add non radius multiples to make sure the radius multiples can be
+    # computed
+    for variation in SO_variations:
+        if (
+            "radius_multiple" in SO_variations[variation]
+            and SO_variations[variation]["radius_multiple"] > 0.0
+        ):
+            continue
+        halo_prop_list.append(
+            SO_properties.SOProperties(
+                cellgrid,
+                parameter_file,
+                recently_heated_gas_filter,
+                category_filter,
+                SO_variations[variation]["value"],
+                SO_variations[variation]["type"],
+            )
+        )
+    for variation in SO_variations:
+        if (
+            "radius_multiple" in SO_variations[variation]
+            and SO_variations[variation]["radius_multiple"] > 0.0
+        ):
+            halo_prop_list.append(
+                SO_properties.RadiusMultipleSOProperties(
+                    cellgrid,
+                    parameter_file,
+                    recently_heated_gas_filter,
+                    category_filter,
+                    SO_variations[variation]["value"],
+                    SO_variations[variation]["radius_multiple"],
+                    SO_variations[variation]["type"],
+                )
+            )
+    aperture_variations = parameter_file.get_halo_type_variations(
+        "ApertureProperties",
+        {
+            "inclusive_10_kpc": {"radius_in_kpc": 10.0, "inclusive": True},
+            "inclusive_30_kpc": {"radius_in_kpc": 30.0, "inclusive": True},
+            "inclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": True},
+            "inclusive_100_kpc": {"radius_in_kpc": 100.0, "inclusive": True},
+            "inclusive_300_kpc": {"radius_in_kpc": 300.0, "inclusive": True},
+            "inclusive_500_kpc": {"radius_in_kpc": 500.0, "inclusive": True},
+            "inclusive_1000_kpc": {"radius_in_kpc": 1000.0, "inclusive": True},
+            "inclusive_3000_kpc": {"radius_in_kpc": 3000.0, "inclusive": True},
+            "exclusive_10_kpc": {"radius_in_kpc": 10.0, "inclusive": False},
+            "exclusive_30_kpc": {"radius_in_kpc": 30.0, "inclusive": False},
+            "exclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": False},
+            "exclusive_100_kpc": {"radius_in_kpc": 100.0, "inclusive": False},
+            "exclusive_300_kpc": {"radius_in_kpc": 300.0, "inclusive": False},
+            "exclusive_500_kpc": {"radius_in_kpc": 500.0, "inclusive": False},
+            "exclusive_1000_kpc": {"radius_in_kpc": 1000.0, "inclusive": False},
+            "exclusive_3000_kpc": {"radius_in_kpc": 3000.0, "inclusive": False},
+        },
+    )
+    for variation in aperture_variations:
+        if aperture_variations[variation]["inclusive"]:
+            halo_prop_list.append(
+                aperture_properties.InclusiveSphereProperties(
+                    cellgrid,
+                    parameter_file,
+                    aperture_variations[variation]["radius_in_kpc"],
+                    recently_heated_gas_filter,
+                    stellar_age_calculator,
+                    cold_dense_gas_filter,
+                    category_filter,
+                )
+            )
+        else:
+            halo_prop_list.append(
+                aperture_properties.ExclusiveSphereProperties(
+                    cellgrid,
+                    parameter_file,
+                    aperture_variations[variation]["radius_in_kpc"],
+                    recently_heated_gas_filter,
+                    stellar_age_calculator,
+                    cold_dense_gas_filter,
+                    category_filter,
+                )
+            )
+    projected_aperture_variations = parameter_file.get_halo_type_variations(
+        "ProjectedApertureProperties",
+        {
+            "10_kpc": {"radius_in_kpc": 10.0},
+            "30_kpc": {"radius_in_kpc": 30.0},
+            "50_kpc": {"radius_in_kpc": 50.0},
+            "100_kpc": {"radius_in_kpc": 100.0},
+        },
+    )
+    for variation in projected_aperture_variations:
+        halo_prop_list.append(
+            projected_aperture_properties.ProjectedApertureProperties(
+                cellgrid,
+                parameter_file,
+                projected_aperture_variations[variation]["radius_in_kpc"],
+                category_filter,
+            )
+        )
+    if comm_world_rank == 0 and args.output_parameters:
+        parameter_file.write_parameters(args.output_parameters)
 
     # Determine which calculations we're doing this time
     if args.calculations is not None:
@@ -423,11 +408,19 @@ def compute_halo_properties():
     # Check metadata for consistency between chunks. Sets ref_metadata on all ranks,
     # including those that processed no halos.
     ref_metadata = result_set.check_metadata(metadata, comm_inter_node, comm_world)
-    
+
     # Combine chunks into a single output file
     with MPITimer("Sorting %d halo properties" % len(ref_metadata), comm_world):
-        combine_chunks(args, cellgrid, halo_prop_list, scratch_file_format,
-                       ref_metadata, nr_chunks, comm_world, category_filter)
+        combine_chunks(
+            args,
+            cellgrid,
+            halo_prop_list,
+            scratch_file_format,
+            ref_metadata,
+            nr_chunks,
+            comm_world,
+            category_filter,
+        )
 
     # Delete scratch files
     comm_world.barrier()

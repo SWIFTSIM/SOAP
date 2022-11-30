@@ -1,5 +1,28 @@
 #!/bin/env python
 
+"""
+subhalo_properties.py
+
+Halo properties for VR subhalo groups.
+
+Subhalos are identified by VR as substructures of 3D FOF groups. They are found
+by first running a 3D FOF algorithm and then subdividing the resulting 3D FOF
+groups using a 6D phase space FOF algorithm. The 6D FOF subhalo groups come in
+two flavours: a version that includes all the particles within the 6D FOF group
+(simply called the FOFSubhalo), and a version that only includes the particles
+that are also gravitationally bound to the subhalo (the BoundSubhalo). The union
+of all the FOFSubhalo groups is the original 3D FOF group (which can be useful
+to recover e.g. the FOF mass or CoM of the 3D FOF group).
+
+Note that all the membership information used to determine which particles are
+a member of the FOFSubhalo and the BoundSubhalo comes directly from VR, i.e. we
+do not perform any FOF algorithm or boundedness calculation in SOAP.
+
+Just like the other HaloProperty implementations, the calculation of the
+properties is done lazily: only calculations that are actually needed are
+performed. See aperture_properties.py for a fully documented example.
+"""
+
 import numpy as np
 import unyt
 
@@ -18,29 +41,83 @@ from stellar_age_calculator import StellarAgeCalculator
 from property_table import PropertyTable
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
+from parameter_file import ParameterFile
+from snapshot_datasets import SnapshotDatasets
+from swift_cells import SWIFTCellGrid
 
-rbandindex = 2
+from typing import Dict, List
+from numpy.typing import NDArray
 
 
 class SubhaloParticleData:
+    """
+    Halo calculation class.
+
+    All properties we want to compute in apertures are implemented as lazy
+    methods of this class.
+
+    Note that unlike aperture-based halo property calculations, subhalo calculations
+    only require a single mask, since their membership is purely based on VR
+    membership information and is irrespective of the particle position.
+    That said, we still require a types==PartTypeX mask
+    (see aperture_properties.py) to access some arrays that have been
+    precomputed for all particles.
+    """
+
     def __init__(
         self,
-        input_halo,
-        data,
-        types_present,
-        grnr,
-        stellar_age_calculator,
-        recently_heated_gas_filter,
+        input_halo: Dict,
+        data: Dict,
+        types_present: List[str],
+        grnr: int,
+        stellar_age_calculator: StellarAgeCalculator,
+        recently_heated_gas_filter: RecentlyHeatedGasFilter,
+        snapshot_datasets: SnapshotDatasets,
     ):
+        """
+        Constructor.
+
+        Parameters:
+         - input_halo: Dict
+           Dictionary containing properties of the halo read from the VR catalogue.
+         - data: Dict
+           Dictionary containing particle data.
+         - types_present: List
+           List of all particle types (e.g. 'PartType0') that are present in the data
+           dictionary.
+         - grnr: int
+           VR index of this particular subhalo. Used to match particles to this
+           subhalo.
+         - stellar_age_calculator: StellarAgeCalculator
+           Object used to compute stellar ages from the current cosmological scale factor
+           and the birth scale factors of star particles.
+         - recently_heated_gas_filter: RecentlyHeatedGasFilter
+           Filter used to mask out gas particles that were recently heated by
+           AGN feedback.
+         - snapshot_datasets: SnapshotDatasets
+           Object containing metadata about the datasets in the snapshot, like
+           appropriate aliases and column names.
+        """
         self.input_halo = input_halo
         self.data = data
         self.types_present = types_present
         self.grnr = grnr
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
+        self.snapshot_datasets = snapshot_datasets
         self.compute_basics()
 
+    def get_dataset(self, name: str) -> unyt.unyt_array:
+        """
+        Local wrapper for SnapshotDatasets.get_dataset().
+        """
+        return self.snapshot_datasets.get_dataset(name, self.data)
+
     def compute_basics(self):
+        """
+        Compute some properties that are always needed, regardless of which
+        properties we actually want to compute.
+        """
         self.centre = self.input_halo["cofp"]
         self.index = self.input_halo["index"]
 
@@ -50,14 +127,17 @@ class SubhaloParticleData:
         velocity = []
         types = []
         for ptype in self.types_present:
-            grnr = self.data[ptype][self.grnr]
+            grnr = self.get_dataset(f"{ptype}/{self.grnr}")
             in_halo = grnr == self.index
-            mass.append(self.data[ptype][mass_dataset(ptype)][in_halo])
-            pos = self.data[ptype]["Coordinates"][in_halo, :] - self.centre[None, :]
+            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
+            pos = (
+                self.get_dataset(f"{ptype}/Coordinates")[in_halo, :]
+                - self.centre[None, :]
+            )
             position.append(pos)
             r = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2 + pos[:, 2] ** 2)
             radius.append(r)
-            velocity.append(self.data[ptype]["Velocities"][in_halo, :])
+            velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
             typearr = np.zeros(r.shape, dtype="U9")
             typearr[:] = ptype
             types.append(typearr)
@@ -69,243 +149,429 @@ class SubhaloParticleData:
         self.types = np.concatenate(types)
 
     @lazy_property
-    def gas_mask_sh(self):
+    def gas_mask_sh(self) -> NDArray[bool]:
+        """
+        Mask used to mask out gas particles that belong to this subhalo in
+        arrays containing all particles, e.g. self.mass.
+        """
         return self.types == "PartType0"
 
     @lazy_property
-    def dm_mask_sh(self):
+    def dm_mask_sh(self) -> NDArray[bool]:
+        """
+        Mask used to mask out dark matter particles that belong to this subhalo in
+        arrays containing all particles, e.g. self.mass.
+        """
         return self.types == "PartType1"
 
     @lazy_property
-    def star_mask_sh(self):
+    def star_mask_sh(self) -> NDArray[bool]:
+        """
+        Mask used to mask out star particles that belong to this subhalo in
+        arrays containing all particles, e.g. self.mass.
+        """
         return self.types == "PartType4"
 
     @lazy_property
-    def bh_mask_sh(self):
+    def bh_mask_sh(self) -> NDArray[bool]:
+        """
+        Mask used to mask out black hole particles that belong to this subhalo in
+        arrays containing all particles, e.g. self.mass.
+        """
         return self.types == "PartType5"
 
     @lazy_property
-    def baryons_mask_sh(self):
+    def baryons_mask_sh(self) -> NDArray[bool]:
+        """
+        Mask used to mask out baryon (gas + star) particles that belong to this subhalo in
+        arrays containing all particles, e.g. self.mass.
+        """
         return (self.types == "PartType0") | (self.types == "PartType4")
 
     @lazy_property
-    def Ngas(self):
+    def Ngas(self) -> int:
+        """
+        Number of gas particles in the subhalo.
+        """
         return self.gas_mask_sh.sum()
 
     @lazy_property
-    def Ndm(self):
+    def Ndm(self) -> int:
+        """
+        Number of dark matter particles in the subhalo.
+        """
         return self.dm_mask_sh.sum()
 
     @lazy_property
-    def Nstar(self):
+    def Nstar(self) -> int:
+        """
+        Number of star particles in the subhalo.
+        """
         return self.star_mask_sh.sum()
 
     @lazy_property
-    def Nbh(self):
+    def Nbh(self) -> int:
+        """
+        Number of black hole particles in the subhalo.
+        """
         return self.bh_mask_sh.sum()
 
     @lazy_property
-    def mass_gas(self):
+    def mass_gas(self) -> unyt.unyt_array:
+        """
+        Masses of the gas particles in the subhalo.
+        """
         return self.mass[self.gas_mask_sh]
 
     @lazy_property
-    def mass_dm(self):
+    def mass_dm(self) -> unyt.unyt_array:
+        """
+        Masses of the dark matter particles in the subhalo.
+        """
         return self.mass[self.dm_mask_sh]
 
     @lazy_property
-    def mass_star(self):
+    def mass_star(self) -> unyt.unyt_array:
+        """
+        Masses of the star particles in the subhalo.
+        """
         return self.mass[self.star_mask_sh]
 
     @lazy_property
-    def mass_baryons(self):
+    def mass_baryons(self) -> unyt.unyt_array:
+        """
+        Masses of the baryon (gas + star) particles in the subhalo.
+        """
         return self.mass[self.baryons_mask_sh]
 
     @lazy_property
-    def pos_gas(self):
+    def pos_gas(self) -> unyt.unyt_array:
+        """
+        Positions of the gas particles in the subhalo.
+        """
         return self.position[self.gas_mask_sh]
 
     @lazy_property
-    def pos_dm(self):
+    def pos_dm(self) -> unyt.unyt_array:
+        """
+        Positions of the dark matter particles in the subhalo.
+        """
         return self.position[self.dm_mask_sh]
 
     @lazy_property
-    def pos_star(self):
+    def pos_star(self) -> unyt.unyt_array:
+        """
+        Positions of the star particles in the subhalo.
+        """
         return self.position[self.star_mask_sh]
 
     @lazy_property
-    def pos_baryons(self):
+    def pos_baryons(self) -> unyt.unyt_array:
+        """
+        Positions of the baryon (gas + star) particles in the subhalo.
+        """
         return self.position[self.baryons_mask_sh]
 
     @lazy_property
-    def vel_gas(self):
+    def vel_gas(self) -> unyt.unyt_array:
+        """
+        Velocities of the gas particles in the subhalo.
+        """
         return self.velocity[self.gas_mask_sh]
 
     @lazy_property
-    def vel_dm(self):
+    def vel_dm(self) -> unyt.unyt_array:
+        """
+        Velocities of the dark matter particles in the subhalo.
+        """
         return self.velocity[self.dm_mask_sh]
 
     @lazy_property
-    def vel_star(self):
+    def vel_star(self) -> unyt.unyt_array:
+        """
+        Velocities of the star particles in the subhalo.
+        """
         return self.velocity[self.star_mask_sh]
 
     @lazy_property
-    def vel_baryons(self):
+    def vel_baryons(self) -> unyt.unyt_array:
+        """
+        Velocities of the baryon (gas + star) particles in the subhalo.
+        """
         return self.velocity[self.baryons_mask_sh]
 
     @lazy_property
-    def Mtot(self):
+    def Mtot(self) -> unyt.unyt_quantity:
+        """
+        Total mass of the particles in the subhalo.
+        """
         return self.mass.sum()
 
     @lazy_property
-    def Mgas(self):
+    def Mgas(self) -> unyt.unyt_quantity:
+        """
+        Total mass of the gas particles in the subhalo.
+        """
         return self.mass_gas.sum()
 
     @lazy_property
-    def Mdm(self):
+    def Mdm(self) -> unyt.unyt_quantity:
+        """
+        Total mass of the dark matter particles in the subhalo.
+        """
         return self.mass_dm.sum()
 
     @lazy_property
-    def Mstar(self):
+    def Mstar(self) -> unyt.unyt_quantity:
+        """
+        Total mass of the star particles in the subhalo.
+        """
         return self.mass_star.sum()
 
     @lazy_property
-    def Mbh_dynamical(self):
+    def Mbh_dynamical(self) -> unyt.unyt_quantity:
+        """
+        Total dynamical mass of the black hole particles in the subhalo.
+        """
         return self.mass[self.bh_mask_sh].sum()
 
     @lazy_property
-    def star_mask_all(self):
+    def star_mask_all(self) -> NDArray[bool]:
+        """
+        Mask that can be used to filter out star particles belonging to this
+        subhalo in raw particle arrays, e.g. PartType4/Masses.
+        """
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"][self.grnr] == self.index
+        return self.get_dataset(f"PartType4/{self.grnr}") == self.index
 
     @lazy_property
-    def mass_star_init(self):
+    def mass_star_init(self) -> unyt.unyt_array:
+        """
+        Initial stellar masses of star particles in the subhalo.
+        """
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["InitialMasses"][self.star_mask_all]
+        return self.get_dataset("PartType4/InitialMasses")[self.star_mask_all]
 
     @lazy_property
-    def Mstar_init(self):
+    def Mstar_init(self) -> unyt.unyt_quantity:
+        """
+        Total initial stellar mass of star particles in the subhalo.
+        """
         if self.Nstar == 0:
             return None
         return self.mass_star_init.sum()
 
     @lazy_property
-    def stellar_luminosities(self):
+    def stellar_luminosities(self) -> unyt.unyt_array:
+        """
+        Stellar luminosities of star particles in the subhalo.
+        """
         if self.Nstar == 0:
             return None
-        return self.data["PartType4"]["Luminosities"][self.star_mask_all]
+        return self.get_dataset("PartType4/Luminosities")[self.star_mask_all]
 
     @lazy_property
-    def StellarLuminosity(self):
+    def StellarLuminosity(self) -> unyt.unyt_array:
+        """
+        Total stellar luminosity of star particles in the subhalo.
+
+        Note that this is an array, since there are multiple luminosity bands.
+        """
         if self.Nstar == 0:
             return None
         return self.stellar_luminosities.sum(axis=0)
 
     @lazy_property
-    def starmetalfrac(self):
+    def starmetalfrac(self) -> unyt.unyt_quantity:
+        """
+        Total metal mass fraction in star particles in the subhalo.
+
+        Given as a fraction of the total mass in star particles.
+        """
         if self.Nstar == 0:
             return None
         return (
             self.mass_star
-            * self.data["PartType4"]["MetalMassFractions"][self.star_mask_all]
+            * self.get_dataset("PartType4/MetalMassFractions")[self.star_mask_all]
         ).sum() / self.Mstar
 
     @lazy_property
-    def stellar_ages(self):
+    def stellar_ages(self) -> unyt.unyt_array:
+        """
+        Stellar ages of star particles.
+
+        Uses the StellarAgeCalculator to convert the stellar birth scale factor
+        into a stellar age.
+        """
         if self.Nstar == 0:
             return None
-        birth_a = self.data["PartType4"]["BirthScaleFactors"][self.star_mask_all]
+        birth_a = self.get_dataset("PartType4/BirthScaleFactors")[self.star_mask_all]
         return self.stellar_age_calculator.stellar_age(birth_a)
 
     @lazy_property
-    def stellar_age_mw(self):
+    def stellar_age_mw(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average stellar age of star particles in the subhalo.
+        """
         if self.Nstar == 0:
             return None
         return ((self.mass_star / self.Mstar) * self.stellar_ages).sum()
 
     @lazy_property
-    def stellar_age_lw(self):
+    def stellar_age_lw(self) -> unyt.unyt_array:
+        """
+        R-band luminosity weighted average stellar age of star particles in the
+        subhalo.
+
+        This assumes that the Luminosities have a named column with the name
+        "GAMA_r".
+        """
         if self.Nstar == 0:
             return None
-        Lr = self.stellar_luminosities[:, rbandindex]
+        Lr = self.stellar_luminosities[
+            :, self.snapshot_datasets.get_column_index("Luminosities", "GAMA_r")
+        ]
         Lrtot = Lr.sum()
         return ((Lr / Lrtot) * self.stellar_ages).sum()
 
     @lazy_property
-    def bh_mask_all(self):
+    def bh_mask_all(self) -> NDArray[bool]:
+        """
+        Mask that can be used to filter out black hole particles belonging to this
+        subhalo in raw particle arrays, e.g. PartType5/DynamicalMasses.
+        """
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"][self.grnr] == self.index
+        return self.get_dataset(f"PartType5/{self.grnr}") == self.index
 
     @lazy_property
-    def Mbh_subgrid(self):
+    def Mbh_subgrid(self) -> unyt.unyt_quantity:
+        """
+        Total sub-grid mass of black hole particles in the subhalo.
+        """
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_mask_all].sum()
+        return self.BH_subgrid_masses.sum()
 
     @lazy_property
-    def agn_eventa(self):
+    def agn_eventa(self) -> unyt.unyt_array:
+        """
+        Last AGN feedback scale factor of black hole particles in the subhalo.
+        """
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["LastAGNFeedbackScaleFactors"][self.bh_mask_all]
+        return self.get_dataset("PartType5/LastAGNFeedbackScaleFactors")[
+            self.bh_mask_all
+        ]
 
     @lazy_property
-    def BHlasteventa(self):
+    def BHlasteventa(self) -> unyt.unyt_quantity:
+        """
+        Maximum AGN feedback scale factor among all BH particles.
+        """
         if self.Nbh == 0:
             return None
         return np.max(self.agn_eventa)
 
     @lazy_property
-    def iBHmax(self):
+    def BH_subgrid_masses(self) -> unyt.unyt_array:
+        """
+        Sub-grid masses of black hole particles in the subhalo.
+        """
         if self.Nbh == 0:
             return None
-        return np.argmax(self.data["PartType5"]["SubgridMasses"][self.bh_mask_all])
+        return self.get_dataset("PartType5/SubgridMasses")[self.bh_mask_all]
 
     @lazy_property
-    def BHmaxM(self):
+    def iBHmax(self) -> int:
+        """
+        Index of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["SubgridMasses"][self.bh_mask_all][self.iBHmax]
+        return np.argmax(self.BH_subgrid_masses)
 
     @lazy_property
-    def BHmaxID(self):
+    def BHmaxM(self) -> unyt.unyt_quantity:
+        """
+        Sub-grid mass of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["ParticleIDs"][self.bh_mask_all][self.iBHmax]
+        return self.BH_subgrid_masses[self.iBHmax]
 
     @lazy_property
-    def BHmaxpos(self):
+    def BHmaxID(self) -> int:
+        """
+        ID of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Coordinates"][self.bh_mask_all][self.iBHmax]
+        return self.get_dataset("PartType5/ParticleIDs")[self.bh_mask_all][self.iBHmax]
 
     @lazy_property
-    def BHmaxvel(self):
+    def BHmaxpos(self) -> unyt.unyt_array:
+        """
+        Position of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["Velocities"][self.bh_mask_all][self.iBHmax]
+        return self.get_dataset("PartType5/Coordinates")[self.bh_mask_all][self.iBHmax]
 
     @lazy_property
-    def BHmaxAR(self):
+    def BHmaxvel(self) -> unyt.unyt_array:
+        """
+        Velocity of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
-        return self.data["PartType5"]["AccretionRates"][self.bh_mask_all][self.iBHmax]
+        return self.get_dataset("PartType5/Velocities")[self.bh_mask_all][self.iBHmax]
 
     @lazy_property
-    def BHmaxlasteventa(self):
+    def BHmaxAR(self) -> unyt.unyt_quantity:
+        """
+        Accretion rate of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AccretionRates")[self.bh_mask_all][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def BHmaxlasteventa(self) -> unyt.unyt_quantity:
+        """
+        Last feedback scale factor of the most massive BH particle (largest sub-grid mass).
+        """
         if self.Nbh == 0:
             return None
         return self.agn_eventa[self.iBHmax]
 
     @lazy_property
-    def total_mass_fraction(self):
+    def total_mass_fraction(self) -> unyt.unyt_array:
+        """
+        Fractional mass of all particles.
+
+        Used to avoid numerical overflow in calculations like
+          com = (mass * position).sum() / Mtot
+        by rewriting it as
+          com = ((mass / Mtot) * position).sum()
+              = (mass_fraction * position).sum()
+        This is more accurate, since the mass fractions are numbers
+        of the order of 1e-5 or so, while the masses themselves can be much
+        larger, if expressed in the wrong units (and that is up to unyt).
+        """
         if self.Mtot == 0:
             return None
         return self.mass / self.Mtot
 
     @lazy_property
-    def com(self):
+    def com(self) -> unyt.unyt_array:
+        """
+        Centre of mass of all particles in the subhalo.
+        """
         if self.Mtot == 0:
             return None
         return (self.total_mass_fraction[:, None] * self.position).sum(
@@ -313,13 +579,21 @@ class SubhaloParticleData:
         ) + self.centre
 
     @lazy_property
-    def vcom(self):
+    def vcom(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of all particles in the subhalo.
+        """
         if self.Mtot == 0:
             return None
         return (self.total_mass_fraction[:, None] * self.velocity).sum(axis=0)
 
     @lazy_property
-    def R_vmax(self):
+    def R_vmax(self) -> unyt.unyt_quantity:
+        """
+        Radius at which the maximum circular velocity of the halo is reached.
+
+        This includes contributions from all particle types.
+        """
         if self.Mtot == 0:
             return None
         if not hasattr(self, "r_vmax"):
@@ -327,7 +601,12 @@ class SubhaloParticleData:
         return self.r_vmax
 
     @lazy_property
-    def Vmax(self):
+    def Vmax(self) -> unyt.unyt_quantity:
+        """
+        Maximum circular velocity of the halo.
+
+        This includes contributions from all particle types.
+        """
         if self.Mtot == 0:
             return None
         if not hasattr(self, "vmax"):
@@ -335,7 +614,16 @@ class SubhaloParticleData:
         return self.vmax
 
     @lazy_property
-    def spin_parameter(self):
+    def spin_parameter(self) -> unyt.unyt_quantity:
+        """
+        Spin parameter of all particles in the subhalo.
+
+        Computed as in Bullock et al. (2021):
+          lambda = |Ltot| / (sqrt(2) * M * v_max * R)
+
+        Since a subhalo does not have a characteristic radius, R, we instead use
+        the radius at which v_max is reached (and the corresponding mass).
+        """
         if self.Mtot == 0:
             return None
         if self.R_vmax > 0 and self.Vmax > 0:
@@ -353,24 +641,41 @@ class SubhaloParticleData:
         return None
 
     @lazy_property
-    def TotalAxisLengths(self):
+    def TotalAxisLengths(self) -> unyt.unyt_array:
+        """
+        Axis lengths of the total mass distribution in the subhalo.
+
+        Ordered from longest to shortest axis.
+        """
         if self.Mtot == 0:
             return None
         return get_axis_lengths(self.mass, self.position)
 
     @lazy_property
-    def gas_mass_fraction(self):
+    def gas_mass_fraction(self) -> unyt.unyt_array:
+        """
+        Mass fractions of gas particles in the subhalo.
+
+        See total_mass_fraction() for the rationale behind this function.
+        """
         if self.Mgas == 0:
             return None
         return self.mass_gas / self.Mgas
 
     @lazy_property
-    def vcom_gas(self):
+    def vcom_gas(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of gas particles in the subhalo.
+        """
         if self.Mgas == 0:
             return None
         return (self.gas_mass_fraction[:, None] * self.vel_gas).sum(axis=0)
 
     def compute_Lgas_props(self):
+        """
+        Auxiliary function used to compute a number of properties that depend
+        on Lgas. It is more efficient to compute these properties together.
+        """
         (
             self.internal_Lgas,
             self.internal_kappa_gas,
@@ -384,7 +689,12 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def Lgas(self):
+    def Lgas(self) -> unyt.unyt_array:
+        """
+        Total angular momentum of gas particles in the subhalo.
+
+        Calls compute_Lgas_props() if required.
+        """
         if self.Mgas == 0:
             return None
         if not hasattr(self, "internal_Lgas"):
@@ -392,7 +702,13 @@ class SubhaloParticleData:
         return self.internal_Lgas
 
     @lazy_property
-    def kappa_corot_gas(self):
+    def kappa_corot_gas(self) -> unyt.unyt_quantity:
+        """
+        Ratio of the kinetic energy in counter-rotating rotation to the total
+        kinetic energy for gas particles in the subhalo.
+
+        Calls compute_Lgas_props() if required.
+        """
         if self.Mgas == 0:
             return None
         if not hasattr(self, "internal_kappa_gas"):
@@ -400,7 +716,12 @@ class SubhaloParticleData:
         return self.internal_kappa_gas
 
     @lazy_property
-    def DtoTgas(self):
+    def DtoTgas(self) -> unyt.unyt_quantity:
+        """
+        Disc to total mass ratio for gas particles in the subhalo.
+
+        Calls compute_Lgas_props() if required.
+        """
         if self.Mgas == 0:
             return None
         if not hasattr(self, "internal_Mcountrot_gas"):
@@ -408,13 +729,21 @@ class SubhaloParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_gas / self.Mgas
 
     @lazy_property
-    def GasAxisLengths(self):
+    def GasAxisLengths(self) -> unyt.unyt_array:
+        """
+        Axis lengths of the gas particle distribution in the subhalo.
+
+        Sorted from longest to shortest axis.
+        """
         if self.Mgas == 0:
             return None
         return get_axis_lengths(self.mass_gas, self.pos_gas)
 
     @lazy_property
-    def veldisp_matrix_gas(self):
+    def veldisp_matrix_gas(self) -> unyt.unyt_array:
+        """
+        Velocity dispersion matrix of the gas.
+        """
         if self.Mgas == 0:
             return None
         return get_velocity_dispersion_matrix(
@@ -422,19 +751,30 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def dm_mass_fraction(self):
+    def dm_mass_fraction(self) -> unyt.unyt_array:
+        """
+        Mass fractions of dark matter particles in the subhalo.
+
+        See total_mass_fraction() for the rationale behind this function.
+        """
         if self.Mdm == 0:
             return None
         return self.mass_dm / self.Mdm
 
     @lazy_property
-    def vcom_dm(self):
+    def vcom_dm(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of dark matter particles in the subhalo.
+        """
         if self.Mdm == 0:
             return None
         return (self.dm_mass_fraction[:, None] * self.vel_dm).sum(axis=0)
 
     @lazy_property
-    def Ldm(self):
+    def Ldm(self) -> unyt.unyt_array:
+        """
+        Total angular momentum of dark matter particles in the subhalo.
+        """
         if self.Mdm == 0:
             return None
         return get_angular_momentum(
@@ -442,13 +782,21 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def DMAxisLengths(self):
+    def DMAxisLengths(self) -> unyt.unyt_array:
+        """
+        Axis lengths of the dark matter particle distribution in the subhalo.
+
+        Sorted from longest to shortest axis.
+        """
         if self.Mdm == 0:
             return None
         return get_axis_lengths(self.mass_dm, self.pos_dm)
 
     @lazy_property
-    def veldisp_matrix_dm(self):
+    def veldisp_matrix_dm(self) -> unyt.unyt_array:
+        """
+        Velocity dispersion matrix of dark matter particles in the subhalo.
+        """
         if self.Mdm == 0:
             return None
         return get_velocity_dispersion_matrix(
@@ -456,7 +804,10 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def DM_Vmax(self):
+    def DM_Vmax(self) -> unyt.unyt_quantity:
+        """
+        Maximum circular velocity of the dark matter particles in the subhalo.
+        """
         if self.Ndm == 0:
             return None
         if not hasattr(self, "DM_r_vmax"):
@@ -466,7 +817,11 @@ class SubhaloParticleData:
         return self.DM_vmax
 
     @lazy_property
-    def DM_R_vmax(self):
+    def DM_R_vmax(self) -> unyt.unyt_quantity:
+        """
+        Radius for which the maximum circular velocity of dark matter particles
+        is reached.
+        """
         if self.Ndm == 0:
             return None
         if not hasattr(self, "DM_r_vmax"):
@@ -476,18 +831,30 @@ class SubhaloParticleData:
         return self.DM_r_vmax
 
     @lazy_property
-    def star_mass_fraction(self):
+    def star_mass_fraction(self) -> unyt.unyt_array:
+        """
+        Mass fraction of star particles in the subhalo.
+
+        See total_mass_fraction() for the rationale behind this function.
+        """
         if self.Mstar == 0:
             return None
         return self.mass_star / self.Mstar
 
     @lazy_property
-    def vcom_star(self):
+    def vcom_star(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of star particles in the subhalo.
+        """
         if self.Mstar == 0:
             return None
         return (self.star_mass_fraction[:, None] * self.vel_star).sum(axis=0)
 
     def compute_Lstar_props(self):
+        """
+        Auxiliary function used to compute some properties that depend on Lstar.
+        It is more efficient to compute these properties together.
+        """
         (
             self.internal_Lstar,
             self.internal_kappa_star,
@@ -501,7 +868,12 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def Lstar(self):
+    def Lstar(self) -> unyt.unyt_array:
+        """
+        Total angular momentum of star particles in the subhalo.
+
+        Calls compute_Lstar_props() if required.
+        """
         if self.Mstar == 0:
             return None
         if not hasattr(self, "internal_Lstar"):
@@ -509,7 +881,13 @@ class SubhaloParticleData:
         return self.internal_Lstar
 
     @lazy_property
-    def kappa_corot_star(self):
+    def kappa_corot_star(self) -> unyt.unyt_quantity:
+        """
+        Ratio of the kinetic energy in counter-rotating rotation and the total
+        kinetic energy for star particles in the subhalo.
+
+        Calls compute_Lstar_props() if required.
+        """
         if self.Mstar == 0:
             return None
         if not hasattr(self, "internal_kappa_star"):
@@ -517,7 +895,12 @@ class SubhaloParticleData:
         return self.internal_kappa_star
 
     @lazy_property
-    def DtoTstar(self):
+    def DtoTstar(self) -> unyt.unyt_quantity:
+        """
+        Disc to total mass ratio for star particles in the subhalo.
+
+        Calls compute_Lstar_props() if required.
+        """
         if self.Mstar == 0:
             return None
         if not hasattr(self, "internal_Mcountrot_star"):
@@ -525,13 +908,21 @@ class SubhaloParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
-    def StellarAxisLengths(self):
+    def StellarAxisLengths(self) -> unyt.unyt_array:
+        """
+        Axis lengths of the star particle distribution in the subhalo.
+
+        Sorted from longest to shortest axis.
+        """
         if self.Mstar == 0:
             return None
         return get_axis_lengths(self.mass_star, self.pos_star)
 
     @lazy_property
-    def veldisp_matrix_star(self):
+    def veldisp_matrix_star(self) -> unyt.unyt_array:
+        """
+        Velocity dispersion matrix of the star particles in the subhalo.
+        """
         if self.Mstar == 0:
             return None
         return get_velocity_dispersion_matrix(
@@ -539,22 +930,37 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def Mbaryon(self):
+    def Mbaryon(self) -> unyt.unyt_quantity:
+        """
+        Total mass of baryon (gas + star) particles in the subhalo.
+        """
         return self.Mgas + self.Mstar
 
     @lazy_property
-    def baryon_mass_fraction(self):
+    def baryon_mass_fraction(self) -> unyt.unyt_array:
+        """
+        Mass fractions of baryon (gas + star) particles in the subhalo.
+
+        See total_mass_fraction() for the rationale behind this function.
+        """
         if self.Mbaryon == 0:
             return None
         return self.mass_baryons / self.Mbaryon
 
     @lazy_property
-    def vcom_bar(self):
+    def vcom_bar(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of baryon (gas + star) particles in the subhalo.
+        """
         if self.Mbaryon == 0:
             return None
         return (self.baryon_mass_fraction[:, None] * self.vel_baryons).sum(axis=0)
 
     def compute_Lbar_props(self):
+        """
+        Auxiliary function used to compute a number of properties that depend on
+        Lbar. It is more efficient to compute these properties together.
+        """
         (
             self.internal_Lbar,
             self.internal_kappa_bar,
@@ -566,7 +972,12 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def Lbaryons(self):
+    def Lbaryons(self) -> unyt.unyt_array:
+        """
+        Total angular momentum of baryon (gas + star) particles in the subhalo.
+
+        Calls compute_Lbar_props() if required.
+        """
         if self.Mbaryon == 0:
             return None
         if not hasattr(self, "internal_Lbar"):
@@ -574,7 +985,13 @@ class SubhaloParticleData:
         return self.internal_Lbar
 
     @lazy_property
-    def kappa_corot_baryons(self):
+    def kappa_corot_baryons(self) -> unyt.unyt_quantity:
+        """
+        Ratio of the total kinetic energy in counter-rotating rotation and the
+        total kinetic energy for baryon (gas + star) particles in the subhalo.
+
+        Calls compute_Lbar_props() if required.
+        """
         if self.Mbaryon == 0:
             return None
         if not hasattr(self, "internal_kappa_bar"):
@@ -582,71 +999,126 @@ class SubhaloParticleData:
         return self.internal_kappa_bar
 
     @lazy_property
-    def BaryonAxisLengths(self):
+    def BaryonAxisLengths(self) -> unyt.unyt_array:
+        """
+        Axis lengths of the baryon (gas + star) particle distribution in the
+        subhalo.
+
+        Sorted from longest to shortest axis.
+        """
         if self.Mbaryon == 0:
             return None
         return get_axis_lengths(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
-    def gas_mask_all(self):
-        return self.data["PartType0"][self.grnr] == self.index
+    def gas_mask_all(self) -> NDArray[bool]:
+        """
+        Mask that can be used to filter out gas particles that belong to this
+        subhalo in raw particle arrays, like PartType0/Masses.
+        """
+        return self.get_dataset(f"PartType0/{self.grnr}") == self.index
 
     @lazy_property
-    def gas_SFR(self):
+    def gas_SFR(self) -> unyt.unyt_array:
+        """
+        Star formation rates of gas particles.
+
+        Note that older versions of SWIFT would use negative values to store
+        the last star formation scale factor, so we need to filter these out.
+        """
         if self.Ngas == 0:
             return None
         # remember: SFR < 0. is not SFR at all!
-        all_SFR = self.data["PartType0"]["StarFormationRates"][self.gas_mask_all]
+        all_SFR = self.get_dataset("PartType0/StarFormationRates")[self.gas_mask_all]
         all_SFR[all_SFR < 0.0] = 0.0
         return all_SFR
 
     @lazy_property
-    def SFR(self):
+    def SFR(self) -> unyt.unyt_quantity:
+        """
+        Total star formation rate of gas particles in the subhalo.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_SFR.sum()
 
     @lazy_property
-    def gas_metal_mass(self):
+    def gas_metal_mass(self) -> unyt.unyt_array:
+        """
+        Metal masses of gas particles in the subhalo.
+
+        Includes contributions from dust.
+        """
         if self.Ngas == 0:
             return None
         return (
             self.mass_gas
-            * self.data["PartType0"]["MetalMassFractions"][self.gas_mask_all]
+            * self.get_dataset("PartType0/MetalMassFractions")[self.gas_mask_all]
         )
 
     @lazy_property
-    def gasmetalfrac(self):
+    def gasmetalfrac(self) -> unyt.unyt_quantity:
+        """
+        Metal mass fraction of gas particles in the subhalo.
+
+        Given as a fraction of the total gas mass.
+
+        Includes contributions from dust.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_metal_mass.sum() / self.Mgas
 
     @lazy_property
-    def Mgas_SF(self):
+    def Mgas_SF(self) -> unyt.unyt_quantity:
+        """
+        Total mass of star-forming gas in the subhalo.
+        """
         if self.Ngas == 0:
             return None
         return self.mass_gas[self.gas_SFR > 0.0].sum()
 
     @lazy_property
-    def gasmetalfrac_SF(self):
+    def gasmetalfrac_SF(self) -> unyt.unyt_quantity:
+        """
+        Metal mass fraction of star-forming gas in the subhalo.
+
+        Given as a fraction of the total star-forming gas mass.
+
+        Includes contributions from dust.
+        """
         if self.Ngas == 0 or self.Mgas_SF == 0.0:
             return None
         return self.gas_metal_mass[self.gas_SFR > 0.0].sum() / self.Mgas_SF
 
     @lazy_property
-    def gas_temp(self):
+    def gas_temp(self) -> unyt.unyt_array:
+        """
+        Temperatures of gas particles in the subhalo.
+        """
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["Temperatures"][self.gas_mask_all]
+        return self.get_dataset("PartType0/Temperatures")[self.gas_mask_all]
 
     @lazy_property
-    def last_agn_gas(self):
+    def last_agn_gas(self) -> unyt.unyt_array:
+        """
+        Last AGN feedback scale factors of gas particles in the subhalo.
+        """
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["LastAGNFeedbackScaleFactors"][self.gas_mask_all]
+        return self.get_dataset("PartType0/LastAGNFeedbackScaleFactors")[
+            self.gas_mask_all
+        ]
 
     @lazy_property
-    def gas_no_agn(self):
+    def gas_no_agn(self) -> NDArray[bool]:
+        """
+        Mask to filter out gas particles that were recently heated by AGN
+        feedback.
+
+        Obtains the mask from the RecentlyHeatedGasFilter.
+        """
         if self.Ngas == 0:
             return None
         return ~self.recently_heated_gas_filter.is_recently_heated(
@@ -654,19 +1126,29 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def gas_no_cool(self):
+    def gas_no_cool(self) -> NDArray[bool]:
+        """
+        Mask to filter out cool gas particles (i.e. temperature < 1.e5 K).
+        """
         if self.Ngas == 0:
             return None
         return self.gas_temp >= 1.0e5 * unyt.K
 
     @lazy_property
-    def Tgas(self):
+    def Tgas(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average temperature of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return (self.gas_mass_fraction * self.gas_temp).sum()
 
     @lazy_property
-    def Tgas_no_cool(self):
+    def Tgas_no_cool(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average temperature of non-cool gas particles (i.e.
+        excluding gas particles with temperature < 1.e5 K).
+        """
         if self.Ngas == 0:
             return None
         if np.any(self.gas_no_cool):
@@ -679,7 +1161,11 @@ class SubhaloParticleData:
         return None
 
     @lazy_property
-    def Tgas_no_agn(self):
+    def Tgas_no_agn(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average temperature of gas particles, excluding gas that
+        was recently heated by AGN feedback.
+        """
         if self.Ngas == 0:
             return None
         if np.any(self.gas_no_agn):
@@ -692,7 +1178,12 @@ class SubhaloParticleData:
         return None
 
     @lazy_property
-    def Tgas_no_cool_no_agn(self):
+    def Tgas_no_cool_no_agn(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average temperature of gas particles, excluding gas that
+        was recently heated by AGN feedback, or non-cool gas (i.e.
+        temperature < 1.e5 K).
+        """
         if self.Ngas == 0:
             return None
         no_cool_no_agn = self.gas_no_agn & self.gas_no_cool
@@ -707,29 +1198,116 @@ class SubhaloParticleData:
         return None
 
     @lazy_property
-    def HalfMassRadiusTot(self):
+    def stellar_birth_density(self) -> unyt.unyt_array:
+        """
+        Birth densities of star particles.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/BirthDensities")[self.star_mask_all]
+
+    @lazy_property
+    def LogarithmicallyAveragedStellarBirthDensity(self) -> unyt.unyt_quantity:
+        """
+        Logarithmically averaged birth density of star particles.
+
+        The average is computed in natural logarithm space.
+
+        Note that stellar birth densities are per construction always
+        non-negative, since zero density gas can never become a star particle.
+        """
+        if self.Nstar == 0:
+            return None
+        # note: the stellar birth density cannot be zero for physical reasons
+        log_birth_density = np.log(
+            self.stellar_birth_density / self.stellar_birth_density.units
+        )
+        return np.exp(log_birth_density.mean()) * self.stellar_birth_density.units
+
+    @lazy_property
+    def MinimumStellarBirthDensity(self) -> unyt.unyt_quantity:
+        """
+        Minimum birth density of the star particles in the subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.stellar_birth_density.min()
+
+    @lazy_property
+    def MaximumStellarBirthDensity(self) -> unyt.unyt_quantity:
+        """
+        Maximum birth density of the star particles in the subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.stellar_birth_density.max()
+
+    @lazy_property
+    def LastSupernovaEventMaximumGasDensity(self) -> unyt.unyt_quantity:
+        """
+        Maximum gas density during the last feedback event of the gas particles.
+
+        To clarify: each gas particle carries a tracer for the density it had
+        when it was last hit by feedback. This property simply returns the
+        maximum of these tracer values of all the gas particles. This ignores
+        the fact that not all feedback events happened at the same time, and the
+        fact that a gas particle could have received feedback when it had a
+        higher density in its past, before being hit by the final feedback
+        event that was registered.
+
+        Since we have tracers for both thermal and kinetic SNII feedback, we
+        use the maximum of these two types of feedback.
+        """
+        if self.Ngas == 0:
+            return None
+        rho_thermal = self.get_dataset("PartType0/LastSNIIThermalFeedbackDensities")[
+            self.gas_mask_all
+        ]
+        rho_kinetic = self.get_dataset("PartType0/LastSNIIKineticFeedbackDensities")[
+            self.gas_mask_all
+        ]
+        return max(rho_thermal.max(), rho_kinetic.max())
+
+    @lazy_property
+    def HalfMassRadiusTot(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the total mass distribution in the subhalo.
+        """
         return get_half_mass_radius(self.radius, self.mass, self.Mtot)
 
     @lazy_property
-    def HalfMassRadiusGas(self):
+    def HalfMassRadiusGas(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the gas particle distribution in the subhalo.
+        """
         return get_half_mass_radius(
             self.radius[self.gas_mask_sh], self.mass_gas, self.Mgas
         )
 
     @lazy_property
-    def HalfMassRadiusDM(self):
+    def HalfMassRadiusDM(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the dark matter particle distribution in the subhalo.
+        """
         return get_half_mass_radius(
             self.radius[self.dm_mask_sh], self.mass_dm, self.Mdm
         )
 
     @lazy_property
-    def HalfMassRadiusStar(self):
+    def HalfMassRadiusStar(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the star particle distribution in the subhalo.
+        """
         return get_half_mass_radius(
             self.radius[self.star_mask_sh], self.mass_star, self.Mstar
         )
 
     @lazy_property
-    def HalfMassRadiusBaryon(self):
+    def HalfMassRadiusBaryon(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the baryon (gas + star) particle distribution in the
+        subhalo.
+        """
         return get_half_mass_radius(
             self.radius[self.gas_mask_sh | self.star_mask_sh],
             self.mass[self.gas_mask_sh | self.star_mask_sh],
@@ -738,8 +1316,19 @@ class SubhaloParticleData:
 
 
 class SubhaloProperties(HaloProperty):
+    """
+    Compute subhalo properties for halos.
 
-    # get the properties we want from the table
+    The subhalo contains all the particles that were identified to be members
+    of this subhalo by VR, either as part of the original FOF group, or as
+    gravitationally bound particles.
+    """
+
+    """
+    List of properties from the table that we want to compute.
+    Each property should have a corresponding method/property/lazy_property in
+    the SubhaloParticleData class above.
+    """
     property_list = [
         (prop, *PropertyTable.full_property_list[prop])
         for prop in [
@@ -802,23 +1391,58 @@ class SubhaloProperties(HaloProperty):
             "stellar_age_lw",
             "Mgas_SF",
             "gasmetalfrac_SF",
+            "LogarithmicallyAveragedStellarBirthDensity",
+            "MinimumStellarBirthDensity",
+            "MaximumStellarBirthDensity",
+            "LastSupernovaEventMaximumGasDensity",
         ]
     ]
 
     def __init__(
         self,
-        cellgrid,
-        recently_heated_gas_filter,
-        stellar_age_calculator,
-        category_filter,
-        bound_only=True,
+        cellgrid: SWIFTCellGrid,
+        parameters: ParameterFile,
+        recently_heated_gas_filter: RecentlyHeatedGasFilter,
+        stellar_age_calculator: StellarAgeCalculator,
+        category_filter: CategoryFilter,
+        bound_only: bool = True,
     ):
+        """
+        Construct a SubhaloProperties object.
+
+        Parameters:
+         - cellgrid: SWIFTCellGrid
+           Container object containing global information about the snapshot,
+           like the cosmology and the dataset metadata.
+         - parameters: ParameterFile
+           Parameter file object containing the parameters from the parameter
+           file.
+         - recently_heated_gas_filter: RecentlyHeatedGasFilter
+           Filter used to mask out gas particles that were recently heated by
+           AGN feedback.
+         - stellar_age_calculator: StellarAgeCalculator
+           Object used to calculate stellar ages from the current cosmological
+           scale factor and the birth scale factor of the star particles.
+         - category_filter: CategoryFilter
+           Filter used to determine which properties can be calculated for this halo.
+           This depends on the number of particles in the FOF subhalo and the category
+           of each property.
+         - bound_only: bool
+           Should properties include all particles in the FOF group, or only
+           gravitationally bound particles?
+        """
+
         super().__init__(cellgrid)
+
+        self.property_mask = parameters.get_property_mask(
+            "SubhaloProperties", [prop[1] for prop in self.property_list]
+        )
 
         self.bound_only = bound_only
         self.filter = recently_heated_gas_filter
         self.stellar_ages = stellar_age_calculator
         self.category_filter = category_filter
+        self.snapshot_datasets = cellgrid.snapshot_datasets
 
         # This specifies how large a sphere is read in:
         self.mean_density_multiple = None
@@ -830,49 +1454,55 @@ class SubhaloProperties(HaloProperty):
         # Give this calculation a name so we can select it on the command line
         if bound_only:
             self.grnr = "GroupNr_bound"
-            self.name = "subhalo_masses_bound"
+            self.name = "bound_subhalo_properties"
         else:
             self.grnr = "GroupNr_all"
-            self.name = "subhalo_masses_all"
+            self.name = "fof_subhalo_properties"
 
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the
         # snapshot, that type will not be read in and will not have
         # an entry in the data argument to calculate(), below.
         # (E.g. gas, star or BH particles in DMO runs)
+        # Most arrays are linked to a particular property and are only
+        # read if that particular property is actually requested
+        # Some basic properties are always required; these are added below
         self.particle_properties = {
             "PartType0": [
                 "Coordinates",
-                "LastAGNFeedbackScaleFactors",
                 "Masses",
-                "MetalMassFractions",
-                "StarFormationRates",
-                "Temperatures",
                 "Velocities",
                 self.grnr,
             ],
             "PartType1": ["Coordinates", "Masses", "Velocities", self.grnr],
             "PartType4": [
-                "BirthScaleFactors",
                 "Coordinates",
-                "InitialMasses",
-                "Luminosities",
                 "Masses",
-                "MetalMassFractions",
                 "Velocities",
                 self.grnr,
             ],
             "PartType5": [
-                "AccretionRates",
                 "Coordinates",
                 "DynamicalMasses",
-                "LastAGNFeedbackScaleFactors",
-                "ParticleIDs",
-                "SubgridMasses",
                 "Velocities",
                 self.grnr,
             ],
         }
+
+        for prop in self.property_list:
+            outputname = prop[1]
+            if not self.property_mask[outputname]:
+                continue
+            is_dmo = prop[8]
+            if self.category_filter.dmo and not is_dmo:
+                continue
+            partprops = prop[9]
+            for partprop in partprops:
+                pgroup, dset = parameters.get_particle_property(partprop)
+                if not pgroup in self.particle_properties:
+                    self.particle_properties[pgroup] = []
+                if not dset in self.particle_properties[pgroup]:
+                    self.particle_properties[pgroup].append(dset)
 
     def calculate(self, input_halo, search_radius, data, halo_result):
         """
@@ -898,6 +1528,7 @@ class SubhaloProperties(HaloProperty):
             self.grnr,
             self.stellar_ages,
             self.filter,
+            self.snapshot_datasets,
         )
 
         if not self.bound_only:
@@ -921,6 +1552,10 @@ class SubhaloProperties(HaloProperty):
         # back to snapshot units in the end
         registry = part_props.mass.units.registry
         for prop in self.property_list:
+            outputname = prop[1]
+            # skip properties that are masked
+            if not self.property_mask[outputname]:
+                continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
             if do_calculation["DMO"] and not is_dmo:
@@ -956,11 +1591,14 @@ class SubhaloProperties(HaloProperty):
         else:
             prefix = "FOFSubhaloProperties"
         for prop in self.property_list:
+            outputname = prop[1]
+            # skip properties that are masked
+            if not self.property_mask[outputname]:
+                continue
             is_dmo = prop[8]
             if do_calculation["DMO"] and not is_dmo:
                 continue
             name = prop[0]
-            outputname = prop[1]
             description = prop[5]
             halo_result.update(
                 {
@@ -985,24 +1623,44 @@ def test_subhalo_properties():
 
     # initialise the DummyHaloGenerator with a random seed
     dummy_halos = DummyHaloGenerator(16902)
-    cat_filter = CategoryFilter()
+    cat_filter = CategoryFilter(
+        {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
+    )
+    parameters = ParameterFile(
+        parameter_dictionary={
+            "aliases": {
+                "PartType0/ElementMassFractions": "PartType0/SmoothedElementMassFractions",
+                "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
+            }
+        }
+    )
+    dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
+        parameters.get_aliases()
+    )
+    parameters.get_halo_type_variations(
+        "SubhaloProperties",
+        {"FOF": {"bound_only": False}, "Bound": {"bound_only": True}},
+    )
 
     recently_heated_gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())
 
     property_calculator_bound = SubhaloProperties(
         dummy_halos.get_cell_grid(),
+        parameters,
         recently_heated_gas_filter,
         stellar_age_calculator,
         cat_filter,
     )
     property_calculator_both = SubhaloProperties(
         dummy_halos.get_cell_grid(),
+        parameters,
         recently_heated_gas_filter,
         stellar_age_calculator,
         cat_filter,
         False,
     )
+    parameters.write_parameters("subhalo.used_parameters.yml")
 
     # generate 100 random halos
     for i in range(100):
@@ -1040,6 +1698,67 @@ def test_subhalo_properties():
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string)
                 assert result.units.same_dimensions_as(unit.units)
+
+    # Now test the calculation for each property individually, to make sure that
+    # all properties read all the datasets they require
+    all_parameters = parameters.get_parameters()
+    for property in all_parameters["SubhaloProperties"]["properties"]:
+        print(f"Testing only {property}...")
+        single_property = dict(all_parameters)
+        for other_property in all_parameters["SubhaloProperties"]["properties"]:
+            single_property["SubhaloProperties"]["properties"][other_property] = (
+                other_property == property
+            ) or other_property.startswith("NumberOf")
+        single_parameters = ParameterFile(parameter_dictionary=single_property)
+        property_calculator_bound = SubhaloProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            recently_heated_gas_filter,
+            stellar_age_calculator,
+            cat_filter,
+        )
+        property_calculator_both = SubhaloProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            recently_heated_gas_filter,
+            stellar_age_calculator,
+            cat_filter,
+            False,
+        )
+        halo_result = {}
+        for subhalo_name, prop_calc in [
+            ("FOFSubhaloProperties", property_calculator_both),
+            ("BoundSubhaloProperties", property_calculator_bound),
+        ]:
+            input_data = {}
+            for ptype in prop_calc.particle_properties:
+                if ptype in data:
+                    input_data[ptype] = {}
+                    for dset in prop_calc.particle_properties[ptype]:
+                        input_data[ptype][dset] = data[ptype][dset]
+            input_halo_copy = input_halo.copy()
+            input_data_copy = input_data.copy()
+            prop_calc.calculate(input_halo, 0.0 * unyt.kpc, input_data, halo_result)
+            assert input_halo == input_halo_copy
+            assert input_data == input_data_copy
+
+            # check that the calculation returns the correct values
+            for prop in prop_calc.property_list:
+                outputname = prop[1]
+                if not outputname == property:
+                    continue
+                size = prop[2]
+                dtype = prop[3]
+                unit_string = prop[4]
+                full_name = f"{subhalo_name}/{outputname}"
+                assert full_name in halo_result
+                result = halo_result[full_name][0]
+                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
+                assert result.dtype == dtype
+                unit = unyt.Unit(unit_string)
+                assert result.units.same_dimensions_as(unit.units)
+
+    dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
 
 
 if __name__ == "__main__":
