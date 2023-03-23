@@ -131,7 +131,7 @@ def get_vmax(mass, radius):
 
 def get_axis_lengths(mass, position):
 
-    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 3, 3))    
+    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 3, 3))
     # Here we do the calculation without units and add them back in afterwards.
     # This avoids problems due to differences in behaviour between unyt versions.
     for i in range(3):
