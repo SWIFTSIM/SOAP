@@ -131,23 +131,25 @@ def get_vmax(mass, radius):
 
 def get_axis_lengths(mass, position):
 
-    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 3, 3))
-    # Note: unyt currently ignores the position units in the *=
-    # i.e. Itensor is dimensionless throughout (even though it should not be)
+    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 3, 3))    
+    # Here we do the calculation without units and add them back in afterwards.
+    # This avoids problems due to differences in behaviour between unyt versions.
     for i in range(3):
         for j in range(3):
-            Itensor[:, i, j] *= position[:, i] * position[:, j]
+            Itensor[:, i, j] *= position[:, i].value * position[:, j].value
     Itensor = Itensor.sum(axis=0)
 
-    # linalg.eigenvals cannot deal with units anyway, so we have to add them
-    # back in
+    # linalg.eigenvals cannot deal with units anyway
     axes = np.linalg.eigvals(Itensor).real
     axes = np.clip(axes, 0.0, None)
-    axes = np.sqrt(axes) * position.units
+    axes = np.sqrt(axes)
 
     # sort the axes from long to short
     axes.sort()
     axes = axes[::-1]
+
+    # Assign units to the result
+    axes = axes * position.units
 
     return axes
 
