@@ -2082,6 +2082,21 @@ class PropertyTable:
                 "PartType4/IronMassFractionsFromSNIa",
             ],
         ),
+        "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": (
+            "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
+            1,
+            np.float32,
+            "Msun",
+            "Sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass, where only iron from SNIa is included.",
+            "star",
+            "FMantissa9",
+            False,
+            [
+                "PartType4/Masses",
+                "PartType4/ElementMassFractions",
+                "PartType4/IronMassFractionsFromSNIa",
+            ],
+        ),
     }
 
     # list of properties in the 'VR' category

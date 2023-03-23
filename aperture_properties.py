@@ -2405,6 +2405,20 @@ class ApertureParticleData:
         return (self.star_log10_Fe_from_SNIa_over_H_low_limit * self.mass_star).sum()
 
     @lazy_property
+    def LinearMassWeightedIronFromSNIaOverHydrogenOfStars(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the iron over hydrogen ratio for star particles,
+        times the solar ratio, set in the parameter file, and
+        only taking into account iron produced by SNIa.
+        """
+        if self.Nstar == 0:
+            return None
+        return (self.star_Fe_from_SNIa_over_H * self.mass_star).sum()
+
+
+    @lazy_property
     def HalfMassRadiusGas(self) -> unyt.unyt_quantity:
         """
         Half mass radius of gas.
@@ -2560,6 +2574,7 @@ class ApertureProperties(HaloProperty):
             "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit",
             "GasMassInColdDenseDiffuseMetals",
             "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit",
+            "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
         ]
     ]
 
