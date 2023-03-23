@@ -399,14 +399,18 @@ class DummyHaloGenerator:
                 registry=reg,
             )
             data["PartType0"]["Velocities"] = vs[gas_mask]
+            xrays = np.zeros((Ngas, 3))
+            xrays[:, 0] = 10.0 ** (7.0 * np.random.random(Ngas))
+            xrays[:, 1] = 10.0 ** (7.0 * np.random.random(Ngas))
+            xrays[:, 2] = 10.0 ** (7.0 * np.random.random(Ngas))
             data["PartType0"]["XrayLuminosities"] = unyt.unyt_array(
-                10.0 ** (7.0 * np.random.random(Ngas)),
+                xrays,
                 dtype=np.float64,
                 units="snap_length**2*snap_mass/snap_time**3",
                 registry=reg,
             )
             data["PartType0"]["XrayPhotonLuminosities"] = unyt.unyt_array(
-                10.0 ** (70.0 * np.random.random(Ngas)),
+                xrays,
                 dtype=np.float64,
                 units="1/snap_time",
                 registry=reg,
