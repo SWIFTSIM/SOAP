@@ -11,7 +11,7 @@ from kinematic_properties import (
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
     get_vmax,
-    get_axis_lengths,
+    get_inertia_tensor,
 )
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from stellar_age_calculator import StellarAgeCalculator
@@ -481,10 +481,10 @@ class ApertureParticleData:
         return 0.5 * ekin_gas.sum()
 
     @lazy_property
-    def GasAxisLengths(self):
+    def GasInertiaTensor(self):
         if self.Mgas == 0:
             return None
-        return get_axis_lengths(self.mass_gas, self.pos_gas)
+        return get_inertia_tensor(self.mass_gas, self.pos_gas)
 
     @lazy_property
     def dm_mass_fraction(self):
@@ -507,10 +507,10 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def DMAxisLengths(self):
+    def DMInertiaTensor(self):
         if self.Mdm == 0:
             return None
-        return get_axis_lengths(self.mass_dm, self.pos_dm)
+        return get_inertia_tensor(self.mass_dm, self.pos_dm)
 
     @lazy_property
     def vcom_star(self):
@@ -556,10 +556,10 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
-    def StellarAxisLengths(self):
+    def StellarInertiaTensor(self):
         if self.Mstar == 0:
             return None
-        return get_axis_lengths(self.mass_star, self.pos_star)
+        return get_inertia_tensor(self.mass_star, self.pos_star)
 
     @lazy_property
     def Ekin_star(self):
@@ -613,10 +613,10 @@ class ApertureParticleData:
         return self.internal_kappa_bar
 
     @lazy_property
-    def BaryonAxisLengths(self):
+    def BaryonInertiaTensor(self):
         if self.Mbaryons == 0:
             return None
-        return get_axis_lengths(self.mass_baryons, self.pos_baryons)
+        return get_inertia_tensor(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
     def gas_mask_all(self):
@@ -889,10 +889,10 @@ class ApertureProperties(HaloProperty):
             "HalfMassRadiusStar",
             "HalfMassRadiusBaryon",
             "spin_parameter",
-            "GasAxisLengths",
-            "DMAxisLengths",
-            "StellarAxisLengths",
-            "BaryonAxisLengths",
+            "GasInertiaTensor",
+            "DMInertiaTensor",
+            "StellarInertiaTensor",
+            "BaryonInertiaTensor",
             "DtoTgas",
             "DtoTstar",
             "starOfrac",

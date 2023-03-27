@@ -21,7 +21,6 @@ def get_version_string():
 
 
 class PropertyTable:
-
     categories = ["basic", "general", "gas", "dm", "star", "baryon", "VR"]
     explanation = {
         "footnote_MBH.tex": ["BHmaxM"],
@@ -177,22 +176,22 @@ class PropertyTable:
             "FMantissa9",
             False,
         ),
-        "BaryonAxisLengths": (
-            "BaryonAxisLengths",
-            3,
+        "BaryonInertiaTensor": (
+            "BaryonInertiaTensor",
+            6,
             np.float32,
-            "kpc",
-            "Axis lengths of the baryonic (gas and stars) mass distribution, computed from the 3D baryon inertia tensor, relative to the centre of potential.",
+            "Msun*kpc**2",
+            "3D baryon inertia tensor computed from the baryon (gas and stars) mass distribution, relative to the centre of potential. Stores diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "baryon",
             "FMantissa9",
             False,
         ),
-        "DMAxisLengths": (
-            "DarkMatterAxisLengths",
-            3,
+        "DMInertiaTensor": (
+            "DarkMatterInertiaTensor",
+            6,
             np.float32,
-            "kpc",
-            "Axis lengths of the dark matter mass distribution, computed from the 3D DM inertia tensor, relative to the centre of potential.",
+            "Msun*kpc**2",
+            "3D dark matter inertia tensor computed from the DM mass distribution, relative to the centre of potential. Stores diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "dm",
             "FMantissa9",
             True,
@@ -257,12 +256,12 @@ class PropertyTable:
             "DMantissa9",
             False,
         ),
-        "GasAxisLengths": (
-            "GasAxisLengths",
-            3,
+        "GasInertiaTensor": (
+            "GasInertiaTensor",
+            6,
             np.float32,
-            "kpc",
-            "Axis lengths of the gas mass distribution, computed from the 3D gas inertia tensor, relative to the centre of potential.",
+            "Msun*kpc**2",
+            "3D gas inertia tensor computed from the gas mass distribution, relative to the centre of potential. Stores diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "gas",
             "FMantissa9",
             False,
@@ -677,12 +676,12 @@ class PropertyTable:
             "FMantissa9",
             False,
         ),
-        "StellarAxisLengths": (
-            "StellarAxisLengths",
-            3,
+        "StellarInertiaTensor": (
+            "StellarInertiaTensor",
+            6,
             np.float32,
-            "kpc",
-            "Axis lengths of the stellar mass distribution, computed from the 3D stellar inertia tensor, relative to the centre of potential.",
+            "Msun*kpc**2",
+            "3D stellar inertia tensor computed from the stellar mass distribution, relative to the centre of potential. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "star",
             "FMantissa9",
             False,
@@ -737,16 +736,16 @@ class PropertyTable:
             "FMantissa9",
             False,
         ),
-        "TotalAxisLengths": (
-            "TotalAxisLengths",
-            3,
+        "TotalInertiaTensor": (
+            "TotalInertiaTensor",
+            6,
             np.float32,
-            "kpc",
-            "Axis lengths of the total mass distribution, computed from the 3D inertia tensor, relative to the centre of potential.",
+            "Msun*kpc**2",
+            "3D inertia tensor computed from the total mass distribution, relative to the centre of potential. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "general",
             "FMantissa9",
             True,
-        ),
+        )
         "VRID": (
             "ID",
             1,

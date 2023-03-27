@@ -129,27 +129,16 @@ def get_vmax(mass, radius):
     return ordered_radius[imax], np.sqrt(v_over_G[imax] * G)
 
 
-def get_axis_lengths(mass, position):
-
-    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 3, 3))
+def get_inertia_tensor(mass, position):
+    Itensor = (mass[:, None, None]) * np.ones((mass.shape[0], 3, 3))
     # Note: unyt currently ignores the position units in the *=
     # i.e. Itensor is dimensionless throughout (even though it should not be)
     for i in range(3):
         for j in range(3):
-            Itensor[:, i, j] *= position[:, i] * position[:, j]
+            Itensor[:, i, j] *= position[:, i].value*position[:, j].value
     Itensor = Itensor.sum(axis=0)
-
-    # linalg.eigenvals cannot deal with units anyway, so we have to add them
-    # back in
-    axes = np.linalg.eigvals(Itensor).real
-    axes = np.clip(axes, 0.0, None)
-    axes = np.sqrt(axes) * position.units
-
-    # sort the axes from long to short
-    axes.sort()
-    axes = axes[::-1]
-
-    return axes
+    Itensor = np.array((Itensor[0,0],Itensor[1,1],Itensor[2,2],Itensor[0,1],Itensor[0,2],Itensor[1,2]))*position.units*position.units*mass.units
+    return Itensor
 
 
 def get_projected_axis_lengths(mass, position, axis):
@@ -211,13 +200,6 @@ def test_axis_lengths():
         )
 
         mass = unyt.unyt_array(np.ones(npart), units="Msun")
-
-        axes = get_axis_lengths(mass, position)
-        refaxes = unyt.unyt_array([a, b, c])
-        refaxes.sort()
-        refaxes = refaxes[::-1]
-        for ca, ra in zip(axes, refaxes):
-            assert abs(ca - ra) / refaxes[0] < 3.0 / np.sqrt(npart)
 
         axes = get_projected_axis_lengths(mass, position, 0)
         refaxes = unyt.unyt_array([max(b, c), min(b, c)])
