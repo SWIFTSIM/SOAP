@@ -7,7 +7,7 @@ from halo_properties import HaloProperty
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from property_table import PropertyTable
-from kinematic_properties import get_projected_axis_lengths
+from kinematic_properties import get_projected_inertia_tensor
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 
@@ -325,10 +325,10 @@ class SingleProjectionProjectedApertureParticleData:
         return np.sqrt((self.gas_mass_fraction * (proj_vgas - vcom_gas) ** 2).sum())
 
     @lazy_property
-    def ProjectedGasAxisLengths(self):
+    def ProjectedGasInertiaTensor(self):
         if self.Mgas == 0:
             return None
-        return get_projected_axis_lengths(
+        return get_projected_inertia_tensor(
             self.proj_mass_gas, self.proj_pos_gas, self.iproj
         )
 
@@ -361,18 +361,18 @@ class SingleProjectionProjectedApertureParticleData:
         return np.sqrt((self.star_mass_fraction * (proj_vstar - vcom_star) ** 2).sum())
 
     @lazy_property
-    def ProjectedStellarAxisLengths(self):
+    def ProjectedStellarInertiaTensor(self):
         if self.Mstar == 0:
             return None
-        return get_projected_axis_lengths(
+        return get_projected_inertia_tensor(
             self.proj_mass_star, self.proj_pos_star, self.iproj
         )
 
     @lazy_property
-    def ProjectedBaryonAxisLengths(self):
+    def ProjectedBaryonInertiaTensor(self):
         if self.Mbaryons == 0:
             return None
-        return get_projected_axis_lengths(
+        return get_projected_inertia_tensor(
             self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
         )
 
@@ -474,9 +474,9 @@ class ProjectedApertureProperties(HaloProperty):
             "BHmaxvel",
             "BHlasteventa",
             "BHmaxlasteventa",
-            "ProjectedGasAxisLengths",
-            "ProjectedStellarAxisLengths",
-            "ProjectedBaryonAxisLengths",
+            "ProjectedGasInertiaTensor",
+            "ProjectedStellarInertiaTensor",
+            "ProjectedBaryonInertiaTensor",
         ]
     ]
 
