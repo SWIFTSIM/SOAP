@@ -239,7 +239,7 @@ def process_halos(
     t0_all = time.time()
 
     # Count halos to do
-    nr_halos_left = comm.allreduce(np.sum(halo_arrays["done"].local == 0))
+    nr_halos_left = comm.allreduce(np.sum(halo_arrays["done"].local.value == 0))
 
     # Loop until all halos are done
     nr_halos = len(halo_arrays["index"].full)
@@ -262,7 +262,7 @@ def process_halos(
             t0_task = time.time()
 
             # Skip halos we already did
-            if halo_arrays["done"].full[task_to_do] == 0:
+            if halo_arrays["done"].full[task_to_do].value == 0:
 
                 # Extract this halo's VR information (centre, radius, index etc)
                 input_halo = {}
@@ -312,7 +312,7 @@ def process_halos(
 
     # Count halos left to do
     comm.barrier()
-    nr_halos_left = comm.allreduce(np.sum(halo_arrays["done"].local == 0))
+    nr_halos_left = comm.allreduce(np.sum(halo_arrays["done"].local.value == 0))
 
     # Stop the clock
     comm.barrier()
