@@ -891,12 +891,7 @@ class SubhaloProperties(HaloProperty):
         types_present = [type for type in self.particle_properties if type in data]
 
         part_props = SubhaloParticleData(
-            input_halo,
-            data,
-            types_present,
-            self.grnr,
-            self.stellar_ages,
-            self.filter,
+            input_halo, data, types_present, self.grnr, self.stellar_ages, self.filter
         )
 
         if not self.bound_only:
@@ -964,14 +959,7 @@ class SubhaloProperties(HaloProperty):
             name = prop[0]
             outputname = prop[1]
             description = prop[5]
-            halo_result.update(
-                {
-                    f"{prefix}/{outputname}": (
-                        subhalo[name],
-                        description,
-                    )
-                }
-            )
+            halo_result.update({f"{prefix}/{outputname}": (subhalo[name], description)})
 
 
 def test_subhalo_properties():

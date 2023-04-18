@@ -1018,12 +1018,7 @@ class ApertureProperties(HaloProperty):
             outputname = prop[1]
             description = prop[5]
             halo_result.update(
-                {
-                    f"{prefix}/{outputname}": (
-                        aperture_sphere[name],
-                        description,
-                    )
-                }
+                {f"{prefix}/{outputname}": (aperture_sphere[name], description)}
             )
 
         return
@@ -1086,11 +1081,7 @@ def test_aperture_properties():
     cat_filter = CategoryFilter()
 
     pc_exclusive = ExclusiveSphereProperties(
-        dummy_halos.get_cell_grid(),
-        50.0,
-        filter,
-        stellar_age_calculator,
-        cat_filter,
+        dummy_halos.get_cell_grid(), 50.0, filter, stellar_age_calculator, cat_filter
     )
     pc_inclusive = InclusiveSphereProperties(
         dummy_halos.get_cell_grid(), 50.0, filter, stellar_age_calculator, cat_filter

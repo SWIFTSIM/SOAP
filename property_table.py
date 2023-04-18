@@ -107,8 +107,8 @@ class PropertyTable:
             "SpectroscopicLikeTemperature",
             "SpectroscopicLikeTemperature_core_excision",
             "SpectroscopicLikeTemperature_no_agn",
-            "SpectroscopicLikeTemperature_no_agn_core_excision"
-        ]
+            "SpectroscopicLikeTemperature_no_agn_core_excision",
+        ],
     }
 
     compression_description = {
@@ -1383,16 +1383,19 @@ class PropertyTable:
     def add_properties(self, halo_property):
         halo_type = halo_property.__name__
         props = halo_property.property_list
-        for i, (
-            prop_name,
-            prop_outputname,
-            prop_shape,
-            prop_dtype,
-            prop_units,
-            prop_description,
-            prop_cat,
-            prop_comp,
-            prop_dmo,
+        for (
+            i,
+            (
+                prop_name,
+                prop_outputname,
+                prop_shape,
+                prop_dtype,
+                prop_units,
+                prop_description,
+                prop_cat,
+                prop_comp,
+                prop_dmo,
+            ),
         ) in enumerate(props):
             prop_units = (
                 unyt.unyt_quantity(1, units=prop_units)

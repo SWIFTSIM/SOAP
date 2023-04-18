@@ -14,7 +14,7 @@ def get_velocity_dispersion_matrix(mass_fraction, velocity, ref_velocity):
     ZZ, XY, XZ and YZ of the velocity dispersion matrix.
     """
 
-    result = unyt.unyt_array(np.zeros(6), dtype=np.float32, units=velocity.units**2)
+    result = unyt.unyt_array(np.zeros(6), dtype=np.float32, units=velocity.units ** 2)
 
     vrel = velocity - ref_velocity[None, :]
     result[0] += (mass_fraction * vrel[:, 0] * vrel[:, 0]).sum()
@@ -89,19 +89,19 @@ def get_angular_momentum_and_kappa_corot(
         )
 
     if Lnrm > 0.0 * Lnrm.units:
-        K = 0.5 * (mass[:, None] * vrel**2).sum()
+        K = 0.5 * (mass[:, None] * vrel ** 2).sum()
         if K > 0.0 * K.units or do_counterrot_mass:
             Ldir = Ltot / Lnrm
             Li = (Lpart * Ldir[None, :]).sum(axis=1)
         if K > 0.0 * K.units:
             r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2
             rdotL = (prel * Ldir[None, :]).sum(axis=1)
-            Ri2 = r2 - rdotL**2
+            Ri2 = r2 - rdotL ** 2
             # deal with division by zero (the first particle is guaranteed to
             # be in the centre)
             mask = Ri2 == 0.0
             Ri2[mask] = 1.0 * Ri2.units
-            Krot = 0.5 * (Li**2 / (mass * Ri2))
+            Krot = 0.5 * (Li ** 2 / (mass * Ri2))
             Kcorot = Krot[(~mask) & (Li > 0.0 * Li.units)].sum()
             kappa_corot += Kcorot / K
 

@@ -15,10 +15,10 @@ def get_memory_use():
     if psutil is None:
         return None, None
 
-    GB = 1024**3
+    GB = 1024 ** 3
     mem = psutil.virtual_memory()
-    
-    total_mem_gb = mem.total/GB
-    free_mem_gb  = mem.available/GB
-    
+
+    total_mem_gb = mem.total / GB
+    free_mem_gb = mem.available / GB
+
     return total_mem_gb, free_mem_gb

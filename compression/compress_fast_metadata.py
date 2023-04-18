@@ -16,10 +16,7 @@ with open(f"{script_folder}/wrong_compression.yml", "r") as cfile:
     compression_fixes = yaml.safe_load(cfile)
 
 chunksize = 1000
-compression_opts = {
-    "compression": "gzip",
-    "compression_opts": 9,
-}
+compression_opts = {"compression": "gzip", "compression_opts": 9}
 
 
 class H5visiter:
@@ -171,13 +168,7 @@ if __name__ == "__main__":
 
     arguments = []
     for dset in h5copy.dsets:
-        arguments.append(
-            (
-                args.input,
-                f"{tmpdir}/{dset.replace('/','_')}.hdf5",
-                dset,
-            )
-        )
+        arguments.append((args.input, f"{tmpdir}/{dset.replace('/','_')}.hdf5", dset))
 
     pool = mp.Pool(args.nproc)
     count = 0

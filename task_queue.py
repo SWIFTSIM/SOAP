@@ -8,8 +8,9 @@ import collections
 import numpy as np
 import shared_array
 
-REQUEST_TASK_TAG=1
-ASSIGN_TASK_TAG=2
+REQUEST_TASK_TAG = 1
+ASSIGN_TASK_TAG = 2
+
 
 def sleepy_recv(comm, tag):
     """
@@ -26,8 +27,9 @@ def sleepy_recv(comm, tag):
         completed, message = request.test()
         if completed:
             return message
-        delay = min(max_delay, delay*2)
+        delay = min(max_delay, delay * 2)
         time.sleep(delay)
+
 
 def distribute_tasks(tasks, comm, task_type):
     """
@@ -51,6 +53,7 @@ def distribute_tasks(tasks, comm, task_type):
             comm.send(None, request_src, tag=ASSIGN_TASK_TAG)
             nr_done += 1
 
+
 def distribute_tasks_with_queue_per_rank(tasks, comm):
     """
     Listen for and respond to requests for tasks to do.
@@ -72,7 +75,7 @@ def distribute_tasks_with_queue_per_rank(tasks, comm):
                 # Take one task from the longest queue
                 i = np.argmax([len(t) for t in tasks])
                 tasks[request_src].append(tasks[i].popleft())
-                
+
             # Get the next task for this rank
             task = tasks[request_src].popleft()
             # Send back the task
@@ -82,9 +85,17 @@ def distribute_tasks_with_queue_per_rank(tasks, comm):
             comm.send(None, request_src, tag=ASSIGN_TASK_TAG)
             nr_done += 1
 
-def execute_tasks(tasks, args, comm_all, comm_master, comm_workers,
-                  queue_per_rank=False, return_timing=False,
-                  task_type=None):
+
+def execute_tasks(
+    tasks,
+    args,
+    comm_all,
+    comm_master,
+    comm_workers,
+    queue_per_rank=False,
+    return_timing=False,
+    task_type=None,
+):
     """
     Execute the tasks in tasks, which should be a sequence of
     callables which each return a result. Task objects are
@@ -129,7 +140,9 @@ def execute_tasks(tasks, args, comm_all, comm_master, comm_workers,
     tasks_wait_time = 0.0
 
     # Get ranks in communicators
-    master_rank = -1 if comm_master_local==MPI.COMM_NULL else comm_master_local.Get_rank()
+    master_rank = (
+        -1 if comm_master_local == MPI.COMM_NULL else comm_master_local.Get_rank()
+    )
     worker_rank = comm_workers_local.Get_rank()
 
     # First rank in comm_master starts a thread to hand out tasks
@@ -137,11 +150,14 @@ def execute_tasks(tasks, args, comm_all, comm_master, comm_workers,
         if queue_per_rank:
             if task_type is not None:
                 raise NotImplementedError("Can't specify task type with queue per rank")
-            task_queue_thread = threading.Thread(target=distribute_tasks_with_queue_per_rank,
-                                                 args=(tasks, comm_master_local))
+            task_queue_thread = threading.Thread(
+                target=distribute_tasks_with_queue_per_rank,
+                args=(tasks, comm_master_local),
+            )
         else:
-            task_queue_thread = threading.Thread(target=distribute_tasks,
-                                                 args=(tasks, comm_master_local, task_type))
+            task_queue_thread = threading.Thread(
+                target=distribute_tasks, args=(tasks, comm_master_local, task_type)
+            )
         task_queue_thread.start()
 
     # Request and run tasks until there are none left
@@ -187,14 +203,14 @@ def execute_tasks(tasks, args, comm_all, comm_master, comm_workers,
 
         # Accumulate time spent waiting for a task
         wait_time_t1 = time.time()
-        tasks_wait_time += (wait_time_t1 - wait_time_t0)
+        tasks_wait_time += wait_time_t1 - wait_time_t0
 
         # All workers in the group execute the task as a collective operation
         if task_not_none:
             task_t0 = time.time()
             result.append(task(*args))
             task_t1 = time.time()
-            tasks_elapsed_time += (task_t1-task_t0)
+            tasks_elapsed_time += task_t1 - task_t0
         else:
             break
 
@@ -211,15 +227,15 @@ def execute_tasks(tasks, args, comm_all, comm_master, comm_workers,
     t1_out_of_work = time.time()
 
     # Compute dead time etc
-    time_total         = comm_all_local.allreduce(overall_t1-overall_t0)
-    time_tasks         = comm_all_local.allreduce(tasks_elapsed_time)
-    time_out_of_work   = comm_all_local.allreduce(t1_out_of_work - t0_out_of_work)
+    time_total = comm_all_local.allreduce(overall_t1 - overall_t0)
+    time_tasks = comm_all_local.allreduce(tasks_elapsed_time)
+    time_out_of_work = comm_all_local.allreduce(t1_out_of_work - t0_out_of_work)
     time_wait_for_task = comm_all_local.allreduce(tasks_wait_time)
 
     # Report total task time
-    timing["elapsed"]                = overall_t1 - overall_t0
-    timing["dead_time_fraction"]     = (time_total - time_tasks) / time_total
-    timing["out_of_work_fraction"]   = time_out_of_work / time_total
+    timing["elapsed"] = overall_t1 - overall_t0
+    timing["dead_time_fraction"] = (time_total - time_tasks) / time_total
+    timing["out_of_work_fraction"] = time_out_of_work / time_total
     timing["wait_for_task_fraction"] = time_wait_for_task / time_total
 
     # Free local communicators
@@ -232,7 +248,3 @@ def execute_tasks(tasks, args, comm_all, comm_master, comm_workers,
         return result, timing
     else:
         return result
-
-
-
-

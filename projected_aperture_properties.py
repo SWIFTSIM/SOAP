@@ -13,13 +13,7 @@ from category_filter import CategoryFilter
 
 
 class ProjectedApertureParticleData:
-    def __init__(
-        self,
-        input_halo,
-        data,
-        types_present,
-        aperture_radius,
-    ):
+    def __init__(self, input_halo, data, types_present, aperture_radius):
         self.input_halo = input_halo
         self.data = data
         self.types_present = types_present
@@ -540,10 +534,7 @@ class ProjectedApertureProperties(HaloProperty):
         types_present = [type for type in self.particle_properties if type in data]
 
         part_props = ProjectedApertureParticleData(
-            input_halo,
-            data,
-            types_present,
-            self.physical_radius_mpc * unyt.Mpc,
+            input_halo, data, types_present, self.physical_radius_mpc * unyt.Mpc
         )
 
         do_calculation = self.category_filter.get_filters(halo_result)

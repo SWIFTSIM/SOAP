@@ -129,10 +129,10 @@ class DummyCellGrid:
         Omega_k = self.cosmology["Omega_k"]
         Omega_Lambda = self.cosmology["Omega_lambda"]
         Omega_m = self.cosmology["Omega_m"]
-        bnx = -(Omega_k / self.a**2 + Omega_Lambda) / (
-            Omega_k / self.a**2 + Omega_m / self.a**3 + Omega_Lambda
+        bnx = -(Omega_k / self.a ** 2 + Omega_Lambda) / (
+            Omega_k / self.a ** 2 + Omega_m / self.a ** 3 + Omega_Lambda
         )
-        self.virBN98 = 18.0 * np.pi**2 + 82.0 * bnx - 39.0 * bnx**2
+        self.virBN98 = 18.0 * np.pi ** 2 + 82.0 * bnx - 39.0 * bnx ** 2
         if self.virBN98 < 50.0 or self.virBN98 > 1000.0:
             raise RuntimeError("Invalid value for virBN98!")
 
@@ -385,10 +385,7 @@ class DummyHaloGenerator:
             semf[:, 7] = 0.002 * np.random.random(Ngas)
             semf[:, 8] = 0.002 * np.random.random(Ngas)
             data["PartType0"]["SmoothedElementMassFractions"] = unyt.unyt_array(
-                semf,
-                dtype=np.float32,
-                units=unyt.dimensionless,
-                registry=reg,
+                semf, dtype=np.float32, units=unyt.dimensionless, registry=reg
             )
             # negative StarFormationRates are actually scale factors, again
             # limited by the highest value at z=0.1
@@ -416,10 +413,7 @@ class DummyHaloGenerator:
                 registry=reg,
             )
             data["PartType0"]["XrayPhotonLuminosities"] = unyt.unyt_array(
-                xrays,
-                dtype=np.float64,
-                units="1/snap_time",
-                registry=reg,
+                xrays, dtype=np.float64, units="1/snap_time", registry=reg
             )
             data["PartType0"]["XrayLuminositiesRestframe"] = unyt.unyt_array(
                 xrays,
@@ -428,10 +422,7 @@ class DummyHaloGenerator:
                 registry=reg,
             )
             data["PartType0"]["XrayPhotonLuminositiesRestframe"] = unyt.unyt_array(
-                xrays,
-                dtype=np.float64,
-                units="1/snap_time",
-                registry=reg,
+                xrays, dtype=np.float64, units="1/snap_time", registry=reg
             )
 
         # DM properties
@@ -495,10 +486,7 @@ class DummyHaloGenerator:
             semf[:, 7] = 0.002 * np.random.random(Nstar)
             semf[:, 8] = 0.002 * np.random.random(Nstar)
             data["PartType4"]["SmoothedElementMassFractions"] = unyt.unyt_array(
-                semf,
-                dtype=np.float32,
-                units=unyt.dimensionless,
-                registry=reg,
+                semf, dtype=np.float32, units=unyt.dimensionless, registry=reg
             )
             data["PartType4"]["Velocities"] = vs[star_mask]
 
@@ -572,10 +560,10 @@ class DummyHaloGenerator:
                 / self.dummy_cellgrid.cosmology["H [internal units]"]
             )
             ** 2
-            / self.dummy_cellgrid.a**3
+            / self.dummy_cellgrid.a ** 3
         )
 
-        Mtot += nu_density * 4.0 * np.pi / 3.0 * rmax**3
+        Mtot += nu_density * 4.0 * np.pi / 3.0 * rmax ** 3
 
         particle_numbers = {
             "PartType0": Ngas,

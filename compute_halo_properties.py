@@ -47,6 +47,7 @@ from xray_calculator import XrayCalculator
 # Set numpy to raise divide by zero, overflow and invalid operation errors as exceptions
 np.seterr(divide="raise", over="raise", invalid="raise")
 
+
 def split_comm_world():
 
     # Communicator containing all ranks on this node
@@ -131,8 +132,11 @@ def compute_halo_properties():
     )
 
     recently_heated_gas_filter = RecentlyHeatedGasFilter(
-        cellgrid, delta_time=15.0 * unyt.Myr, delta_logT_min=-1.0,
-        delta_logT_max=0.3, AGN_delta_T=8.80144197177e7 * unyt.K
+        cellgrid,
+        delta_time=15.0 * unyt.Myr,
+        delta_logT_min=-1.0,
+        delta_logT_max=0.3,
+        AGN_delta_T=8.80144197177e7 * unyt.K,
     )
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
     category_filter = CategoryFilter(
@@ -172,8 +176,12 @@ def compute_halo_properties():
             cellgrid, recently_heated_gas_filter, category_filter, 200.0, "crit"
         ),
         SO_properties.CoreExcisedSOProperties(
-            cellgrid, recently_heated_gas_filter, category_filter, 500.0, "crit",
-            core_excision_fraction=0.15
+            cellgrid,
+            recently_heated_gas_filter,
+            category_filter,
+            500.0,
+            "crit",
+            core_excision_fraction=0.15,
         ),
         SO_properties.SOProperties(
             cellgrid, recently_heated_gas_filter, category_filter, 1000.0, "crit"
@@ -348,13 +356,39 @@ def compute_halo_properties():
         lustre.ensure_output_dir(args.output_file)
     comm_world.barrier()
 
-
-
     if comm_world_rank == 0:
-        table_path = '/cosma8/data/dp004/flamingo/Tables/Xray/X_Ray_table_new_redshift_restframe.hdf5'
-        xray_bands = ['erosita-low', 'erosita-high', 'ROSAT', 'erosita-low', 'erosita-high', 'ROSAT', 'erosita-low', 'erosita-high', 'ROSAT', 'erosita-low', 'erosita-high', 'ROSAT']
-        observing_types = ['energies_intrinsic', 'energies_intrinsic', 'energies_intrinsic', 'photons_intrinsic', 'photons_intrinsic', 'photons_intrinsic', 'energies_intrinsic_restframe', 'energies_intrinsic_restframe', 'energies_intrinsic_restframe', 'photons_intrinsic_restframe', 'photons_intrinsic_restframe', 'photons_intrinsic_restframe']
-        xray_calculator = XrayCalculator(cellgrid.z, table_path, xray_bands, observing_types)
+        table_path = "/cosma8/data/dp004/flamingo/Tables/Xray/X_Ray_table_new_redshift_restframe.hdf5"
+        xray_bands = [
+            "erosita-low",
+            "erosita-high",
+            "ROSAT",
+            "erosita-low",
+            "erosita-high",
+            "ROSAT",
+            "erosita-low",
+            "erosita-high",
+            "ROSAT",
+            "erosita-low",
+            "erosita-high",
+            "ROSAT",
+        ]
+        observing_types = [
+            "energies_intrinsic",
+            "energies_intrinsic",
+            "energies_intrinsic",
+            "photons_intrinsic",
+            "photons_intrinsic",
+            "photons_intrinsic",
+            "energies_intrinsic_restframe",
+            "energies_intrinsic_restframe",
+            "energies_intrinsic_restframe",
+            "photons_intrinsic_restframe",
+            "photons_intrinsic_restframe",
+            "photons_intrinsic_restframe",
+        ]
+        xray_calculator = XrayCalculator(
+            cellgrid.z, table_path, xray_bands, observing_types
+        )
     else:
         xray_calculator = None
     xray_calculator = comm_world.bcast(xray_calculator)
@@ -428,7 +462,7 @@ def compute_halo_properties():
         timings,
         args.max_ranks_reading,
         scratch_file_format,
-        xray_calculator
+        xray_calculator,
     )
     metadata = task_queue.execute_tasks(
         tasks,
@@ -442,12 +476,20 @@ def compute_halo_properties():
     # Check metadata for consistency between chunks. Sets ref_metadata on all ranks,
     # including those that processed no halos.
     ref_metadata = result_set.check_metadata(metadata, comm_inter_node, comm_world)
-    
+
     # Combine chunks into a single output file
     with MPITimer("Sorting %d halo properties" % len(ref_metadata), comm_world):
-        combine_chunks(args, cellgrid, halo_prop_list, scratch_file_format,
-                       ref_metadata, nr_chunks, comm_world, category_filter,
-                       recently_heated_gas_filter)
+        combine_chunks(
+            args,
+            cellgrid,
+            halo_prop_list,
+            scratch_file_format,
+            ref_metadata,
+            nr_chunks,
+            comm_world,
+            category_filter,
+            recently_heated_gas_filter,
+        )
 
     # Delete scratch files
     comm_world.barrier()

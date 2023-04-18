@@ -39,7 +39,7 @@ def cumulative_mass_intersection(r, rho_dim, slope_dim):
       S_d = (M2-M1)/(r2-r1) * (r1/M1)
     The result then needs to be multiplied with r1 to get the intersection radius
     """
-    return 4.0 * np.pi / 3.0 * rho_dim * r**3 - slope_dim * r + slope_dim - 1.0
+    return 4.0 * np.pi / 3.0 * rho_dim * r ** 3 - slope_dim * r + slope_dim - 1.0
 
 
 def find_SO_radius_and_mass(
@@ -115,7 +115,7 @@ def find_SO_radius_and_mass(
             / (np.pi * ordered_radius[ipos] * reference_density)
         )
         SO_mass = cumulative_mass[ipos] * SO_r / ordered_radius[ipos]
-        return SO_r, SO_mass, 4.0 * np.pi / 3.0 * SO_r**3
+        return SO_r, SO_mass, 4.0 * np.pi / 3.0 * SO_r ** 3
 
     # We now have the intersecting interval. Get the limits.
     r1 = ordered_radius[i - 1]
@@ -142,13 +142,13 @@ def find_SO_radius_and_mass(
     # compute the dimensionless quantities that enter the intersection equation
     # remember, we are simply solving
     #  4*pi/3*r^3*rho = M1 + (M2-M1)/(r2-r1)*(r-r1)
-    rho_dim = reference_density * r1**3 / M1
+    rho_dim = reference_density * r1 ** 3 / M1
     slope_dim = (M2 - M1) / (r2 - r1) * (r1 / M1)
     SO_r = r1 * brentq(
         cumulative_mass_intersection, 1.0, r2 / r1, args=(rho_dim, slope_dim)
     )
 
-    SO_volume = 4.0 / 3.0 * np.pi * SO_r**3
+    SO_volume = 4.0 / 3.0 * np.pi * SO_r ** 3
     # compute the SO mass by requiring that the mean density in the SO is the
     # target density
     SO_mass = SO_volume * reference_density
@@ -195,7 +195,7 @@ class SOParticleData:
             mass.append(self.data[ptype][mass_dataset(ptype)])
             pos = self.data[ptype]["Coordinates"] - self.centre[None, :]
             position.append(pos)
-            r = np.sqrt(np.sum(pos**2, axis=1))
+            r = np.sqrt(np.sum(pos ** 2, axis=1))
             radius.append(r)
             velocity.append(self.data[ptype]["Velocities"])
             typearr = np.zeros(r.shape, dtype="U9")
@@ -220,7 +220,7 @@ class SOParticleData:
                 self.data["PartType6"]["Masses"] * self.data["PartType6"]["Weights"]
             )
             pos = self.data["PartType6"]["Coordinates"] - self.centre[None, :]
-            nur = np.sqrt(np.sum(pos**2, axis=1))
+            nur = np.sqrt(np.sum(pos ** 2, axis=1))
             all_mass = unyt.array.uconcatenate([self.mass, numass])
             all_r = unyt.array.uconcatenate([self.radius, nur])
         else:
@@ -234,7 +234,7 @@ class SOParticleData:
             self.mass.dtype
         )
         # add mean neutrino mass
-        cumulative_mass += self.nu_density * 4.0 / 3.0 * np.pi * ordered_radius**3
+        cumulative_mass += self.nu_density * 4.0 / 3.0 * np.pi * ordered_radius ** 3
 
         # Compute density within radius of each particle.
         # Will need to skip any at zero radius.
@@ -245,25 +245,22 @@ class SOParticleData:
         ordered_radius = ordered_radius[nskip:]
         cumulative_mass = cumulative_mass[nskip:]
         nr_parts = len(ordered_radius)
-        density = cumulative_mass / (4.0 / 3.0 * np.pi * ordered_radius**3)
+        density = cumulative_mass / (4.0 / 3.0 * np.pi * ordered_radius ** 3)
 
         # Check if we ever reach the density threshold
         if reference_density > 0:
             if nr_parts > 0:
                 try:
                     self.SO_r, self.SO_mass, self.SO_volume = find_SO_radius_and_mass(
-                        ordered_radius,
-                        density,
-                        cumulative_mass,
-                        reference_density,
+                        ordered_radius, density, cumulative_mass, reference_density
                     )
                 except ReadRadiusTooSmallError:
                     raise ReadRadiusTooSmallError("SO radius multiple was too small!")
             else:
-                self.SO_volume = 0 * ordered_radius.units**3
+                self.SO_volume = 0 * ordered_radius.units ** 3
         elif physical_radius > 0:
             self.SO_r = physical_radius
-            self.SO_volume = 4.0 * np.pi / 3.0 * self.SO_r**3
+            self.SO_volume = 4.0 * np.pi / 3.0 * self.SO_r ** 3
             if nr_parts > 0:
                 # find the enclosed mass using interpolation
                 outside_radius = ordered_radius > self.SO_r
@@ -865,8 +862,9 @@ class SOParticleData:
     def gas_xrayphlum_restframe(self):
         if self.Ngas == 0:
             return None
-        return self.data["PartType0"]["XrayPhotonLuminositiesRestframe"][self.gas_selection]
-
+        return self.data["PartType0"]["XrayPhotonLuminositiesRestframe"][
+            self.gas_selection
+        ]
 
     @lazy_property
     def Xrayphlum(self):
@@ -1003,20 +1001,25 @@ class SOParticleData:
     def Xrayphlum_restframe_core_excision(self):
         if self.Ngas_core_excision == 0:
             return None
-        return self.gas_xrayphlum_restframe[self.gas_selection_core_excision].sum(axis=0)
+        return self.gas_xrayphlum_restframe[self.gas_selection_core_excision].sum(
+            axis=0
+        )
 
     @lazy_property
     def Xraylum_restframe_no_agn_core_excision(self):
         if self.Ngas_no_agn_core_excision == 0:
             return None
-        return self.gas_xraylum_restframe[self.gas_selection_no_agn_core_excision].sum(axis=0)
+        return self.gas_xraylum_restframe[self.gas_selection_no_agn_core_excision].sum(
+            axis=0
+        )
 
     @lazy_property
     def Xrayphlum_restframe_no_agn_core_excision(self):
         if self.Ngas_no_agn_core_excision == 0:
             return None
-        return self.gas_xrayphlum_restframe[self.gas_selection_no_agn_core_excision].sum(axis=0)
-
+        return self.gas_xrayphlum_restframe[
+            self.gas_selection_no_agn_core_excision
+        ].sum(axis=0)
 
     @lazy_property
     def gas_selection_xray_temperature(self):
@@ -1164,7 +1167,7 @@ class SOParticleData:
         # to make them absolute again before subtracting the observer
         # position
         relpos = self.gas_pos + self.centre[None, :] - self.observer_position[None, :]
-        distance = np.sqrt((relpos**2).sum(axis=1))
+        distance = np.sqrt((relpos ** 2).sum(axis=1))
         # we need to exclude particles at zero distance
         # (we assume those have no relative velocity)
         vr = unyt.unyt_array(
@@ -1180,7 +1183,7 @@ class SOParticleData:
         ) / distance[has_distance]
         fac = unyt.sigma_thompson / unyt.c
         volumes = self.gas_masses / self.gas_densities
-        area = np.pi * self.SO_r**2
+        area = np.pi * self.SO_r ** 2
         return (fac * ne * vr * (volumes / area)).sum()
 
     @lazy_property
@@ -1316,7 +1319,7 @@ class SOParticleData:
     def Nnu(self):
         if "PartType6" in self.data:
             pos = self.data["PartType6"]["Coordinates"] - self.centre[None, :]
-            nur = np.sqrt(np.sum(pos**2, axis=1))
+            nur = np.sqrt(np.sum(pos ** 2, axis=1))
             self.nu_selection = nur < self.SO_r
             return self.nu_selection.sum()
         else:
@@ -1470,12 +1473,7 @@ class SOProperties(HaloProperty):
     ]
 
     def __init__(
-        self,
-        cellgrid,
-        recently_heated_gas_filter,
-        category_filter,
-        SOval,
-        type="mean",
+        self, cellgrid, recently_heated_gas_filter, category_filter, SOval, type="mean"
     ):
         super().__init__(cellgrid)
 
@@ -1501,7 +1499,7 @@ class SOProperties(HaloProperty):
                 / cellgrid.cosmology["H [internal units]"]
             )
             ** 2
-            / cellgrid.a**3
+            / cellgrid.a ** 3
         )
 
         # This specifies how large a sphere is read in:
@@ -1833,7 +1831,7 @@ def test_SO_properties():
                 "Dummy Nbh for filter",
             ),
         }
-        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax**3)
+        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
 
         # force the SO radius to be outside the search sphere and check that
         # we get a ReadRadiusTooSmallError
@@ -1906,10 +1904,7 @@ def test_SO_properties():
             if SO_name == "5xR_2500_mean":
                 halo_result[
                     f"SO/2500_mean/{property_calculator_5x2500mean.radius_name}"
-                ] = (
-                    0.1 * rmax,
-                    "Dummy value to force correct behaviour",
-                )
+                ] = (0.1 * rmax, "Dummy value to force correct behaviour")
             input_data = {}
             for ptype in prop_calc.particle_properties:
                 if ptype in data:

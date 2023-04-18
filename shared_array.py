@@ -1,11 +1,11 @@
 #!/bin/env python
 
-from mpi4py import MPI 
-import numpy as np 
+from mpi4py import MPI
+import numpy as np
 import unyt
 
-class SharedArray:
 
+class SharedArray:
     def __init__(self, local_shape, dtype, comm, units=None):
 
         self.comm = comm
@@ -14,10 +14,10 @@ class SharedArray:
 
         # Determine units
         units = units if units is not None else unyt.dimensionless
-        
+
         # Find the full size of the array
         n = comm.allreduce(local_shape[0])
-        full_shape = (n,)+tuple(local_shape[1:])
+        full_shape = (n,) + tuple(local_shape[1:])
 
         # Find amount of memory to allocate on this rank
         local_elements = 1
@@ -30,12 +30,13 @@ class SharedArray:
             full_elements *= s
 
         # Allocate shared memory window
-        self.win = MPI.Win.Allocate_shared(local_elements*self.dtype.itemsize,
-                                           self.dtype.itemsize, comm=comm) 
+        self.win = MPI.Win.Allocate_shared(
+            local_elements * self.dtype.itemsize, self.dtype.itemsize, comm=comm
+        )
 
         # Make a numpy array to access the full array
         buf, itemsize = self.win.Shared_query(0)
-        nbytes_all = full_elements*itemsize
+        nbytes_all = full_elements * itemsize
         buf = MPI.memory.fromaddress(buf.address, nbytes_all)
         self.full = np.ndarray(buffer=buf, dtype=self.dtype, shape=full_shape)
 
@@ -44,7 +45,7 @@ class SharedArray:
         self.local = np.ndarray(buffer=buf, dtype=self.dtype, shape=local_shape)
 
         # Wrap the numpy arrays in unyt arrays
-        self.full  = unyt.unyt_array(self.full,  units=units)
+        self.full = unyt.unyt_array(self.full, units=units)
         self.local = unyt.unyt_array(self.local, units=units)
 
     def sync(self):
@@ -59,6 +60,3 @@ class SharedArray:
         if self.win is not None:
             print("ERROR: should not rely on __del__ to free shared memory windows!")
         self.free()
-
-
-
