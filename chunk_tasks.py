@@ -133,7 +133,7 @@ class ChunkTask:
         self.nr_chunks = nr_chunks
 
     def __call__(self, cellgrid, comm, inter_node_rank, timings, max_ranks_reading,
-                 scratch_file_format):
+                 scratch_file_format, xray_calculator):
 
         comm_rank = comm.Get_rank()
         comm_size = comm.Get_size()
@@ -264,7 +264,7 @@ class ChunkTask:
             t0_halos = time.time()
             total_time, task_time, nr_left, nr_done = process_halos(comm, cellgrid.snap_unit_registry, data, mesh,
                                                                     self.halo_prop_list, critical_density,
-                                                                    mean_density, boxsize, self.halo_arrays, results)
+                                                                    mean_density, boxsize, self.halo_arrays, results, xray_calculator)
             t1_halos = time.time()
             task_time_all_iterations += task_time
             dead_time_fraction = 1.0-comm.allreduce(task_time)/comm.allreduce(total_time)

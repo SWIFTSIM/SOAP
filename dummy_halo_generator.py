@@ -200,6 +200,12 @@ class DummyHaloGenerator:
           "XrayPhotonLuminosities":
             (np.float64, 1/snap_time,
              [0., 0., 0.], [1.e70, 1.e70, 1.e70]),
+          "XrayLuminositiesRestframe":
+            (np.float64, snap_length**2*snap_mass/snap_time**3,
+             [0., 0., 0.], [1.e7, 1.e7, 1.e7]),
+          "XrayPhotonLuminositiesRestframe":
+            (np.float64, 1/snap_time,
+             [0., 0., 0.], [1.e70, 1.e70, 1.e70]),
         },
         "PartType1": {
           "Coordinates": (np.float64, a*snap_length, 0., boxsize),
@@ -399,14 +405,30 @@ class DummyHaloGenerator:
                 registry=reg,
             )
             data["PartType0"]["Velocities"] = vs[gas_mask]
+            xrays = np.zeros((Ngas, 3))
+            xrays[:, 0] = 10.0 ** (7.0 * np.random.random(Ngas))
+            xrays[:, 1] = 10.0 ** (7.0 * np.random.random(Ngas))
+            xrays[:, 2] = 10.0 ** (7.0 * np.random.random(Ngas))
             data["PartType0"]["XrayLuminosities"] = unyt.unyt_array(
-                10.0 ** (7.0 * np.random.random(Ngas)),
+                xrays,
                 dtype=np.float64,
                 units="snap_length**2*snap_mass/snap_time**3",
                 registry=reg,
             )
             data["PartType0"]["XrayPhotonLuminosities"] = unyt.unyt_array(
-                10.0 ** (70.0 * np.random.random(Ngas)),
+                xrays,
+                dtype=np.float64,
+                units="1/snap_time",
+                registry=reg,
+            )
+            data["PartType0"]["XrayLuminositiesRestframe"] = unyt.unyt_array(
+                xrays,
+                dtype=np.float64,
+                units="snap_length**2*snap_mass/snap_time**3",
+                registry=reg,
+            )
+            data["PartType0"]["XrayPhotonLuminositiesRestframe"] = unyt.unyt_array(
+                xrays,
                 dtype=np.float64,
                 units="1/snap_time",
                 registry=reg,

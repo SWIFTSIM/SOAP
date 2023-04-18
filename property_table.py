@@ -21,6 +21,7 @@ def get_version_string():
 
 
 class PropertyTable:
+
     categories = ["basic", "general", "gas", "dm", "star", "baryon", "VR"]
     explanation = {
         "footnote_MBH.tex": ["BHmaxM"],
@@ -83,6 +84,32 @@ class PropertyTable:
         ],
         "footnote_compY.tex": ["compY", "compY_no_agn"],
         "footnote_dopplerB.tex": ["DopplerB"],
+        "footnote_coreexcision.tex": [
+            "Tgas_cy_weighted_core_excision",
+            "Tgas_cy_weighted_core_excision_no_agn",
+            "Tgas_core_excision",
+            "Tgas_no_cool_core_excision",
+            "Tgas_no_agn_core_excision",
+            "Tgas_no_cool_no_agn_core_excision",
+            "Xraylum_core_excision",
+            "Xraylum_no_agn_core_excision",
+            "Xrayphlum_core_excision",
+            "Xrayphlum_no_agn_core_excision",
+            "SpectroscopicLikeTemperature_core_excision",
+            "SpectroscopicLikeTemperature_no_agn_core_excision",
+        ],
+        "footnote_cytemp.tex": [
+            "Tgas_cy_weighted",
+            "Tgas_cy_weighted_no_agn",
+            "Tgas_cy_weighted_core_excision",
+            "Tgas_cy_weighted_core_excision_no_agn",
+        ],
+        "footnote_spectroscopicliketemperature.tex": [
+            "SpectroscopicLikeTemperature",
+            "SpectroscopicLikeTemperature_core_excision",
+            "SpectroscopicLikeTemperature_no_agn",
+            "SpectroscopicLikeTemperature_no_agn_core_excision"
+        ]
     }
 
     compression_description = {
@@ -736,6 +763,86 @@ class PropertyTable:
             "FMantissa9",
             False,
         ),
+        "Tgas_cy_weighted": (
+            "GasComptonYTemperature",
+            1,
+            np.float32,
+            "K",
+            "ComptonY-weighted mean gas temperature.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "Tgas_cy_weighted_no_agn": (
+            "GasComptonYTemperatureWithoutRecentAGNHeating",
+            1,
+            np.float32,
+            "K",
+            "ComptonY-weighted mean gas temperature, excluding gas that was recently heated by AGN.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "Tgas_cy_weighted_core_excision": (
+            "GasComptonYTemperatureCoreExcision",
+            1,
+            np.float32,
+            "K",
+            "ComptonY-weighted mean gas temperature, excluding the inner {core_excision}.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "Tgas_cy_weighted_core_excision_no_agn": (
+            "GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision",
+            1,
+            np.float32,
+            "K",
+            "ComptonY-weighted mean gas temperature, excluding the inner {core_excision} and gas that was recently heated by AGN.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "Tgas_core_excision": (
+            "GasTemperatureCoreExcision",
+            1,
+            np.float32,
+            "K",
+            "Mass-weighted mean gas temperature, excluding the inner {core_excision}.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "Tgas_no_cool_core_excision": (
+            "GasTemperatureWithoutCoolGasCoreExcision",
+            1,
+            np.float32,
+            "K",
+            "Mass-weighted mean gas temperature, excluding the inner {core_excision} and gas below 1e5 K.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "Tgas_no_agn_core_excision": (
+            "GasTemperatureWithoutRecentAGNHeatingCoreExcision",
+            1,
+            np.float32,
+            "K",
+            "Mass-weighted mean gas temperature, excluding the inner {core_excision}, and gas that was recently heated by AGN.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "Tgas_no_cool_no_agn_core_excision": (
+            "GasTemperatureWithoutCoolGasAndRecentAGNHeatingCoreExcision",
+            1,
+            np.float32,
+            "K",
+            "Mass-weighted mean gas temperature, excluding the inner {core_excision}, gas below 1e5 K and gas that was recently heated by AGN.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
         "TotalInertiaTensor": (
             "TotalInertiaTensor",
             6,
@@ -745,7 +852,7 @@ class PropertyTable:
             "general",
             "FMantissa9",
             True,
-        )
+        ),
         "VRID": (
             "ID",
             1,
@@ -841,6 +948,16 @@ class PropertyTable:
             3,
             np.float64,
             "erg/s",
+            "Total observer-frame Xray luminosity in three bands.",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xraylum_restframe": (
+            "XRayLuminosityInRestframe",
+            3,
+            np.float64,
+            "erg/s",
             "Total rest-frame Xray luminosity in three bands.",
             "gas",
             "DMantissa9",
@@ -851,13 +968,73 @@ class PropertyTable:
             3,
             np.float64,
             "erg/s",
+            "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN.",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xraylum_restframe_no_agn": (
+            "XRayLuminosityInRestframeWithoutRecentAGNHeating",
+            3,
+            np.float64,
+            "erg/s",
             "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN.",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xraylum_core_excision": (
+            "XRayLuminosityCoreExcision",
+            3,
+            np.float64,
+            "erg/s",
+            "Total observer-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xraylum_restframe_core_excision": (
+            "XRayLuminosityInRestframeCoreExcision",
+            3,
+            np.float64,
+            "erg/s",
+            "Total rest-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xraylum_no_agn_core_excision": (
+            "XRayLuminosityWithoutRecentAGNHeatingCoreExcision",
+            3,
+            np.float64,
+            "erg/s",
+            "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xraylum_restframe_no_agn_core_excision": (
+            "XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
+            3,
+            np.float64,
+            "erg/s",
+            "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
             False,
         ),
         "Xrayphlum": (
             "XRayPhotonLuminosity",
+            3,
+            np.float64,
+            "1/s",
+            "Total observer-frame Xray photon luminosity in three bands.",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xrayphlum_restframe": (
+            "XRayPhotonLuminosityInRestframe",
             3,
             np.float64,
             "1/s",
@@ -871,9 +1048,99 @@ class PropertyTable:
             3,
             np.float64,
             "1/s",
+            "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xrayphlum_restframe_no_agn": (
+            "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating",
+            3,
+            np.float64,
+            "1/s",
             "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
             "gas",
             "DMantissa9",
+            False,
+        ),
+        "Xrayphlum_core_excision": (
+            "XRayPhotonLuminosityCoreExcision",
+            3,
+            np.float64,
+            "1/s",
+            "Total observer-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xrayphlum_restframe_core_excision": (
+            "XRayPhotonLuminosityCoreExcision",
+            3,
+            np.float64,
+            "1/s",
+            "Total rest-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xrayphlum_no_agn_core_excision": (
+            "XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision",
+            3,
+            np.float64,
+            "1/s",
+            "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "Xrayphlum_restframe_no_agn_core_excision": (
+            "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
+            3,
+            np.float64,
+            "1/s",
+            "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+            "gas",
+            "DMantissa9",
+            False,
+        ),
+        "SpectroscopicLikeTemperature": (
+            "SpectroscopicLikeTemperature",
+            1,
+            np.float32,
+            "K",
+            "Spectroscopic-like gas temperature.",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "SpectroscopicLikeTemperature_no_agn": (
+            "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
+            1,
+            np.float32,
+            "K",
+            "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "SpectroscopicLikeTemperature_core_excision": (
+            "SpectroscopicLikeTemperatureCoreExcision",
+            1,
+            np.float32,
+            "K",
+            "Spectroscopic-like gas temperature. Excludes gas in the inner {core_excision}",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "SpectroscopicLikeTemperature_no_agn_core_excision": (
+            "SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision",
+            1,
+            np.float32,
+            "K",
+            "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+            "gas",
+            "FMantissa9",
             False,
         ),
         "com": (
@@ -1241,7 +1508,8 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
             prop_cat = prop["category"]
             prop_comp = self.compression_description[prop["compression"]]
             prop_description = prop["description"].format(
-                label="satisfying a spherical overdensity criterion."
+                label="satisfying a spherical overdensity criterion.",
+                core_excision="excised core",
             )
             checkmark = "\\ding{51}"
             xmark = "\\ding{53}"
@@ -1309,14 +1577,14 @@ if __name__ == "__main__":
 
     from aperture_properties import ExclusiveSphereProperties, InclusiveSphereProperties
     from projected_aperture_properties import ProjectedApertureProperties
-    from SO_properties import SOProperties
+    from SO_properties import CoreExcisedSOProperties
     from subhalo_properties import SubhaloProperties
 
     table = PropertyTable()
     table.add_properties(ExclusiveSphereProperties)
     table.add_properties(InclusiveSphereProperties)
     table.add_properties(ProjectedApertureProperties)
-    table.add_properties(SOProperties)
+    table.add_properties(CoreExcisedSOProperties)
     table.add_properties(SubhaloProperties)
     table.add_properties(DummyProperties)
 

@@ -100,21 +100,24 @@ batch script.
 
 ## Adding quantities
 
-Property calculations are defined as classes in halo_properties.py. See
-halo_properties.SOMasses for an example. Each class should have the following
-attributes:
+The property calculations are defined in these files:
 
-  * particle_properties - specifies which particle properties should be read in. This is a dict with one entry per particle type named "PartType0", "PartType1" etc. Each entry is a list of the names of the properties needed for that particle type.
-  * mean_density_multiple - specifies that particles must be read in a sphere of mean density no greater than this multiple of the mean density
-  * critical_density_multiple - specifies that particles must be read in a sphere of mean density no greater than this multiple of the critical density
-  * physical_radius_mpc - minimum physical radius to read in, in Mpc
-  * name - a string which is used to select this calculation with the --calculations command line flag
+  * Properties of particles in halos `subhalo_properties.py`
+  * Properties of particles in spherical apertures `aperture_properties.py`
+  * Properties of particles in projected apertures `projected_aperture_properties.py`
+  * Properties of particles in spheres of a specified overdensity `SO_properties.py`
 
-There should also be a `calculate` method which implements the calculation
-and updates the halo_results dict with the calculated properties. The returned
-values must be unyt_arrays or unyt_quantities.
+Adding new quantities to already defined SOAP apertures is a relatively easy business. There are four steps.
 
-New classes must be added to halo_prop_list in compute_halo_properties.py.
+  * Start by adding an entry to the property table (https://github.com/SWIFTSIM/SOAP/blob/master/property_table.py). Here we store all the properties of the quantities (name, type, unit etc.) All entries in this table are checked with unit tests and added to the documentation. Adding your quantity here will make sure the code and the documentation are in line with each other.
+  * Next you have to add the quantity to the type of aperture you want it to be calculated for (aperture_properties.py, SO_properties.py, subhalo_properties.py or projected_aperture_properties.py). In all these files there is a class named `property_list` which defines the subset of all properties that are calculated for this specific aperture.
+  * To calculate your quantity you have to define a `@lazy_property` with the same name in the `XXParticleData` class in the same file. There should be a lot of examples of different quantities that are already calculated. An important thing to note is that fields that are used for multiple calculations should have their own `@lazy_property` to avoid loading things multiple times, so check if the things that you need are already there.
+  * At this point everything should now work. To test the newly added quantities you can run a unit test using `python3 -W error -m pytest NAME_OF_FILE`. This checks whether the code crashes, and whether there are problems with units and overflows. This should make sure that SOAP never crashes while calculating the new properties.
+
+If SOAP does crash while evaluating your new property it will try to
+output the ID of the halo it was processing when it crashed. Then you
+can re-run that halo on a single MPI rank in the python debugger as
+described in the debugging section below.
 
 ## Units
 

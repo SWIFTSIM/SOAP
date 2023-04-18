@@ -135,9 +135,23 @@ def get_inertia_tensor(mass, position):
     # i.e. Itensor is dimensionless throughout (even though it should not be)
     for i in range(3):
         for j in range(3):
-            Itensor[:, i, j] *= position[:, i].value*position[:, j].value
+            Itensor[:, i, j] *= position[:, i].value * position[:, j].value
     Itensor = Itensor.sum(axis=0)
-    Itensor = np.array((Itensor[0,0],Itensor[1,1],Itensor[2,2],Itensor[0,1],Itensor[0,2],Itensor[1,2]))*position.units*position.units*mass.units
+    Itensor = (
+        np.array(
+            (
+                Itensor[0, 0],
+                Itensor[1, 1],
+                Itensor[2, 2],
+                Itensor[0, 1],
+                Itensor[0, 2],
+                Itensor[1, 2],
+            )
+        )
+        * position.units
+        * position.units
+        * mass.units
+    )
     return Itensor
 
 
@@ -158,17 +172,24 @@ def get_projected_inertia_tensor(mass, position, axis):
     else:
         raise AttributeError(f"Invalid axis: {axis}!")
 
-    Itensor = (mass[:, None, None] ) * np.ones((mass.shape[0], 2, 2))
+    Itensor = (mass[:, None, None]) * np.ones((mass.shape[0], 2, 2))
     # Note: unyt currently ignores the position units in the *=
     # i.e. Itensor is dimensionless throughout (even though it should not be)
     for i in range(2):
         for j in range(2):
-            Itensor[:, i, j] *= projected_position[:, i].value * projected_position[:, j].value
+            Itensor[:, i, j] *= (
+                projected_position[:, i].value * projected_position[:, j].value
+            )
     Itensor = Itensor.sum(axis=0)
-    Itensor = np.array((Itensor[0,0],Itensor[1,1],Itensor[0,1]))*position.units*position.units*mass.units
+    Itensor = (
+        np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
+        * position.units
+        * position.units
+        * mass.units
+    )
     return Itensor
 
 
 
 if __name__ == "__main__":
-   pass
+    pass

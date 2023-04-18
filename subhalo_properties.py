@@ -738,7 +738,6 @@ class SubhaloParticleData:
 
 
 class SubhaloProperties(HaloProperty):
-
     # get the properties we want from the table
     property_list = [
         (prop, *PropertyTable.full_property_list[prop])
@@ -938,9 +937,11 @@ class SubhaloProperties(HaloProperty):
                 val, dtype=dtype, units=unit, registry=registry
             )
             if do_calculation[category]:
-                val = getattr(part_props, name)                
+                val = getattr(part_props, name)
                 if val is not None:
-                    assert subhalo[name].shape == val.shape, f"Attempting to store {name} with wrong dimensions"
+                    assert (
+                        subhalo[name].shape == val.shape
+                    ), f"Attempting to store {name} with wrong dimensions"
                     if unit == "dimensionless":
                         subhalo[name] = unyt.unyt_array(
                             val.astype(dtype),

@@ -580,7 +580,9 @@ class ProjectedApertureProperties(HaloProperty):
                 if do_calculation[category]:
                     val = getattr(proj_part_props, name)
                     if val is not None:
-                        assert projected_aperture[name].shape == val.shape, f"Attempting to store {name} with wrong dimensions"
+                        assert (
+                            projected_aperture[name].shape == val.shape
+                        ), f"Attempting to store {name} with wrong dimensions"
                         if unit == "dimensionless":
                             projected_aperture[name] = unyt.unyt_array(
                                 val.astype(dtype),

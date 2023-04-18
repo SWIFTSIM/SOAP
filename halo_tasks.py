@@ -12,6 +12,7 @@ import result_set
 import halo_properties
 from property_table import PropertyTable
 
+
 # Factor by which to increase search radius when looking for density threshold
 SEARCH_RADIUS_FACTOR = 1.2
 
@@ -32,6 +33,7 @@ def process_single_halo(
     boxsize,
     input_halo,
     target_density,
+    xray_calc
 ):
     """
     This computes properties for one halo and runs on a single
@@ -109,6 +111,25 @@ def process_single_halo(
                 offset = input_halo["cofp"] - 0.5 * boxsize
                 pos[:, :] = ((pos - offset) % boxsize) + offset
 
+
+            ptype = 'PartType0'
+            idx_he, idx_T, idx_n, t_z, d_z, t_T, d_T, t_nH, d_nH, t_He, d_He, abundance_to_solar, joint_mask, volumes, data_n = xray_calc.find_indices(particle_data[ptype]['Densities'], particle_data[ptype]['Temperatures'], particle_data[ptype]['SmoothedElementMassFractions'], particle_data[ptype]['Masses'], fill_value = 0)
+            
+            xray_bands = ['erosita-low', 'erosita-high', 'ROSAT']
+            observing_types = ['energies_intrinsic', 'energies_intrinsic', 'energies_intrinsic']
+            particle_data[ptype]["XrayLuminosities"] = xray_calc.interpolate_X_Ray(idx_he, idx_T, idx_n, t_z, d_z, t_T, d_T, t_nH, d_nH, t_He, d_He, abundance_to_solar, joint_mask, volumes, data_n, bands = xray_bands, observing_types = observing_types, fill_value = 0).to(particle_data[ptype]["XrayLuminosities"].units)
+
+            observing_types = ['photons_intrinsic', 'photons_intrinsic', 'photons_intrinsic']
+            particle_data[ptype]["XrayPhotonLuminosities"] = xray_calc.interpolate_X_Ray(idx_he, idx_T, idx_n, t_z, d_z, t_T, d_T, t_nH, d_nH, t_He, d_He, abundance_to_solar, joint_mask, volumes, data_n, bands = xray_bands, observing_types = observing_types, fill_value = 0).to(particle_data[ptype]["XrayPhotonLuminosities"].units)
+
+            observing_types = ['energies_intrinsic_restframe', 'energies_intrinsic_restframe', 'energies_intrinsic_restframe']
+            particle_data[ptype]["XrayLuminositiesRestframe"] = xray_calc.interpolate_X_Ray(idx_he, idx_T, idx_n, t_z, d_z, t_T, d_T, t_nH, d_nH, t_He, d_He, abundance_to_solar, joint_mask, volumes, data_n, bands = xray_bands, observing_types = observing_types, fill_value = 0).to(particle_data[ptype]["XrayLuminosities"].units)
+
+            observing_types = ['photons_intrinsic_restframe', 'photons_intrinsic_restframe', 'photons_intrinsic_restframe']
+            particle_data[ptype]["XrayPhotonLuminositiesRestframe"] = xray_calc.interpolate_X_Ray(idx_he, idx_T, idx_n, t_z, d_z, t_T, d_T, t_nH, d_nH, t_He, d_He, abundance_to_solar, joint_mask, volumes, data_n, bands = xray_bands, observing_types = observing_types, fill_value = 0).to(particle_data[ptype]["XrayPhotonLuminosities"].units)
+
+
+
             # Try to compute properties of this halo which haven't been done yet
             for prop_nr, halo_prop in enumerate(halo_prop_list):
                 if halo_prop_done[prop_nr]:
@@ -124,6 +145,11 @@ def process_single_halo(
                         max_physical_radius_mpc, halo_prop.physical_radius_mpc
                     )
                     break
+                except FloatingPointError as fpe:
+                        # Calculation cause a floating point exception.
+                        # Output the halo ID so we can debug this.
+                        print(f"Halo ID={input_halo['ID']} encountered a floating point error")
+                        raise
                 else:
                     # The property calculation worked!
                     halo_prop_done[prop_nr] = True
@@ -192,6 +218,7 @@ def process_halos(
     boxsize,
     halo_arrays,
     results,
+    xray_calculator
 ):
     """
     This uses all of the MPI ranks on one compute node to compute halo properties
@@ -280,6 +307,7 @@ def process_halos(
                     boxsize,
                     input_halo,
                     target_density,
+                    xray_calculator
                 )
                 if halo_result is not None:
                     # Store results and flag this halo as done

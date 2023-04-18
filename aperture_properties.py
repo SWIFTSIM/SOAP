@@ -992,7 +992,9 @@ class ApertureProperties(HaloProperty):
             if do_calculation[category]:
                 val = getattr(part_props, name)
                 if val is not None:
-                    assert aperture_sphere[name].shape == val.shape, f"Attempting to store {name} with wrong dimensions"
+                    assert (
+                        aperture_sphere[name].shape == val.shape
+                    ), f"Attempting to store {name} with wrong dimensions"
                     if unit == "dimensionless":
                         aperture_sphere[name] = unyt.unyt_array(
                             val.astype(dtype),

@@ -27,20 +27,20 @@ the halo membership and centre of potential as determined by VELOCIraptor (VR; E
 is equivalent to the position of the most gravitationally bound particle in the halo. VR determines the 
 binding energy by summing the gravitational potential energy and the kinetic energy. For gas particles, the 
 thermal energy is also included in the calculation. These choices are not configurable. VR identifies 
-(sub-)halos using a FOF algorithm in 6D phase space, and (sub-)halo membership is based on FOF membership. 
-After the initial FOF search, VR runs a gravitational unbinding algorithm to remove particles that are part of 
+(sub-)halos using a FOF algorithm in 6D phase space, and (sub-)halo membership is based on 6D FOF membership. 
+After the initial 6D FOF search, VR runs a gravitational unbinding algorithm to remove particles that are part of 
 the 6D FOF group but not actually gravitationally bound to the structure. This leaves us with two classes of 
-(sub-)halo member particles: FOF particles, and FOF particles that are also bound. Note that VR does not know 
+(sub-)halo member particles: 6D FOF particles, and 6D FOF particles that are also bound. Note that VR does not know 
 about neutrinos; neutrino particles can hence never be bound to a (sub-)halo.
 
 \section{Property types}
 
 \paragraph{Subhalo quantities (SH)} are computed for each (sub-)halo identified by VR, irrespective of whether 
 this is a field halo or a satellite (or even satellite of satellite and so on). They include all particles 
-that are members of the friends-of-friends (FOF) halo, or only those particles that are bound to the 
-(sub-)halo (FOF minus unbound particles). For each (sub-)halo, there are thus only two sets of subhalo 
+that are members of the 6D-friends-of-friends (6D FOF) halo, or only those particles that are bound to the 
+(sub-)halo (6D FOF minus unbound particles). For each (sub-)halo, there are thus only two sets of subhalo 
 properties of this type. Subhalo properties are contained within the groups \verb+FOFSubhaloProperties+ and 
-\verb+BoundSubhaloProperties+ in the output file, depending on whether they include all particles in the FOF 
+\verb+BoundSubhaloProperties+ in the output file, depending on whether they include all particles in the 6D FOF 
 or only the subset that is also gravitionally bound.
 
 \paragraph{Exclusive sphere quantities (ES)} are similar to subhalo quantities, but they include only the 
@@ -81,7 +81,7 @@ separate group, \verb+VR+.
 
 \begin{longtable}{llcp{6cm}}
  & Name & Inclusive? & Variations \\
-\hline{}SH & \verb+XXSubhaloProperties+ & \ding{53} & \verb+FOF+, \verb+Bound+ \\
+\hline{}SH & \verb+XXSubhaloProperties+ & \ding{53} & \verb+FOF+, \verb+Bound+\footnote{Note that FOF here refers to the 6D FOF} \\
 ES & \verb+ExclusiveSphere/XXXkpc+ & \ding{53} & 30, 50, 100, 300, 500, 1000, 3000 kpc \\
 IS & \verb+InclusiveSphere/XXXkpc+ & \ding{51} & 30, 50, 100, 300, 500, 1000, 3000 kpc \\
 EP & \verb+ProjectedAperture/XXXkpc/projP+ & \ding{53} & 10, 30, 50, 100 kpc \\
@@ -114,19 +114,19 @@ many more particles.
 particle limit imposed by VR.
 
 \paragraph{General derived quanties (general)} use a filter based on the total number of particles within the 
-VR FOF group.
+VR 6D FOF group.
 
-\paragraph{Derived gas quantities (gas)} use a filter based on the number of gas particles within the VR FOF 
+\paragraph{Derived gas quantities (gas)} use a filter based on the number of gas particles within the VR 6D FOF 
 group.
 
-\paragraph{Derived DM quantities (dm)} use a filter based on the number of DM particles within the VR FOF 
+\paragraph{Derived DM quantities (dm)} use a filter based on the number of DM particles within the VR 6D FOF 
 group.
 
 \paragraph{Derived stellar quantities (star)} use a filter based on the number of star particles within the VR 
-FOF group.
+6D FOF group.
 
 \paragraph{Derived baryon quantities (baryon)} use a filter based on the number of gas and star particles 
-within the VR FOF group.
+within the VR 6D FOF group.
 
 \paragraph{}Note that there are no quantities that use a BH or neutrino particle number filter.
 
