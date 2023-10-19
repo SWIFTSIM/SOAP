@@ -137,6 +137,18 @@ class SubhaloParticleData:
         return self.position[self.baryons_mask_sh]
 
     @lazy_property
+    def max_pos(self):
+        return self.position.max(
+            axis=0
+        ) * 1.001 + self.centre
+
+    @lazy_property
+    def min_pos(self):
+        return self.position.min(
+            axis=0
+        ) * 1.001 + self.centre
+
+    @lazy_property
     def vel_gas(self):
         return self.velocity[self.gas_mask_sh]
 
@@ -801,6 +813,8 @@ class SubhaloProperties(HaloProperty):
             "stellar_age_lw",
             "Mgas_SF",
             "gasmetalfrac_SF",
+            "max_pos",
+            "min_pos",
         ]
     ]
 
