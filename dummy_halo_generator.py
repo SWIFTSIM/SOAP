@@ -201,6 +201,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
         }
 
         self.defined_constants = {
+            "N_O_sun": 0.138 * unyt.dimensionless,
             "O_H_sun": 4.9e-04 * unyt.dimensionless,
             "Fe_H_sun": 2.82e-5 * unyt.dimensionless,
         }

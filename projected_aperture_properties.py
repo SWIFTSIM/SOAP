@@ -937,6 +937,23 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
+    def star_mass_N(self) -> unyt.unyt_array:
+        """
+        Nitrogen mass fractions of star particles.
+        """
+        if self.Nstar == 0:
+            return None
+        return (
+            self.star_element_fractions[
+                :,
+                self.part_props.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Nitrogen"
+                ),
+            ]
+            * self.proj_mass_star
+        )
+
+    @lazy_property
     def star_mass_Fe(self) -> unyt.unyt_array:
         """
         Iron mass fractions of star particles.
@@ -961,6 +978,15 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Nstar == 0 or self.Mstar == 0.0:
             return None
         return self.star_mass_O.sum() / self.Mstar
+
+    @lazy_property
+    def starNfrac(self) -> unyt.unyt_quantity:
+        """
+        Total nitrogen mass fraction of star particles.
+        """
+        if self.Nstar == 0 or self.Mstar == 0.0:
+            return None
+        return self.star_mass_N.sum() / self.Mstar
 
     @lazy_property
     def starMgfrac(self) -> unyt.unyt_quantity:
@@ -1093,6 +1119,7 @@ class ProjectedApertureProperties(HaloProperty):
             "MolecularHydrogenMass",
             "AtomicHydrogenMass",
             "starFefrac",
+            "starNfrac",
             "starMgfrac",
             "starOfrac",
             "starmetalfrac",

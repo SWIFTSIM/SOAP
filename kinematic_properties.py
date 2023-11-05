@@ -251,17 +251,20 @@ def get_axis_lengths(
     """
 
     Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 3, 3))
-    # Note: unyt currently ignores the position units in the *=
-    # i.e. Itensor is dimensionless throughout (even though it should not be)
+    # Note: unyt does not ignore the position units in the *=
+    # but we want Itensor dimensionless throughout (even though it should not be)
     for i in range(3):
         for j in range(3):
-            Itensor[:, i, j] *= position[:, i] * position[:, j]
+            Itensor[:, i, j] *= position[:, i].value * position[:, j].value
     Itensor = Itensor.sum(axis=0)
 
     # linalg.eigenvals cannot deal with units anyway, so we have to add them
     # back in
     axes = np.linalg.eigvals(Itensor).real
-    axes = np.clip(axes, 0.0, None)
+    axes = np.clip(axes, 0.0, np.max(axes))
+    # axes = np.clip(axes, 0.0, None)
+    # this version gives me an error of TypeError: 'NoneType' object is not iterable
+    # under unyt 3.0.1
     axes = np.sqrt(axes) * position.units
 
     # sort the axes from long to short
@@ -311,17 +314,20 @@ def get_projected_axis_lengths(
         raise AttributeError(f"Invalid axis: {axis}!")
 
     Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
-    # Note: unyt currently ignores the position units in the *=
-    # i.e. Itensor is dimensionless throughout (even though it should not be)
+    # Note: unyt does not ignore the position units in the *=
+    # but we want Itensor dimensionless throughout (even though it should not be)
     for i in range(2):
         for j in range(2):
-            Itensor[:, i, j] *= projected_position[:, i] * projected_position[:, j]
+            Itensor[:, i, j] *= projected_position[:, i].value * projected_position[:, j].value
     Itensor = Itensor.sum(axis=0)
 
     # linalg.eigenvals cannot deal with units anyway, so we have to add them
     # back in
     axes = np.linalg.eigvals(Itensor).real
-    axes = np.clip(axes, 0.0, None)
+    axes = np.clip(axes, 0.0, np.max(axes))
+    # axes = np.clip(axes, 0.0, None)
+    # this version gives me an error of TypeError: 'NoneType' object is not iterable
+    # under unyt 3.0.1
     axes = np.sqrt(axes) * projected_position.units
 
     # sort the axes from long to short
