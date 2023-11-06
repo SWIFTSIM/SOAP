@@ -228,15 +228,10 @@ class XrayCalculator:
         redshift = self.z_now
         scale_factor = 1 / (1 + redshift)
         data_n = np.log10(
-            element_mass_fractions[:, 0]
-            * densities.to(g * cm ** -3)
-            / mp
+            element_mass_fractions[:, 0] * densities.to(g * cm ** -3) / mp
         )
         data_T = np.log10(temperatures)
-        volumes = (
-            masses.astype(np.float64)
-            / densities.astype(np.float64)
-        ).to(cm ** 3)
+        volumes = (masses.astype(np.float64) / densities.astype(np.float64)).to(cm ** 3)
 
         # Create density mask, round to avoid numerical errors
         density_mask = (data_n >= np.round(self.density_bins.min(), 1)) & (
