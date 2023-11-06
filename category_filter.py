@@ -44,11 +44,7 @@ class CategoryFilter:
     group, and requires the calculation of FOFSubhaloProperties for each halo.
     """
 
-    def __init__(
-        self,
-        filter_values: Dict,
-        dmo: bool = False,
-    ):
+    def __init__(self, filter_values: Dict, dmo: bool = False):
         """
         Construct the filter with the requested filter thresholds.
 

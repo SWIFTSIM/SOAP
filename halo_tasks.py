@@ -57,7 +57,7 @@ def process_single_halo(
     swift_mpc = unyt.Unit("swift_mpc", registry=unit_registry)
     snap_length = unyt.Unit("snap_length", registry=unit_registry)
     snap_mass = unyt.Unit("snap_mass", registry=unit_registry)
-    snap_density = snap_mass / (snap_length**3)
+    snap_density = snap_mass / (snap_length ** 3)
 
     # Record which calculations are still to do for this halo
     halo_prop_done = np.zeros(len(halo_prop_list), dtype=bool)
@@ -72,7 +72,9 @@ def process_single_halo(
         # Sanity checks on the radius
         assert current_radius <= input_halo["read_radius"]
         if current_radius > REPORT_RADIUS * swift_mpc:
-            print(f"Halo ID={input_halo['ID']} has large search radius {current_radius}")
+            print(
+                f"Halo ID={input_halo['ID']} has large search radius {current_radius}"
+            )
 
         # Find the mass within the search radius
         mass_total = unyt.unyt_quantity(0.0, units=snap_mass)
@@ -87,7 +89,7 @@ def process_single_halo(
                 mass_total += np.sum(mass.full[idx[ptype]], dtype=float)
 
         # Find mean density in the search radius
-        density = mass_total / (4.0 / 3.0 * np.pi * current_radius**3)
+        density = mass_total / (4.0 / 3.0 * np.pi * current_radius ** 3)
 
         # If we've reached the target density, we can try to compute halo properties
         max_physical_radius_mpc = (

@@ -368,10 +368,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            [
-                "PartType0/Masses",
-                "PartType0/ElementMassFractionsDiffuse",
-            ],
+            ["PartType0/Masses", "PartType0/ElementMassFractionsDiffuse"],
         ),
         "DiffuseIronMass": (
             "DiffuseIronMass",
@@ -382,10 +379,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            [
-                "PartType0/Masses",
-                "PartType0/ElementMassFractionsDiffuse",
-            ],
+            ["PartType0/Masses", "PartType0/ElementMassFractionsDiffuse"],
         ),
         "DiffuseMagnesiumMass": (
             "DiffuseMagnesiumMass",
@@ -396,10 +390,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            [
-                "PartType0/Masses",
-                "PartType0/ElementMassFractionsDiffuse",
-            ],
+            ["PartType0/Masses", "PartType0/ElementMassFractionsDiffuse"],
         ),
         "DiffuseOxygenMass": (
             "DiffuseOxygenMass",
@@ -410,10 +401,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            [
-                "PartType0/Masses",
-                "PartType0/ElementMassFractionsDiffuse",
-            ],
+            ["PartType0/Masses", "PartType0/ElementMassFractionsDiffuse"],
         ),
         "DiffuseSiliconMass": (
             "DiffuseSiliconMass",
@@ -424,10 +412,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            [
-                "PartType0/Masses",
-                "PartType0/ElementMassFractionsDiffuse",
-            ],
+            ["PartType0/Masses", "PartType0/ElementMassFractionsDiffuse"],
         ),
         "DopplerB": (
             "DopplerB",
@@ -2017,10 +2002,7 @@ class PropertyTable:
             "star",
             "FMantissa9",
             False,
-            [
-                "PartType4/Masses",
-                "PartType4/ElementMassFractions",
-            ],
+            ["PartType4/Masses", "PartType4/ElementMassFractions"],
         ),
         "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit": (
             "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit",
@@ -2031,10 +2013,7 @@ class PropertyTable:
             "star",
             "FMantissa9",
             False,
-            [
-                "PartType4/Masses",
-                "PartType4/ElementMassFractions",
-            ],
+            ["PartType4/Masses", "PartType4/ElementMassFractions"],
         ),
         "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit": (
             "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit",
@@ -2045,10 +2024,7 @@ class PropertyTable:
             "star",
             "FMantissa9",
             False,
-            [
-                "PartType4/Masses",
-                "PartType4/ElementMassFractions",
-            ],
+            ["PartType4/Masses", "PartType4/ElementMassFractions"],
         ),
         "GasMassInColdDenseDiffuseMetals": (
             "GasMassInColdDenseDiffuseMetals",
@@ -2144,17 +2120,20 @@ class PropertyTable:
         """
         halo_type = halo_property.__name__
         props = halo_property.property_list
-        for i, (
-            prop_name,
-            prop_outputname,
-            prop_shape,
-            prop_dtype,
-            prop_units,
-            prop_description,
-            prop_cat,
-            prop_comp,
-            prop_dmo,
-            prop_partprops,
+        for (
+            i,
+            (
+                prop_name,
+                prop_outputname,
+                prop_shape,
+                prop_dtype,
+                prop_units,
+                prop_description,
+                prop_cat,
+                prop_comp,
+                prop_dmo,
+                prop_partprops,
+            ),
         ) in enumerate(props):
             prop_units = (
                 unyt.unyt_quantity(1, units=prop_units)

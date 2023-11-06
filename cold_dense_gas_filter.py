@@ -33,8 +33,8 @@ class ColdDenseGasFilter:
 
     def __init__(
         self,
-        maximum_temperature: unyt.unyt_quantity = 10.0**4.5 * unyt.K,
-        minimum_hydrogen_number_density: unyt.unyt_quantity = 0.1 / unyt.cm**3,
+        maximum_temperature: unyt.unyt_quantity = 10.0 ** 4.5 * unyt.K,
+        minimum_hydrogen_number_density: unyt.unyt_quantity = 0.1 / unyt.cm ** 3,
     ):
         """
         Construct the filter.

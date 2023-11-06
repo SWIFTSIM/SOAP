@@ -2,13 +2,16 @@
 
 import time
 
+
 class MPITimer:
     def __init__(self, name, comm):
         self.name = name
         self.comm = comm
+
     def __enter__(self):
         self.comm.barrier()
         self.t0 = time.time()
+
     def __exit__(self, exc_type, exc_value, exc_tb):
         if exc_type is None:
             self.comm.barrier()

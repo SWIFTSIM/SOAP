@@ -9,8 +9,11 @@ import h5py
 def unit_registry_from_snapshot(snap):
 
     # Read snapshot metadata
-    physical_constants_cgs = {name : float(value) for name, value in snap["PhysicalConstants/CGS"].attrs.items()}
-    cosmology = {name : float(value) for name, value in snap["Cosmology"].attrs.items()}
+    physical_constants_cgs = {
+        name: float(value)
+        for name, value in snap["PhysicalConstants/CGS"].attrs.items()
+    }
+    cosmology = {name: float(value) for name, value in snap["Cosmology"].attrs.items()}
     a = unyt.unyt_quantity(cosmology["Scale-factor"])
     h = unyt.unyt_quantity(cosmology["h"])
 
@@ -18,15 +21,32 @@ def unit_registry_from_snapshot(snap):
     reg = unyt.unit_registry.UnitRegistry()
 
     # Define code and snapshot base units
-    for group_name, prefix in (("Units", "snap"),
-                               ("InternalCodeUnits", "code")):
-        units_cgs = {name : float(value) for name, value in snap[group_name].attrs.items()}
-        unyt.define_unit(prefix+"_length",      units_cgs["Unit length in cgs (U_L)"]*unyt.cm,     registry=reg)
-        unyt.define_unit(prefix+"_mass",        units_cgs["Unit mass in cgs (U_M)"]*unyt.g,        registry=reg)
-        unyt.define_unit(prefix+"_time",        units_cgs["Unit time in cgs (U_t)"]*unyt.s,        registry=reg)
-        unyt.define_unit(prefix+"_temperature", units_cgs["Unit temperature in cgs (U_T)"]*unyt.K, registry=reg)
-        unyt.define_unit(prefix+"_angle",       1.0*unyt.rad,                                      registry=reg)
-        unyt.define_unit(prefix+"_current",     units_cgs["Unit current in cgs (U_I)"]*unyt.A,     registry=reg)
+    for group_name, prefix in (("Units", "snap"), ("InternalCodeUnits", "code")):
+        units_cgs = {
+            name: float(value) for name, value in snap[group_name].attrs.items()
+        }
+        unyt.define_unit(
+            prefix + "_length",
+            units_cgs["Unit length in cgs (U_L)"] * unyt.cm,
+            registry=reg,
+        )
+        unyt.define_unit(
+            prefix + "_mass", units_cgs["Unit mass in cgs (U_M)"] * unyt.g, registry=reg
+        )
+        unyt.define_unit(
+            prefix + "_time", units_cgs["Unit time in cgs (U_t)"] * unyt.s, registry=reg
+        )
+        unyt.define_unit(
+            prefix + "_temperature",
+            units_cgs["Unit temperature in cgs (U_T)"] * unyt.K,
+            registry=reg,
+        )
+        unyt.define_unit(prefix + "_angle", 1.0 * unyt.rad, registry=reg)
+        unyt.define_unit(
+            prefix + "_current",
+            units_cgs["Unit current in cgs (U_I)"] * unyt.A,
+            registry=reg,
+        )
 
     # Add the expansion factor as a dimensionless "unit"
     unyt.define_unit("a", a, dim.dimensionless, registry=reg)
@@ -41,16 +61,24 @@ def unit_registry_from_snapshot(snap):
         unyt.Unit("snap_temperature", registry=reg),
         unyt.Unit("snap_angle", registry=reg),
         unyt.Unit("snap_current", registry=reg),
-        registry=reg
+        registry=reg,
     )
-    
+
     # Create a registry using this base unit system
     reg = unyt.unit_registry.UnitRegistry(lut=reg.lut, unit_system=us)
 
     # Add some units which might be useful for dealing with VR data
-    unyt.define_unit("swift_mpc",  1.0e6*physical_constants_cgs["parsec"]*unyt.cm, registry=reg)
-    unyt.define_unit("swift_msun", physical_constants_cgs["solar_mass"]*unyt.g, registry=reg)
-    unyt.define_unit("newton_G", physical_constants_cgs["newton_G"]*unyt.cm**3/unyt.g/unyt.s**2, registry=reg)
+    unyt.define_unit(
+        "swift_mpc", 1.0e6 * physical_constants_cgs["parsec"] * unyt.cm, registry=reg
+    )
+    unyt.define_unit(
+        "swift_msun", physical_constants_cgs["solar_mass"] * unyt.g, registry=reg
+    )
+    unyt.define_unit(
+        "newton_G",
+        physical_constants_cgs["newton_G"] * unyt.cm ** 3 / unyt.g / unyt.s ** 2,
+        registry=reg,
+    )
 
     return reg
 
@@ -68,41 +96,43 @@ def units_from_attributes(attrs, registry):
     u = unyt.dimensionless
     unit_system = registry.unit_system
     base = registry.unit_system.base_units
-    for symbol, baseunit in (("I", base[dim.current_mks]),
-                             ("L", base[dim.length]),
-                             ("M", base[dim.mass]),
-                             ("T", base[dim.temperature]),
-                             ("t", base[dim.time])):
+    for symbol, baseunit in (
+        ("I", base[dim.current_mks]),
+        ("L", base[dim.length]),
+        ("M", base[dim.mass]),
+        ("T", base[dim.temperature]),
+        ("t", base[dim.time]),
+    ):
         unit = unyt.Unit(baseunit, registry=registry)
         exponent = attrs["U_%s exponent" % symbol][0]
         if exponent == 1.0:
             if u is unyt.dimensionless:
                 u = unit
             else:
-                u = u*unit
+                u = u * unit
         elif exponent != 0.0:
             if u is unyt.dimensionless:
-                u = unit**exponent
+                u = unit ** exponent
             else:
-                u = u*(unit**exponent)
+                u = u * (unit ** exponent)
 
     # Add expansion factor
     a_scale_exponent = attrs["a-scale exponent"][0]
-    a_unit = unyt.Unit("a", registry=registry)**a_scale_exponent
+    a_unit = unyt.Unit("a", registry=registry) ** a_scale_exponent
     if a_scale_exponent != 0:
         if u is unyt.dimensionless:
             u = a_unit
         else:
-            u = u*a_unit
+            u = u * a_unit
 
     # Add h factor
     h_scale_exponent = attrs["h-scale exponent"][0]
-    h_unit = unyt.Unit("h", registry=registry)**h_scale_exponent
+    h_unit = unyt.Unit("h", registry=registry) ** h_scale_exponent
     if h_scale_exponent != 0:
         if u is unyt.dimensionless:
             u = h_unit
         else:
-            u = u*h_unit
+            u = u * h_unit
 
     return unyt.Unit(u, registry=registry)
 
@@ -133,16 +163,20 @@ def attributes_from_units(units):
 
     # Find the power associated with each dimension
     powers = units.get_mks_equivalent().dimensions.as_powers_dict()
-    
+
     # Set the attributes
-    attrs["Conversion factor to CGS (not including cosmological corrections)"] = [float(cgs_factor/(a_val**a_exponent)/(h_val**h_exponent)),]
-    attrs["Conversion factor to CGS (including cosmological corrections)"]     = [float(cgs_factor),]
-    attrs["U_I exponent"] = [float(powers[unyt.dimensions.current_mks]),]
-    attrs["U_L exponent"] = [float(powers[unyt.dimensions.length]),]
-    attrs["U_M exponent"] = [float(powers[unyt.dimensions.mass]),]
-    attrs["U_T exponent"] = [float(powers[unyt.dimensions.temperature]),]
-    attrs["U_t exponent"] = [float(powers[unyt.dimensions.time]),]
-    attrs["a-scale exponent"] = [float(a_exponent),]
-    attrs["h-scale exponent"] = [float(h_exponent),]
+    attrs["Conversion factor to CGS (not including cosmological corrections)"] = [
+        float(cgs_factor / (a_val ** a_exponent) / (h_val ** h_exponent))
+    ]
+    attrs["Conversion factor to CGS (including cosmological corrections)"] = [
+        float(cgs_factor)
+    ]
+    attrs["U_I exponent"] = [float(powers[unyt.dimensions.current_mks])]
+    attrs["U_L exponent"] = [float(powers[unyt.dimensions.length])]
+    attrs["U_M exponent"] = [float(powers[unyt.dimensions.mass])]
+    attrs["U_T exponent"] = [float(powers[unyt.dimensions.temperature])]
+    attrs["U_t exponent"] = [float(powers[unyt.dimensions.time])]
+    attrs["a-scale exponent"] = [float(a_exponent)]
+    attrs["h-scale exponent"] = [float(h_exponent)]
 
     return attrs

@@ -51,9 +51,9 @@ def test_SO_radius_calculation():
         ipos = np.argmax(ordered_radius > 0.0)
         ordered_radius = ordered_radius[ipos:]
         cumulative_mass = cumulative_mass[ipos:]
-        density = cumulative_mass / (4.0 * np.pi / 3.0 * ordered_radius**3)
+        density = cumulative_mass / (4.0 * np.pi / 3.0 * ordered_radius ** 3)
 
-        reference_density = 200.0 * Mpart * npart / (4.0 * np.pi / 3.0 * rmax**3)
+        reference_density = 200.0 * Mpart * npart / (4.0 * np.pi / 3.0 * rmax ** 3)
 
         try:
             SO_r, SO_mass, SO_volume = find_SO_radius_and_mass(
@@ -78,7 +78,7 @@ def test_SO_radius_calculation():
         ax[1][0].semilogy(ordered_radius, cumulative_mass, "o-")
         if SO_r >= 0.0 * unyt.kpc:
             rrange = np.linspace(0.0, 2.0 * SO_r, 100)
-            Mrange = reference_density * 4.0 * np.pi / 3.0 * rrange**3
+            Mrange = reference_density * 4.0 * np.pi / 3.0 * rrange ** 3
             rrange.convert_to_units("kpc")
             Mrange.convert_to_units("Msun")
             ax[1][0].semilogy(rrange, Mrange, ":", color="C2")
@@ -88,7 +88,7 @@ def test_SO_radius_calculation():
             ax[0][1].semilogy(ordered_radius[beg:end], density[beg:end], "o-")
             ax[1][1].semilogy(ordered_radius[beg:end], cumulative_mass[beg:end], "o-")
             rrange = np.linspace(0.9 * SO_r, 1.1 * SO_r, 100)
-            Mrange = reference_density * 4.0 * np.pi / 3.0 * rrange**3
+            Mrange = reference_density * 4.0 * np.pi / 3.0 * rrange ** 3
             rrange.convert_to_units("kpc")
             Mrange.convert_to_units("Msun")
             ax[1][1].semilogy(rrange, Mrange, ":", color="C2")

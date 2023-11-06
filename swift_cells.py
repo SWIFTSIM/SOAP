@@ -178,7 +178,9 @@ class SWIFTCellGrid:
                 self.constants[name] = infile["PhysicalConstants"]["CGS"].attrs[name][0]
             self.constants_internal = {}
             for name in infile["PhysicalConstants"]["InternalUnits"].attrs:
-                self.constants_internal[name] = infile["PhysicalConstants"]["InternalUnits"].attrs[name][0]
+                self.constants_internal[name] = infile["PhysicalConstants"][
+                    "InternalUnits"
+                ].attrs[name][0]
 
             # Store units groups
             self.swift_units_group = {}
@@ -193,7 +195,7 @@ class SWIFTCellGrid:
             # Store SWIFT header
             self.swift_header_group = {}
             for name in infile["Header"].attrs:
-               self.swift_header_group[name] = infile["Header"].attrs[name]
+                self.swift_header_group[name] = infile["Header"].attrs[name]
 
             # Read the critical density and attach units
             # This is in internal units, which may not be the same as snapshot units.
@@ -213,20 +215,24 @@ class SWIFTCellGrid:
             # constant so we can then just scale by a**3 to get the physical
             # mean density.
             H0 = self.cosmology["H0 [internal units]"]
-            G  = self.constants_internal["newton_G"]
-            critical_density_z0_internal = 3*(H0**2) / (8*np.pi*G)
-            mean_density_z0_internal = critical_density_z0_internal * self.cosmology["Omega_m"]
-            mean_density_internal = mean_density_z0_internal / (self.a**3)
-            self.mean_density = unyt.unyt_quantity(mean_density_internal, units=internal_density_unit)
+            G = self.constants_internal["newton_G"]
+            critical_density_z0_internal = 3 * (H0 ** 2) / (8 * np.pi * G)
+            mean_density_z0_internal = (
+                critical_density_z0_internal * self.cosmology["Omega_m"]
+            )
+            mean_density_internal = mean_density_z0_internal / (self.a ** 3)
+            self.mean_density = unyt.unyt_quantity(
+                mean_density_internal, units=internal_density_unit
+            )
 
             # Compute the BN98 critical density multiple
             Omega_k = self.cosmology["Omega_k"]
             Omega_Lambda = self.cosmology["Omega_lambda"]
             Omega_m = self.cosmology["Omega_m"]
-            bnx = -(Omega_k / self.a**2 + Omega_Lambda) / (
-                Omega_k / self.a**2 + Omega_m / self.a**3 + Omega_Lambda
+            bnx = -(Omega_k / self.a ** 2 + Omega_Lambda) / (
+                Omega_k / self.a ** 2 + Omega_m / self.a ** 3 + Omega_Lambda
             )
-            self.virBN98 = 18.0 * np.pi**2 + 82.0 * bnx - 39.0 * bnx**2
+            self.virBN98 = 18.0 * np.pi ** 2 + 82.0 * bnx - 39.0 * bnx ** 2
             if self.virBN98 < 50.0 or self.virBN98 > 1000.0:
                 raise RuntimeError("Invalid value for virBN98!")
 
@@ -350,7 +356,7 @@ class SWIFTCellGrid:
         cells_to_read = cells_to_read[idx]
 
         # Merge adjacent cells
-        max_size = 20 * 1024**2
+        max_size = 20 * 1024 ** 2
         nr_to_read = len(cells_to_read)
         for cell_nr in range(nr_to_read - 1):
             cell1 = cells_to_read[cell_nr]
@@ -582,29 +588,21 @@ class SWIFTCellGrid:
         # Write cosmology
         cosmo = group.create_group("Cosmology")
         for name, value in self.cosmology.items():
-            cosmo.attrs[name] = [
-                value,
-            ]
+            cosmo.attrs[name] = [value]
 
         # Write physical constants
         const = group.create_group("PhysicalConstants")
         const = const.create_group("CGS")
         for name, value in self.constants.items():
-            const.attrs[name] = [
-                value,
-            ]
+            const.attrs[name] = [value]
 
         # Write units
         units = group.create_group("Units")
         for name, value in self.swift_units_group.items():
-            units.attrs[name] = [
-                value,
-            ]
+            units.attrs[name] = [value]
         units = group.create_group("InternalCodeUnits")
         for name, value in self.swift_internal_units_group.items():
-            units.attrs[name] = [
-                value,
-            ]
+            units.attrs[name] = [value]
 
         # Write header
         header = group.create_group("Header")

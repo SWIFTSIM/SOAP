@@ -1468,25 +1468,10 @@ class SubhaloProperties(HaloProperty):
         # read if that particular property is actually requested
         # Some basic properties are always required; these are added below
         self.particle_properties = {
-            "PartType0": [
-                "Coordinates",
-                "Masses",
-                "Velocities",
-                self.grnr,
-            ],
+            "PartType0": ["Coordinates", "Masses", "Velocities", self.grnr],
             "PartType1": ["Coordinates", "Masses", "Velocities", self.grnr],
-            "PartType4": [
-                "Coordinates",
-                "Masses",
-                "Velocities",
-                self.grnr,
-            ],
-            "PartType5": [
-                "Coordinates",
-                "DynamicalMasses",
-                "Velocities",
-                self.grnr,
-            ],
+            "PartType4": ["Coordinates", "Masses", "Velocities", self.grnr],
+            "PartType5": ["Coordinates", "DynamicalMasses", "Velocities", self.grnr],
         }
 
         for prop in self.property_list:
@@ -1600,14 +1585,7 @@ class SubhaloProperties(HaloProperty):
                 continue
             name = prop[0]
             description = prop[5]
-            halo_result.update(
-                {
-                    f"{prefix}/{outputname}": (
-                        subhalo[name],
-                        description,
-                    )
-                }
-            )
+            halo_result.update({f"{prefix}/{outputname}": (subhalo[name], description)})
 
 
 def test_subhalo_properties():

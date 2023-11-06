@@ -1149,19 +1149,9 @@ class ProjectedApertureProperties(HaloProperty):
         # Coordinates, Masses and Velocities are always required, as is
         # GroupNr_bound.
         self.particle_properties = {
-            "PartType0": [
-                "Coordinates",
-                "GroupNr_bound",
-                "Masses",
-                "Velocities",
-            ],
+            "PartType0": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
             "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
-            "PartType4": [
-                "Coordinates",
-                "GroupNr_bound",
-                "Masses",
-                "Velocities",
-            ],
+            "PartType4": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
             "PartType5": [
                 "Coordinates",
                 "DynamicalMasses",

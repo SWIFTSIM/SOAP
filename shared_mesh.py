@@ -5,8 +5,8 @@ import shared_array
 import virgo.mpi.parallel_sort as ps
 from mpi4py import MPI
 
-class SharedMesh:
 
+class SharedMesh:
     def __init__(self, comm, pos, resolution):
         """
         Build a mesh in shared memory which can be used to find
@@ -17,7 +17,7 @@ class SharedMesh:
         Input positions are stored in a SharedArray instance. Setting
         up the mesh is a collective operation over communicator comm.
         """
-        
+
         comm_rank = comm.Get_rank()
 
         # Catch the case where there are zero particles on any rank
@@ -53,18 +53,24 @@ class SharedMesh:
 
         # Determine the cell size
         self.resolution = int(resolution)
-        nr_cells = self.resolution**3
-        self.cell_size = (self.pos_max-self.pos_min)/self.resolution
+        nr_cells = self.resolution ** 3
+        self.cell_size = (self.pos_max - self.pos_min) / self.resolution
 
         # Determine which cell each particle in the local part of pos belongs to
-        cell_idx = np.floor((pos.local-self.pos_min[None,:])/self.cell_size[None,:]).value.astype(np.int32)
-        cell_idx = np.clip(cell_idx, 0, self.resolution-1)
-        cell_idx = cell_idx[:,0] + self.resolution*cell_idx[:,1] + (self.resolution**2)*cell_idx[:,2]
+        cell_idx = np.floor(
+            (pos.local - self.pos_min[None, :]) / self.cell_size[None, :]
+        ).value.astype(np.int32)
+        cell_idx = np.clip(cell_idx, 0, self.resolution - 1)
+        cell_idx = (
+            cell_idx[:, 0]
+            + self.resolution * cell_idx[:, 1]
+            + (self.resolution ** 2) * cell_idx[:, 2]
+        )
 
         # Count local particles per cell
         local_count = np.bincount(cell_idx, minlength=nr_cells)
         # Allocate a shared array to store the global count
-        shape = (nr_cells,) if comm_rank==0 else (0,)
+        shape = (nr_cells,) if comm_rank == 0 else (0,)
         self.cell_count = shared_array.SharedArray(shape, local_count.dtype, comm)
         # Accumulate local counts to the shared array
         if comm_rank == 0:
@@ -91,13 +97,15 @@ class SharedMesh:
         del cell_idx
 
         # Merge local sorting indexes into a single shared array
-        self.sort_idx = shared_array.SharedArray(sort_idx_local.shape, sort_idx_local.dtype, comm)
+        self.sort_idx = shared_array.SharedArray(
+            sort_idx_local.shape, sort_idx_local.dtype, comm
+        )
         self.sort_idx.local[:] = sort_idx_local
         comm.barrier()
         self.sort_idx.sync()
 
     def free(self):
-        if not(self.empty):
+        if not (self.empty):
             self.cell_count.free()
             self.cell_offset.free()
             self.sort_idx.free()
@@ -108,28 +116,32 @@ class SharedMesh:
         by pos_min and pos_max. This can be called independently on
         different MPI ranks since it only reads the shared data.
         """
-        
+
         # If there are no particles on any rank, we have nothing to do
         if self.empty:
             return np.ndarray(0, dtype=int)
 
         # Find range of cells involved
-        cell_min_idx = np.floor((pos_min-self.pos_min)/self.cell_size).value.astype(np.int32)
-        cell_min_idx = np.clip(cell_min_idx, 0, self.resolution-1)
-        cell_max_idx = np.floor((pos_max-self.pos_min)/self.cell_size).value.astype(np.int32)
-        cell_max_idx = np.clip(cell_max_idx, 0, self.resolution-1)
+        cell_min_idx = np.floor((pos_min - self.pos_min) / self.cell_size).value.astype(
+            np.int32
+        )
+        cell_min_idx = np.clip(cell_min_idx, 0, self.resolution - 1)
+        cell_max_idx = np.floor((pos_max - self.pos_min) / self.cell_size).value.astype(
+            np.int32
+        )
+        cell_max_idx = np.clip(cell_max_idx, 0, self.resolution - 1)
 
         # Get the indexes of particles in the required cells
         idx = []
-        for k in range(cell_min_idx[2], cell_max_idx[2]+1):
-            for j in range(cell_min_idx[1], cell_max_idx[1]+1):
-                for i in range(cell_min_idx[0], cell_max_idx[0]+1):
-                    cell_nr = i+self.resolution*j+(self.resolution**2)*k
+        for k in range(cell_min_idx[2], cell_max_idx[2] + 1):
+            for j in range(cell_min_idx[1], cell_max_idx[1] + 1):
+                for i in range(cell_min_idx[0], cell_max_idx[0] + 1):
+                    cell_nr = i + self.resolution * j + (self.resolution ** 2) * k
                     start = self.cell_offset.full[cell_nr]
                     count = self.cell_count.full[cell_nr]
                     if count > 0:
-                        idx.append(self.sort_idx.full[start:start+count])
-        
+                        idx.append(self.sort_idx.full[start : start + count])
+
         # Return a single array of indexes
         if len(idx) > 0:
             return np.concatenate(idx)
@@ -147,31 +159,37 @@ class SharedMesh:
         # If there are no particles on any rank, we have nothing to do
         if self.empty:
             return np.ndarray(0, dtype=int)
-        
+
         pos_min = centre - radius
         pos_max = centre + radius
 
         # Find range of cells involved
-        cell_min_idx = np.floor((pos_min-self.pos_min)/self.cell_size).value.astype(np.int32)
-        cell_min_idx = np.clip(cell_min_idx, 0, self.resolution-1)
-        cell_max_idx = np.floor((pos_max-self.pos_min)/self.cell_size).value.astype(np.int32)
-        cell_max_idx = np.clip(cell_max_idx, 0, self.resolution-1)
+        cell_min_idx = np.floor((pos_min - self.pos_min) / self.cell_size).value.astype(
+            np.int32
+        )
+        cell_min_idx = np.clip(cell_min_idx, 0, self.resolution - 1)
+        cell_max_idx = np.floor((pos_max - self.pos_min) / self.cell_size).value.astype(
+            np.int32
+        )
+        cell_max_idx = np.clip(cell_max_idx, 0, self.resolution - 1)
 
         # Get the indexes of particles in the required cells
         idx = []
-        for k in range(cell_min_idx[2], cell_max_idx[2]+1):
-            for j in range(cell_min_idx[1], cell_max_idx[1]+1):
-                for i in range(cell_min_idx[0], cell_max_idx[0]+1):
-                    cell_nr = i+self.resolution*j+(self.resolution**2)*k
+        for k in range(cell_min_idx[2], cell_max_idx[2] + 1):
+            for j in range(cell_min_idx[1], cell_max_idx[1] + 1):
+                for i in range(cell_min_idx[0], cell_max_idx[0] + 1):
+                    cell_nr = i + self.resolution * j + (self.resolution ** 2) * k
                     start = self.cell_offset.full[cell_nr]
                     count = self.cell_count.full[cell_nr]
                     if count > 0:
-                        idx_in_cell = self.sort_idx.full[start:start+count]
-                        r2 = np.sum((pos.full[idx_in_cell, :] - centre[None,:])**2, axis=1)
-                        keep = (r2 <= radius*radius)
+                        idx_in_cell = self.sort_idx.full[start : start + count]
+                        r2 = np.sum(
+                            (pos.full[idx_in_cell, :] - centre[None, :]) ** 2, axis=1
+                        )
+                        keep = r2 <= radius * radius
                         if np.sum(keep) > 0:
                             idx.append(idx_in_cell[keep])
-        
+
         # Return a single array of indexes
         if len(idx) > 0:
             return np.concatenate(idx)
@@ -193,49 +211,65 @@ class SharedMesh:
         # If there are no particles on any rank, we have nothing to do
         if self.empty:
             return np.ndarray(0, dtype=int)
-        
+
         pos_min = centre - radius
         pos_max = centre + radius
 
         # Find range of cells involved
-        cell_min_idx = np.floor((pos_min-self.pos_min)/self.cell_size).value.astype(np.int32)
-        cell_max_idx = np.floor((pos_max-self.pos_min)/self.cell_size).value.astype(np.int32)
+        cell_min_idx = np.floor((pos_min - self.pos_min) / self.cell_size).value.astype(
+            np.int32
+        )
+        cell_max_idx = np.floor((pos_max - self.pos_min) / self.cell_size).value.astype(
+            np.int32
+        )
 
         def wrap_coord(dim, i):
             if i < 0:
-                return np.floor(((i+0.5)*self.cell_size[dim]+boxsize)/self.cell_size[dim]).value.astype(np.int32)
+                return np.floor(
+                    ((i + 0.5) * self.cell_size[dim] + boxsize) / self.cell_size[dim]
+                ).value.astype(np.int32)
             elif i >= self.resolution:
-                return np.floor(((i+0.5)*self.cell_size[dim]-boxsize)/self.cell_size[dim]).value.astype(np.int32)
+                return np.floor(
+                    ((i + 0.5) * self.cell_size[dim] - boxsize) / self.cell_size[dim]
+                ).value.astype(np.int32)
             else:
                 return i
 
         def periodic_distance_squared(pos, centre):
             dr = pos - centre[None, :]
-            dr[dr >  0.5*boxsize] -= boxsize
-            dr[dr < -0.5*boxsize] += boxsize
-            return np.sum(dr**2, axis=1)
+            dr[dr > 0.5 * boxsize] -= boxsize
+            dr[dr < -0.5 * boxsize] += boxsize
+            return np.sum(dr ** 2, axis=1)
 
         # Get the indexes of particles in the required cells
         idx = []
-        for k in range(cell_min_idx[2], cell_max_idx[2]+1):
+        for k in range(cell_min_idx[2], cell_max_idx[2] + 1):
             kk = wrap_coord(2, k)
-            if kk >=0 and kk < self.resolution:
-                for j in range(cell_min_idx[1], cell_max_idx[1]+1):
+            if kk >= 0 and kk < self.resolution:
+                for j in range(cell_min_idx[1], cell_max_idx[1] + 1):
                     jj = wrap_coord(1, j)
-                    if jj >=0 and jj < self.resolution:
-                        for i in range(cell_min_idx[0], cell_max_idx[0]+1):
+                    if jj >= 0 and jj < self.resolution:
+                        for i in range(cell_min_idx[0], cell_max_idx[0] + 1):
                             ii = wrap_coord(0, i)
-                            if ii >=0 and ii < self.resolution:
-                                cell_nr = ii+self.resolution*jj+(self.resolution**2)*kk
+                            if ii >= 0 and ii < self.resolution:
+                                cell_nr = (
+                                    ii
+                                    + self.resolution * jj
+                                    + (self.resolution ** 2) * kk
+                                )
                                 start = self.cell_offset.full[cell_nr]
                                 count = self.cell_count.full[cell_nr]
                                 if count > 0:
-                                    idx_in_cell = self.sort_idx.full[start:start+count]
-                                    r2 = periodic_distance_squared(pos.full[idx_in_cell, :], centre)
-                                    keep = (r2 <= radius*radius)
+                                    idx_in_cell = self.sort_idx.full[
+                                        start : start + count
+                                    ]
+                                    r2 = periodic_distance_squared(
+                                        pos.full[idx_in_cell, :], centre
+                                    )
+                                    keep = r2 <= radius * radius
                                     if np.sum(keep) > 0:
                                         idx.append(idx_in_cell[keep])
-        
+
         # Return a single array of indexes
         if len(idx) > 0:
             return np.concatenate(idx)

@@ -38,10 +38,7 @@ class StellarAgeCalculator:
     # current simulation time
     t_now: unyt.unyt_quantity
 
-    def __init__(
-        self,
-        cellgrid: SWIFTCellGrid,
-    ):
+    def __init__(self, cellgrid: SWIFTCellGrid):
         """
         Constructor.
 
@@ -72,13 +69,13 @@ class StellarAgeCalculator:
         # expressions taken directly from astropy, since they do no longer
         # allow access to these attributes (since version 5.1+)
         critdens_const = (3.0 / (8.0 * np.pi * const.G)).cgs.value
-        a_B_c2 = (4.0 * const.sigma_sb / const.c**3).cgs.value
+        a_B_c2 = (4.0 * const.sigma_sb / const.c ** 3).cgs.value
 
         # SWIFT provides Omega_r, but we need a consistent Tcmb0 for astropy.
         # This is an exact inversion of the procedure performed in astropy.
         critical_density_0 = astropy_units.Quantity(
             critdens_const * H0.to("1/s").value ** 2,
-            astropy_units.g / astropy_units.cm**3,
+            astropy_units.g / astropy_units.cm ** 3,
         )
 
         Tcmb0 = (Omega_r * critical_density_0.value / a_B_c2) ** (1.0 / 4.0)

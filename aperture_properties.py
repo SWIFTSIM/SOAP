@@ -1555,8 +1555,7 @@ class ApertureParticleData:
         return (
             self.gas_mass_H
             * self.gas_species_fractions[
-                :,
-                self.snapshot_datasets.get_column_index("SpeciesFractions", "HI"),
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "HI")
             ]
         )
 
@@ -1570,8 +1569,7 @@ class ApertureParticleData:
         return (
             self.gas_mass_H
             * self.gas_species_fractions[
-                :,
-                self.snapshot_datasets.get_column_index("SpeciesFractions", "H2"),
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
             ]
             * 2.0
         )
@@ -2096,8 +2094,7 @@ class ApertureParticleData:
             self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
         ]
         nO = self.gas_element_fractions[
-            :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
         ]
         return nO / (16.0 * nH)
 
@@ -2113,8 +2110,7 @@ class ApertureParticleData:
             self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
         ]
         nO = self.gas_diffuse_element_fractions[
-            :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
         ]
         return nO / (16.0 * nH)
 
@@ -2287,8 +2283,7 @@ class ApertureParticleData:
             self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
         ]
         nFe = self.star_element_fractions[
-            :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron")
         ]
         return nFe / (55.845 * nH)
 
@@ -2405,9 +2400,7 @@ class ApertureParticleData:
         return (self.star_log10_Fe_from_SNIa_over_H_low_limit * self.mass_star).sum()
 
     @lazy_property
-    def LinearMassWeightedIronFromSNIaOverHydrogenOfStars(
-        self,
-    ) -> unyt.unyt_quantity:
+    def LinearMassWeightedIronFromSNIaOverHydrogenOfStars(self,) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the iron over hydrogen ratio for star particles,
         times the solar ratio, set in the parameter file, and
@@ -2416,7 +2409,6 @@ class ApertureParticleData:
         if self.Nstar == 0:
             return None
         return (self.star_Fe_from_SNIa_over_H * self.mass_star).sum()
-
 
     @lazy_property
     def HalfMassRadiusGas(self) -> unyt.unyt_quantity:
@@ -2651,19 +2643,9 @@ class ApertureProperties(HaloProperty):
         # Coordinates, Masses and Velocities are always required, as is
         # GroupNr_bound.
         self.particle_properties = {
-            "PartType0": [
-                "Coordinates",
-                "GroupNr_bound",
-                "Masses",
-                "Velocities",
-            ],
+            "PartType0": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
             "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
-            "PartType4": [
-                "Coordinates",
-                "GroupNr_bound",
-                "Masses",
-                "Velocities",
-            ],
+            "PartType4": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
             "PartType5": [
                 "Coordinates",
                 "DynamicalMasses",
@@ -2785,12 +2767,7 @@ class ApertureProperties(HaloProperty):
             name = prop[0]
             description = prop[5]
             halo_result.update(
-                {
-                    f"{prefix}/{outputname}": (
-                        aperture_sphere[name],
-                        description,
-                    )
-                }
+                {f"{prefix}/{outputname}": (aperture_sphere[name], description)}
             )
 
         return
