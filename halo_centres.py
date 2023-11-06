@@ -188,21 +188,6 @@ class SOCatalogue:
                     local_halo[name], units=units, dtype=dtype, registry=registry
                 )
 
-        # Only keep halos in the supplied list of halo IDs.
-        if halo_ids is not None:
-            halo_ids = np.asarray(halo_ids, dtype=np.int64)
-            keep = np.zeros_like(local_halo["ID"], dtype=bool)
-            matching_index = virgo.util.match.match(halo_ids, local_halo["ID"])
-            have_match = matching_index >= 0
-            keep[matching_index[have_match]] = True
-            for name in local_halo:
-                local_halo[name] = local_halo[name][keep, ...]
-
-        # Discard satellites, if necessary
-        if centrals_only:
-            keep = local_halo["Structuretype"] == 10
-            for name in local_halo:
-                local_halo[name] = local_halo[name][keep, ...]
 
         # For testing: limit number of halos processed
         if max_halos > 0:
@@ -256,11 +241,32 @@ class SOCatalogue:
             min=physical_radius_mpc
         )
 
+        # Discard satellites, if necessary
+        if centrals_only:
+            keep = local_halo["Structuretype"] == 10
+            for name in local_halo:
+                local_halo[name] = local_halo[name][keep, ...]
+
+        # Only keep halos in the supplied list of halo IDs.
+        if halo_ids is not None:
+            halo_ids = np.asarray(halo_ids, dtype=np.int64)
+            keep = np.zeros_like(local_halo["ID"], dtype=bool)
+            matching_index = virgo.util.match.match(halo_ids, local_halo["ID"])
+            have_match = matching_index >= 0
+            keep[matching_index[have_match]] = True
+            for name in local_halo:
+                local_halo[name] = local_halo[name][keep, ...]
+
         # Gather subhalo arrays on rank zero.
         halo = {}
         for name in local_halo:
             halo[name] = gather_to_rank_zero(local_halo[name])
         del local_halo
+
+        # For testing: limit number of halos
+        if comm_rank == 0 and max_halos > 0:
+            for name in halo:
+                halo[name] = halo[name][:max_halos, ...]
 
         # Rank 0 stores the subhalo catalogue
         if comm_rank == 0:

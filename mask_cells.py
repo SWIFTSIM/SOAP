@@ -28,7 +28,7 @@ def mask_cells(comm, cellgrid, centre, radius, done):
     for halo_nr in range(first_halo, first_halo + nr_halos_local):
 
         # Flag cells around this halo
-        if done[halo_nr].value == 0:
+        if done[halo_nr] == 0:
             pos_min = centre[halo_nr, :] - radius[halo_nr] - 0.5 * cellgrid.cell_size
             pos_max = centre[halo_nr, :] + radius[halo_nr] + 0.5 * cellgrid.cell_size
             cellgrid.mask_region(mask, pos_min, pos_max)

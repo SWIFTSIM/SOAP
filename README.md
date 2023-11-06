@@ -298,3 +298,18 @@ The output is a HDF5 file with the following datasets:
 
 There are corresponding datasets with `1` and `2` reversed with information about matching in the opposite direction.
 
+## Documentation
+
+Most of the files containing halo property calculations have been extensively documented
+using docstrings. To generate documentation, you can for example use
+```
+python3 -m pydoc aperture_properties
+```
+This will display the documentation for the file `aperture_properties.py`.
+```
+python3 -m pydoc -b
+```
+will display an interactive web page in your browser with a lot of documentation, including all documented
+files and functionality of SOAP.
+
+Please have a look at this documentation before making any significant changes!

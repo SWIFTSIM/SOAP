@@ -105,6 +105,19 @@ def get_halo_props_args(comm):
             default=32,
             help="Number of ranks per node reading snapshot data",
         )
+        parser.add_argument(
+            "--parameters",
+            help="Name of a parameter file containing properties and halo types to process. Default is to compute all properties for FLAMINGO-like halo types.",
+            type=str,
+            default=None,
+        )
+        parser.add_argument(
+            "--output-parameters",
+            metavar="FILENAME",
+            help="Write the actually used parameters to FILENAME.",
+            type=str,
+            default=None,
+        )
         try:
             args = parser.parse_args()
         except ArgumentParserError as e:

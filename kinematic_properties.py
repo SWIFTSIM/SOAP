@@ -1,10 +1,24 @@
 #! /usr/bin/env python
 
+"""
+kinematic_properties.py
+
+Some utility functions to compute kinematic properies for particle
+distributions.
+
+We put them in a separate file to facilitate unit testing.
+"""
+
 import numpy as np
 import unyt
+from typing import Union, Tuple
 
 
-def get_velocity_dispersion_matrix(mass_fraction, velocity, ref_velocity):
+def get_velocity_dispersion_matrix(
+    mass_fraction: unyt.unyt_array,
+    velocity: unyt.unyt_array,
+    ref_velocity: unyt.unyt_array,
+) -> unyt.unyt_array:
     """
     Compute the velocity dispersion matrix for the particles with the given
     fractional mass (particle mass divided by total mass) and velocity, using
@@ -12,6 +26,18 @@ def get_velocity_dispersion_matrix(mass_fraction, velocity, ref_velocity):
 
     The result is a 6 element vector containing the unique components XX, YY,
     ZZ, XY, XZ and YZ of the velocity dispersion matrix.
+
+    Parameters:
+     - mass_fraction: unyt.unyt_array
+       Fractional mass of the particles (mass/mass.sum()).
+     - velocity: unyt.unyt_array
+       Velocity of the particles.
+     - ref_velocity: unyt.unyt_array
+       Reference point in velocity space. velocity and ref_velocity are assumed
+       to use the same reference point upon entry into this function.
+
+    Returns an array with 6 elements: the XX, YY, ZZ, XY, XZ and YZ components
+    of the velocity dispersion matrix.
     """
 
     result = unyt.unyt_array(np.zeros(6), dtype=np.float32, units=velocity.units ** 2)
@@ -28,12 +54,36 @@ def get_velocity_dispersion_matrix(mass_fraction, velocity, ref_velocity):
 
 
 def get_angular_momentum(
-    mass, position, velocity, ref_position=None, ref_velocity=None
-):
+    mass: unyt.unyt_array,
+    position: unyt.unyt_array,
+    velocity: unyt.unyt_array,
+    ref_position: Union[None, unyt.unyt_array] = None,
+    ref_velocity: Union[None, unyt.unyt_array] = None,
+) -> unyt.unyt_array:
     """
     Compute the total angular momentum vector for the particles with the given
     masses, positions and velocities, and using the given reference position
     and velocity as the centre of mass (velocity).
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Masses of the particles.
+     - position: unyt.unyt_array
+       Position of the particles.
+     - velocity: unyt.unyt_array
+       Velocities of the particles.
+     - ref_position: unyt.unyt_array or None
+       Reference position used as centre for the angular momentum calculation.
+       position and ref_position are assumed to use the same reference point upon
+       entry into this function. If None, position is assumed to be already using
+       the desired referece point.
+     - ref_velocity: unyt.unyt_array or None
+       Reference point in velocity space for the angular momentum calculation.
+       velocity and ref_velocity are assumed to use the same reference point upon
+       entry into this function. If None, velocity is assumed to be already using
+       the desired reference point.
+
+    Returns the total angular momentum vector.
     """
 
     if ref_position is None:
@@ -48,13 +98,16 @@ def get_angular_momentum(
 
 
 def get_angular_momentum_and_kappa_corot(
-    mass,
-    position,
-    velocity,
-    ref_position=None,
-    ref_velocity=None,
-    do_counterrot_mass=False,
-):
+    mass: unyt.unyt_array,
+    position: unyt.unyt_array,
+    velocity: unyt.unyt_array,
+    ref_position: Union[None, unyt.unyt_array] = None,
+    ref_velocity: Union[None, unyt.unyt_array] = None,
+    do_counterrot_mass: bool = False,
+) -> Union[
+    Tuple[unyt.unyt_array, unyt.unyt_quantity],
+    Tuple[unyt.unyt_array, unyt.unyt_quantity, unyt.unyt_quantity],
+]:
     """
     Get the total angular momentum vector (as in get_angular_momentum()) and
     kappa_corot (Correa et al., 2017) for the particles with the given masses,
@@ -64,6 +117,32 @@ def get_angular_momentum_and_kappa_corot(
     If both kappa_corot and the angular momentum vector are desired, it is more
     efficient to use this function that calling get_angular_momentum() (and
     get_kappa_corot(), if that would ever exist).
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Masses of the particles.
+     - position: unyt.unyt_array
+       Position of the particles.
+     - velocity: unyt.unyt_array
+       Velocities of the particles.
+     - ref_position: unyt.unyt_array or None
+       Reference position used as centre for the angular momentum calculation.
+       position and ref_position are assumed to use the same reference point upon
+       entry into this function. If None, position is assumed to be already using
+       the desired referece point.
+     - ref_velocity: unyt.unyt_array or None
+       Reference point in velocity space for the angular momentum calculation.
+       velocity and ref_velocity are assumed to use the same reference point upon
+       entry into this function. If None, velocity is assumed to be already using
+       the desired reference point.
+     - do_counterrot_mass: bool
+       Also compute the counterrotating mass?
+
+    Returns:
+     - The total angular momentum vector.
+     - The ratio of the kinetic energy in counterrotating movement and the total
+       kinetic energy, kappa_corot.
+     - The total mass of counterrotating particles (if do_counterrot_mass == True).
     """
 
     kappa_corot = unyt.unyt_array(
@@ -114,7 +193,29 @@ def get_angular_momentum_and_kappa_corot(
         return Ltot, kappa_corot
 
 
-def get_vmax(mass, radius):
+def get_vmax(
+    mass: unyt.unyt_array, radius: unyt.unyt_array
+) -> Tuple[unyt.unyt_quantity, unyt.unyt_quantity]:
+    """
+    Get the maximum circular velocity of a particle distribution.
+
+    The value is computed from the cumulative mass profile after
+    sorting the particles by radius, as
+     vmax = sqrt(G*M/r)
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Mass of the particles.
+     - radius: unyt.unyt_array
+       Radius of the particles.
+
+    Returns:
+     - Radius at which the maximum circular velocity is reached.
+     - Maximum circular velocity.
+    """
+    # obtain the gravitational constant in the right units
+    # (this is read from the snapshot metadata, and is hence
+    # guaranteed to be consistent with the value used by SWIFT)
     G = unyt.Unit("newton_G", registry=mass.units.registry)
     isort = np.argsort(radius)
     ordered_radius = radius[isort]
@@ -129,7 +230,24 @@ def get_vmax(mass, radius):
     return ordered_radius[imax], np.sqrt(v_over_G[imax] * G)
 
 
-def get_inertia_tensor(mass, position):
+def get_inertia_tensor(
+    mass: unyt.unyt_array, position: unyt.unyt_array
+) -> unyt.unyt_array:
+    """
+    Get the inertia tensor of the given particle distribution.
+
+    The axis lengths are defined as the eigenvalues of the (normal) moment of
+    inertia tensor, computed as
+     I_{ij} = 1/M * (m*x_i*x_j)
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Masses of the particles.
+     - position: unyt.unyt_array
+       Positions of the particles.
+
+    Returns the inertia tensor.
+    """
     Itensor = (mass[:, None, None]) * np.ones((mass.shape[0], 3, 3))
     # Note: unyt currently ignores the position units in the *=
     # i.e. Itensor is dimensionless throughout (even though it should not be)
@@ -155,7 +273,25 @@ def get_inertia_tensor(mass, position):
     return Itensor
 
 
-def get_projected_inertia_tensor(mass, position, axis):
+def get_projected_inertia_tensor(
+    mass: unyt.unyt_array, position: unyt.unyt_array, axis: int
+) -> unyt.unyt_array:
+    """
+    Get the inertia tensor of the given particle distribution, projected along the
+    given axis.
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Masses of the particles.
+     - position: unyt.unyt_array
+       Positions of the particles.
+     - axis: 0, 1, 2
+       Projection axis. Only the coordinates perpendicular to this axis are
+       taken into account.
+
+    Returns the inertia tensor.
+    """
+
     projected_position = unyt.unyt_array(
         np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
     )
@@ -190,4 +326,7 @@ def get_projected_inertia_tensor(mass, position, axis):
 
 
 if __name__ == "__main__":
+    """
+    Standalone version. TODO: add test to check if inertia tensor computation works.
+    """
     pass

@@ -1,11 +1,30 @@
 #!/bin/env python
 
+"""
+recently_heated_gas_filter.py
+
+Filter to mask out gas particles that were recently heated by AGN feedback.
+
+"Recently heated" is defined in terms of two variables: the last time the
+gas particle was heated by AGN feedback needs to be close enough in time
+to the current time, and the temperature of the particle needs to still be
+high enough. For consistency, we parametrise these two conditions in the
+same way as done in SWIFT.
+
+Since we store last feedback scale factors rather than times, calculating
+the time interval between the current time and the last feedback time
+requires knowledge of the cosmology.
+"""
+
 import numpy as np
 import unyt
 
 from astropy.cosmology import w0waCDM, z_at_value
 import astropy.constants as const
 import astropy.units as astropy_units
+
+from swift_cells import SWIFTCellGrid
+from numpy.typing import NDArray
 
 
 class RecentlyHeatedGasFilter:
@@ -15,21 +34,50 @@ class RecentlyHeatedGasFilter:
 
     This corresponds to the lightcone map filter used in SWIFT itself, which
     filters out gas particles for which LastAGNFeedbackScaleFactors is less
-    than 15 Myr ago, and within some temperature bracket.
+    than some time interval, and within some temperature bracket.
 
     Since the conversion from a time difference to a scale factor is not
     trivial, we compute the corresponding scale factor limit only once using
     the correct astropy.cosmology.
     """
 
+    # lower limit on the scale factor, below which events are no
+    # longer considered to be recent
+    a_limit: unyt.unyt_quantity
+    # temperature limits. Within this interval, a gas particle is
+    # considered to be "heated by AGN".
+    Tmin: unyt.unyt_quantity
+    Tmax: unyt.unyt_quantity
+
     def __init__(
         self,
-        cellgrid,
-        delta_time=15.0 * unyt.Myr,
-        delta_logT_min=-1.0,
-        delta_logT_max=0.3,
-        AGN_delta_T=8.80144197177e7 * unyt.K,
+        cellgrid: SWIFTCellGrid,
+        delta_time: unyt.unyt_quantity = 15.0 * unyt.Myr,
+        delta_logT_min: float = -1.0,
+        delta_logT_max: float = 0.3,
+        AGN_delta_T: unyt.unyt_quantity = 8.80144197177e7 * unyt.K,
     ):
+        """
+        Constructor.
+
+        Precomputes the cutoff scale factor below which feedback
+        events are no longer considered to be "recent".
+
+        Parameters:
+         - cellgrid: SWIFTCellGrid
+           Container object containing global information about the snapshot,
+           like the cosmology.
+         - delta_time: unyt.unyt_quantity
+           Time interval considered to be "recent".
+         - delta_logT_min: float
+           Lower limit on the temperature (dex below AGN_delta_T) below which
+           gas is no longer considered to be "heated".
+         - delta_logT_max: float
+           Upper limit on the temperature (dex above AGN_delta_T) above which
+           gas is too hot to be considered "heated by AGN".
+         - AGN_delta_T: unyt.unyt_quantity
+           Temperature difference for AGN feedback.
+        """
         H0 = unyt.unyt_quantity(
             cellgrid.cosmology["H0 [internal units]"],
             units="1/snap_time",
@@ -93,7 +141,21 @@ class RecentlyHeatedGasFilter:
             "Tmax_in_K": self.Tmax.to("K").value,
         }
 
-    def is_recently_heated(self, lastAGNfeedback, temperature):
+    def is_recently_heated(
+        self, lastAGNfeedback: unyt.unyt_array, temperature: unyt.unyt_array
+    ) -> NDArray[bool]:
+        """
+        Get a mask to mask out gas particles that were recently heated
+        by AGN feedback.
+
+        Parameters:
+         - lastAGNfeedback: unyt.unyt_array
+           Last AGN feedback scale factors, as read from the snapshot.
+         - temperature: unyt.unyt_array
+           Temperatures of the gas particles, as read from the snapshot.
+
+        Returns a mask that can be used to index particle arrays.
+        """
         return (
             (lastAGNfeedback >= self.a_limit)
             & (temperature >= self.Tmin)

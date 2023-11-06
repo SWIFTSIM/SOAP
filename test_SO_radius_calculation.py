@@ -1,5 +1,14 @@
 #!/bin/env python
 
+"""
+test_SO_radius_calculation.py
+
+Unit test for the SO radius calculation.
+
+We put this in a separate file to avoid cluttering
+SO_properties.py even more.
+"""
+
 import numpy as np
 import unyt
 import matplotlib
@@ -12,6 +21,14 @@ from halo_properties import ReadRadiusTooSmallError
 
 
 def test_SO_radius_calculation():
+    """
+    Unit test find_SO_radius_and_mass().
+
+    We generate 100 random particle distributions and try
+    to find the SO radius.
+
+    This produces some figures for visual inspection.
+    """
 
     np.random.seed(62)
 
@@ -108,4 +125,8 @@ def test_SO_radius_calculation():
 
 
 if __name__ == "__main__":
+    """
+    Standalone mode. Run the unit test.
+    """
+
     test_SO_radius_calculation()

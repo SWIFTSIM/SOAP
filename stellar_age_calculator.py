@@ -1,11 +1,24 @@
 #!/bin/env python
 
+"""
+stellar_age_calculator.py
+
+Auxiliary object used to calculate stellar ages.
+
+SWIFT does not directly output stellar ages, but instead outputs
+the stellar birth scale factor.
+We need to convert this to a stellar age using the cosmology and the
+current scale factor.
+"""
+
 import numpy as np
 import unyt
 
-from astropy.cosmology import w0waCDM, z_at_value
+from astropy.cosmology import w0waCDM, z_at_value, Cosmology
 import astropy.constants as const
 import astropy.units as astropy_units
+
+from swift_cells import SWIFTCellGrid
 
 
 class StellarAgeCalculator:
@@ -20,7 +33,25 @@ class StellarAgeCalculator:
     calculate the stellar age from the stellar birth scale factor.
     """
 
-    def __init__(self, cellgrid):
+    # astropy.cosmology object representing the simulation cosmology
+    cosmology: Cosmology
+    # current simulation time
+    t_now: unyt.unyt_quantity
+
+    def __init__(self, cellgrid: SWIFTCellGrid):
+        """
+        Constructor.
+
+        Constructs an astropy.cosmology that can be used to convert between
+        scale factor and time.
+        Precomputes the current simulation time as set by the current scale
+        factor.
+
+        Parameters:
+         - cellgrid: SWIFTCellGrid
+           Container object containing global information about the snapshot,
+           like the cosmology.
+        """
         H0 = unyt.unyt_quantity(
             cellgrid.cosmology["H0 [internal units]"],
             units="1/snap_time",
@@ -63,7 +94,16 @@ class StellarAgeCalculator:
             self.cosmology.lookback_time(z_now)
         ).to("Myr")
 
-    def stellar_age(self, birth_a):
+    def stellar_age(self, birth_a: unyt.unyt_array) -> unyt.unyt_array:
+        """
+        Get the stellar ages from the given stellar birth scale factors.
+
+        Parameters:
+         - birth_a: unyt.unyt_array
+           Stellar birth scale factors.
+
+        Returns the corresponding stellar ages in physical time.
+        """
         birth_z = 1.0 / birth_a - 1.0
         t_birth = unyt.unyt_array.from_astropy(
             self.cosmology.lookback_time(birth_z.value)

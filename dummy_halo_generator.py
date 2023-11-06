@@ -1,14 +1,35 @@
 #! /usr/bin/env python3
 
+"""
+dummy_halo_generator.py
+
+Auxiliary class used for unit testing.
+
+Since all halo property calculations require particle data, we need to
+provide some representative data in unit tests. This file contains
+"dummy" classes that can be used to generate such (random) data.
+We make sure all the particle data has the appropriate type, units and
+a representative range of values.
+"""
+
 import numpy as np
 import unyt
 import types
 from swift_units import unit_registry_from_snapshot
+from snapshot_datasets import SnapshotDatasets
+from typing import Dict, Union, List, Tuple
+import h5py
 
 
 class DummySnapshot:
+    """
+    Dummy SWIFT snapshot. Can be used to replace an actual snapshot in
+    some functions, e.g. unit_registry_from_snapshot().
+    """
+
     def __init__(self):
         """
+        Constructor.
         Values extracted from a 400 Mpc FLAMINGO snapshot at z=3.
         """
         self.metadata = {
@@ -91,12 +112,249 @@ class DummySnapshot:
             },
         }
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> types.SimpleNamespace:
+        """
+        [] override that tricks other objects into thinking
+        this object is actually an h5py file handle with a dataset
+        called 'name' that has a property called "attrs".
+
+        Parameters:
+         - name: str
+           "Dataset" path in the dummy HDF5 snapshot file.
+        Returns an object that contains the "attrs" attribute, which
+        looks and feels like an HDF5 attributes object, but is in fact
+        a Dict.
+        """
         if not name in self.metadata:
             raise AttributeError(f"No {name} in dummy snapshot file!")
         x = types.SimpleNamespace()
         x.attrs = self.metadata[name]
         return x
+
+
+class DummySnapshotDatasets(SnapshotDatasets):
+    """
+    Dummy SnapshotDatasets object that can be used to replace actual
+    snapshot metadata in unit tests.
+    """
+
+    def __init__(self):
+        """
+        Constructor.
+        Set up a "snapshot file" that contains all the particle
+        datasets we need. Give it some named columns and defined
+        constants.
+
+        We also initialise two empty sets that can be used to track
+        dataset and column usage.
+        """
+        self.datasets_in_file = {
+            "PartType0": [
+                "Coordinates",
+                "Masses",
+                "Velocities",
+                "MetalMassFractions",
+                "Temperatures",
+                "LastAGNFeedbackScaleFactors",
+                "StarFormationRates",
+                "XrayLuminosities",
+                "XrayPhotonLuminosities",
+                "ComptonYParameters",
+                "Pressures",
+                "Densities",
+                "ElectronNumberDensities",
+                "SpeciesFractions",
+                "DustMassFractions",
+                "LastSNIIKineticFeedbackDensities",
+                "LastSNIIThermalFeedbackDensities",
+                "ElementMassFractionsDiffuse",
+                "SmoothedElementMassFractions",
+            ],
+            "PartType1": ["Coordinates", "Masses", "Velocities"],
+            "PartType4": [
+                "Coordinates",
+                "Masses",
+                "Velocities",
+                "InitialMasses",
+                "Luminosities",
+                "MetalMassFractions",
+                "BirthScaleFactors",
+                "SNIaRates",
+                "BirthDensities",
+                "SmoothedElementMassFractions",
+                "IronMassFractionsFromSNIa",
+            ],
+            "PartType5": [
+                "Coordinates",
+                "DynamicalMasses",
+                "Velocities",
+                "SubgridMasses",
+                "LastAGNFeedbackScaleFactors",
+                "ParticleIDs",
+                "AccretionRates",
+            ],
+            "PartType6": ["Coordinates", "Masses", "Weights"],
+        }
+
+        self.defined_constants = {
+            "O_H_sun": 4.9e-04 * unyt.dimensionless,
+            "Fe_H_sun": 2.82e-5 * unyt.dimensionless,
+        }
+
+        self.named_columns = {
+            "Luminosities": {"GAMA_r": 2},
+            "SmoothedElementMassFractions": {
+                "Hydrogen": 0,
+                "Helium": 1,
+                "Carbon": 2,
+                "Nitrogen": 3,
+                "Oxygen": 4,
+                "Neon": 5,
+                "Magnesium": 6,
+                "Silicon": 7,
+                "Iron": 8,
+            },
+            "SpeciesFractions": {
+                "elec": 0,
+                "HI": 1,
+                "HII": 2,
+                "Hm": 3,
+                "HeI": 4,
+                "HeII": 5,
+                "HeIII": 6,
+                "H2": 7,
+                "H2p": 8,
+                "H3p": 9,
+            },
+            "DustMassFractions": {
+                "GraphiteLarge": 0,
+                "MgSilicatesLarge": 1,
+                "FeSilicatesLarge": 2,
+                "GraphiteSmall": 3,
+                "MgSilicatesSmall": 4,
+                "FeSilicatesSmall": 5,
+            },
+        }
+
+        self.dust_grain_composition = np.array(
+            [
+                [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.45487377,
+                    0.0,
+                    0.3455038,
+                    0.19962244,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ],
+                [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.31406304,
+                    0.0,
+                    0.0,
+                    0.13782732,
+                    0.54810965,
+                    0.0,
+                    0.0,
+                    0.0,
+                ],
+                [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.45487377,
+                    0.0,
+                    0.3455038,
+                    0.19962244,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                ],
+                [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.31406304,
+                    0.0,
+                    0.0,
+                    0.13782732,
+                    0.54810965,
+                    0.0,
+                    0.0,
+                    0.0,
+                ],
+            ]
+        )
+
+        # Sets used to track which elements are actually used by
+        # other parts of SOAP
+        self.datasets_used = set()
+        self.columns_used = set()
+
+    def get_dataset(self, name: str, data: Dict) -> unyt.unyt_array:
+        """
+        Get the dataset with the given name from the snapshot,
+        taking into account potential aliases.
+
+        Parameters:
+         - name: str
+           Generic dataset name. This dataset might not be present
+           in the snapshot under that name if an alias has been
+           defined.
+         - data: Dict
+           Raw particle data dictionary that only contains dataset
+           names actually present in the snapshot.
+
+        Returns the requested data, taking into account potential
+        aliases.
+        """
+        self.datasets_used.add(name)
+        return super().get_dataset(name, data)
+
+    def get_column_index(self, name: str, column: str) -> int:
+        """
+        Get the index number of a named column for a dataset with
+        the given name, taking into account potential aliases.
+        The named columns are read from the snapshot metadata.
+
+        Parameters:
+         - name: str
+           Generic dataset name. This dataset might not be present
+           in the snapshot under that name if an alias has been
+           defined.
+         - column: str
+           Column name. Needs to be present in the snapshot metadata
+           for this particular dataset, although the dataset can have
+           another name if an alias has been defined.
+        Returns the index that can be used to get this particular
+        column in a multidimensional dataset, e.g.
+          ["PartType0/ElementMassFractions"][:,0]
+        """
+        self.columns_used.add(f"{name}/{column}")
+        return super().get_column_index(name, column)
+
+    def print_dataset_log(self):
+        """
+        Print out lists of all the dataset and column names that
+        have been used while this object existed.
+
+        Useful for checking the completeness of a unit test.
+        """
+        print(f"Datasets used: {self.datasets_used}")
+        print(f"Columns used: {self.columns_used}")
 
 
 class DummyCellGrid:
@@ -105,10 +363,31 @@ class DummyCellGrid:
     the HaloProperty and RecentlyHeatedGasFilter constructors.
     """
 
-    def get_unit(self, name, reg):
+    def get_unit(self, name: str, reg: unyt.UnitRegistry) -> unyt.Unit:
+        """
+        Static method that creates a new unit using the given unit
+        registry.
+
+        Parameter:
+         - name: str
+           Unit name.
+         - reg: unyt.UnitRegistry
+           Unit registry.
+
+        Returns the corresponding unyt.Unit.
+        """
         return unyt.Unit(name, registry=reg)
 
-    def __init__(self, reg, snap):
+    def __init__(self, reg: unyt.UnitRegistry, snap: h5py.File):
+        """
+        Constructor.
+
+        Parameters:
+         - reg: unyt.UnitRegistry
+           Registry used to keep track of units.
+         - snap: h5py.File (or DummySnapshot)
+           Snapshot from which metadata is read.
+        """
         self.a_unit = self.get_unit("a", reg)
         self.a = self.a_unit.base_value
         self.z = 1.0 / self.a - 1.0
@@ -141,6 +420,8 @@ class DummyCellGrid:
         self.boxsize = unyt.unyt_quantity(100.0, units=comoving_length_unit)
         self.observer_position = unyt.unyt_array([50.0] * 3, units=comoving_length_unit)
 
+        self.snapshot_datasets = DummySnapshotDatasets()
+
 
 class DummyHaloGenerator:
     """
@@ -150,10 +431,16 @@ class DummyHaloGenerator:
     in the right units and with realistic values.
     """
 
-    def __init__(self, seed):
+    def __init__(self, seed: int):
         """
         Set up an artificial snapshot and extract the unit system.
         Seed the random number generator.
+
+        Parameters:
+         - seed: int
+           Seed for the random number generator. Setting the same seed will
+           produce the same sequence of random halos (as long as no new properties
+           are added).
         """
         self.dummy_snapshot = DummySnapshot()
         self.unit_registry = unit_registry_from_snapshot(self.dummy_snapshot)
@@ -167,22 +454,33 @@ class DummyHaloGenerator:
         """
         return self.dummy_cellgrid
 
-    def get_random_halo(self, npart, has_neutrinos=False):
+    def get_random_halo(
+        self, npart: Union[int, List], has_neutrinos: bool = False
+    ) -> Tuple[Dict, Dict, unyt.unyt_quantity, unyt.unyt_quantity, int, Dict]:
         """
         Generate a random halo, with the given number of particles.
         If npart is a list, a random element of the list is chosen.
 
         To get a rough idea of the ranges found in a typical halo, this is the
-        input for one halo from a test run on a 400 Mpc FLAMINGO box:
+        input for one halo from a test run on a 400 Mpc FLAMINGO box (we later
+        added values from COLIBRE runs as well):
         (input_type, units, min value, max value)
         types = [
         "PartType0": {
           "ComptonYParameters": (np.float32, snap_length**2, 0., 5.e-9),
           "Coordinates": (np.float64, a*snap_length, 0., boxsize),
           "Densities": (np.float32, snap_mass/(a**3*snap_length**3), 0.1, 1.e8),
+          "DustMassFractions":
+            (np.float32, dimensionless,
+             [0., 0., 0., 0., 0., 0.],
+             [6.7e-3, 5.3e-3, 1.1e-2, 4.4e-3, 4.1e-3, 1.1e-2]),
           "ElectronNumberDensities": (np.float64, 1/snap_length**3, 0., 3.4e73),
           "GroupNr_bound": (np.int32, dimensionless, N/A),
           "LastAGNFeedbackScaleFactors": (np.float32, dimensionless, 0., 1.),
+          "LastSNIIKineticFeedbackDensities": (
+            np.float32, snap_mass/snap_length**3, 5.84e1, 1.56e10),
+          "LastSNIIThermalFeedbackDensities": (
+            np.float32, snap_mass/snap_length**3, 5.84e1, 1.56e10),
           "Masses": (np.float32, snap_mass, 0.1, 0.1),
           "MetalMassFractions": (np.float32, dimensionless, 0., 0.06),
           "Pressures": (np.float32, snap_mass/(a**5*snap_length*snap_time**2),
@@ -191,6 +489,10 @@ class DummyHaloGenerator:
             (np.float32, dimensionless,
              [0.68, 0.24, 0., 0., 0., 0., 0., 0., 0.],
              [0.75, 0.29, 0.006, 0.001, 0.01, 0.002, 0.0008, 0.002, 0.002]),
+          "SpeciesFractions":
+            (np.float32, dimensionless,
+             [3.94e-5, 0., 1.78e-5, 0., 0., 2.05e-10, 0., 0., 0., 0.],
+             [1.26, 1., 1., 2.53e-8, 0.134, 0.122, 0.125, 0.5, 9.67e-6, 2.14e-5]),
           "StarFormationRates": (np.float32, snap_mass/snap_time, -0.99, 246.5),
           "Temperatures": (np.float32, snap_temperature, 1.e3, 1.e10),
           "Velocities": (np.float32, snap_length/snap_time, -1.e3, 1.e3),
@@ -214,12 +516,14 @@ class DummyHaloGenerator:
           "Velocities": (np.float32, snap_length/snap_time, -1.e3, 1.e3),
         }
         "PartType4": {
+          "BirthDensities": (np.float32, snap_mass/snap_length**3, 2.5e5, 3.38e11),
           "Coordinates": (np.float64, a*snap_length, 0., boxsize),
           "GroupNr_bound": (np.int32, dimensionless, N/A),
           "InitialMasses": (np.float32, snap_mass, 0.1, 0.3),
           "Luminosities": (np.float32, dimensionless, 1.e5, 1.e10),
           "Masses": (np.float32, snap_mass, 0.06, 0.1),
           "MetalMassFractions": (np.float32, dimensionless, 0., 0.075),
+          "SNIaRates": (np.float64, 1/snap_time, 0., 5.36e7),
           "Velocities": (np.float32, snap_length/snap_time, -1.e3, 1.e3),
         }
         "PartType5": {
@@ -237,6 +541,30 @@ class DummyHaloGenerator:
           "Masses": (np.float32, snap_mass, 0.018, 0.018),
           "Weights": (np.float64, dimensionless, -0.46, 0.71),
         }
+
+        Parameters:
+         - npart: Union[int, List]
+           Number of particles the random halo should contain, or a list
+           of allowed particle numbers from which a random element will be
+           selected.
+         - has_neutrinos: bool
+           Whether or not the random halo should contain neutrinos
+           ("PartType6").
+
+        Returns:
+         - input_halo: Dict
+           Dictionary with halo metadata (as if it was read from a VR catalogue).
+         - data: Dict
+           Dictionary with particle data (as if it was read from a SWIFT snapshot).
+         - rmax: unyt.unyt_quantity
+           Maximum radius of any of the random particles in the halo.
+         - Mtot: unyt.unyt_quantity
+           Total mass of all the random particles in the halo.
+         - npart: int
+           Number of random particles in the halo.
+         - particle_numbers:
+           Number of particles of each type in the halo.
+        These values can be passed on to the calculate() method of a HaloProperty.
         """
 
         if isinstance(npart, list):
@@ -339,6 +667,16 @@ class DummyHaloGenerator:
                 units="snap_mass/(a**3*snap_length**3)",
                 registry=reg,
             )
+            dmf = np.zeros((Ngas, 6))
+            dmf[:, 0] = 6.7e-3 * np.random.random(Ngas)
+            dmf[:, 1] = 5.3e-3 * np.random.random(Ngas)
+            dmf[:, 2] = 1.1e-2 * np.random.random(Ngas)
+            dmf[:, 3] = 4.4e-3 * np.random.random(Ngas)
+            dmf[:, 4] = 4.1e-3 * np.random.random(Ngas)
+            dmf[:, 5] = 1.1e-2 * np.random.random(Ngas)
+            data["PartType0"]["DustMassFractions"] = unyt.unyt_array(
+                dmf, dtype=np.float32, units=unyt.dimensionless, registry=reg
+            )
             data["PartType0"]["ElectronNumberDensities"] = unyt.unyt_array(
                 10.0 ** (65.0 + 8.0 * np.random.random(Ngas)),
                 dtype=np.float64,
@@ -357,6 +695,28 @@ class DummyHaloGenerator:
                 units=unyt.dimensionless,
                 registry=reg,
             )
+            data["PartType0"]["LastSNIIKineticFeedbackDensities"] = unyt.unyt_array(
+                10.0 ** (1.77 + (10.2 - 1.77) * np.random.random(Ngas)),
+                dtype=np.float32,
+                units="snap_mass/snap_length**3",
+                registry=reg,
+            )
+            data["PartType0"]["LastSNIIThermalFeedbackDensities"] = unyt.unyt_array(
+                10.0 ** (1.77 + (10.2 - 1.77) * np.random.random(Ngas)),
+                dtype=np.float32,
+                units="snap_mass/snap_length**3",
+                registry=reg,
+            )
+            # randomly set some values to -1
+            data["PartType0"]["LastAGNFeedbackScaleFactors"][
+                np.random.random() > 0.9
+            ] = -1
+            data["PartType0"]["LastSNIIKineticFeedbackDensities"][
+                np.random.random() > 0.9
+            ] = -1
+            data["PartType0"]["LastSNIIThermalFeedbackDensities"][
+                np.random.random() > 0.9
+            ] = -1
             data["PartType0"]["Masses"] = mass[gas_mask]
             Mtot += data["PartType0"]["Masses"].sum()
             data["PartType0"]["MetalMassFractions"] = unyt.unyt_array(
@@ -386,6 +746,24 @@ class DummyHaloGenerator:
             semf[:, 8] = 0.002 * np.random.random(Ngas)
             data["PartType0"]["SmoothedElementMassFractions"] = unyt.unyt_array(
                 semf, dtype=np.float32, units=unyt.dimensionless, registry=reg
+            )
+            data["PartType0"]["ElementMassFractionsDiffuse"] = data["PartType0"][
+                "SmoothedElementMassFractions"
+            ].copy()
+            # same for the species fractions
+            specfrac = np.zeros((Ngas, 10))
+            specfrac[:, 0] = 3.94e-5 + 1.25 * np.random.random(Ngas)
+            specfrac[:, 1] = np.random.random(Ngas)
+            specfrac[:, 2] = 1.78e-5 + (1.0 - 1.78e-5) * np.random.random(Ngas)
+            specfrac[:, 3] = 2.53e-8 * np.random.random(Ngas)
+            specfrac[:, 4] = 0.134 * np.random.random(Ngas)
+            specfrac[:, 5] = 2.05e-10 + 0.122 * np.random.random(Ngas)
+            specfrac[:, 6] = 0.125 * np.random.random(Ngas)
+            specfrac[:, 7] = 0.5 * np.random.random()
+            specfrac[:, 8] = 9.67e-6 * np.random.random()
+            specfrac[:, 9] = 2.14e-5 * np.random.random()
+            data["PartType0"]["SpeciesFractions"] = unyt.unyt_array(
+                specfrac, dtype=np.float32, units=unyt.dimensionless, registry=reg
             )
             # negative StarFormationRates are actually scale factors, again
             # limited by the highest value at z=0.1
@@ -442,6 +820,12 @@ class DummyHaloGenerator:
         Nstar = int(star_mask.sum())
         if Nstar > 0:
             data["PartType4"] = {}
+            data["PartType4"]["BirthDensities"] = unyt.unyt_array(
+                10.0 ** (4.4 + (11.5 - 4.4) * np.random.random(Nstar)),
+                dtype=np.float32,
+                units="snap_mass/snap_length**3",
+                registry=reg,
+            )
             data["PartType4"]["BirthScaleFactors"] = unyt.unyt_array(
                 1.0 / 1.1 + 0.01 * np.random.random(Nstar),
                 dtype=np.float32,
@@ -488,6 +872,15 @@ class DummyHaloGenerator:
             data["PartType4"]["SmoothedElementMassFractions"] = unyt.unyt_array(
                 semf, dtype=np.float32, units=unyt.dimensionless, registry=reg
             )
+            data["PartType4"]["IronMassFractionsFromSNIa"] = data["PartType4"][
+                "SmoothedElementMassFractions"
+            ][:, 8].copy()
+            data["PartType4"]["SNIaRates"] = unyt.unyt_array(
+                5.36e7 * np.random.random(Nstar),
+                dtype=np.float64,
+                units="1/snap_time",
+                registry=reg,
+            )
             data["PartType4"]["Velocities"] = vs[star_mask]
 
         # BH properties
@@ -512,6 +905,10 @@ class DummyHaloGenerator:
                 units=unyt.dimensionless,
                 registry=reg,
             )
+            # randomly set some values to -1
+            data["PartType5"]["LastAGNFeedbackScaleFactors"][
+                np.random.random() > 0.9
+            ] = -1
             # no need to do anything random for the IDs; we simply make sure
             # the IDs are non zero
             data["PartType5"]["ParticleIDs"] = unyt.unyt_array(
