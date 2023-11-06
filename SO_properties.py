@@ -242,7 +242,7 @@ class SOParticleData:
         nu_density: unyt.unyt_quantity,
         observer_position: unyt.unyt_array,
         snapshot_datasets: SnapshotDatasets,
-        core_excision_fraction, # TODO: add type check
+        core_excision_fraction,  # TODO: add type check
     ):
         """
         Constructor.
@@ -1234,7 +1234,9 @@ class SOParticleData:
     def gas_xraylum_restframe(self):
         if self.Ngas == 0:
             return None
-        return self.get_dataset("PartType0/XrayLuminositiesRestframe")[self.gas_selection]
+        return self.get_dataset("PartType0/XrayLuminositiesRestframe")[
+            self.gas_selection
+        ]
 
     @lazy_property
     def Xraylum(self) -> unyt.unyt_array:
@@ -1266,8 +1268,9 @@ class SOParticleData:
     def gas_xrayphlum_restframe(self):
         if self.Ngas == 0:
             return None
-        return self.get_dataset("PartType0/XrayPhotonLuminositiesRestframe")[self.gas_selection]
-
+        return self.get_dataset("PartType0/XrayPhotonLuminositiesRestframe")[
+            self.gas_selection
+        ]
 
     @lazy_property
     def Xrayphlum(self) -> unyt.unyt_array:
@@ -2965,6 +2968,7 @@ def test_SO_properties():
                 assert result.units.same_dimensions_as(unit.units)
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
+
 
 if __name__ == "__main__":
     """

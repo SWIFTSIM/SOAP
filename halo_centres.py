@@ -188,7 +188,6 @@ class SOCatalogue:
                     local_halo[name], units=units, dtype=dtype, registry=registry
                 )
 
-
         # For testing: limit number of halos processed
         if max_halos > 0:
             nr_halos_local = len(local_halo["ID"])

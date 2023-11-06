@@ -154,7 +154,8 @@ class ChunkTask:
         timings,
         max_ranks_reading,
         scratch_file_format,
-        xray_calculator):
+        xray_calculator,
+    ):
 
         comm_rank = comm.Get_rank()
         comm_size = comm.Get_size()
@@ -319,7 +320,8 @@ class ChunkTask:
                 boxsize,
                 self.halo_arrays,
                 results,
-                xray_calculator)
+                xray_calculator,
+            )
             t1_halos = time.time()
             task_time_all_iterations += task_time
             dead_time_fraction = 1.0 - comm.allreduce(task_time) / comm.allreduce(
