@@ -597,14 +597,10 @@ class SingleProjectionProjectedApertureParticleData:
         return np.sqrt((self.gas_mass_fraction * (proj_vgas - vcom_gas) ** 2).sum())
 
     @lazy_property
-<<<<<<< HEAD
-    def ProjectedGasInertiaTensor(self):
-=======
-    def ProjectedGasAxisLengths(self) -> unyt.unyt_array:
+    def ProjectedGasInertiaTensor(self) -> unyt.unyt_array:
         """
-        Axis lengths of the gas in projection.
+        Inertia tensor of the gas in projection.
         """
->>>>>>> 2f13acf0ef895a62604fb265ccac9725d35a4583
         if self.Mgas == 0:
             return None
         return get_projected_inertia_tensor(
@@ -658,14 +654,10 @@ class SingleProjectionProjectedApertureParticleData:
         return np.sqrt((self.star_mass_fraction * (proj_vstar - vcom_star) ** 2).sum())
 
     @lazy_property
-<<<<<<< HEAD
-    def ProjectedStellarInertiaTensor(self):
-=======
-    def ProjectedStellarAxisLengths(self) -> unyt.unyt_array:
+    def ProjectedStellarInertiaTensor(self) -> unyt.unyt_array:
         """
-        Axis lengths of the stars in projection.
+        Inertia tensor of the stars in projection.
         """
->>>>>>> 2f13acf0ef895a62604fb265ccac9725d35a4583
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor(
@@ -673,14 +665,10 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
-<<<<<<< HEAD
-    def ProjectedBaryonInertiaTensor(self):
-=======
-    def ProjectedBaryonAxisLengths(self) -> unyt.unyt_array:
+    def ProjectedBaryonInertiaTensor(self) -> unyt.unyt_array:
         """
-        Axis lengths of the baryons (gas + stars) in projection.
+        Inertia tensor o of the baryons (gas + stars) in projection.
         """
->>>>>>> 2f13acf0ef895a62604fb265ccac9725d35a4583
         if self.Mbaryons == 0:
             return None
         return get_projected_inertia_tensor(
@@ -1097,14 +1085,9 @@ class ProjectedApertureProperties(HaloProperty):
             "BHmaxvel",
             "BHlasteventa",
             "BHmaxlasteventa",
-<<<<<<< HEAD
             "ProjectedGasInertiaTensor",
             "ProjectedStellarInertiaTensor",
             "ProjectedBaryonInertiaTensor",
-=======
-            "ProjectedGasAxisLengths",
-            "ProjectedStellarAxisLengths",
-            "ProjectedBaryonAxisLengths",
             "HydrogenMass",
             "HeliumMass",
             "MolecularHydrogenMass",
@@ -1115,7 +1098,6 @@ class ProjectedApertureProperties(HaloProperty):
             "starmetalfrac",
             "gasmetalfrac",
             "gasmetalfrac_SF",
->>>>>>> 2f13acf0ef895a62604fb265ccac9725d35a4583
         ]
     ]
 
