@@ -1322,7 +1322,7 @@ class PropertyTable:
             "ComptonY-weighted mean gas temperature.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Tgas_cy_weighted_no_agn": (
             "GasComptonYTemperatureWithoutRecentAGNHeating",
@@ -1332,7 +1332,7 @@ class PropertyTable:
             "ComptonY-weighted mean gas temperature, excluding gas that was recently heated by AGN.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Tgas_cy_weighted_core_excision": (
             "GasComptonYTemperatureCoreExcision",
@@ -1342,7 +1342,7 @@ class PropertyTable:
             "ComptonY-weighted mean gas temperature, excluding the inner {core_excision}.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Tgas_cy_weighted_core_excision_no_agn": (
             "GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision",
@@ -1352,7 +1352,7 @@ class PropertyTable:
             "ComptonY-weighted mean gas temperature, excluding the inner {core_excision} and gas that was recently heated by AGN.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Tgas_core_excision": (
             "GasTemperatureCoreExcision",
@@ -1362,7 +1362,7 @@ class PropertyTable:
             "Mass-weighted mean gas temperature, excluding the inner {core_excision}.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Tgas_no_cool_core_excision": (
             "GasTemperatureWithoutCoolGasCoreExcision",
@@ -1372,7 +1372,7 @@ class PropertyTable:
             "Mass-weighted mean gas temperature, excluding the inner {core_excision} and gas below 1e5 K.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Tgas_no_agn_core_excision": (
             "GasTemperatureWithoutRecentAGNHeatingCoreExcision",
@@ -1382,7 +1382,7 @@ class PropertyTable:
             "Mass-weighted mean gas temperature, excluding the inner {core_excision}, and gas that was recently heated by AGN.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Tgas_no_cool_no_agn_core_excision": (
             "GasTemperatureWithoutCoolGasAndRecentAGNHeatingCoreExcision",
@@ -1392,7 +1392,7 @@ class PropertyTable:
             "Mass-weighted mean gas temperature, excluding the inner {core_excision}, gas below 1e5 K and gas that was recently heated by AGN.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "TotalInertiaTensor": (
             "TotalInertiaTensor",
@@ -1530,7 +1530,7 @@ class PropertyTable:
             "Total observer-frame Xray luminosity in three bands.",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xraylum_restframe": (
             "XRayLuminosityInRestframe",
@@ -1551,7 +1551,7 @@ class PropertyTable:
             "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN.",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xraylum_restframe_no_agn": (
             "XRayLuminosityInRestframeWithoutRecentAGNHeating",
@@ -1576,7 +1576,7 @@ class PropertyTable:
             "Total observer-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xraylum_restframe_core_excision": (
             "XRayLuminosityInRestframeCoreExcision",
@@ -1586,7 +1586,7 @@ class PropertyTable:
             "Total rest-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xraylum_no_agn_core_excision": (
             "XRayLuminosityWithoutRecentAGNHeatingCoreExcision",
@@ -1596,7 +1596,7 @@ class PropertyTable:
             "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xraylum_restframe_no_agn_core_excision": (
             "XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
@@ -1606,7 +1606,7 @@ class PropertyTable:
             "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xraylum_core_excision": (
             "XRayLuminosityCoreExcision",
@@ -1616,7 +1616,7 @@ class PropertyTable:
             "Total observer-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xraylum_restframe_core_excision": (
             "XRayLuminosityInRestframeCoreExcision",
@@ -1626,7 +1626,7 @@ class PropertyTable:
             "Total rest-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xraylum_no_agn_core_excision": (
             "XRayLuminosityWithoutRecentAGNHeatingCoreExcision",
@@ -1636,7 +1636,7 @@ class PropertyTable:
             "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xraylum_restframe_no_agn_core_excision": (
             "XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
@@ -1646,7 +1646,7 @@ class PropertyTable:
             "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum": (
             "XRayPhotonLuminosity",
@@ -1656,7 +1656,7 @@ class PropertyTable:
             "Total observer-frame Xray photon luminosity in three bands.",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum_restframe": (
             "XRayPhotonLuminosityInRestframe",
@@ -1677,7 +1677,7 @@ class PropertyTable:
             "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum_restframe_no_agn": (
             "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating",
@@ -1702,7 +1702,7 @@ class PropertyTable:
             "Total observer-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum_restframe_core_excision": (
             "XRayPhotonLuminosityCoreExcision",
@@ -1712,7 +1712,7 @@ class PropertyTable:
             "Total rest-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum_no_agn_core_excision": (
             "XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision",
@@ -1722,7 +1722,7 @@ class PropertyTable:
             "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum_restframe_no_agn_core_excision": (
             "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
@@ -1732,7 +1732,7 @@ class PropertyTable:
             "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "SpectroscopicLikeTemperature": (
             "SpectroscopicLikeTemperature",
@@ -1742,7 +1742,7 @@ class PropertyTable:
             "Spectroscopic-like gas temperature.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "SpectroscopicLikeTemperature_no_agn": (
             "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
@@ -1752,7 +1752,7 @@ class PropertyTable:
             "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "SpectroscopicLikeTemperature_core_excision": (
             "SpectroscopicLikeTemperatureCoreExcision",
@@ -1762,7 +1762,7 @@ class PropertyTable:
             "Spectroscopic-like gas temperature. Excludes gas in the inner {core_excision}",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "SpectroscopicLikeTemperature_no_agn_core_excision": (
             "SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision",
@@ -1772,7 +1772,7 @@ class PropertyTable:
             "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum_core_excision": (
             "XRayPhotonLuminosityCoreExcision",
@@ -1782,7 +1782,7 @@ class PropertyTable:
             "Total observer-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum_restframe_core_excision": (
             "XRayPhotonLuminosityInRestframeCoreExcision",
@@ -1792,7 +1792,7 @@ class PropertyTable:
             "Total rest-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum_no_agn_core_excision": (
             "XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision",
@@ -1802,7 +1802,7 @@ class PropertyTable:
             "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "Xrayphlum_restframe_no_agn_core_excision": (
             "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
@@ -1812,7 +1812,7 @@ class PropertyTable:
             "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "SpectroscopicLikeTemperature": (
             "SpectroscopicLikeTemperature",
@@ -1822,7 +1822,7 @@ class PropertyTable:
             "Spectroscopic-like gas temperature.",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "SpectroscopicLikeTemperature_no_agn": (
             "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
@@ -1832,7 +1832,7 @@ class PropertyTable:
             "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "SpectroscopicLikeTemperature_core_excision": (
             "SpectroscopicLikeTemperatureCoreExcision",
@@ -1842,7 +1842,7 @@ class PropertyTable:
             "Spectroscopic-like gas temperature. Excludes gas in the inner {core_excision}",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "SpectroscopicLikeTemperature_no_agn_core_excision": (
             "SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision",
@@ -1852,7 +1852,7 @@ class PropertyTable:
             "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
             "gas",
             "FMantissa9",
-            False,  # TODO: add (FLAMINGO) particle properties required to compute property
+            False, # TODO: add required (FLAMINGO) particle properties
         ),
         "com": (
             "CentreOfMass",
