@@ -241,7 +241,7 @@ def compute_halo_properties():
                 )
             )
 
-    # TODO: add to the list of properties to compute
+    # TODO: add to the list of properties to compute (FLAMINGO)
     # SO_properties.CoreExcisedSOProperties(
     #     cellgrid,
     #     recently_heated_gas_filter,

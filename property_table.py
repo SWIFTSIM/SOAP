@@ -1314,86 +1314,86 @@ class PropertyTable:
             False,
             ["PartType0/Temperatures", "PartType0/LastAGNFeedbackScaleFactors"],
         ),
-        "Tgas_cy_weighted": (
-            "GasComptonYTemperature",
-            1,
-            np.float32,
-            "K",
-            "ComptonY-weighted mean gas temperature.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Tgas_cy_weighted_no_agn": (
-            "GasComptonYTemperatureWithoutRecentAGNHeating",
-            1,
-            np.float32,
-            "K",
-            "ComptonY-weighted mean gas temperature, excluding gas that was recently heated by AGN.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Tgas_cy_weighted_core_excision": (
-            "GasComptonYTemperatureCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "ComptonY-weighted mean gas temperature, excluding the inner {core_excision}.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Tgas_cy_weighted_core_excision_no_agn": (
-            "GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "ComptonY-weighted mean gas temperature, excluding the inner {core_excision} and gas that was recently heated by AGN.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Tgas_core_excision": (
-            "GasTemperatureCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "Mass-weighted mean gas temperature, excluding the inner {core_excision}.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Tgas_no_cool_core_excision": (
-            "GasTemperatureWithoutCoolGasCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "Mass-weighted mean gas temperature, excluding the inner {core_excision} and gas below 1e5 K.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Tgas_no_agn_core_excision": (
-            "GasTemperatureWithoutRecentAGNHeatingCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "Mass-weighted mean gas temperature, excluding the inner {core_excision}, and gas that was recently heated by AGN.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Tgas_no_cool_no_agn_core_excision": (
-            "GasTemperatureWithoutCoolGasAndRecentAGNHeatingCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "Mass-weighted mean gas temperature, excluding the inner {core_excision}, gas below 1e5 K and gas that was recently heated by AGN.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
+        # "Tgas_cy_weighted": (
+        #     "GasComptonYTemperature",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "ComptonY-weighted mean gas temperature.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Tgas_cy_weighted_no_agn": (
+        #     "GasComptonYTemperatureWithoutRecentAGNHeating",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "ComptonY-weighted mean gas temperature, excluding gas that was recently heated by AGN.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Tgas_cy_weighted_core_excision": (
+        #     "GasComptonYTemperatureCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "ComptonY-weighted mean gas temperature, excluding the inner {core_excision}.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Tgas_cy_weighted_core_excision_no_agn": (
+        #     "GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "ComptonY-weighted mean gas temperature, excluding the inner {core_excision} and gas that was recently heated by AGN.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Tgas_core_excision": (
+        #     "GasTemperatureCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Mass-weighted mean gas temperature, excluding the inner {core_excision}.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Tgas_no_cool_core_excision": (
+        #     "GasTemperatureWithoutCoolGasCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Mass-weighted mean gas temperature, excluding the inner {core_excision} and gas below 1e5 K.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Tgas_no_agn_core_excision": (
+        #     "GasTemperatureWithoutRecentAGNHeatingCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Mass-weighted mean gas temperature, excluding the inner {core_excision}, and gas that was recently heated by AGN.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Tgas_no_cool_no_agn_core_excision": (
+        #     "GasTemperatureWithoutCoolGasAndRecentAGNHeatingCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Mass-weighted mean gas temperature, excluding the inner {core_excision}, gas below 1e5 K and gas that was recently heated by AGN.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
         "TotalInertiaTensor": (
             "TotalInertiaTensor",
             6,
@@ -1522,16 +1522,16 @@ class PropertyTable:
                 "PartType5/DynamicalMasses",
             ],
         ),
-        "Xraylum": (
-            "XRayLuminosity",
-            3,
-            np.float64,
-            "erg/s",
-            "Total observer-frame Xray luminosity in three bands.",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
+        # "Xraylum": (
+        #     "XRayLuminosity",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total observer-frame Xray luminosity in three bands.",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
         "Xraylum_restframe": (
             "XRayLuminosityInRestframe",
             3,
@@ -1543,16 +1543,16 @@ class PropertyTable:
             False,
             ["PartType0/XrayLuminosities"],
         ),
-        "Xraylum_no_agn": (
-            "XRayLuminosityWithoutRecentAGNHeating",
-            3,
-            np.float64,
-            "erg/s",
-            "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN.",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
+        # "Xraylum_no_agn": (
+        #     "XRayLuminosityWithoutRecentAGNHeating",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN.",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
         "Xraylum_restframe_no_agn": (
             "XRayLuminosityInRestframeWithoutRecentAGNHeating",
             3,
@@ -1568,96 +1568,96 @@ class PropertyTable:
                 "PartType0/Temperatures",
             ],
         ),
-        "Xraylum_core_excision": (
-            "XRayLuminosityCoreExcision",
-            3,
-            np.float64,
-            "erg/s",
-            "Total observer-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xraylum_restframe_core_excision": (
-            "XRayLuminosityInRestframeCoreExcision",
-            3,
-            np.float64,
-            "erg/s",
-            "Total rest-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xraylum_no_agn_core_excision": (
-            "XRayLuminosityWithoutRecentAGNHeatingCoreExcision",
-            3,
-            np.float64,
-            "erg/s",
-            "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xraylum_restframe_no_agn_core_excision": (
-            "XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
-            3,
-            np.float64,
-            "erg/s",
-            "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xraylum_core_excision": (
-            "XRayLuminosityCoreExcision",
-            3,
-            np.float64,
-            "erg/s",
-            "Total observer-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xraylum_restframe_core_excision": (
-            "XRayLuminosityInRestframeCoreExcision",
-            3,
-            np.float64,
-            "erg/s",
-            "Total rest-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xraylum_no_agn_core_excision": (
-            "XRayLuminosityWithoutRecentAGNHeatingCoreExcision",
-            3,
-            np.float64,
-            "erg/s",
-            "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xraylum_restframe_no_agn_core_excision": (
-            "XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
-            3,
-            np.float64,
-            "erg/s",
-            "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xrayphlum": (
-            "XRayPhotonLuminosity",
-            3,
-            np.float64,
-            "1/s",
-            "Total observer-frame Xray photon luminosity in three bands.",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
+        # "Xraylum_core_excision": (
+        #     "XRayLuminosityCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total observer-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xraylum_restframe_core_excision": (
+        #     "XRayLuminosityInRestframeCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total rest-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xraylum_no_agn_core_excision": (
+        #     "XRayLuminosityWithoutRecentAGNHeatingCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xraylum_restframe_no_agn_core_excision": (
+        #     "XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xraylum_core_excision": (
+        #     "XRayLuminosityCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total observer-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xraylum_restframe_core_excision": (
+        #     "XRayLuminosityInRestframeCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total rest-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xraylum_no_agn_core_excision": (
+        #     "XRayLuminosityWithoutRecentAGNHeatingCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xraylum_restframe_no_agn_core_excision": (
+        #     "XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "erg/s",
+        #     "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xrayphlum": (
+        #     "XRayPhotonLuminosity",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total observer-frame Xray photon luminosity in three bands.",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
         "Xrayphlum_restframe": (
             "XRayPhotonLuminosityInRestframe",
             3,
@@ -1669,16 +1669,16 @@ class PropertyTable:
             False,
             ["PartType0/XrayPhotonLuminosities"],
         ),
-        "Xrayphlum_no_agn": (
-            "XRayPhotonLuminosityWithoutRecentAGNHeating",
-            3,
-            np.float64,
-            "1/s",
-            "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
+        # "Xrayphlum_no_agn": (
+        #     "XRayPhotonLuminosityWithoutRecentAGNHeating",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
         "Xrayphlum_restframe_no_agn": (
             "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating",
             3,
@@ -1694,166 +1694,166 @@ class PropertyTable:
                 "PartType0/Temperatures",
             ],
         ),
-        "Xrayphlum_core_excision": (
-            "XRayPhotonLuminosityCoreExcision",
-            3,
-            np.float64,
-            "1/s",
-            "Total observer-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xrayphlum_restframe_core_excision": (
-            "XRayPhotonLuminosityCoreExcision",
-            3,
-            np.float64,
-            "1/s",
-            "Total rest-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xrayphlum_no_agn_core_excision": (
-            "XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision",
-            3,
-            np.float64,
-            "1/s",
-            "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xrayphlum_restframe_no_agn_core_excision": (
-            "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
-            3,
-            np.float64,
-            "1/s",
-            "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "SpectroscopicLikeTemperature": (
-            "SpectroscopicLikeTemperature",
-            1,
-            np.float32,
-            "K",
-            "Spectroscopic-like gas temperature.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "SpectroscopicLikeTemperature_no_agn": (
-            "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
-            1,
-            np.float32,
-            "K",
-            "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "SpectroscopicLikeTemperature_core_excision": (
-            "SpectroscopicLikeTemperatureCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "Spectroscopic-like gas temperature. Excludes gas in the inner {core_excision}",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "SpectroscopicLikeTemperature_no_agn_core_excision": (
-            "SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xrayphlum_core_excision": (
-            "XRayPhotonLuminosityCoreExcision",
-            3,
-            np.float64,
-            "1/s",
-            "Total observer-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xrayphlum_restframe_core_excision": (
-            "XRayPhotonLuminosityInRestframeCoreExcision",
-            3,
-            np.float64,
-            "1/s",
-            "Total rest-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xrayphlum_no_agn_core_excision": (
-            "XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision",
-            3,
-            np.float64,
-            "1/s",
-            "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "Xrayphlum_restframe_no_agn_core_excision": (
-            "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
-            3,
-            np.float64,
-            "1/s",
-            "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "DMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "SpectroscopicLikeTemperature": (
-            "SpectroscopicLikeTemperature",
-            1,
-            np.float32,
-            "K",
-            "Spectroscopic-like gas temperature.",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "SpectroscopicLikeTemperature_no_agn": (
-            "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
-            1,
-            np.float32,
-            "K",
-            "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "SpectroscopicLikeTemperature_core_excision": (
-            "SpectroscopicLikeTemperatureCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "Spectroscopic-like gas temperature. Excludes gas in the inner {core_excision}",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
-        "SpectroscopicLikeTemperature_no_agn_core_excision": (
-            "SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision",
-            1,
-            np.float32,
-            "K",
-            "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
-            "FMantissa9",
-            False, # TODO: add required (FLAMINGO) particle properties
-        ),
+        # "Xrayphlum_core_excision": (
+        #     "XRayPhotonLuminosityCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total observer-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xrayphlum_restframe_core_excision": (
+        #     "XRayPhotonLuminosityCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total rest-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xrayphlum_no_agn_core_excision": (
+        #     "XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xrayphlum_restframe_no_agn_core_excision": (
+        #     "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "SpectroscopicLikeTemperature": (
+        #     "SpectroscopicLikeTemperature",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Spectroscopic-like gas temperature.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "SpectroscopicLikeTemperature_no_agn": (
+        #     "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "SpectroscopicLikeTemperature_core_excision": (
+        #     "SpectroscopicLikeTemperatureCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Spectroscopic-like gas temperature. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "SpectroscopicLikeTemperature_no_agn_core_excision": (
+        #     "SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xrayphlum_core_excision": (
+        #     "XRayPhotonLuminosityCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total observer-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xrayphlum_restframe_core_excision": (
+        #     "XRayPhotonLuminosityInRestframeCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total rest-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xrayphlum_no_agn_core_excision": (
+        #     "XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "Xrayphlum_restframe_no_agn_core_excision": (
+        #     "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision",
+        #     3,
+        #     np.float64,
+        #     "1/s",
+        #     "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "DMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "SpectroscopicLikeTemperature": (
+        #     "SpectroscopicLikeTemperature",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Spectroscopic-like gas temperature.",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "SpectroscopicLikeTemperature_no_agn": (
+        #     "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "SpectroscopicLikeTemperature_core_excision": (
+        #     "SpectroscopicLikeTemperatureCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Spectroscopic-like gas temperature. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
+        # "SpectroscopicLikeTemperature_no_agn_core_excision": (
+        #     "SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision",
+        #     1,
+        #     np.float32,
+        #     "K",
+        #     "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
+        #     "gas",
+        #     "FMantissa9",
+        #     False,  # TODO: add required (FLAMINGO) particle properties
+        # ),
         "com": (
             "CentreOfMass",
             3,
@@ -2462,16 +2462,16 @@ class PropertyTable:
                 "PartType4/IronMassFractionsFromSNIa",
             ],
         ),
-        "SOAPSubhaloRankByBoundMass": (
-            "SubhaloRankByBoundMass",
-            1,
-            np.int32,
-            "dimensionless",
-            "Ranking by mass of the halo within its parent field halo. Zero for the most massive halo in the field halo.",
-            "SOAP",
-            "None",
-            True,
-        ),
+        # "SOAPSubhaloRankByBoundMass": (
+        #     "SubhaloRankByBoundMass",
+        #     1,
+        #     np.int32,
+        #     "dimensionless",
+        #     "Ranking by mass of the halo within its parent field halo. Zero for the most massive halo in the field halo.",
+        #     "SOAP",
+        #     "None",
+        #     True, # TODO: add required (FLAMINGO) particle properties
+        # ),
         "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": (
             "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
             1,

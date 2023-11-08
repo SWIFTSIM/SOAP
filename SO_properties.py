@@ -1981,19 +1981,19 @@ class SOProperties(HaloProperty):
             "Tgas_no_cool",
             "Tgas_no_agn",
             "Tgas_no_cool_no_agn",
-            "Tgas_cy_weighted",
-            "Tgas_cy_weighted_no_agn",
-            "Xraylum",
-            "Xraylum_restframe",
-            "SpectroscopicLikeTemperature",
-            "SpectroscopicLikeTemperature_no_agn",
-            "Xrayphlum",
+            # "Tgas_cy_weighted", # TODO: Add FLAMINGO
+            # "Tgas_cy_weighted_no_agn", # TODO: Add FLAMINGO 
+            # "Xraylum", # TODO: Add FLAMINGO
+            # "Xraylum_restframe", # TODO: Add FLAMINGO
+            # "SpectroscopicLikeTemperature", # TODO: Add FLAMINGO
+            # "SpectroscopicLikeTemperature_no_agn", # TODO: Add FLAMINGO
+            # "Xrayphlum",# TODO: Add FLAMINGO
             "Xrayphlum_restframe",
             "compY",
-            "Xraylum_no_agn",
-            "Xrayphlum_no_agn",
-            "Xraylum_restframe_no_agn",
-            "Xrayphlum_restframe_no_agn",
+            # "Xraylum_no_agn",  # TODO: Add FLAMINGO
+            # "Xrayphlum_no_agn", # TODO: Add FLAMINGO 
+            # "Xraylum_restframe_no_agn", # TODO: Add FLAMINGO
+            # "Xrayphlum_restframe_no_agn", # TODO: Add FLAMINGO
             "compY_no_agn",
             "Ekin_gas",
             "Etherm_gas",
@@ -2327,47 +2327,47 @@ class SOProperties(HaloProperty):
 
         return
 
+# # TODO: include for FLAMINGO
+# class CoreExcisedSOProperties(SOProperties):
+#     # Add the extra core excised properties we want from the table
+#     property_list = SOProperties.property_list + [
+#         (prop, *PropertyTable.full_property_list[prop])
+#         for prop in [
+#             "Tgas_core_excision",
+#             "Tgas_no_cool_core_excision",
+#             "Tgas_no_agn_core_excision",
+#             "Tgas_no_cool_no_agn_core_excision",
+#             "Tgas_cy_weighted_core_excision",
+#             "Tgas_cy_weighted_core_excision_no_agn",
+#             "SpectroscopicLikeTemperature_core_excision",
+#             "SpectroscopicLikeTemperature_no_agn_core_excision",
+#             "Xraylum_core_excision",
+#             "Xraylum_no_agn_core_excision",
+#             "Xrayphlum_core_excision",
+#             "Xrayphlum_no_agn_core_excision",
+#             "Xraylum_restframe_core_excision",
+#             "Xraylum_restframe_no_agn_core_excision",
+#             "Xrayphlum_restframe_core_excision",
+#             "Xrayphlum_restframe_no_agn_core_excision",
+#         ]
+#     ]
 
-class CoreExcisedSOProperties(SOProperties):
-    # Add the extra core excised properties we want from the table
-    property_list = SOProperties.property_list + [
-        (prop, *PropertyTable.full_property_list[prop])
-        for prop in [
-            "Tgas_core_excision",
-            "Tgas_no_cool_core_excision",
-            "Tgas_no_agn_core_excision",
-            "Tgas_no_cool_no_agn_core_excision",
-            "Tgas_cy_weighted_core_excision",
-            "Tgas_cy_weighted_core_excision_no_agn",
-            "SpectroscopicLikeTemperature_core_excision",
-            "SpectroscopicLikeTemperature_no_agn_core_excision",
-            "Xraylum_core_excision",
-            "Xraylum_no_agn_core_excision",
-            "Xrayphlum_core_excision",
-            "Xrayphlum_no_agn_core_excision",
-            "Xraylum_restframe_core_excision",
-            "Xraylum_restframe_no_agn_core_excision",
-            "Xrayphlum_restframe_core_excision",
-            "Xrayphlum_restframe_no_agn_core_excision",
-        ]
-    ]
+#     def __init__(
+#         self,
+#         cellgrid,
+#         recently_heated_gas_filter,
+#         category_filter,
+#         SOval,
+#         type="mean",
+#         core_excision_fraction=None,
+#     ):
+#         # Store the excision fraction
+#         self.core_excision_fraction = core_excision_fraction
 
-    def __init__(
-        self,
-        cellgrid,
-        recently_heated_gas_filter,
-        category_filter,
-        SOval,
-        type="mean",
-        core_excision_fraction=None,
-    ):
-        # Store the excision fraction
-        self.core_excision_fraction = core_excision_fraction
-
-        # initialise the SOProperties object
-        super().__init__(
-            cellgrid, recently_heated_gas_filter, category_filter, SOval, type
-        )
+#         # initialise the SOProperties object
+#         super().__init__(
+#             cellgrid, recently_heated_gas_filter, category_filter, SOval, type
+#         )
 
 
 class RadiusMultipleSOProperties(SOProperties):
