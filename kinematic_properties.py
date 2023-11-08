@@ -132,11 +132,13 @@ def get_vmax(mass, radius):
 def get_inertia_tensor(mass, position):
 
     # 3x3 inertia tensor
-    Itensor = (mass[:, None, None] * position[:,None:, None] * position[:,None]).sum(axis=0)
+    Itensor = (mass[:, None, None] * position[:, None:, None] * position[:, None]).sum(
+        axis=0
+    )
 
     # Symmetric, so only return lower triangle
-    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3,1)]])
-    
+    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
+
     return Itensor
 
 
