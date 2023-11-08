@@ -130,28 +130,13 @@ def get_vmax(mass, radius):
 
 
 def get_inertia_tensor(mass, position):
-    Itensor = (mass[:, None, None]) * np.ones((mass.shape[0], 3, 3))
-    # Note: unyt currently ignores the position units in the *=
-    # i.e. Itensor is dimensionless throughout (even though it should not be)
-    for i in range(3):
-        for j in range(3):
-            Itensor[:, i, j] *= position[:, i].value * position[:, j].value
-    Itensor = Itensor.sum(axis=0)
-    Itensor = (
-        np.array(
-            (
-                Itensor[0, 0],
-                Itensor[1, 1],
-                Itensor[2, 2],
-                Itensor[0, 1],
-                Itensor[0, 2],
-                Itensor[1, 2],
-            )
-        )
-        * position.units
-        * position.units
-        * mass.units
-    )
+
+    # 3x3 inertia tensor
+    Itensor = (mass[:, None, None] * position[:,None:, None] * position[:,None]).sum(axis=0)
+
+    # Symmetric, so only return lower triangle
+    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3,1)]])
+    
     return Itensor
 
 
