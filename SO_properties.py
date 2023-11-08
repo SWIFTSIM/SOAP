@@ -1264,13 +1264,13 @@ class SOParticleData:
             return None
         return self.get_dataset("PartType0/XrayPhotonLuminosities")[self.gas_selection]
 
-    @lazy_property
-    def gas_xrayphlum_restframe(self):
-        if self.Ngas == 0:
-            return None
-        return self.get_dataset("PartType0/XrayPhotonLuminositiesRestframe")[
-            self.gas_selection
-        ]
+    # @lazy_property
+    # def gas_xrayphlum_restframe(self):
+    #     if self.Ngas == 0:
+    #         return None
+    #     return self.get_dataset("PartType0/XrayPhotonLuminositiesRestframe")[
+    #         self.gas_selection
+    #     ]
 
     @lazy_property
     def Xrayphlum(self) -> unyt.unyt_array:
@@ -1283,10 +1283,11 @@ class SOParticleData:
             return None
         return self.gas_xrayphlum.sum(axis=0)
 
-    def Xrayphlum_restframe(self):
-        if self.Ngas == 0:
-            return None
-        return self.gas_xrayphlum_restframe.sum(axis=0)
+    # @lazy_property # TODO: comment (FLAMINGO)
+    # def Xrayphlum_restframe(self):
+    #     if self.Ngas == 0:
+    #         return None
+    #     return self.gas_xrayphlum_restframe.sum(axis=0)
 
     @lazy_property
     def gas_compY(self) -> unyt.unyt_array:
@@ -1363,17 +1364,17 @@ class SOParticleData:
             return None
         return self.gas_xrayphlum[self.gas_no_agn].sum(axis=0)
 
-    @lazy_property
-    def Xraylum_restframe_no_agn(self):
-        if self.Ngas_no_agn == 0:
-            return None
-        return self.gas_xraylum_restframe[self.gas_no_agn].sum(axis=0)
+    # @lazy_property #TODO: FLAMINGO
+    # def Xraylum_restframe_no_agn(self):
+    #     if self.Ngas_no_agn == 0:
+    #         return None
+    #     return self.gas_xraylum_restframe[self.gas_no_agn].sum(axis=0)
 
-    @lazy_property
-    def Xrayphlum_restframe_no_agn(self):
-        if self.Ngas_no_agn == 0:
-            return None
-        return self.gas_xrayphlum_restframe[self.gas_no_agn].sum(axis=0)
+    # @lazy_property #TODO: FLAMINGO
+    # def Xrayphlum_restframe_no_agn(self):
+    #     if self.Ngas_no_agn == 0:
+    #         return None
+    #     return self.gas_xrayphlum_restframe[self.gas_no_agn].sum(axis=0)
 
     @lazy_property
     def compY_no_agn(self) -> unyt.unyt_quantity:
@@ -1460,13 +1461,13 @@ class SOParticleData:
             return None
         return self.gas_xraylum_restframe[self.gas_selection_core_excision].sum(axis=0)
 
-    @lazy_property
-    def Xrayphlum_restframe_core_excision(self):
-        if self.Ngas_core_excision == 0:
-            return None
-        return self.gas_xrayphlum_restframe[self.gas_selection_core_excision].sum(
-            axis=0
-        )
+    # @lazy_property # TODO: FLAMINGO
+    # def Xrayphlum_restframe_core_excision(self):
+    #     if self.Ngas_core_excision == 0:
+    #         return None
+    #     return self.gas_xrayphlum_restframe[self.gas_selection_core_excision].sum(
+    #         axis=0
+    #     )
 
     @lazy_property
     def Xraylum_restframe_no_agn_core_excision(self):
@@ -1476,13 +1477,13 @@ class SOParticleData:
             axis=0
         )
 
-    @lazy_property
-    def Xrayphlum_restframe_no_agn_core_excision(self):
-        if self.Ngas_no_agn_core_excision == 0:
-            return None
-        return self.gas_xrayphlum_restframe[
-            self.gas_selection_no_agn_core_excision
-        ].sum(axis=0)
+    # @lazy_property // TODO: FLAMINGO
+    # def Xrayphlum_restframe_no_agn_core_excision(self):
+    #     if self.Ngas_no_agn_core_excision == 0:
+    #         return None
+    #     return self.gas_xrayphlum_restframe[
+    #         self.gas_selection_no_agn_core_excision
+    #     ].sum(axis=0)
 
     @lazy_property
     def gas_selection_xray_temperature(self):
@@ -1988,7 +1989,7 @@ class SOProperties(HaloProperty):
             # "SpectroscopicLikeTemperature", # TODO: Add FLAMINGO
             # "SpectroscopicLikeTemperature_no_agn", # TODO: Add FLAMINGO
             # "Xrayphlum",# TODO: Add FLAMINGO
-            "Xrayphlum_restframe",
+            # "Xrayphlum_restframe", # TODO: ADD FLAMINGO
             "compY",
             # "Xraylum_no_agn",  # TODO: Add FLAMINGO
             # "Xrayphlum_no_agn", # TODO: Add FLAMINGO 
@@ -2288,9 +2289,12 @@ class SOProperties(HaloProperty):
                     if do_calculation[category]:
                         val = getattr(part_props, name)
                         if val is not None:
+                            # print (name, SO[name].shape)
                             assert (
                                 SO[name].shape == val.shape
                             ), f"Attempting to store {name} with wrong dimensions"
+                            # print (name, val.shape, SO[name].shape)
+                            
                             if unit == "dimensionless":
                                 SO[name] = unyt.unyt_array(
                                     val.astype(dtype),

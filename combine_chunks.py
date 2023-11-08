@@ -87,10 +87,12 @@ def combine_chunks(
             params.attrs["halo_ids"] = (
                 args.halo_ids if args.halo_ids is not None else np.ndarray(0, dtype=int)
             )
-            recently_heated_gas_metadata = recently_heated_gas_filter.get_metadata()
-            recently_heated_gas_params = outfile.create_group("RecentlyHeatedGasFilter")
-            for at, val in recently_heated_gas_metadata.items():
-                recently_heated_gas_params.attrs[at] = val
+            # NOTE: FLAMINGO
+            # recently_heated_gas_metadata = recently_heated_gas_filter.get_metadata()
+            # recently_heated_gas_params = outfile.create_group("RecentlyHeatedGasFilter")
+            # for at, val in recently_heated_gas_metadata.items():
+            #     recently_heated_gas_params.attrs[at] = val
+            
             # Create datasets for all halo properties
             for name, size, unit, dtype, description in ref_metadata + soap_metadata:
                 shape = (total_nr_halos,) + size
@@ -145,7 +147,7 @@ def combine_chunks(
                 )
 
             del data
-
+    print("Before writing subhalo ranking by mass")
     with MPITimer("Writing subhalo ranking by mass", comm_world):
         # Now write out subhalo ranking by mass within host halos, if we computed all the required quantities.
         if len(props_kept) == len(props_to_keep):

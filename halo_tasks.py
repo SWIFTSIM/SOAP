@@ -121,7 +121,7 @@ def process_single_halo(
             #     idx_he, idx_T, idx_n, t_z, d_z, t_T, d_T, t_nH, d_nH, t_He, d_He, abundance_to_solar, joint_mask, volumes, data_n = xray_calc.find_indices(
             #         particle_data[ptype]["Densities"],
             #         particle_data[ptype]["Temperatures"],
-            #         particle_data[ptype]["SmoothedElementMassFractions"],
+            #         particle_data[ptype]["SmoothedElementMassFractions"], # NOTE: This is what causes the issues (not present in COLIBRE)
             #         particle_data[ptype]["Masses"],
             #         fill_value=0,
             #     )
