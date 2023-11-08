@@ -234,11 +234,8 @@ def get_inertia_tensor(
     mass: unyt.unyt_array, position: unyt.unyt_array
 ) -> unyt.unyt_array:
     """
-    Get the inertia tensor of the given particle distribution.
-
-    The axis lengths are defined as the eigenvalues of the (normal) moment of
-    inertia tensor, computed as
-     I_{ij} = 1/M * (m*x_i*x_j)
+    Get the inertia tensor of the given particle distribution, computed as 
+    I_{ij} = m*x_i*x_j.
 
     Parameters:
      - mass: unyt.unyt_array
