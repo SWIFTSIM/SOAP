@@ -11,7 +11,7 @@ from mpi_tags import REQUEST_TASK_TAG, ASSIGN_TASK_TAG
 from sleepy_recv import sleepy_recv
 
 
-def distribute_tasks(tasks, comm, task_type):
+def distribute_tasks(tasks, comm):
     """
     Listen for and respond to requests for tasks to do
     """
@@ -22,12 +22,7 @@ def distribute_tasks(tasks, comm, task_type):
     while nr_done < comm_size:
         request_src = sleepy_recv(comm, REQUEST_TASK_TAG)
         if next_task < nr_tasks:
-            if task_type is None:
-                # Use generic mpi4py send
-                comm.send(tasks[next_task], request_src, tag=ASSIGN_TASK_TAG)
-            else:
-                # Task provides its own send method
-                tasks[next_task].send(comm, request_src, tag=ASSIGN_TASK_TAG)
+            comm.send(tasks[next_task], request_src, tag=ASSIGN_TASK_TAG)
             next_task += 1
         else:
             comm.send(None, request_src, tag=ASSIGN_TASK_TAG)
@@ -74,7 +69,6 @@ def execute_tasks(
     comm_workers,
     queue_per_rank=False,
     return_timing=False,
-    task_type=None,
 ):
     """
     Execute the tasks in tasks, which should be a sequence of
@@ -128,15 +122,13 @@ def execute_tasks(
     # First rank in comm_master starts a thread to hand out tasks
     if master_rank == 0:
         if queue_per_rank:
-            if task_type is not None:
-                raise NotImplementedError("Can't specify task type with queue per rank")
             task_queue_thread = threading.Thread(
                 target=distribute_tasks_with_queue_per_rank,
                 args=(tasks, comm_master_local),
             )
         else:
             task_queue_thread = threading.Thread(
-                target=distribute_tasks, args=(tasks, comm_master_local, task_type)
+                target=distribute_tasks, args=(tasks, comm_master_local)
             )
         task_queue_thread.start()
 
@@ -153,12 +145,7 @@ def execute_tasks(
         # which doesn't need to be duplicated to all ranks.
         if worker_rank == 0:
             comm_master_local.send(master_rank, 0, tag=REQUEST_TASK_TAG)
-            if task_type is None:
-                # generic recv
-                task = comm_master_local.recv(tag=ASSIGN_TASK_TAG)
-            else:
-                # task provides its own recv
-                task = task_type.recv(comm_master_local, 0, ASSIGN_TASK_TAG)
+            task = comm_master_local.recv(tag=ASSIGN_TASK_TAG)
         else:
             task = None
 

@@ -419,16 +419,11 @@ def compute_halo_properties():
     so_cat.start_request_thread()
     
     # Generate the chunk task list
+    nr_chunks = so_cat.nr_chunks
     if comm_world_rank == 0:
-        task_list = chunk_tasks.ChunkTaskList(
-            cellgrid, so_cat, halo_prop_list=halo_prop_list
-        )
-        tasks = task_list.tasks
-        nr_chunks = len(tasks)
+        tasks = [chunk_tasks.ChunkTask(halo_prop_list, chunk_nr, nr_chunks) for chunk_nr in range(nr_chunks)]
     else:
         tasks = None
-        nr_chunks = None
-    nr_chunks = comm_world.bcast(nr_chunks)
 
     # Report initial set-up time
     comm_world.barrier()
@@ -438,9 +433,6 @@ def compute_halo_properties():
             "Reading %d input halos and setting up %d chunk(s) took %.1fs"
             % (so_cat.nr_halos, len(tasks), t1 - t0)
         )
-
-    # We no longer need the catalogue, since halo centres etc are stored in the chunk tasks
-    del so_cat
 
     # Make a format string to generate the name of the file each chunk task will write to
     scratch_file_format = (
@@ -466,6 +458,7 @@ def compute_halo_properties():
     timings = []
     task_args = (
         cellgrid,
+        so_cat,
         comm_intra_node,
         inter_node_rank,
         timings,
@@ -479,7 +472,6 @@ def compute_halo_properties():
         comm_all=comm_world,
         comm_master=comm_inter_node,
         comm_workers=comm_intra_node,
-        task_type=chunk_tasks.ChunkTask,
     )
 
     # Can stop the halo request thread now that all chunk tasks have executed
