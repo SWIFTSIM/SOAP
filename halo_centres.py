@@ -219,6 +219,11 @@ class SOCatalogue:
         # Store halo property names in an order which is consistent between MPI ranks
         self.prop_names = sorted(self.local_halo.keys())
         self.comm = comm
+
+        # Store the number of halos in each chunk on every MPI rank:
+        # rank_chunk_sizes[rank_nr][chunk_nr] stores the number of elements in
+        # chunk chunk_nr on rank rank_nr.
+        self.rank_chunk_sizes = comm.allgather(self.local_chunk_size)
         
     def process_requests(self):
         """
@@ -243,9 +248,6 @@ class SOCatalogue:
                 i1 = self.local_chunk_offset[chunk_nr]
                 i2 = self.local_chunk_offset[chunk_nr] + self.local_chunk_size[chunk_nr]
                 sendbuf = self.local_halo[name][i1:i2,...]
-                # First send the type, dimensions and units
-                comm.send((sendbuf.shape, sendbuf.dtype, sendbuf.units), dest=src_rank, tag=HALO_RESPONSE_TAG)
-                # Then send the data
                 comm.Send(sendbuf, dest=src_rank, tag=HALO_RESPONSE_TAG)
         
     def start_request_thread(self):
@@ -259,30 +261,44 @@ class SOCatalogue:
         """
         Request the halo catalogue for the specified chunk from whichever
         MPI ranks contain the halos.
-
-        TODO: should send off all requests simultaneously in non blocking mode
-        to avoid serializing delays waiting for ranks to respond.
         """
         comm = self.comm
+
+        # Determine which ranks in comm_world contain parts of chunk chunk_nr
+        rank_nrs = list(range(self.chunk_min_rank[chunk_nr], self.chunk_max_rank[chunk_nr]+1))
+        nr_ranks = len(rank_nrs)
+
+        # Determine how many halos we will receive in total
+        nr_halos = sum([self.rank_chunk_sizes[rank_nr][chunk_nr] for rank_nr in rank_nrs])
+        assert nr_halos == self.chunk_size[chunk_nr]
         
-        # Loop over ranks which have data we need        
-        data = {name : [] for name in self.prop_names}
-        for rank_nr in range(self.chunk_min_rank[chunk_nr], self.chunk_max_rank[chunk_nr]+1):
+        # Allocate the output arrays. These are the same as our local part of
+        # the halo catalogue except that the size in the first dimension is
+        # the size of the chunk to receive.
+        data = {}
+        for name in self.prop_names:
+            dtype = self.local_halo[name].dtype
+            units = self.local_halo[name].units
+            shape = (nr_halos,) + self.local_halo[name].shape[1:]
+            data[name] = unyt.unyt_array(np.ndarray(shape, dtype=dtype), units=units)
 
-            # Request the halos from this rank
-            comm.send(chunk_nr, dest=rank_nr, tag=HALO_REQUEST_TAG)
+        # Submit requests for halo data
+        send_requests = []
+        for rank_nr in rank_nrs:
+            send_requests.append(comm.isend(chunk_nr, dest=rank_nr, tag=HALO_REQUEST_TAG))
 
-            # Receive the arrays from this rank
+        # Post receives for the halo arrays
+        recv_requests = []
+        offset = 0
+        for rank_nr in rank_nrs:
+            count = self.rank_chunk_sizes[rank_nr][chunk_nr]
             for name in self.prop_names:
-                shape, dtype, units = comm.recv(source=rank_nr, tag=HALO_RESPONSE_TAG)
-                recvbuf = np.ndarray(shape, dtype=dtype)
-                comm.Recv(recvbuf, source=rank_nr, tag=HALO_RESPONSE_TAG)
-                recvbuf = unyt.unyt_array(recvbuf, units=units)
-                data[name].append(recvbuf)
+                recv_requests.append(comm.Irecv(data[name][offset:offset+count,...], source=rank_nr, tag=HALO_RESPONSE_TAG))
+            offset += count
 
-        # Combine the arrays and return the halo catalogue
-        for name in data:
-            data[name] = unyt.array.uconcatenate(data[name])
+        # Wait for all communications to complete
+        MPI.Request.waitall(send_requests+recv_requests)
+                
         return data
 
     def stop_request_thread(self):
