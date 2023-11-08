@@ -2,33 +2,13 @@
 
 import time
 import threading
-import time
 from mpi4py import MPI
 import collections
 import numpy as np
 import shared_array
 
-REQUEST_TASK_TAG = 1
-ASSIGN_TASK_TAG = 2
-
-
-def sleepy_recv(comm, tag):
-    """
-    Wait for a message without keeping a core spinning so that we leave
-    the core available to run jobs and release the GIL. Checks for
-    incoming messages at exponentially increasing intervals starting
-    at min_delay up to a limit of max_delay. Sleeps between checks.
-    """
-    min_delay = 1.0e-5
-    max_delay = 5.0
-    request = comm.irecv(tag=tag)
-    delay = min_delay
-    while True:
-        completed, message = request.test()
-        if completed:
-            return message
-        delay = min(max_delay, delay * 2)
-        time.sleep(delay)
+from mpi_tags import REQUEST_TASK_TAG, ASSIGN_TASK_TAG
+from sleepy_recv import sleepy_recv
 
 
 def distribute_tasks(tasks, comm, task_type):

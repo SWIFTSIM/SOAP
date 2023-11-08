@@ -416,7 +416,8 @@ def compute_halo_properties():
         args.chunks,
         args.halo_sizes_file.format(snap_nr=args.snapshot_nr),
     )
-
+    so_cat.start_request_thread()
+    
     # Generate the chunk task list
     if comm_world_rank == 0:
         task_list = chunk_tasks.ChunkTaskList(
@@ -481,6 +482,9 @@ def compute_halo_properties():
         task_type=chunk_tasks.ChunkTask,
     )
 
+    # Can stop the halo request thread now that all chunk tasks have executed
+    so_cat.stop_request_thread()
+    
     # Check metadata for consistency between chunks. Sets ref_metadata on all ranks,
     # including those that processed no halos.
     ref_metadata = result_set.check_metadata(metadata, comm_inter_node, comm_world)

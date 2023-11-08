@@ -13,12 +13,8 @@ import read_vr
 import read_hbtplus
 import read_gadget4
 
-
-def gather_to_rank_zero(arr):
-    """Gather the specified array on rank 0, preserving units"""
-    units = arr.units
-    arr = g.gather_array(arr.value)
-    return unyt.unyt_array(arr, units=units)
+from mpi_tags import HALO_REQUEST_TAG, HALO_RESPONSE_TAG
+from sleepy_recv import sleepy_recv
 
 
 class SOCatalogue:
@@ -39,13 +35,13 @@ class SOCatalogue:
     ):
         """
         This reads in the halo catalogue and stores the halo properties in a
-        dict of unyt_arrays, self.halo_arrays, on rank 0 of communicator comm.
-        It also calculates the radii to read in around each halo.
+        dict of unyt_arrays, self.local_halo, distributed over all ranks of
+        communicator comm.
 
-        self.halo_arrays["read_radius"] contains the radius to read in about
+        self.local_halo["read_radius"] contains the radius to read in about
         the potential minimum of each halo.
 
-        self.halo_arrays["search_radius"] contains an initial guess for the
+        self.local_halo["search_radius"] contains an initial guess for the
         radius we need to search to reach the required overdensity. This will
         be increased up to read_radius if necessary.
 
@@ -55,7 +51,8 @@ class SOCatalogue:
         """
 
         comm_rank = comm.Get_rank()
-
+        comm_size = comm.Get_size()
+        
         # Get SWIFT's definition of physical and comoving Mpc units
         swift_pmpc = unyt.Unit("swift_mpc", registry=registry)
         swift_cmpc = unyt.Unit(a_unit * swift_pmpc, registry=registry)
@@ -134,12 +131,10 @@ class SOCatalogue:
             for name in local_halo:
                 local_halo[name] = local_halo[name][:nr_keep_local, ...]
 
-        # Assign halos to chunk tasks
-        task_id = domain_decomposition.peano_decomposition(
-            boxsize, local_halo["cofp"], nr_chunks, comm
-        )
-        local_halo["task_id"] = unyt.unyt_array(
-            task_id, units=unyt.dimensionless, registry=registry, dtype=task_id.dtype
+        # Assign halos to chunk tasks:
+        # This sorts the halos by chunk across all MPI ranks and returns the size of each chunk.
+        chunk_size = domain_decomposition.peano_decomposition(
+            boxsize, local_halo, nr_chunks, comm
         )
 
         # Compute initial radius to read in about each halo
@@ -156,13 +151,136 @@ class SOCatalogue:
             min=physical_radius_mpc
         )
 
-        # Gather subhalo arrays on rank zero.
-        halo = {}
-        for name in local_halo:
-            halo[name] = gather_to_rank_zero(local_halo[name])
-        del local_halo
+        # Determine what range of halos is stored on each MPI rank
+        self.local_halo = local_halo
+        self.nr_local_halos = len(local_halo["search_radius"])
+        self.local_halo_offset = comm.scan(self.nr_local_halos) - self.nr_local_halos
 
-        # Rank 0 stores the subhalo catalogue
-        if comm_rank == 0:
-            self.nr_halos = len(halo["search_radius"])
-            self.halo_arrays = halo
+        # Determine global offset to the first halo in each chunk
+        self.chunk_size = chunk_size
+        self.chunk_offset = np.cumsum(chunk_size) - chunk_size
+
+        # Determine local offset to the first halo in each chunk.
+        # This will be different on each MPI rank.
+        self.local_chunk_size = np.zeros(nr_chunks, dtype=int)
+        self.local_chunk_offset = np.zeros(nr_chunks, dtype=int)
+        for chunk_nr in range(nr_chunks):
+            # Find the range of local halos which are in this chunk (may be none)
+            i1 = self.chunk_offset[chunk_nr] - self.local_offset
+            if i1 < 0:
+                i1 = 0
+            i2 = self.chunk_offset[chunk_nr] + self.chunk_size[chunk_nr] - self.local_offset
+            if i2 > self.nr_local_halos:
+                i2 = self.nr_local_halos
+            # Record the range
+            if i2 > i1:
+                self.local_chunk_size[chunk_nr] = i2 - i1
+                self.local_chunk_offset = i1
+            else:
+                self.local_chunk_size[chunk_nr] = 0
+                self.local_chunk_offset = 0
+            assert comm.allreduce(self.local_chunk_size[chunk_nr] == chunk_size[chunk_nr])
+
+        # Now, for each chunk we need to know which MPI ranks have halos from that chunk.
+        # Here we make an array with one element per chunk. Each MPI rank enters its own rank
+        # index in every chunk for which it has >0 halos. We then find the min and max of
+        # each array element over all MPI ranks.
+        chunk_min_rank = np.ones(nr_chunks, dtype=int) * comm_size # One more than maximum rank
+        chunk_max_rank = np.ones(nr_chunks, dtype=int) -1          # One less than minimum rank
+        for chunk_nr in range(nr_chunks):
+            if self.local_chunk_size[chunk_nr] > 0:
+                chunk_min_rank[chunk_nr] = comm_rank
+                chunk_max_rank[chunk_nr] = comm_rank
+        chunk_min_rank = comm.allreduce(chunk_min_rank, op=MPI.MIN, comm=comm)
+        chunk_max_rank = comm.allreduce(chunk_max_rank, op=MPI.MAX, comm=comm)
+        assert np.all(chunk_min_rank < comm_size)
+        assert np.all(chunk_min_rank >= 0)
+        assert np.all(chunk_max_rank < comm_size)
+        assert np.all(chunk_max_rank >= 0)
+        
+        # Check that chunk_[min|max]_rank is consistent with local_chunk_size
+        for chunk_nr in range(nr_chunks):
+            assert (comm_rank >= chunk_min_rank[chunk_nr] and comm_rank <= chunk_max_rank[chunk_nr]) == (self.local_chunk_size[chunk_nr] > 0)
+                
+        self.chunk_min_rank = chunk_min_rank
+        self.chunk_max_rank = chunk_max_rank
+
+        # Store halo property names in an order which is consistent between MPI ranks
+        self.prop_names = sorted(self.local_halo.keys())
+        self.comm = comm
+        
+    def process_requests(self):
+        """
+        Wait for and respond to requests for halo data.
+        To be run in a separate thread. Request chunk -1 to terminate.
+        """
+        comm = self.comm
+        
+        while True:
+
+            # Receive the requested chunk number and check where the request came form
+            status = MPI.Status()
+            chunk_nr = int(sleepy_recv(self.comm, HALO_REQUEST_TAG, status=status))
+            src_rank = status.Get_source()
+            if chunk_nr < 0:
+                break
+            assert chunk_local_size[chunk_nr] > 0 # Should only get requests for chunks we have locally
+
+            # Return our local part of the halo catalogue arrays for the
+            # requested chunk. Here we send bare numpy arrays for efficiency
+            # and assume that the metadata is the same on all MPI ranks.
+            for name in self.names:
+                i1 = self.chunk_local_offset[chunk_nr]
+                i2 = self.chunk_local_offset[chunk_nr] + chunk_local_size[chunk_nr]
+                sendbuf = self.local_halo[name][i1:i2,...]
+                # First send the type, dimensions and units
+                comm.send((sendbuf.shape, sendbuf.dtype, sendbuf.units), dest=src_rank, tag=HALO_RESPONSE_TAG)
+                # Then send the data
+                comm.Send(sendbuf, dest=src_rank, tag=HALO_RESPONSE_TAG)
+        
+    def start_request_thread(self):
+        """
+        Start a thread to respond to requests for halos
+        """
+        self.request_thread = threading.Thread(target=self.process_requests)
+        self.request_thread.start()
+
+    def request_chunk(self, chunk_nr):
+        """
+        Request the halo catalogue for the specified chunk from whichever
+        MPI ranks contain the halos.
+        """
+        comm = self.comm
+        
+        # Loop over ranks which have data we need        
+        data = {name : [] for name in self.prop_names}
+        for rank_nr in range(self.chunk_min_rank[chunk_nr], self.chunk_max_rank[chunk_nr]+1):
+
+            # Request the halos from this rank
+            comm.send(chunk_nr, dest=rank_nr, tag=HALO_REQUEST_TAG)
+
+            # Receive the arrays from this rank
+            for name in self.prop_names:
+                shape, dtype, units = comm.recv(src=rank_nr, tag=HALO_RESPONSE_TAG)
+                recvbuf = np.ndarray(shape, dtype=dtype)
+                comm.Recv(recvbuf, src=rank_nr, tag=HALO_RESPONSE_TAG)
+                recvbuf = unyt.unyt_array(recvbuf, units=units)
+                data[name].append(recvbuf)
+
+        # Combine the arrays and return the halo catalogue
+        for name in data:
+            data[name] = unyt.array.uconcatenate(data[name])
+        return data
+
+    def stop_request_thread(self):
+        """
+        Send a terminate signal to the request thread then join it.
+        Need to be sure that no requests are pending before calling this,
+        which should be the guaranteed if all chunk tasks have completed.
+        """
+
+        # This send should match a pending sleepy_recv() on this rank's halo request thread
+        comm.send(-1, dest=self.comm.Get_rank(), tag=HALO_REQUEST_TAG)
+
+        # Request thread should now be returning
+        self.request_thread.join()
