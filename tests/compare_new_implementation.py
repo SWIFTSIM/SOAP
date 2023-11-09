@@ -25,6 +25,13 @@ def test_dataset_values(old_file, new_file, cumulative_path = ''):
 
     # If we still haven't reached a dataset, navigate deeper in the file
     old_keys, new_keys = set(old_file.keys()), set(new_file.keys())
+
+    # Print out groups/datasets that are not common to both files
+    if len(old_keys - new_keys) or len(new_keys - old_keys):
+        print("Keys only present in old file: ", old_keys - new_keys)
+        print("Keys only present in new file: ", new_keys - old_keys)
+        print()
+
     for key in old_keys.intersection(new_keys): # Iterate over the common keys
         test_dataset_values(old_file[key],new_file[key], f'{cumulative_path}/{key}')
 
