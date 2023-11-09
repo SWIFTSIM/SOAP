@@ -139,13 +139,23 @@ def compute_halo_properties():
         parameter_file.get_defined_constants()
     )
 
-    recently_heated_gas_filter = RecentlyHeatedGasFilter(
-        cellgrid,
-        delta_time=15.0 * unyt.Myr,
-        delta_logT_min=-1.0,
-        delta_logT_max=0.3,
-        AGN_delta_T=8.80144197177e7 * unyt.K,
-    )
+    if (args.simulation == 'flamingo'):
+        recently_heated_gas_filter = RecentlyHeatedGasFilter(
+            cellgrid,
+            delta_time=15.0 * unyt.Myr,
+            delta_logT_min=-1.0,
+            delta_logT_max=0.3,
+            AGN_delta_T=8.80144197177e7 * unyt.K,
+        )
+    elif (args.simulation == 'colibre'):
+        recently_heated_gas_filter = RecentlyHeatedGasFilter(
+            cellgrid,
+            delta_time=15.0 * unyt.Myr,
+            delta_logT_min=0.0,
+            delta_logT_max=0.0,
+            AGN_delta_T=8.80144197177e7 * unyt.K,
+        )
+
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
     cold_dense_gas_filter = ColdDenseGasFilter(10.0 ** 4.5 * unyt.K, 0.1 / unyt.cm ** 3)
     category_filter = CategoryFilter(
