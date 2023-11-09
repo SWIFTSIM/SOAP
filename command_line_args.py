@@ -118,6 +118,13 @@ def get_halo_props_args(comm):
             type=str,
             default=None,
         )
+        parser.add_argument(
+            "--simulation",
+            metavar="SIMULATION",
+            help="Specifies if the simulation is FLAMINGO or COLIBRE-based.",
+            type=str,
+            required=True
+        )
         try:
             args = parser.parse_args()
         except ArgumentParserError as e:
