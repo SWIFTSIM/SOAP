@@ -31,6 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("config_file", type=str, help="Name of the yaml configuration file")
     parser.add_argument("--sim-name", type=str, help="Name of the simulation to process")
     parser.add_argument("--snap-nr", type=int, help="Snapshot number to process")    
+    parser.add_argument("--compress", action="store_true", help="Compress the output")
     args = parser.parse_args()
     args = combine_args.combine_arguments(args, args.config_file)
 
@@ -42,7 +43,14 @@ if __name__ == "__main__":
     halo_basename = args["HaloFinder"]["filename"]    
     output_file = args["GroupMembership"]["filename"]
     halo_sizes_file = args["GroupMembership"]["halo_sizes_file"]
-    
+
+    if args["Parameters"]["compress"]:
+        gzip = 6
+        shuffle = True
+    else:
+        gzip = None
+        shuffle = False
+        
     # Substitute in the snapshot number where necessary
     pf = PartialFormatter()
     swift_filename = pf.format(swift_filename, snap_nr=snap_nr, file_nr=None)
@@ -188,11 +196,11 @@ if __name__ == "__main__":
         with h5py.File(halo_sizes_file, mode, driver="mpio", comm=comm) as hsf:
             grp = hsf.create_group(ptype)
             phdf5.collective_write(
-                grp, "nr_particles_bound", npart_bound_type, comm=comm
+                grp, "nr_particles_bound", npart_bound_type, comm=comm, gzip=gzip, shuffle=shuffle,
             )
             if ids_unbound is not None:
                 phdf5.collective_write(
-                    grp, "nr_particles_all", npart_all_type, comm=comm
+                    grp, "nr_particles_all", npart_all_type, comm=comm, gzip=gzip, shuffle=shuffle,
                 )
 
         # Set up dataset attributes
@@ -238,6 +246,8 @@ if __name__ == "__main__":
             mode=mode,
             group=ptype,
             attrs=attrs,
+            gzip=gzip,
+            shuffle=shuffle,
         )
 
     comm.barrier()

@@ -32,4 +32,4 @@ sim="L1000N1800/${SLURM_JOB_NAME}"
 
 # Run the code
 mpirun python3 -u -m mpi4py ./group_membership.py \
-       ./scripts/FLAMINGO/L1000N1800/hbt_parameters.yml --sim-name=${sim} --snap-nr=${snapnum}
+       ./scripts/FLAMINGO/L1000N1800/hbt_parameters.yml --sim-name=${sim} --snap-nr=${snapnum} --compress
