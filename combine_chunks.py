@@ -160,8 +160,7 @@ def combine_chunks(
 
             # Write these properties to the output file
             for name, size, unit, description in zip(names, sizes, units, descriptions):
-                lossy_filters.collective_write(outfile, name, data[name], comm_world,
-                                               method, args.compression)
+                lossy_filters.collective_write(outfile, name, data[name], comm_world)
             del data
 
     with MPITimer("Writing subhalo ranking by mass", comm_world):

@@ -472,7 +472,7 @@ def create_compressed_dataset(loc, name, shape, dtype, compression_method, enabl
     return h5py.Dataset(dataset_id)
     
 
-def collective_write(group, name, data, comm, compression_method, enable_compression):
+def collective_write(group, name, data, comm):
     """
     Do a parallel collective write of a HDF5 dataset by concatenating
     contributions from MPI ranks along the first axis.
