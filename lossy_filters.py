@@ -472,39 +472,6 @@ def create_compressed_dataset(loc, name, shape, dtype, compression_method, enabl
     return h5py.Dataset(dataset_id)
     
 
-def convert_dataset(data, compression_method, enable_compression):
-    """
-    HDF5 collective writes fall back to independent mode if any data conversion
-    is required. Here we explicitly convert the data to the data type in the
-    file in advance to prevent this.
-    """
-    # If we're not compressing, there's nothing to do
-    if compression_method == "None" or (not enable_compression):
-        return data
-
-    # Get the data type in the file
-    file_dtype, dcpl = get_dtype_and_filters(compression_method)
-
-    # If this compression method does not change the dtype, there's nothing to do
-    data_dtype = h5py.h5t.py_create(data.dtype)
-    if file_dtype == data_dtype:
-        return data
-
-    # In this case we need to convert the data. H5Tconvert converts in place so
-    # converting to a larger type would cause a buffer overrun. Shouldn't
-    # happen if we're trying to make the output smaller!
-    if file_dtype.get_size() > data_dtype.get_size():
-        raise RuntimeError("Converting to larger data type in convert_dataset()!")
-
-    # Make a contiguous copy of the data array
-    buf = np.ascontiguousarray(data.copy()).flatten()
-
-    # Convert the data in place
-    h5py.h5t.convert(data_dtype, file_dtype, len(buf), buf)
-
-    return buf
-    
-
 def collective_write(group, name, data, comm, compression_method, enable_compression):
     """
     Do a parallel collective write of a HDF5 dataset by concatenating
@@ -514,25 +481,19 @@ def collective_write(group, name, data, comm, compression_method, enable_compres
 
     This is slightly different from the implementation in
     virgo.mpi.parallel_hdf5 because it explicitly converts the data to the
-    type in the file before writing.
+    type in the file before writing. This allows collective I/O using custom
+    types which don't exist in numpy.
     """
 
     buffer_size = 100*1024*1024
     comm_rank = comm.Get_rank()
     comm_size = comm.Get_size()
-
-    # Determine data type in the file
-    if compression_method != "None" and enable_compression:
-        file_dtype, _ = get_dtype_and_filters(compression_method)
-    else:
-        file_dtype = h5py.h5t.py_create(data.dtype)
     
     # Store the original dataset shape
     shape = data.shape
     
     # Ensure input is a contiguous numpy array
     data = np.ascontiguousarray(data)
-    data = convert_dataset(data, compression_method, enable_compression)
     
     # Determine how many elements to write on each task
     num_on_task = np.asarray(comm.allgather(shape[0]))
@@ -546,7 +507,8 @@ def collective_write(group, name, data, comm, compression_method, enable_compres
 
     # Open the dataset
     dataset = group[name]
-
+    file_dtype = dataset.id.get_type()
+    
     # Determine slice to write
     file_offset   = offset_on_task[comm_rank]
     nr_left       = num_on_task[comm_rank]
@@ -558,12 +520,22 @@ def collective_write(group, name, data, comm, compression_method, enable_compres
         element_size *= s
     max_elements = buffer_size // element_size
 
+    # Convert the data to the same type as the dataset in the file:
+    # Collective writes fail if any conversion needs to be done.
+    # Converting to a larger type would cause a buffer overrun so we don't
+    # allow that (we're supposed to be compressing the data!)
+    data_dtype = h5py.h5t.py_create(data.dtype)
+    if file_dtype.get_size() > data_dtype.get_size():
+        raise RuntimeError("Cannot convert to a larger type when writing output!")
+    buf = np.ascontiguousarray(data.copy()).flatten()
+    h5py.h5t.convert(data_dtype, file_dtype, len(buf), buf)
+    
     # We need to use the low level interface here because the h5py high
     # level interface omits zero sized writes, which causes a hang in
     # collective mode if a rank has nothing to write.
     dset_id = dataset.id
     file_space = dset_id.get_space()
-    mem_space = h5py.h5s.create_simple(data.shape)
+    mem_space = h5py.h5s.create_simple(shape)
     prop_list = h5py.h5p.create(h5py.h5p.DATASET_XFER)
     prop_list.set_dxpl_mpio(h5py.h5fd.MPIO_COLLECTIVE)
 
@@ -590,7 +562,7 @@ def collective_write(group, name, data, comm, compression_method, enable_compres
             mem_space.select_none()
 
         # Write the data
-        dset_id.write(mem_space, file_space, data, dxpl=prop_list, mtype=file_dtype)
+        dset_id.write(mem_space, file_space, buf, dxpl=prop_list, mtype=file_dtype)
 
         # Advance to next chunk
         file_offset   += nr_to_write
