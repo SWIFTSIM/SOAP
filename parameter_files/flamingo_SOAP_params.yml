@@ -245,12 +245,31 @@ SOProperties:
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
     XRayPhotonLuminosityWithoutRecentAGNHeating: true
   variations:
+    50_crit:
+      type: crit
+      value: 50.0
+    100_crit:
+      type: crit
+      value: 100.0
     200_crit:
       type: crit
+      value: 200.0
+    200_mean:
+      type: mean
       value: 200.0
     500_crit:
       type: crit
       value: 500.0
+    # TODO: add 
+    # 5x500_crit:
+      # type: crit
+      # value: 500.0
+    1000_crit:
+      type: crit
+      value: 1000.0
+    2500_crit:
+      type: crit
+      value: 2500.0
     BN98:
       type: BN98
       value: 0.0
