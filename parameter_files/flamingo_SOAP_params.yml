@@ -57,15 +57,27 @@ ApertureProperties:
     StellarMassFractionInOxygen: true
     TotalMass: true
   variations:
+    exclusive_1000_kpc:
+      inclusive: false
+      radius_in_kpc: 1000.0
     exclusive_100_kpc:
       inclusive: false
       radius_in_kpc: 100.0
     exclusive_10_kpc:
       inclusive: false
       radius_in_kpc: 10.0
+    exclusive_3000kpc:
+      inclusive: false
+      radius_in_kpc: 3000.0
+    exclusive_300kpc:
+      inclusive: false
+      radius_in_kpc: 300.0
     exclusive_30_kpc:
       inclusive: false
       radius_in_kpc: 30.0
+    exclusive_500_kpc:
+      inclusive: false
+      radius_in_kpc: 500.0
     exclusive_50_kpc:
       inclusive: false
       radius_in_kpc: 50.0
