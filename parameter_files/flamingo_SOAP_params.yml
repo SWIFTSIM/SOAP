@@ -315,8 +315,8 @@ SubhaloProperties:
   variations:
     Bound:
       bound_only: true
-    FOF:
-      bound_only: false
+    # FOF:
+      # bound_only: false
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
