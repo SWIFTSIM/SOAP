@@ -175,7 +175,7 @@ SOProperties:
     AngularMomentumDarkMatter: true
     AngularMomentumGas: true
     AngularMomentumStars: true
-    BaryonAxisLengths: true
+    BaryonInertiaTensor: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -183,19 +183,20 @@ SOProperties:
     CentreOfMassVelocity: true
     ComptonY: true
     ComptonYWithoutRecentAGNHeating: true
-    DarkMatterAxisLengths: true
+    DarkMatterInertiaTensor: true
     DarkMatterMass: true
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
-    DopplerB: false
-    GasAxisLengths: true
+    DopplerB: true
     GasCentreOfMass: true
     GasCentreOfMassVelocity: true
+    GasComptonYTemperature: true
+    GasComptonYTemperatureWithoutRecentAGNHeating: true
+    GasInertiaTensor: true
     GasMass: true
     GasMassFractionInIron: true
     GasMassFractionInMetals: true
     GasMassFractionInOxygen: true
-    GasMassInMetals: true
     GasTemperature: true
     GasTemperatureWithoutCoolGas: true
     GasTemperatureWithoutCoolGasAndRecentAGNHeating: true
@@ -218,25 +219,30 @@ SOProperties:
     NumberOfStarParticles: true
     RawNeutrinoMass: true
     SORadius: true
+    SpectroscopicLikeTemperature: true
+    SpectroscopicLikeTemperatureWithoutRecentAGNHeating: true
     SpinParameter: true
     StarFormationRate: true
     StarFormingGasMassFractionInMetals: true
-    StellarAxisLengths: true
     StellarCentreOfMass: true
     StellarCentreOfMassVelocity: true
+    StellarInertiaTensor: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
     StellarMassFractionInIron: true
     StellarMassFractionInMetals: true
     StellarMassFractionInOxygen: true
-    StellarMassInMetals: true
     ThermalEnergyGas: true
-    TotalAxisLengths: true
+    TotalInertiaTensor: true
     TotalMass: true
     XRayLuminosity: true
+    XRayLuminosityInRestframe: true
+    XRayLuminosityInRestframeWithoutRecentAGNHeating: true
     XRayLuminosityWithoutRecentAGNHeating: true
     XRayPhotonLuminosity: true
+    XRayPhotonLuminosityInRestframe: true
+    XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
     XRayPhotonLuminosityWithoutRecentAGNHeating: true
   variations:
     200_crit:
