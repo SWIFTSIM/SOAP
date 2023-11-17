@@ -119,7 +119,6 @@ ApertureProperties:
       radius_in_kpc: 50.0
 ProjectedApertureProperties:
   properties:
-    AtomicHydrogenMass: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -128,15 +127,11 @@ ProjectedApertureProperties:
     DarkMatterMass: true
     DarkMatterProjectedVelocityDispersion: true
     GasMass: true
-    GasMassFractionInMetals: true
     GasProjectedVelocityDispersion: true
     HalfMassRadiusBaryons: true
     HalfMassRadiusDarkMatter: true
     HalfMassRadiusGas: true
     HalfMassRadiusStars: true
-    HeliumMass: true
-    HydrogenMass: true
-    MolecularHydrogenMass: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
     MostMassiveBlackHoleMass: true
@@ -146,18 +141,13 @@ ProjectedApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    ProjectedBaryonAxisLengths: true
-    ProjectedGasAxisLengths: true
-    ProjectedStellarAxisLengths: true
+    ProjectedBaryonInertiaTensor: true
+    ProjectedGasInertiaTensor: true
+    ProjectedStellarInertiaTensor: true
     StarFormationRate: true
-    StarFormingGasMassFractionInMetals: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
-    StellarMassFractionInIron: true
-    StellarMassFractionInMagnesium: true
-    StellarMassFractionInMetals: true
-    StellarMassFractionInOxygen: true
     StellarProjectedVelocityDispersion: true
     TotalMass: true
   variations:
