@@ -257,21 +257,20 @@ SubhaloProperties:
     AngularMomentumDarkMatter: true
     AngularMomentumGas: true
     AngularMomentumStars: true
-    BaryonAxisLengths: true
+    BaryonInertiaTensor: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
     CentreOfMass: true
     CentreOfMassVelocity: true
-    DarkMatterAxisLengths: true
+    DarkMatterInertiaTensor: true
     DarkMatterMass: true
     DarkMatterVelocityDispersionMatrix: true
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
-    GasAxisLengths: true
+    GasInertiaTensor: true
     GasMass: true
     GasMassFractionInMetals: true
-    GasMassInMetals: true
     GasTemperature: true
     GasTemperatureWithoutCoolGas: true
     GasTemperatureWithoutCoolGasAndRecentAGNHeating: true
@@ -285,16 +284,12 @@ SubhaloProperties:
     KappaCorotBaryons: true
     KappaCorotGas: true
     KappaCorotStars: true
-    LastSupernovaEventMaximumGasDensity: true
-    LogarithmicallyAveragedStellarBirthDensity: true
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
     MaximumCircularVelocity: true
     MaximumCircularVelocityRadius: true
     MaximumDarkMatterCircularVelocity: true
     MaximumDarkMatterCircularVelocityRadius: true
-    MaximumStellarBirthDensity: true
-    MinimumStellarBirthDensity: true
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
@@ -309,14 +304,13 @@ SubhaloProperties:
     StarFormationRate: true
     StarFormingGasMass: true
     StarFormingGasMassFractionInMetals: true
-    StellarAxisLengths: true
+    StellarInertiaTensor: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
     StellarMassFractionInMetals: true
-    StellarMassInMetals: true
     StellarVelocityDispersionMatrix: true
-    TotalAxisLengths: true
+    TotalInertiaTensor: true
     TotalMass: true
   variations:
     Bound:
