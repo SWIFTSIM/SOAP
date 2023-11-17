@@ -238,10 +238,10 @@ SOProperties:
     500_crit:
       type: crit
       value: 500.0
-    # TODO: add 
-    # 5x500_crit:
-      # type: crit
-      # value: 500.0
+    5xR500_crit:
+      type: crit
+      value: 500.0
+      radius_multiple: 5.0 
     1000_crit:
       type: crit
       value: 1000.0
