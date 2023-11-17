@@ -81,6 +81,30 @@ ApertureProperties:
     exclusive_50_kpc:
       inclusive: false
       radius_in_kpc: 50.0
+    inclusive_1000_kpc:
+      inclusive: true
+      radius_in_kpc: 1000.0
+    inclusive_100_kpc:
+      inclusive: true
+      radius_in_kpc: 100.0
+    inclusive_10_kpc:
+      inclusive: true
+      radius_in_kpc: 10.0
+    inclusive_3000kpc:
+      inclusive: true
+      radius_in_kpc: 3000.0
+    inclusive_300kpc:
+      inclusive: true
+      radius_in_kpc: 300.0
+    inclusive_30_kpc:
+      inclusive: true
+      radius_in_kpc: 30.0
+    inclusive_500_kpc:
+      inclusive: true
+      radius_in_kpc: 500.0
+    inclusive_50_kpc:
+      inclusive: true
+      radius_in_kpc: 50.0
 ProjectedApertureProperties:
   properties:
     BlackHolesDynamicalMass: true
