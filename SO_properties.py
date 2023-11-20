@@ -1064,7 +1064,10 @@ class SOParticleData:
         ).sum()
 
     @lazy_property
-    def Tgas_cy_weighted_core_excision(self):
+    def Tgas_cy_weighted_core_excision(self) -> unyt.unyt_quantity:
+        """
+        ComptonY-weighted average gas temperature, excluding the inner core.
+        """
         gas_compY_sum = self.gas_compY[self.gas_selection_core_excision].sum()
         if gas_compY_sum == 0:
             return None
@@ -1077,7 +1080,11 @@ class SOParticleData:
         ).sum()
 
     @lazy_property
-    def Tgas_cy_weighted_core_excision_no_agn(self):
+    def Tgas_cy_weighted_core_excision_no_agn(self) -> unyt.unyt_quantity:
+        """
+        ComptonY-weighted average gas temperature, excluding the inner core and 
+        gas recently heated by AGN.
+        """
         gas_compY_sum = self.gas_compY[self.gas_selection_no_agn_core_excision].sum()
         if gas_compY_sum == 0:
             return None
@@ -1090,7 +1097,10 @@ class SOParticleData:
         ).sum()
 
     @lazy_property
-    def Tgas_core_excision(self):
+    def Tgas_core_excision(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average gas temperature, excluding the inner core.
+        """
         if self.Ngas_core_excision == 0:
             return None
         return (
@@ -1102,7 +1112,11 @@ class SOParticleData:
         ).sum()
 
     @lazy_property
-    def Tgas_no_agn_core_excision(self):
+    def Tgas_no_agn_core_excision(self)-> unyt.unyt_quantity:
+        """
+        Mass-weighted average gas temperature, excluding the inner core and gas
+        recently heated by AGN.
+        """
         if self.Ngas_no_agn_core_excision == 0:
             return None
         return (
@@ -1114,7 +1128,11 @@ class SOParticleData:
         ).sum()
 
     @lazy_property
-    def Tgas_no_cool_core_excision(self):
+    def Tgas_no_cool_core_excision(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average gas temperature, excluding the inner core and cool
+        gas. 
+        """        
         if self.Ngas_no_cool_core_excision == 0:
             return None
         return (
@@ -1126,7 +1144,11 @@ class SOParticleData:
         ).sum()
 
     @lazy_property
-    def Tgas_no_cool_no_agn_core_excision(self):
+    def Tgas_no_cool_no_agn_core_excision(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted average gas temperature, excluding the inner core, cool
+        gas and gas recently heated by AGN.
+        """
         if self.Ngas_no_cool_no_agn_core_excision == 0:
             return None
         return (
@@ -1379,7 +1401,7 @@ class SOParticleData:
         return self.gas_xrayphlum[self.gas_no_agn].sum(axis=0)
 
     @lazy_property
-    def Xraylum_restframe_no_agn(self):
+    def Xraylum_restframe_no_agn(self) -> unyt.unyt_array:
         """
         Total rest-frame X-ray luminosities of gas particles, excluding contributions
         from gas particles that were recently heated by AGN feedback.
@@ -1458,58 +1480,110 @@ class SOParticleData:
             ).sum()
 
     @lazy_property
-    def Xraylum_core_excision(self):
+    def Xraylum_core_excision(self) -> unyt.unyt_array:
+        """
+        Total observer-frame X-ray luminosities of gas particles,
+        excluding contributions from gas particles in the inner core.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
         if self.Ngas_core_excision == 0:
             return None
         return self.gas_xraylum[self.gas_selection_core_excision].sum(axis=0)
 
     @lazy_property
-    def Xrayphlum_core_excision(self):
+    def Xrayphlum_core_excision(self) -> unyt.unyt_array:
+        """
+        Total observer-frame X-ray photon luminosities of gas particles, 
+        excluding contributions from gas particles in the inner core.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
         if self.Ngas_core_excision == 0:
             return None
         return self.gas_xrayphlum[self.gas_selection_core_excision].sum(axis=0)
 
     @lazy_property
-    def Xraylum_no_agn_core_excision(self):
+    def Xraylum_no_agn_core_excision(self) -> unyt.unyt_array:
+        """
+        Total observer-frame X-ray luminosities of gas particles, 
+        excluding contributions from gas particles in the inner core and those
+        recently heated by AGN.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
         if self.Ngas_no_agn_core_excision == 0:
             return None
         return self.gas_xraylum[self.gas_selection_no_agn_core_excision].sum(axis=0)
 
     @lazy_property
-    def Xrayphlum_no_agn_core_excision(self):
+    def Xrayphlum_no_agn_core_excision(self) -> unyt.unyt_array:
+        """
+        Total observer-frame X-ray photon luminosities of gas particles, 
+        excluding contributions from gas particles in the inner core and those
+        recently heated by AGN.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
         if self.Ngas_no_agn_core_excision == 0:
             return None
         return self.gas_xrayphlum[self.gas_selection_no_agn_core_excision].sum(axis=0)
 
     @lazy_property
-    def Xraylum_restframe_core_excision(self):
+    def Xraylum_restframe_core_excision(self) -> unyt.unyt_array:
+        """
+        Total rest-frame X-ray luminosities of gas particles, 
+        excluding contributions from gas particles in the inner core.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
         if self.Ngas_core_excision == 0:
             return None
         return self.gas_xraylum_restframe[self.gas_selection_core_excision].sum(axis=0)
 
-    # @lazy_property # TODO: FLAMINGO
-    # def Xrayphlum_restframe_core_excision(self):
-    #     if self.Ngas_core_excision == 0:
-    #         return None
-    #     return self.gas_xrayphlum_restframe[self.gas_selection_core_excision].sum(
-    #         axis=0
-    #     )
+    @lazy_property
+    def Xrayphlum_restframe_core_excision(self) -> unyt.unyt_array:
+        """
+        Total rest-frame X-ray photon luminosities of gas particles, 
+        excluding contributions from gas particles in the inner core.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
+        if self.Ngas_core_excision == 0:
+            return None
+        return self.gas_xrayphlum_restframe[self.gas_selection_core_excision].sum(
+            axis=0
+        )
 
     @lazy_property
-    def Xraylum_restframe_no_agn_core_excision(self):
+    def Xraylum_restframe_no_agn_core_excision(self) -> unyt.unyt_array:
+        """
+        Total rest-frame X-ray luminosities of gas particles, 
+        excluding contributions from gas particles in the inner core and those
+        recently heated by AGN.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
         if self.Ngas_no_agn_core_excision == 0:
             return None
         return self.gas_xraylum_restframe[self.gas_selection_no_agn_core_excision].sum(
             axis=0
         )
 
-    # @lazy_property // TODO: FLAMINGO
-    # def Xrayphlum_restframe_no_agn_core_excision(self):
-    #     if self.Ngas_no_agn_core_excision == 0:
-    #         return None
-    #     return self.gas_xrayphlum_restframe[
-    #         self.gas_selection_no_agn_core_excision
-    #     ].sum(axis=0)
+    @lazy_property
+    def Xrayphlum_restframe_no_agn_core_excision(self) -> unyt.unyt_array:
+        """
+        Total rest-frame X-ray photon luminosities of gas particles, 
+        excluding contributions from gas particles in the inner core and those
+        recently heated by AGN.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
+        if self.Ngas_no_agn_core_excision == 0:
+            return None
+        return self.gas_xrayphlum_restframe[
+            self.gas_selection_no_agn_core_excision
+        ].sum(axis=0)
 
     @lazy_property
     def gas_selection_xray_temperature(self):
@@ -1579,7 +1653,11 @@ class SOParticleData:
         return numerator / denominator
 
     @lazy_property
-    def SpectroscopicLikeTemperature_core_excision(self):
+    def SpectroscopicLikeTemperature_core_excision(self) -> unyt.unyt_quantity:
+        '''
+        Temperature of the gas, as inferred from spectroscopic-like estimates,
+        excluding those in the inner core.
+        '''
         numerator = np.sum(
             self.gas_densities[self.gas_selection_core_excision_xray_temperature]
             * self.gas_masses[self.gas_selection_core_excision_xray_temperature]
@@ -1597,7 +1675,11 @@ class SOParticleData:
         return numerator / denominator
 
     @lazy_property
-    def SpectroscopicLikeTemperature_no_agn_core_excision(self):
+    def SpectroscopicLikeTemperature_no_agn_core_excision(self) -> unyt.unyt_quantity:
+        '''
+        Temperature of the gas, as inferred from spectroscopic-like estimates,
+        excluding those in the inner core and recently heated by AGN.
+        '''
         numerator = np.sum(
             self.gas_densities[self.gas_selection_core_excision_no_agn_xray_temperature]
             * self.gas_masses[self.gas_selection_core_excision_no_agn_xray_temperature]
