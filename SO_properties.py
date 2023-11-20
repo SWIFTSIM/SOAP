@@ -2393,6 +2393,7 @@ class CoreExcisedSOProperties(SOProperties):
     def __init__(
         self,
         cellgrid,
+        parameters: ParameterFile,
         recently_heated_gas_filter,
         category_filter,
         SOval,
@@ -2404,7 +2405,7 @@ class CoreExcisedSOProperties(SOProperties):
 
         # initialise the SOProperties object
         super().__init__(
-            cellgrid, recently_heated_gas_filter, category_filter, SOval, type
+            cellgrid, parameters, recently_heated_gas_filter, category_filter, SOval, type
         )
 
 class RadiusMultipleSOProperties(SOProperties):
