@@ -1314,26 +1314,28 @@ class PropertyTable:
             False,
             ["PartType0/Temperatures", "PartType0/LastAGNFeedbackScaleFactors"],
         ),
-        # "Tgas_cy_weighted": (
-        #     "GasComptonYTemperature",
-        #     1,
-        #     np.float32,
-        #     "K",
-        #     "ComptonY-weighted mean gas temperature.",
-        #     "gas",
-        #     "FMantissa9",
-        #     False,  # TODO: add required (FLAMINGO) particle properties
-        # ),
-        # "Tgas_cy_weighted_no_agn": (
-        #     "GasComptonYTemperatureWithoutRecentAGNHeating",
-        #     1,
-        #     np.float32,
-        #     "K",
-        #     "ComptonY-weighted mean gas temperature, excluding gas that was recently heated by AGN.",
-        #     "gas",
-        #     "FMantissa9",
-        #     False,  # TODO: add required (FLAMINGO) particle properties
-        # ),
+        "Tgas_cy_weighted": (
+            "GasComptonYTemperature",
+            1,
+            np.float32,
+            "K",
+            "ComptonY-weighted mean gas temperature.",
+            "gas",
+            "FMantissa9",
+            False,
+            ["PartType0/Temperatures","PartType0/ComptonYParameters"]
+        ),
+        "Tgas_cy_weighted_no_agn": (
+            "GasComptonYTemperatureWithoutRecentAGNHeating",
+            1,
+            np.float32,
+            "K",
+            "ComptonY-weighted mean gas temperature, excluding gas that was recently heated by AGN.",
+            "gas",
+            "FMantissa9",
+            False,
+            ["PartType0/Temperatures", "PartType0/ComptonYParameters", "PartType0/LastAGNFeedbackScaleFactors"],
+        ),
         # "Tgas_cy_weighted_core_excision": (
         #     "GasComptonYTemperatureCoreExcision",
         #     1,

@@ -1982,8 +1982,8 @@ class SOProperties(HaloProperty):
             "Tgas_no_cool",
             "Tgas_no_agn",
             "Tgas_no_cool_no_agn",
-            # "Tgas_cy_weighted", # TODO: Add FLAMINGO
-            # "Tgas_cy_weighted_no_agn", # TODO: Add FLAMINGO 
+            "Tgas_cy_weighted",
+            "Tgas_cy_weighted_no_agn",
             # "Xraylum", # TODO: Add FLAMINGO
             # "Xraylum_restframe", # TODO: Add FLAMINGO
             # "SpectroscopicLikeTemperature", # TODO: Add FLAMINGO
