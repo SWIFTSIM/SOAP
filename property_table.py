@@ -1707,26 +1707,28 @@ class PropertyTable:
         #     "DMantissa9",
         #     False,  # TODO: add required (FLAMINGO) particle properties
         # ),
-        # "SpectroscopicLikeTemperature": (
-        #     "SpectroscopicLikeTemperature",
-        #     1,
-        #     np.float32,
-        #     "K",
-        #     "Spectroscopic-like gas temperature.",
-        #     "gas",
-        #     "FMantissa9",
-        #     False,  # TODO: add required (FLAMINGO) particle properties
-        # ),
-        # "SpectroscopicLikeTemperature_no_agn": (
-        #     "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
-        #     1,
-        #     np.float32,
-        #     "K",
-        #     "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN",
-        #     "gas",
-        #     "FMantissa9",
-        #     False,  # TODO: add required (FLAMINGO) particle properties
-        # ),
+        "SpectroscopicLikeTemperature": (
+            "SpectroscopicLikeTemperature",
+            1,
+            np.float32,
+            "K",
+            "Spectroscopic-like gas temperature.",
+            "gas",
+            "FMantissa9",
+            False,
+            ["PartType0/Temperatures", "PartType0/Densities","PartType0/Masses"],
+        ),
+        "SpectroscopicLikeTemperature_no_agn": (
+            "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
+            1,
+            np.float32,
+            "K",
+            "Spectroscopic-like gas temperature. Exclude gas that was recently heated by AGN",
+            "gas",
+            "FMantissa9",
+            False,
+            ["PartType0/Temperatures", "PartType0/Densities","PartType0/LastAGNFeedbackScaleFactors","PartType0/Masses"],
+        ),
         # "SpectroscopicLikeTemperature_core_excision": (
         #     "SpectroscopicLikeTemperatureCoreExcision",
         #     1,

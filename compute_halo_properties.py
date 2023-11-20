@@ -251,15 +251,14 @@ def compute_halo_properties():
                 )
             )
 
-    # TODO: add to the list of properties to compute (FLAMINGO)
-    # SO_properties.CoreExcisedSOProperties(
-    #     cellgrid,
-    #     recently_heated_gas_filter,
-    #     category_filter,
-    #     500.0,
-    #     "crit",
-    #     core_excision_fraction=0.15,
-    # ),
+    SO_properties.CoreExcisedSOProperties(
+        cellgrid,
+        recently_heated_gas_filter,
+        category_filter,
+        500.0,
+        "crit",
+        core_excision_fraction=0.15,
+    ),
 
     aperture_variations = parameter_file.get_halo_type_variations(
         "ApertureProperties",
