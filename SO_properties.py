@@ -1232,6 +1232,9 @@ class SOParticleData:
 
     @lazy_property
     def gas_xraylum_restframe(self):
+        """
+        Rest-frame X-ray luminosities of gas particles.
+        """
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/XrayLuminositiesRestframe")[
@@ -1263,24 +1266,27 @@ class SOParticleData:
     @lazy_property
     def gas_xrayphlum(self) -> unyt.unyt_array:
         """
-        X-ray photon luminosities of gas.
+        Observer-frame X-ray photon luminosities of gas.
         """
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/XrayPhotonLuminosities")[self.gas_selection]
 
-    # @lazy_property
-    # def gas_xrayphlum_restframe(self):
-    #     if self.Ngas == 0:
-    #         return None
-    #     return self.get_dataset("PartType0/XrayPhotonLuminositiesRestframe")[
-    #         self.gas_selection
-    #     ]
+    @lazy_property
+    def gas_xrayphlum_restframe(self) -> unyt.unyt_array:
+        """
+        Rest-frame X-ray photon luminosities of gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/XrayPhotonLuminositiesRestframe")[
+            self.gas_selection
+        ]
 
     @lazy_property
     def Xrayphlum(self) -> unyt.unyt_array:
         """
-        Total X-ray photon luminosities of gas.
+        Total observer-frame X-ray photon luminosities of gas.
 
         Note that this is an array, since there are multiple luminosity bands.
         """
@@ -1288,11 +1294,16 @@ class SOParticleData:
             return None
         return self.gas_xrayphlum.sum(axis=0)
 
-    # @lazy_property # TODO: comment (FLAMINGO)
-    # def Xrayphlum_restframe(self):
-    #     if self.Ngas == 0:
-    #         return None
-    #     return self.gas_xrayphlum_restframe.sum(axis=0)
+    @lazy_property
+    def Xrayphlum_restframe(self) -> unyt.unyt_array:
+        """
+        Total rest-frame X-ray photon luminosities of gas.
+
+        Note that this is an array, since there are multiple luminosity bands.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.gas_xrayphlum_restframe.sum(axis=0)
 
     @lazy_property
     def gas_compY(self) -> unyt.unyt_array:
@@ -1360,8 +1371,8 @@ class SOParticleData:
     @lazy_property
     def Xrayphlum_no_agn(self) -> unyt.unyt_array:
         """
-        Total X-ray photon luminosities of gas particles, excluding contributions
-        from gas particles that were recently heated by AGN feedback.
+        Total observer-frame X-ray photon luminosities of gas particles, 
+        excluding contributions from gas particles that were recently heated by AGN feedback.
 
         Note that this is an array, since we have multiple luminosity bands.
         """
@@ -1381,11 +1392,17 @@ class SOParticleData:
             return None
         return self.gas_xraylum_restframe[self.gas_no_agn].sum(axis=0)
 
-    # @lazy_property #TODO: FLAMINGO
-    # def Xrayphlum_restframe_no_agn(self):
-    #     if self.Ngas_no_agn == 0:
-    #         return None
-    #     return self.gas_xrayphlum_restframe[self.gas_no_agn].sum(axis=0)
+    @lazy_property
+    def Xrayphlum_restframe_no_agn(self) -> unyt.unyt_array:
+        """
+        Total rest-frame X-ray photon luminosities of gas particles, 
+        excluding contributions from gas particles that were recently heated by AGN feedback.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
+        if self.Ngas_no_agn == 0:
+            return None
+        return self.gas_xrayphlum_restframe[self.gas_no_agn].sum(axis=0)
 
     @lazy_property
     def compY_no_agn(self) -> unyt.unyt_quantity:
@@ -1999,13 +2016,13 @@ class SOProperties(HaloProperty):
             "Xraylum_restframe",
             # "SpectroscopicLikeTemperature", # TODO: Add FLAMINGO
             # "SpectroscopicLikeTemperature_no_agn", # TODO: Add FLAMINGO
-            # "Xrayphlum",# TODO: Add FLAMINGO
-            # "Xrayphlum_restframe", # TODO: ADD FLAMINGO
+            "Xrayphlum",
+            "Xrayphlum_restframe",
             "compY",
             "Xraylum_no_agn",
-            # "Xrayphlum_no_agn", # TODO: Add FLAMINGO 
+            "Xrayphlum_no_agn",
             "Xraylum_restframe_no_agn",
-            # "Xrayphlum_restframe_no_agn", # TODO: Add FLAMINGO
+            "Xrayphlum_restframe_no_agn",
             "compY_no_agn",
             "Ekin_gas",
             "Etherm_gas",

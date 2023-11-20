@@ -1655,16 +1655,17 @@ class PropertyTable:
         #     "DMantissa9",
         #     False,  # TODO: add required (FLAMINGO) particle properties
         # ),
-        # "Xrayphlum": (
-        #     "XRayPhotonLuminosity",
-        #     3,
-        #     np.float64,
-        #     "1/s",
-        #     "Total observer-frame Xray photon luminosity in three bands.",
-        #     "gas",
-        #     "DMantissa9",
-        #     False,  # TODO: add required (FLAMINGO) particle properties
-        # ),
+        "Xrayphlum": (
+            "XRayPhotonLuminosity",
+            3,
+            np.float64,
+            "1/s",
+            "Total observer-frame Xray photon luminosity in three bands.",
+            "gas",
+            "DMantissa9",
+            False,
+            ["PartType0/XrayPhotonLuminosities"],
+        ),
         "Xrayphlum_restframe": (
             "XRayPhotonLuminosityInRestframe",
             3,
@@ -1674,18 +1675,23 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            ["PartType0/XrayPhotonLuminosities"],
+            ["PartType0/XrayPhotonLuminositiesRestframe"],
         ),
-        # "Xrayphlum_no_agn": (
-        #     "XRayPhotonLuminosityWithoutRecentAGNHeating",
-        #     3,
-        #     np.float64,
-        #     "1/s",
-        #     "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
-        #     "gas",
-        #     "DMantissa9",
-        #     False,  # TODO: add required (FLAMINGO) particle properties
-        # ),
+        "Xrayphlum_no_agn": (
+            "XRayPhotonLuminosityWithoutRecentAGNHeating",
+            3,
+            np.float64,
+            "1/s",
+            "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
+            "gas",
+            "DMantissa9",
+            False,
+            [
+                "PartType0/XrayPhotonLuminosities",
+                "PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/Temperatures",
+            ],
+        ),
         "Xrayphlum_restframe_no_agn": (
             "XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating",
             3,
@@ -1696,7 +1702,7 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
-                "PartType0/XrayPhotonLuminosities",
+                "PartType0/XrayPhotonLuminositiesRestframe",
                 "PartType0/LastAGNFeedbackScaleFactors",
                 "PartType0/Temperatures",
             ],
