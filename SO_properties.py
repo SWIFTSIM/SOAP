@@ -1224,7 +1224,7 @@ class SOParticleData:
     @lazy_property
     def gas_xraylum(self) -> unyt.unyt_array:
         """
-        X-ray luminosities of gas particles.
+        Observer-frame X-ray luminosities of gas particles.
         """
         if self.Ngas == 0:
             return None
@@ -1241,7 +1241,7 @@ class SOParticleData:
     @lazy_property
     def Xraylum(self) -> unyt.unyt_array:
         """
-        Total X-ray luminosities of gas.
+        Total observer-frame X-ray luminosities of gas.
 
         Note that this is an array, since there are multiple luminosity bands.
         """
@@ -1250,7 +1250,12 @@ class SOParticleData:
         return self.gas_xraylum.sum(axis=0)
 
     @lazy_property
-    def Xraylum_restframe(self):
+    def Xraylum_restframe(self) -> unyt.unyt_array:
+        """
+        Total rest-frame X-ray luminosities of gas particles.
+
+        Note that this is an array, since there are multiple luminosity bands.
+        """
         if self.Ngas == 0:
             return None
         return self.gas_xraylum_restframe.sum(axis=0)
@@ -1343,8 +1348,8 @@ class SOParticleData:
     @lazy_property
     def Xraylum_no_agn(self) -> unyt.unyt_array:
         """
-        Total X-ray luminosities of gas particles, excluding contributions
-        from gas particles that were recently heated by AGN feedback.
+        Total observer-frame X-ray luminosities of gas particles, excluding 
+        contributions from gas particles that were recently heated by AGN feedback.
 
         Note that this is an array, since we have multiple luminosity bands.
         """
@@ -1364,11 +1369,17 @@ class SOParticleData:
             return None
         return self.gas_xrayphlum[self.gas_no_agn].sum(axis=0)
 
-    # @lazy_property #TODO: FLAMINGO
-    # def Xraylum_restframe_no_agn(self):
-    #     if self.Ngas_no_agn == 0:
-    #         return None
-    #     return self.gas_xraylum_restframe[self.gas_no_agn].sum(axis=0)
+    @lazy_property
+    def Xraylum_restframe_no_agn(self):
+        """
+        Total rest-frame X-ray luminosities of gas particles, excluding contributions
+        from gas particles that were recently heated by AGN feedback.
+
+        Note that this is an array, since we have multiple luminosity bands.
+        """
+        if self.Ngas_no_agn == 0:
+            return None
+        return self.gas_xraylum_restframe[self.gas_no_agn].sum(axis=0)
 
     # @lazy_property #TODO: FLAMINGO
     # def Xrayphlum_restframe_no_agn(self):
@@ -1984,16 +1995,16 @@ class SOProperties(HaloProperty):
             "Tgas_no_cool_no_agn",
             "Tgas_cy_weighted",
             "Tgas_cy_weighted_no_agn",
-            # "Xraylum", # TODO: Add FLAMINGO
-            # "Xraylum_restframe", # TODO: Add FLAMINGO
+            "Xraylum",
+            "Xraylum_restframe",
             # "SpectroscopicLikeTemperature", # TODO: Add FLAMINGO
             # "SpectroscopicLikeTemperature_no_agn", # TODO: Add FLAMINGO
             # "Xrayphlum",# TODO: Add FLAMINGO
             # "Xrayphlum_restframe", # TODO: ADD FLAMINGO
             "compY",
-            # "Xraylum_no_agn",  # TODO: Add FLAMINGO
+            "Xraylum_no_agn",
             # "Xrayphlum_no_agn", # TODO: Add FLAMINGO 
-            # "Xraylum_restframe_no_agn", # TODO: Add FLAMINGO
+            "Xraylum_restframe_no_agn",
             # "Xrayphlum_restframe_no_agn", # TODO: Add FLAMINGO
             "compY_no_agn",
             "Ekin_gas",

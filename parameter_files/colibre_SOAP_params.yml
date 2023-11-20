@@ -234,8 +234,8 @@ SOProperties:
     ThermalEnergyGas: true
     TotalAxisLengths: true
     TotalMass: true
-    XRayLuminosity: true
-    XRayLuminosityWithoutRecentAGNHeating: true
+    XRayLuminosityInRestframe: true
+    XRayLuminosityInRestframeWithoutRecentAGNHeating: true
     XRayPhotonLuminosity: true
     XRayPhotonLuminosityWithoutRecentAGNHeating: true
   variations:
@@ -324,6 +324,7 @@ aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/MetalMassFractionsDiffuse: PartType0/MetalMassFractions
+  PartType0/XrayLuminositiesRestframe: PartType0/XrayLuminosities # In COLIBRE, these are the same.
 filters:
   baryon: 0
   dm: 0
