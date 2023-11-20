@@ -1042,9 +1042,7 @@ class SOParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (
-            self.gas_temperatures * (self.gas_compY.value / gas_compY_sum.value)
-        ).sum()
+        return self.gas_temperatures > 1.0e5 * unyt.K
 
     @lazy_property
     def Tgas_cy_weighted(self):
