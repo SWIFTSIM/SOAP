@@ -1543,7 +1543,7 @@ class SOParticleData:
 
     @lazy_property
     def SpectroscopicLikeTemperature(self):
-        nominator = np.sum(
+        numerator = np.sum(
             self.gas_densities[self.gas_selection_xray_temperature]
             * self.gas_masses[self.gas_selection_xray_temperature]
             * self.gas_temperatures[self.gas_selection_xray_temperature] ** (1 / 4)
@@ -1555,11 +1555,11 @@ class SOParticleData:
         )
         if denominator == 0:
             return None
-        return nominator / denominator
+        return numerator / denominator
 
     @lazy_property
     def SpectroscopicLikeTemperature_no_agn(self):
-        nominator = np.sum(
+        numerator = np.sum(
             self.gas_densities[self.gas_no_agn_xray_temperature]
             * self.gas_masses[self.gas_no_agn_xray_temperature]
             * self.gas_temperatures[self.gas_no_agn_xray_temperature] ** (1 / 4)
@@ -1571,11 +1571,11 @@ class SOParticleData:
         )
         if denominator == 0:
             return None
-        return nominator / denominator
+        return numerator / denominator
 
     @lazy_property
     def SpectroscopicLikeTemperature_core_excision(self):
-        nominator = np.sum(
+        numerator = np.sum(
             self.gas_densities[self.gas_selection_core_excision_xray_temperature]
             * self.gas_masses[self.gas_selection_core_excision_xray_temperature]
             * self.gas_temperatures[self.gas_selection_core_excision_xray_temperature]
@@ -1589,11 +1589,11 @@ class SOParticleData:
         )
         if denominator == 0:
             return None
-        return nominator / denominator
+        return numerator / denominator
 
     @lazy_property
     def SpectroscopicLikeTemperature_no_agn_core_excision(self):
-        nominator = np.sum(
+        numerator = np.sum(
             self.gas_densities[self.gas_selection_core_excision_no_agn_xray_temperature]
             * self.gas_masses[self.gas_selection_core_excision_no_agn_xray_temperature]
             * self.gas_temperatures[
@@ -1611,7 +1611,7 @@ class SOParticleData:
         )
         if denominator == 0:
             return None
-        return nominator / denominator
+        return numerator / denominator
 
     @lazy_property
     def Ekin_gas(self) -> unyt.unyt_quantity:
