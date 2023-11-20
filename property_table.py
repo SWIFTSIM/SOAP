@@ -1554,6 +1554,7 @@ class PropertyTable:
             "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN.",
             "gas",
             "DMantissa9",
+            False,
             [
                 "PartType0/XrayLuminosities",
                 "PartType0/LastAGNFeedbackScaleFactors",
