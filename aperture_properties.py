@@ -2139,6 +2139,7 @@ class ApertureParticleData:
     def gas_N_over_O_diffuse(self) -> unyt.unyt_array:
         """
         Diffuse nitrogen over oxygen ratio of gas particles.
+        Keep in mind this does not consider the metals in dust.
         """
         if self.Ngas == 0:
             return None
@@ -2187,9 +2188,9 @@ class ApertureParticleData:
         return nO / (16.0 * nH)
 
     @lazy_property
-    def gas_log10_N_over_O_low_limit(self) -> unyt.unyt_array:
+    def gas_log10_N_over_O_diffuse_low_limit(self) -> unyt.unyt_array:
         """
-        Logarithm of the total nitrogen over oxygen ratio of gas particles.
+        Logarithm of the diffuse nitrogen over oxygen ratio of gas particles.
 
         Uses a lower limit on the ratio of 1.e-4 times the solar ratio,
         which is set in the parameter file.
@@ -2205,9 +2206,9 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_log10_N_over_O_high_limit(self) -> unyt.unyt_array:
+    def gas_log10_N_over_O_diffuse_high_limit(self) -> unyt.unyt_array:
         """
-        Logarithm of the nitrogen over oxygen ratio of gas particles.
+        Logarithm of the diffuse nitrogen over oxygen ratio of gas particles.
 
         Uses a lower limit on the ratio of 1.e-3 times the solar ratio,
         which is set in the parameter file.
@@ -2223,9 +2224,45 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_log10_C_over_O_low_limit(self) -> unyt.unyt_array:
+    def gas_log10_N_over_O_total_low_limit(self) -> unyt.unyt_array:
         """
-        Logarithm of the total carbon over oxygen ratio of gas particles.
+        Logarithm of the total nitrogen over oxygen ratio of gas particles.
+
+        Uses a lower limit on the ratio of 1.e-4 times the solar ratio,
+        which is set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.gas_N_over_O_total,
+                self.snapshot_datasets.get_defined_constant("N_O_sun") * 1.0e-4,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def gas_log10_N_over_O_total_high_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the total nitrogen over oxygen ratio of gas particles.
+
+        Uses a lower limit on the ratio of 1.e-3 times the solar ratio,
+        which is set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.gas_N_over_O_total,
+                self.snapshot_datasets.get_defined_constant("N_O_sun") * 1.0e-3,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def gas_log10_C_over_O_diffuse_low_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the diffuse carbon over oxygen ratio of gas particles.
 
         Uses a lower limit on the ratio of 1.e-4 times the solar ratio,
         which is set in the parameter file.
@@ -2241,9 +2278,9 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def gas_log10_C_over_O_high_limit(self) -> unyt.unyt_array:
+    def gas_log10_C_over_O_diffuse_high_limit(self) -> unyt.unyt_array:
         """
-        Logarithm of the carbon over oxygen ratio of gas particles.
+        Logarithm of the diffuse carbon over oxygen ratio of gas particles.
 
         Uses a lower limit on the ratio of 1.e-3 times the solar ratio,
         which is set in the parameter file.
@@ -2253,6 +2290,42 @@ class ApertureParticleData:
         return np.log10(
             np.clip(
                 self.gas_C_over_O_diffuse,
+                self.snapshot_datasets.get_defined_constant("C_O_sun") * 1.0e-3,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def gas_log10_C_over_O_total_low_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the total carbon over oxygen ratio of gas particles.
+
+        Uses a lower limit on the ratio of 1.e-4 times the solar ratio,
+        which is set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.gas_C_over_O_total,
+                self.snapshot_datasets.get_defined_constant("C_O_sun") * 1.0e-4,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def gas_log10_C_over_O_total_high_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the total carbon over oxygen ratio of gas particles.
+
+        Uses a lower limit on the ratio of 1.e-3 times the solar ratio,
+        which is set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.gas_C_over_O_total,
                 self.snapshot_datasets.get_defined_constant("C_O_sun") * 1.0e-3,
                 np.inf,
             )
@@ -2297,7 +2370,7 @@ class ApertureParticleData:
     @lazy_property
     def LinearMassWeightedOxygenOverHydrogenOfGas(self) -> unyt.unyt_quantity:
         """
-        Mass-weigthed sum of the total oxygen over hydrogen ratio of gas particles.
+        Mass-weighted sum of the total oxygen over hydrogen ratio of gas particles.
         """
         if self.Ngas == 0:
             return None
@@ -2309,7 +2382,21 @@ class ApertureParticleData:
     @lazy_property
     def LinearMassWeightedNitrogenOverOxygenOfGas(self) -> unyt.unyt_quantity:
         """
-        Mass-weigthed sum of the diffuse nitrogen over oxygen ratio of gas particles.
+        Mass-weighted sum of the total nitrogen over oxygen ratio of gas particles.
+        This includes the contribution from dust!
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_N_over_O_total[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LinearMassWeightedDiffuseNitrogenOverOxygenOfGas(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the diffuse nitrogen over oxygen ratio of gas particles.
+        This excludes the contribution from dust!
         """
         if self.Ngas == 0:
             return None
@@ -2321,7 +2408,21 @@ class ApertureParticleData:
     @lazy_property
     def LinearMassWeightedCarbonOverOxygenOfGas(self) -> unyt.unyt_quantity:
         """
-        Mass-weigthed sum of the diffuse carbon over oxygen ratio of gas particles.
+        Mass-weighted sum of the total carbon over oxygen ratio of gas particles.
+        This includes the contribution from dust!
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_C_over_O_total[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LinearMassWeightedDiffuseCarbonOverOxygenOfGas(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the diffuse carbon over oxygen ratio of gas particles.
+        This excludes the contribution from dust.
         """
         if self.Ngas == 0:
             return None
@@ -2376,66 +2477,66 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedNitrogenOverOxygenOfGasLowLimit(
+    def LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit(
             self,
     ) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the logarithm of the diffuse nitrogen over oxygen ratio of gas
-        particles, including the contribution from dust and using a lower limit on the ratio
+        particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-4 times the solar ratio, set in the parameter file.
         """
         if self.Ngas == 0:
             return None
         return (
-                self.gas_log10_N_over_O_low_limit[self.gas_is_cold_dense]
+                self.gas_log10_N_over_O_diffuse_low_limit[self.gas_is_cold_dense]
                 * self.mass_gas[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedNitrogenOverOxygenOfGasHighLimit(
+    def LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit(
             self,
     ) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the logarithm of the diffuse nitrogen over oxygen ratio of gas
-        particles, including the contribution from dust and using a lower limit on the ratio
+        particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-3 times the solar ratio, set in the parameter file.
         """
         if self.Ngas == 0:
             return None
         return (
-                self.gas_log10_N_over_O_high_limit[self.gas_is_cold_dense]
+                self.gas_log10_N_over_O_diffuse_high_limit[self.gas_is_cold_dense]
                 * self.mass_gas[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedCarbonOverOxygenOfGasLowLimit(
+    def LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit(
             self,
     ) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the logarithm of the diffuse carbon over oxygen ratio of gas
-        particles, including the contribution from dust and using a lower limit on the ratio
+        particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-4 times the solar ratio, set in the parameter file.
         """
         if self.Ngas == 0:
             return None
         return (
-                self.gas_log10_C_over_O_low_limit[self.gas_is_cold_dense]
+                self.gas_log10_C_over_O_diffuse_low_limit[self.gas_is_cold_dense]
                 * self.mass_gas[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
-    def LogarithmicMassWeightedCarbonOverOxygenOfGasHighLimit(
+    def LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit(
             self,
     ) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the logarithm of the diffuse carbon over oxygen ratio of gas
-        particles, including the contribution from dust and using a lower limit on the ratio
+        particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-3 times the solar ratio, set in the parameter file.
         """
         if self.Ngas == 0:
             return None
         return (
-                self.gas_log10_C_over_O_high_limit[self.gas_is_cold_dense]
+                self.gas_log10_C_over_O_diffuse_high_limit[self.gas_is_cold_dense]
                 * self.mass_gas[self.gas_is_cold_dense]
         ).sum()
 
@@ -2793,10 +2894,12 @@ class ApertureProperties(HaloProperty):
             "LinearMassWeightedNitrogenOverOxygenOfGas",
             "LinearMassWeightedCarbonOverOxygenOfGas",
             "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas",
-            "LogarithmicMassWeightedNitrogenOverOxygenOfGasLowLimit",
-            "LogarithmicMassWeightedNitrogenOverOxygenOfGasHighLimit",
-            "LogarithmicMassWeightedCarbonOverOxygenOfGasLowLimit",
-            "LogarithmicMassWeightedCarbonOverOxygenOfGasHighLimit",
+            "LinearMassWeightedDiffuseNitrogenOverOxygenOfGas",
+            "LinearMassWeightedDiffuseCarbonOverOxygenOfGas",
+            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit",
+            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit",
+            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit",
+            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit",
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit",
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit",
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit",

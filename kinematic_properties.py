@@ -262,8 +262,7 @@ def get_axis_lengths(
     # back in
     axes = np.linalg.eigvals(Itensor).real
     axes = np.clip(axes, 0.0, np.max(axes))
-    # axes = np.clip(axes, 0.0, None)
-    # this version gives me an error of TypeError: 'NoneType' object is not iterable
+    # Doing max instead of None in clip to avoid TypeError: 'NoneType' object is not iterable
     # under unyt 3.0.1
     axes = np.sqrt(axes) * position.units
 
@@ -325,8 +324,7 @@ def get_projected_axis_lengths(
     # back in
     axes = np.linalg.eigvals(Itensor).real
     axes = np.clip(axes, 0.0, np.max(axes))
-    # axes = np.clip(axes, 0.0, None)
-    # this version gives me an error of TypeError: 'NoneType' object is not iterable
+    # Doing max instead of None in clip to avoid TypeError: 'NoneType' object is not iterable
     # under unyt 3.0.1
     axes = np.sqrt(axes) * projected_position.units
 
