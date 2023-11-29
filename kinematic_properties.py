@@ -131,7 +131,6 @@ def get_vmax(mass, radius):
 
 def get_inertia_tensor(mass, position):
 
-
     # 3x3 inertia tensor
     Itensor = (mass[:, None, None] * position[:, None:, None] * position[:, None]).sum(
         axis=0

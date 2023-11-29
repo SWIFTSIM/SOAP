@@ -221,7 +221,7 @@ class SOParticleData:
             )
             pos = self.data["PartType6"]["Coordinates"] - self.centre[None, :]
             nur = np.sqrt(np.sum(pos ** 2, axis=1))
-            all_mass = np.concatenate([self.mass, numass/unyt.dimensionless])
+            all_mass = np.concatenate([self.mass, numass / unyt.dimensionless])
             all_r = np.concatenate([self.radius, nur])
         else:
             all_mass = self.mass
@@ -333,9 +333,7 @@ class SOParticleData:
         if vmax > 0:
             vrel = self.velocity - self.vcom[None, :]
             Ltot = np.linalg.norm(
-                (self.mass[:, None] * np.cross(self.position, vrel)).sum(
-                    axis=0
-                )
+                (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
             )
             return Ltot / (np.sqrt(2.0) * self.Mtotpart * self.SO_r * vmax)
         return None
@@ -568,8 +566,7 @@ class SOParticleData:
             return None
         baryon_relvel = self.baryon_vel - self.baryon_vcom[None, :]
         return (
-            self.baryon_masses[:, None]
-            * np.cross(self.baryon_pos, baryon_relvel)
+            self.baryon_masses[:, None] * np.cross(self.baryon_pos, baryon_relvel)
         ).sum(axis=0)
 
     @lazy_property
