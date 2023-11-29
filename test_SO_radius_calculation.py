@@ -60,7 +60,7 @@ def test_SO_radius_calculation():
         ax[0][0].semilogy(ordered_radius, density, "o-")
         ax[1][0].semilogy(ordered_radius, cumulative_mass, "o-")
         if SO_r >= 0.0 * unyt.kpc:
-            rrange = np.linspace(0.0, 2.0 * SO_r, 100)
+            rrange = np.linspace(0.0 * unyt.kpc, 2.0 * SO_r, 100)
             Mrange = reference_density * 4.0 * np.pi / 3.0 * rrange ** 3
             rrange.convert_to_units("kpc")
             Mrange.convert_to_units("Msun")

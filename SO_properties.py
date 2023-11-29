@@ -202,12 +202,12 @@ class SOParticleData:
             typearr[:] = ptype
             types.append(typearr)
             groupnr.append(self.data[ptype]["GroupNr_bound"])
-        self.mass = unyt.array.uconcatenate(mass)
-        self.radius = unyt.array.uconcatenate(radius)
-        self.position = unyt.array.uconcatenate(position)
-        self.velocity = unyt.array.uconcatenate(velocity)
+        self.mass = np.concatenate(mass)
+        self.radius = np.concatenate(radius)
+        self.position = np.concatenate(position)
+        self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
-        self.groupnr = unyt.array.uconcatenate(groupnr)
+        self.groupnr = np.concatenate(groupnr)
 
         # figure out which particles in the list are bound to a halo that is not the
         # central halo
@@ -221,8 +221,8 @@ class SOParticleData:
             )
             pos = self.data["PartType6"]["Coordinates"] - self.centre[None, :]
             nur = np.sqrt(np.sum(pos ** 2, axis=1))
-            all_mass = unyt.array.uconcatenate([self.mass, numass])
-            all_r = unyt.array.uconcatenate([self.radius, nur])
+            all_mass = np.concatenate([self.mass, numass/unyt.dimensionless])
+            all_r = np.concatenate([self.radius, nur])
         else:
             all_mass = self.mass
             all_r = self.radius
@@ -332,8 +332,8 @@ class SOParticleData:
         _, vmax = get_vmax(self.mass, self.radius)
         if vmax > 0:
             vrel = self.velocity - self.vcom[None, :]
-            Ltot = unyt.array.unorm(
-                (self.mass[:, None] * unyt.array.ucross(self.position, vrel)).sum(
+            Ltot = np.linalg.norm(
+                (self.mass[:, None] * np.cross(self.position, vrel)).sum(
                     axis=0
                 )
             )
@@ -569,7 +569,7 @@ class SOParticleData:
         baryon_relvel = self.baryon_vel - self.baryon_vcom[None, :]
         return (
             self.baryon_masses[:, None]
-            * unyt.array.ucross(self.baryon_pos, baryon_relvel)
+            * np.cross(self.baryon_pos, baryon_relvel)
         ).sum(axis=0)
 
     @lazy_property
@@ -1364,6 +1364,8 @@ class SOProperties(HaloProperty):
             "Velocities",
             "XrayLuminosities",
             "XrayPhotonLuminosities",
+            "XrayLuminositiesRestframe",
+            "XrayPhotonLuminositiesRestframe",
         ],
         "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
         "PartType4": [

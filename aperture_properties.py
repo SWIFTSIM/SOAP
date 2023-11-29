@@ -70,10 +70,10 @@ class ApertureParticleData:
             typearr[:] = ptype
             types.append(typearr)
 
-        self.mass = unyt.array.uconcatenate(mass)
-        self.position = unyt.array.uconcatenate(position)
-        self.radius = unyt.array.uconcatenate(radius)
-        self.velocity = unyt.array.uconcatenate(velocity)
+        self.mass = np.concatenate(mass)
+        self.position = np.concatenate(position)
+        self.radius = np.concatenate(radius)
+        self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
 
         self.mask = self.radius <= self.aperture_radius
@@ -414,8 +414,8 @@ class ApertureParticleData:
         if vmax == 0:
             return None
         vrel = self.velocity - self.vcom[None, :]
-        Ltot = unyt.array.unorm(
-            (self.mass[:, None] * unyt.array.ucross(self.position, vrel)).sum(axis=0)
+        Ltot = np.linalg.norm(
+            (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
         )
         return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax)
 

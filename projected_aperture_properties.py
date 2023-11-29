@@ -48,12 +48,12 @@ class ProjectedApertureParticleData:
             typearr[:] = ptype
             types.append(typearr)
 
-        self.mass = unyt.array.uconcatenate(mass)
-        self.position = unyt.array.uconcatenate(position)
-        self.radius_projx = unyt.array.uconcatenate(radius_projx)
-        self.radius_projy = unyt.array.uconcatenate(radius_projy)
-        self.radius_projz = unyt.array.uconcatenate(radius_projz)
-        self.velocity = unyt.array.uconcatenate(velocity)
+        self.mass = np.concatenate(mass)
+        self.position = np.concatenate(position)
+        self.radius_projx = np.concatenate(radius_projx)
+        self.radius_projy = np.concatenate(radius_projy)
+        self.radius_projz = np.concatenate(radius_projz)
+        self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
 
         self.mask_projx = self.radius_projx <= self.aperture_radius

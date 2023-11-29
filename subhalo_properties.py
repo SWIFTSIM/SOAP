@@ -62,10 +62,10 @@ class SubhaloParticleData:
             typearr[:] = ptype
             types.append(typearr)
 
-        self.mass = unyt.array.uconcatenate(mass)
-        self.position = unyt.array.uconcatenate(position)
-        self.radius = unyt.array.uconcatenate(radius)
-        self.velocity = unyt.array.uconcatenate(velocity)
+        self.mass = np.concatenate(mass)
+        self.position = np.concatenate(position)
+        self.radius = np.concatenate(radius)
+        self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
 
     @lazy_property
@@ -341,10 +341,10 @@ class SubhaloParticleData:
         if self.R_vmax > 0 and self.Vmax > 0:
             mask_r_vmax = self.radius <= self.R_vmax
             vrel = self.velocity[mask_r_vmax, :] - self.vcom[None, :]
-            Ltot = unyt.array.unorm(
+            Ltot = np.linalg.norm(
                 (
                     self.mass[mask_r_vmax, None]
-                    * unyt.array.ucross(self.position[mask_r_vmax, :], vrel)
+                    * np.cross(self.position[mask_r_vmax, :], vrel)
                 ).sum(axis=0)
             )
             M_r_vmax = self.mass[mask_r_vmax].sum()

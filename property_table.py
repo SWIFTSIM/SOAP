@@ -32,7 +32,7 @@ def word_wrap_name(name):
         next_char = name[i]
         count += 1
         if count > maxlen and next_char.isupper() and last_was_lower:
-            output.append("\-")
+            output.append(r"\-")
         output.append(next_char)
         last_was_lower = next_char.isupper() == False
     return "".join(output)
@@ -1530,7 +1530,7 @@ class PropertyTable:
 \\begin{document}"""
 
         tablestr = """\\begin{landscape}
-\\begin{longtable}{p{20em}llllllllll}
+\\begin{longtable}{p{15em}llllllllll}
 Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\\
 \\multicolumn{11}{l}{\\rule{30pt}{0pt}Description}\\\\
 \\hline{}\\endhead{}"""
@@ -1587,7 +1587,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                 tablestr += "\\hline{}"
             tablestr += "\\rule{0pt}{4ex}"
             tablestr += " & ".join([v for v in print_table_props]) + "\\\\*\n"
-            tablestr += f"\\multicolumn{{10}}{{p{{20cm}}}}{{\\rule{{30pt}}{{0pt}}{prop_description}}}\\\\\n"
+            tablestr += f"\\multicolumn{{10}}{{p{{15cm}}}}{{\\rule{{30pt}}{{0pt}}{prop_description}}}\\\\\n"
         tablestr += """\\end{longtable}
 \\end{landscape}"""
         tailstr = "\\end{document}"

@@ -6,18 +6,16 @@ import h5py
 import virgo.util.match as m
 
 # Read VR IDs and positions
-# filename="/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/VR/catalogue_0077/vr_catalogue_0077.properties.0"
-filename = "/cosma8/data/dp004/flamingo/Runs/L0100N0180/HYDRO_FIDUCIAL/VR/halos_0006.properties.0"
+filename="/cosma8/data/dp004/flamingo/Runs/L1000N0900/HYDRO_FIDUCIAL_DATA/HYDRO_FIDUCIAL/VR/catalogue_0077/vr_catalogue_0077.properties.0"
 with h5py.File(filename, "r") as infile:
     vr_id = infile["ID"][...]
     vr_host_id = infile["hostHaloID"][...]
 
 # Read SOAP output
-# filename="/snap8/scratch/dp004/jch/FLAMINGO/ScienceRuns/L1000N1800/HYDRO_FIDUCIAL/halo_properties/halo_properties_0077.hdf5"
-filename = "/snap8/scratch/dp004/jch/FLAMINGO/ScienceRuns/L0100N0180/HYDRO_FIDUCIAL/halo_properties/halo_properties_0006.hdf5"
+filename="/cosma8/data/dp004/flamingo/Runs/L1000N0900/HYDRO_FIDUCIAL_DATA/HYDRO_FIDUCIAL/SOAP/halo_properties_0077.hdf5"
 with h5py.File(filename, "r") as infile:
     soap_id = infile["VR/ID"][...]
-    soap_rank = infile["VR/SubhaloRankByBoundMass"][...]
+    soap_rank = infile["SOAP/SubhaloRankByBoundMass"][...]
     soap_host_id = infile["VR/HostHaloID"][...]
     soap_mass = infile["BoundSubhaloProperties/TotalMass"][...]
 
