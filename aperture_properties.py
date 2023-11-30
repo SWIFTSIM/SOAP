@@ -2200,7 +2200,7 @@ class ApertureParticleData:
         return np.log10(
             np.clip(
                 self.gas_N_over_O_diffuse,
-                self.snapshot_datasets.get_defined_constant("N_O_sun") * 1.0e-4,
+                self.snapshot_datasets.get_defined_constant("N_O_sun") * 1.0e-5,
                 np.inf,
             )
         )
@@ -2236,7 +2236,7 @@ class ApertureParticleData:
         return np.log10(
             np.clip(
                 self.gas_N_over_O_total,
-                self.snapshot_datasets.get_defined_constant("N_O_sun") * 1.0e-4,
+                self.snapshot_datasets.get_defined_constant("N_O_sun") * 1.0e-5,
                 np.inf,
             )
         )
