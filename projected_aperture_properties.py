@@ -8,6 +8,7 @@ from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from property_table import PropertyTable
 from kinematic_properties import get_projected_inertia_tensor
+from kinematic_properties import get_reduced_projected_inertia_tensor
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 
@@ -327,6 +328,14 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
+    def ReducedProjectedGasInertiaTensor(self):
+        if self.Mgas == 0:
+            return None
+        return get_reduced_projected_inertia_tensor(
+            self.proj_mass_gas, self.proj_pos_gas, self.com, self.iproj
+        )
+
+    @lazy_property
     def dm_mass_fraction(self):
         if self.Mdm == 0:
             return None
@@ -363,11 +372,27 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
+    def ReducedProjectedStellarInertiaTensor(self):
+        if self.Mstar == 0:
+            return None
+        return get_reduced_projected_inertia_tensor(
+            self.proj_mass_star, self.proj_pos_star, self.com, self.iproj
+        )
+
+    @lazy_property
     def ProjectedBaryonInertiaTensor(self):
         if self.Mbaryons == 0:
             return None
         return get_projected_inertia_tensor(
             self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
+        )
+
+    @lazy_property
+    def ReducedProjectedBaryonInertiaTensor(self):
+        if self.Mbaryons == 0:
+            return None
+        return get_reduced_projected_inertia_tensor(
+            self.proj_mass_baryons, self.proj_pos_baryons, self.com, self.iproj
         )
 
     @lazy_property
@@ -471,6 +496,9 @@ class ProjectedApertureProperties(HaloProperty):
             "ProjectedGasInertiaTensor",
             "ProjectedStellarInertiaTensor",
             "ProjectedBaryonInertiaTensor",
+            "ReducedProjectedGasInertiaTensor",
+            "ReducedProjectedStellarInertiaTensor",
+            "ReducedProjectedBaryonInertiaTensor",
         ]
     ]
 

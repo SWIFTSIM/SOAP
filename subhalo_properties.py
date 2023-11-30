@@ -11,6 +11,7 @@ from kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
+    get_reduced_inertia_tensor,
     get_velocity_dispersion_matrix,
 )
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
@@ -359,6 +360,12 @@ class SubhaloParticleData:
         return get_inertia_tensor(self.mass, self.position)
 
     @lazy_property
+    def ReducedTotalInertiaTensor(self):
+        if self.Mtot == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass, self.position, self.com)
+
+    @lazy_property
     def gas_mass_fraction(self):
         if self.Mgas == 0:
             return None
@@ -414,6 +421,12 @@ class SubhaloParticleData:
         return get_inertia_tensor(self.mass_gas, self.pos_gas)
 
     @lazy_property
+    def ReducedGasInertiaTensor(self):
+        if self.Mgas == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_gas, self.pos_gas, self.com)
+
+    @lazy_property
     def veldisp_matrix_gas(self):
         if self.Mgas == 0:
             return None
@@ -446,6 +459,13 @@ class SubhaloParticleData:
         if self.Mdm == 0:
             return None
         return get_inertia_tensor(self.mass_dm, self.pos_dm)
+
+    @lazy_property
+    def ReducedDMInertiaTensor(self):
+        if self.Mdm == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm, self.com)
+
 
     @lazy_property
     def veldisp_matrix_dm(self):
@@ -531,6 +551,12 @@ class SubhaloParticleData:
         return get_inertia_tensor(self.mass_star, self.pos_star)
 
     @lazy_property
+    def ReducedStellarInertiaTensor(self):
+        if self.Mstar == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_star, self.pos_star, self.com)
+
+    @lazy_property
     def veldisp_matrix_star(self):
         if self.Mstar == 0:
             return None
@@ -586,6 +612,12 @@ class SubhaloParticleData:
         if self.Mbaryon == 0:
             return None
         return get_inertia_tensor(self.mass_baryons, self.pos_baryons)
+
+    @lazy_property
+    def ReducedBaryonInertiaTensor(self):
+        if self.Mbaryon == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_baryons, self.pos_baryons, self.com)
 
     @lazy_property
     def gas_mask_all(self):
@@ -792,6 +824,11 @@ class SubhaloProperties(HaloProperty):
             "DMInertiaTensor",
             "StellarInertiaTensor",
             "BaryonInertiaTensor",
+            "ReducedTotalInertiaTensor",
+            "ReducedGasInertiaTensor",
+            "ReducedDMInertiaTensor",
+            "ReducedStellarInertiaTensor",
+            "ReducedBaryonInertiaTensor",
             "veldisp_matrix_gas",
             "veldisp_matrix_dm",
             "veldisp_matrix_star",

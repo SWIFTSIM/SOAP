@@ -132,7 +132,7 @@ def get_vmax(mass, radius):
 def get_inertia_tensor(mass, position):
 
     # 3x3 inertia tensor
-    Itensor = (mass[:, None, None] * position[:, None:, None] * position[:, None]).sum(
+    Itensor = (mass[:, None, None]/mass.sum() * position[:, None:, None] * position[:, None]).sum(
         axis=0
     )
 
@@ -171,7 +171,51 @@ def get_projected_inertia_tensor(mass, position, axis):
         np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
         * position.units
         * position.units
-        * mass.units
+    )
+    return Itensor
+
+def get_reduced_inertia_tensor(mass, position, ref_position):
+    prel = position - ref_position[None, :]
+    # 3x3 inertia tensor
+    Itensor = (mass[:, None, None]/mass.sum() * prel[:, None:, None] * prel[:, None]).sum(
+        axis=0
+    )
+
+    # Symmetric, so only return lower triangle
+    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
+
+    return Itensor
+
+def get_reduced_projected_inertia_tensor(mass, position, ref_position, axis):
+    prel = position - ref_position[None, :]
+    projected_position = unyt.unyt_array(
+        np.zeros((prel.shape[0], 2)), units=prel.units, dtype=prel.dtype
+    )
+    if axis == 0:
+        projected_position[:, 0] = prel[:, 1]
+        projected_position[:, 1] = prel[:, 2]
+    elif axis == 1:
+        projected_position[:, 0] = prel[:, 2]
+        projected_position[:, 1] = prel[:, 0]
+    elif axis == 2:
+        projected_position[:, 0] = prel[:, 0]
+        projected_position[:, 1] = prel[:, 1]
+    else:
+        raise AttributeError(f"Invalid axis: {axis}!")
+
+    Itensor = (mass[:, None, None]/mass.sum() ) * np.ones((mass.shape[0], 2, 2))
+    # Note: unyt currently ignores the position units in the *=
+    # i.e. Itensor is dimensionless throughout (even though it should not be)
+    for i in range(2):
+        for j in range(2):
+            Itensor[:, i, j] *= (
+                projected_position[:, i].value * projected_position[:, j].value
+            )
+    Itensor = Itensor.sum(axis=0)
+    Itensor = (
+        np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
+        * position.units
+        * position.units
     )
     return Itensor
 

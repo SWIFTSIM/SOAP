@@ -12,6 +12,7 @@ from kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
+    get_reduced_inertia_tensor,
 )
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from stellar_age_calculator import StellarAgeCalculator
@@ -487,6 +488,12 @@ class ApertureParticleData:
         return get_inertia_tensor(self.mass_gas, self.pos_gas)
 
     @lazy_property
+    def ReducedGasInertiaTensor(self):
+        if self.Mgas == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_gas, self.pos_gas, self.com)
+
+    @lazy_property
     def dm_mass_fraction(self):
         if self.Mdm == 0:
             return None
@@ -511,6 +518,12 @@ class ApertureParticleData:
         if self.Mdm == 0:
             return None
         return get_inertia_tensor(self.mass_dm, self.pos_dm)
+
+    @lazy_property
+    def ReducedDMInertiaTensor(self):
+        if self.Mdm == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm, self.com)
 
     @lazy_property
     def vcom_star(self):
@@ -560,6 +573,12 @@ class ApertureParticleData:
         if self.Mstar == 0:
             return None
         return get_inertia_tensor(self.mass_star, self.pos_star)
+
+    @lazy_property
+    def ReducedStellarInertiaTensor(self):
+        if self.Mstar == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_star, self.pos_star, self.com)
 
     @lazy_property
     def Ekin_star(self):
@@ -617,6 +636,12 @@ class ApertureParticleData:
         if self.Mbaryons == 0:
             return None
         return get_inertia_tensor(self.mass_baryons, self.pos_baryons)
+
+    @lazy_property
+    def ReducedBaryonInertiaTensor(self):
+        if self.Mbaryons == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_baryons, self.pos_baryons,self.com)
 
     @lazy_property
     def gas_mask_all(self):
@@ -893,6 +918,10 @@ class ApertureProperties(HaloProperty):
             "DMInertiaTensor",
             "StellarInertiaTensor",
             "BaryonInertiaTensor",
+            "ReducedGasInertiaTensor",
+            "ReducedDMInertiaTensor",
+            "ReducedStellarInertiaTensor",
+            "ReducedBaryonInertiaTensor",
             "DtoTgas",
             "DtoTstar",
             "starOfrac",

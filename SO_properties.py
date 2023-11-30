@@ -11,6 +11,7 @@ from kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
+    get_reduced_inertia_tensor,
 )
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from property_table import PropertyTable
@@ -345,6 +346,12 @@ class SOParticleData:
         return get_inertia_tensor(self.mass, self.position)
 
     @lazy_property
+    def ReducedTotalInertiaTensor(self):
+        if self.Mtotpart == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass, self.position,self.com)
+
+    @lazy_property
     def Mfrac_satellites(self):
         return self.mass[self.is_bound_to_satellite].sum() / self.SO_mass
 
@@ -420,6 +427,12 @@ class SOParticleData:
         return get_inertia_tensor(self.gas_masses, self.gas_pos)
 
     @lazy_property
+    def ReducedGasInertiaTensor(self):
+        if self.Mgas == 0:
+            return None
+        return get_reduced_inertia_tensor(self.gas_masses, self.gas_pos, self.com)
+
+    @lazy_property
     def dm_masses(self):
         return self.mass[self.types == "PartType1"]
 
@@ -460,6 +473,12 @@ class SOParticleData:
         if self.Mdm == 0:
             return None
         return get_inertia_tensor(self.dm_masses, self.dm_pos)
+
+    @lazy_property
+    def ReducedDMInertiaTensor(self):
+        if self.Mdm == 0:
+            return None
+        return get_reduced_inertia_tensor(self.dm_masses, self.dm_pos, self.com)
 
     @lazy_property
     def star_masses(self):
@@ -533,6 +552,13 @@ class SOParticleData:
         return get_inertia_tensor(self.star_masses, self.star_pos)
 
     @lazy_property
+    def ReducedStellarInertiaTensor(self):
+        if self.Mstar == 0:
+            return None
+        return get_reduced_inertia_tensor(self.star_masses, self.star_pos, self.com)
+
+
+    @lazy_property
     def baryon_masses(self):
         return self.mass[(self.types == "PartType0") | (self.types == "PartType4")]
 
@@ -574,6 +600,12 @@ class SOParticleData:
         if self.Mbaryons == 0:
             return None
         return get_inertia_tensor(self.baryon_masses, self.baryon_pos)
+
+    @lazy_property
+    def ReducedBaryonInertiaTensor(self):
+        if self.Mbaryons == 0:
+            return None
+        return get_reduced_inertia_tensor(self.baryon_masses, self.baryon_pos, self.com)
 
     @lazy_property
     def Mbh_dynamical(self):
@@ -1460,6 +1492,11 @@ class SOProperties(HaloProperty):
             "DMInertiaTensor",
             "StellarInertiaTensor",
             "BaryonInertiaTensor",
+            "ReducedTotalInertiaTensor",
+            "ReducedGasInertiaTensor",
+            "ReducedDMInertiaTensor",
+            "ReducedStellarInertiaTensor",
+            "ReducedBaryonInertiaTensor",
             "DopplerB",
             "gasOfrac",
             "gasFefrac",
