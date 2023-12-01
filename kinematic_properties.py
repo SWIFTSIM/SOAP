@@ -217,8 +217,6 @@ def get_reduced_projected_inertia_tensor(mass, position, ref_position, axis):
     Itensor = Itensor.sum(axis=0)
     Itensor = (
         np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
-        * position.units
-        * position.units
     )
     return Itensor
 
