@@ -557,7 +557,6 @@ class SOParticleData:
             return None
         return get_reduced_inertia_tensor(self.star_masses, self.star_pos)
 
-
     @lazy_property
     def baryon_masses(self):
         return self.mass[(self.types == "PartType0") | (self.types == "PartType4")]

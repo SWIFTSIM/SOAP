@@ -132,9 +132,9 @@ def get_vmax(mass, radius):
 def get_inertia_tensor(mass, position):
 
     # 3x3 inertia tensor
-    Itensor = (mass[:, None, None]/mass.sum() * position[:, None:, None] * position[:, None]).sum(
-        axis=0
-    )
+    Itensor = (
+        mass[:, None, None] / mass.sum() * position[:, None:, None] * position[:, None]
+    ).sum(axis=0)
 
     # Symmetric, so only return lower triangle
     Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
@@ -163,36 +163,42 @@ def get_projected_inertia_tensor(mass, position, axis):
     Itensor *= projected_position[:, :, None] * projected_position[:, None, :]
 
     Itensor = Itensor.sum(axis=0)
- 
+
     Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
 
     Itensor *= position.units * position.units
 
     return Itensor
 
+
 def get_reduced_inertia_tensor(mass, position):
-    #Remove the particle at the centre of the halo which otherwise causes division over 0. 
-    norm = np.linalg.norm(position,axis=1)**2
+    # Remove the particle at the centre of the halo which otherwise causes division over 0.
+    norm = np.linalg.norm(position, axis=1) ** 2
     argmin = np.argmin(norm)
-    position = np.delete(position,argmin,0) #Removing 
-    mass = np.delete(mass,argmin)
-    norm = np.delete(norm,argmin)
+    position = np.delete(position, argmin, 0)  # Removing
+    mass = np.delete(mass, argmin)
+    norm = np.delete(norm, argmin)
     # 3x3 inertia tensor
-    Itensor = (mass[:, None, None]/mass.sum() * position[:, None:, None] * position[:, None] / norm[:, None, None]).sum(
-        axis=0
-    )
+    Itensor = (
+        mass[:, None, None]
+        / mass.sum()
+        * position[:, None:, None]
+        * position[:, None]
+        / norm[:, None, None]
+    ).sum(axis=0)
 
     # Symmetric, so only return lower triangle
     Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
     return Itensor
 
+
 def get_reduced_projected_inertia_tensor(mass, position, axis):
-    #Remove the particle at the centre of the halo which otherwise causes division over 0. 
-    norm = np.linalg.norm(position,axis=1)**2
+    # Remove the particle at the centre of the halo which otherwise causes division over 0.
+    norm = np.linalg.norm(position, axis=1) ** 2
     argmin = np.argmin(norm)
-    position = np.delete(position,argmin,0) #Removing 
-    mass = np.delete(mass,argmin)
-    norm = np.delete(norm,argmin)
+    position = np.delete(position, argmin, 0)  # Removing
+    mass = np.delete(mass, argmin)
+    norm = np.delete(norm, argmin)
     projected_position = unyt.unyt_array(
         np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
     )
@@ -210,16 +216,17 @@ def get_reduced_projected_inertia_tensor(mass, position, axis):
 
     Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
 
-    Itensor *= projected_position[:, :, None] * projected_position[:, None, :]/ norm[:,None, None].value
+    Itensor *= (
+        projected_position[:, :, None]
+        * projected_position[:, None, :]
+        / norm[:, None, None].value
+    )
 
     Itensor = Itensor.sum(axis=0)
- 
+
     Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
 
     return Itensor
-
-
-
 
 
 if __name__ == "__main__":

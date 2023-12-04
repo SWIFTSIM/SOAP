@@ -466,7 +466,6 @@ class SubhaloParticleData:
             return None
         return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm)
 
-
     @lazy_property
     def veldisp_matrix_dm(self):
         if self.Mdm == 0:
