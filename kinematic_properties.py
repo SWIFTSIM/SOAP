@@ -158,20 +158,16 @@ def get_projected_inertia_tensor(mass, position, axis):
     else:
         raise AttributeError(f"Invalid axis: {axis}!")
 
-    Itensor = (mass[:, None, None]/mass.sum()) * np.ones((mass.shape[0], 2, 2))
-    # Note: unyt currently ignores the position units in the *=
-    # i.e. Itensor is dimensionless throughout (even though it should not be)
-    for i in range(2):
-        for j in range(2):
-            Itensor[:, i, j] *= (
-                projected_position[:, i].value * projected_position[:, j].value
-            )
+    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
+
+    Itensor *= projected_position[:, :, None] * projected_position[:, None, :]
+
     Itensor = Itensor.sum(axis=0)
-    Itensor = (
-        np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
-        * position.units
-        * position.units
-    )
+ 
+    Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
+
+    Itensor *= position.units * position.units
+
     return Itensor
 
 def get_reduced_inertia_tensor(mass, position):
@@ -212,18 +208,14 @@ def get_reduced_projected_inertia_tensor(mass, position, axis):
     else:
         raise AttributeError(f"Invalid axis: {axis}!")
 
-    Itensor = (mass[:, None, None]/mass.sum()) * np.ones((mass.shape[0], 2, 2))
-    # Note: unyt currently ignores the position units in the *=
-    # i.e. Itensor is dimensionless throughout (even though it should not be)
-    for i in range(2):
-        for j in range(2):
-            Itensor[:, i, j] *= (
-                projected_position[:, i].value * projected_position[:, j].value / norm.value
-            )
+    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
+
+    Itensor *= projected_position[:, :, None] * projected_position[:, None, :]/ norm[:,None, None].value
+
     Itensor = Itensor.sum(axis=0)
-    Itensor = (
-        np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
-    )
+ 
+    Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
+
     return Itensor
 
 
