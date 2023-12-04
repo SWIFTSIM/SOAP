@@ -349,7 +349,7 @@ class SOParticleData:
     def ReducedTotalInertiaTensor(self):
         if self.Mtotpart == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass, self.position,self.com)
+        return get_reduced_inertia_tensor(self.mass, self.position)
 
     @lazy_property
     def Mfrac_satellites(self):
@@ -430,7 +430,7 @@ class SOParticleData:
     def ReducedGasInertiaTensor(self):
         if self.Mgas == 0:
             return None
-        return get_reduced_inertia_tensor(self.gas_masses, self.gas_pos, self.com)
+        return get_reduced_inertia_tensor(self.gas_masses, self.gas_pos)
 
     @lazy_property
     def dm_masses(self):
@@ -478,7 +478,7 @@ class SOParticleData:
     def ReducedDMInertiaTensor(self):
         if self.Mdm == 0:
             return None
-        return get_reduced_inertia_tensor(self.dm_masses, self.dm_pos, self.com)
+        return get_reduced_inertia_tensor(self.dm_masses, self.dm_pos)
 
     @lazy_property
     def star_masses(self):
@@ -555,7 +555,7 @@ class SOParticleData:
     def ReducedStellarInertiaTensor(self):
         if self.Mstar == 0:
             return None
-        return get_reduced_inertia_tensor(self.star_masses, self.star_pos, self.com)
+        return get_reduced_inertia_tensor(self.star_masses, self.star_pos)
 
 
     @lazy_property
@@ -605,7 +605,7 @@ class SOParticleData:
     def ReducedBaryonInertiaTensor(self):
         if self.Mbaryons == 0:
             return None
-        return get_reduced_inertia_tensor(self.baryon_masses, self.baryon_pos, self.com)
+        return get_reduced_inertia_tensor(self.baryon_masses, self.baryon_pos)
 
     @lazy_property
     def Mbh_dynamical(self):

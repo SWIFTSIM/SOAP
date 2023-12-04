@@ -491,7 +491,7 @@ class ApertureParticleData:
     def ReducedGasInertiaTensor(self):
         if self.Mgas == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass_gas, self.pos_gas, self.com)
+        return get_reduced_inertia_tensor(self.mass_gas, self.pos_gas)
 
     @lazy_property
     def dm_mass_fraction(self):
@@ -523,7 +523,7 @@ class ApertureParticleData:
     def ReducedDMInertiaTensor(self):
         if self.Mdm == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm, self.com)
+        return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm)
 
     @lazy_property
     def vcom_star(self):
@@ -578,7 +578,7 @@ class ApertureParticleData:
     def ReducedStellarInertiaTensor(self):
         if self.Mstar == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass_star, self.pos_star, self.com)
+        return get_reduced_inertia_tensor(self.mass_star, self.pos_star)
 
     @lazy_property
     def Ekin_star(self):
@@ -641,7 +641,7 @@ class ApertureParticleData:
     def ReducedBaryonInertiaTensor(self):
         if self.Mbaryons == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass_baryons, self.pos_baryons,self.com)
+        return get_reduced_inertia_tensor(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
     def gas_mask_all(self):

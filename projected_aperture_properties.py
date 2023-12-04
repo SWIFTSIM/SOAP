@@ -332,7 +332,7 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Mgas == 0:
             return None
         return get_reduced_projected_inertia_tensor(
-            self.proj_mass_gas, self.proj_pos_gas, self.com, self.iproj
+            self.proj_mass_gas, self.proj_pos_gas, self.iproj
         )
 
     @lazy_property
@@ -376,7 +376,7 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Mstar == 0:
             return None
         return get_reduced_projected_inertia_tensor(
-            self.proj_mass_star, self.proj_pos_star, self.com, self.iproj
+            self.proj_mass_star, self.proj_pos_star, self.iproj
         )
 
     @lazy_property
@@ -392,7 +392,7 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Mbaryons == 0:
             return None
         return get_reduced_projected_inertia_tensor(
-            self.proj_mass_baryons, self.proj_pos_baryons, self.com, self.iproj
+            self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
         )
 
     @lazy_property
