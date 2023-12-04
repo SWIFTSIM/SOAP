@@ -1594,7 +1594,7 @@ class SOProperties(HaloProperty):
             SO[name] = unyt.unyt_array(val, dtype=dtype, units=unit, registry=registry)
 
         # SOs only exist for central galaxies
-        if input_halo["Structuretype"] == 10:
+        if input_halo["is_central"]:
             types_present = [type for type in self.particle_properties if type in data]
 
             part_props = SOParticleData(
@@ -1853,7 +1853,7 @@ def test_SO_properties():
             # in the SO calculation)
             # non-centrals don't fail, since we do not calculate any SO
             # properties and simply return zeros in this case
-            assert (Npart == 1) or input_halo["Structuretype"] != 10 or fail
+            assert (Npart == 1) or input_halo["is_central"] == 0 or fail
 
         # force the radius multiple to trip over not having computed the
         # required radius

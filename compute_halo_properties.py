@@ -29,7 +29,7 @@ import swift_units
 import halo_properties
 import task_queue
 import lustre
-import command_line_args
+import soap_args
 import SO_properties
 import subhalo_properties
 import aperture_properties
@@ -72,12 +72,11 @@ def get_rank_and_size(comm):
 def compute_halo_properties():
 
     # Read command line parameters
-    args = command_line_args.get_halo_props_args(comm_world)
+    args = soap_args.get_soap_args(comm_world)
 
     # Enable profiling, if requested
     if args.profile == 2 or (args.profile == 1 and comm_world_rank == 0):
         import cProfile, pstats, io
-
         pr = cProfile.Profile()
         pr.enable()
 
@@ -103,7 +102,11 @@ def compute_halo_properties():
             "Number of MPI ranks per node reading snapshots: %d"
             % args.max_ranks_reading
         )
-
+        print("Halo format is %s" % args.halo_format)
+        print("Halo basename is %s" % args.halo_basename)
+        print("Output file is %s" % args.output_file)
+        print("Snapshot number is %d" % args.snapshot_nr)
+        
     # Open the snapshot and read SWIFT cell structure, units etc
     if comm_world_rank == 0:
         swift_filename = sub_snapnum(args.swift_filename, args.snapshot_nr)
@@ -154,15 +157,17 @@ def compute_halo_properties():
             recently_heated_gas_filter,
             stellar_age_calculator,
             category_filter,
-            bound_only=False,
+            bound_only=True,
         ),
         subhalo_properties.SubhaloProperties(
             cellgrid,
             recently_heated_gas_filter,
             stellar_age_calculator,
             category_filter,
-            bound_only=True,
-        ),
+            bound_only=False,
+        )
+        if args.halo_format == "VR"
+        else None,  # Only VR outputs unbound particle info
         SO_properties.SOProperties(
             cellgrid, recently_heated_gas_filter, category_filter, 200.0, "mean"
         ),
@@ -325,6 +330,7 @@ def compute_halo_properties():
             category_filter,
         ),
     ]
+    halo_prop_list = [hp for hp in halo_prop_list if hp is not None]
 
     # Determine which calculations we're doing this time
     if args.calculations is not None:
@@ -395,18 +401,20 @@ def compute_halo_properties():
 
     # Read in the halo catalogue:
     # All ranks read the file(s) in then gather to rank 0. Also computes search radius for each halo.
-    vr_basename = sub_snapnum(args.vr_basename, args.snapshot_nr)
+    halo_basename = sub_snapnum(args.halo_basename, args.snapshot_nr)
     so_cat = halo_centres.SOCatalogue(
         comm_world,
-        vr_basename,
+        halo_basename,
+        args.halo_format,
         cellgrid.a_unit,
         cellgrid.snap_unit_registry,
         cellgrid.boxsize,
-        args.max_halos[0],
+        args.max_halos,
         args.centrals_only,
         args.halo_ids,
         halo_prop_list,
         args.chunks,
+        args.halo_sizes_file.format(snap_nr=args.snapshot_nr),
     )
 
     # Generate the chunk task list
@@ -426,11 +434,11 @@ def compute_halo_properties():
     t1 = time.time()
     if comm_world_rank == 0:
         print(
-            "Reading %d VR halos and setting up %d chunk(s) took %.1fs"
+            "Reading %d input halos and setting up %d chunk(s) took %.1fs"
             % (so_cat.nr_halos, len(tasks), t1 - t0)
         )
 
-    # We no longer need the VR catalogue, since halo centres etc are stored in the chunk tasks
+    # We no longer need the catalogue, since halo centres etc are stored in the chunk tasks
     del so_cat
 
     # Make a format string to generate the name of the file each chunk task will write to
@@ -535,24 +543,4 @@ def compute_halo_properties():
 
 if __name__ == "__main__":
 
-    try:
-        compute_halo_properties()
-    except SystemExit as e:
-        # Handle sys.exit()
-        comm_world.Abort(e.code)
-    except KeyboardInterrupt:
-        # Handle kill signal (e.g. ctrl-c if interactive)
-        comm_world.Abort()
-    except Exception as e:
-        # Uncaught exception. Print stack trace and exit.
-        sys.stderr.write(
-            "\n\n*** EXCEPTION ***\n"
-            + str(e)
-            + " on rank "
-            + str(comm_world_rank)
-            + "\n\n"
-        )
-        traceback.print_exc(file=sys.stderr)
-        sys.stderr.write("\n\n")
-        sys.stderr.flush()
-        comm_world.Abort()
+    compute_halo_properties()

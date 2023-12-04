@@ -18,8 +18,10 @@ def sub_snapnum(filename, snapnum):
     Substitute the snapshot number into a filename format string
     without substituting the file number.
     """
-    filename = filename.replace("%(file_nr)", "%%(file_nr)")
-    return filename % {"snap_nr": snapnum}
+    from virgo.util.partial_formatter import PartialFormatter
+    pf = PartialFormatter()
+    filename = pf.format(filename, snap_nr=snapnum, file_nr=None)    
+    return filename
 
 
 def combine_chunks(
@@ -42,11 +44,11 @@ def combine_chunks(
         scratch_file_format, file_idx=range(nr_chunks), comm=comm_world
     )
 
-    # Read the VR halo IDs from the scratch files and make a sorting index to put them in order
+    # Read the halo index from the scratch files and make a sorting index to put them in order
     with MPITimer("Establishing ID ordering of halos", comm_world):
-        vr_id = scratch_file.read(("VR/ID",))["VR/ID"]
-        order = psort.parallel_sort(vr_id, return_index=True, comm=comm_world)
-        del vr_id
+        halo_index = scratch_file.read("InputHalos/index")
+        order = psort.parallel_sort(halo_index, return_index=True, comm=comm_world)
+        del halo_index
 
     # Determine total number of halos
     total_nr_halos = comm_world.allreduce(len(order))
@@ -79,7 +81,8 @@ def combine_chunks(
             cellgrid.write_metadata(outfile.create_group("SWIFT"))
             params = outfile.create_group("Parameters")
             params.attrs["swift_filename"] = args.swift_filename
-            params.attrs["vr_basename"] = args.vr_basename
+            params.attrs["halo_basename"] = args.halo_basename
+            params.attrs["halo_format"] = args.halo_format
             params.attrs["snapshot_nr"] = args.snapshot_nr
             params.attrs["centrals_only"] = 0 if args.centrals_only == False else 1
             calc_names = sorted([hp.name for hp in halo_prop_list])

@@ -2,12 +2,14 @@
 
 from property_table import PropertyTable
 
-gas_filter_name = f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}"
-dm_filter_name = f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}"
-star_filter_name = (
-    f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}"
+gas_filter_name = (
+    f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}"
 )
-bh_filter_name = f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}"
+dm_filter_name = f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}"
+star_filter_name = (
+    f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}"
+)
+bh_filter_name = f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}"
 
 
 class CategoryFilter:

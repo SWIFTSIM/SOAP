@@ -870,7 +870,7 @@ class PropertyTable:
             "FMantissa9",
             True,
         ),
-        "VRID": (
+        "VR/ID": (
             "ID",
             1,
             np.uint64,
@@ -880,7 +880,7 @@ class PropertyTable:
             "None",
             True,
         ),
-        "VRParent_halo_ID": (
+        "VR/Parent_halo_ID": (
             "ParentHaloID",
             1,
             np.int64,
@@ -890,7 +890,7 @@ class PropertyTable:
             "None",
             True,
         ),
-        "VRStructuretype": (
+        "VR/Structuretype": (
             "StructureType",
             1,
             np.int32,
@@ -900,17 +900,57 @@ class PropertyTable:
             "None",
             True,
         ),
-        "VRcofp": (
+        "cofp": (
             "CentreOfPotential",
             3,
             np.float64,
             "Mpc",
-            "Centre of potential, as identified by VR. Used as reference for all relative positions. Equal to the position of the most bound particle in the subhalo.",
-            "VR",
+            "Centre of potential. Used as reference for all relative positions. Equal to the position of the most bound particle in the subhalo.",
+            "Input",
             "DScale5",
             True,
         ),
-        "VRhostHaloID": (
+        "index": (
+            "Index",
+            1,
+            np.int64,
+            "dimensionless",
+            "Index of this halo in the original halo finder catalogue (first halo has index=0).",
+            "Input",
+            "None",
+            True,
+        ),
+        "read_radius": (
+            "read_radius",
+            1,
+            np.float64,
+            "cMpc",
+            "Radius about the halo which was read in by SOAP.",
+            "Input",
+            "None",
+            True,
+        ),
+        "search_radius": (
+            "search_radius",
+            1,
+            np.float64,
+            "cMpc",
+            "Radius about the halo which was searched for SO quantities",
+            "Input",
+            "None",
+            True,
+        ),
+        "is_central": (
+            "is_central",
+            1,
+            np.int64,
+            "dimensionless",
+            "Whether the halo finder flagged the halo as central (1) or satellite (0).",
+            "Input",
+            "None",
+            True,
+        ),
+        "VR/hostHaloID": (
             "HostHaloID",
             1,
             np.int64,
@@ -920,17 +960,7 @@ class PropertyTable:
             "None",
             True,
         ),
-        "VRindex": (
-            "Index",
-            1,
-            np.int64,
-            "dimensionless",
-            "Index of this halo in the original VR output.",
-            "VR",
-            "None",
-            True,
-        ),
-        "VRnumSubStruct": (
+        "VR/numSubStruct": (
             "NumberOfSubstructures",
             1,
             np.uint64,
@@ -1381,12 +1411,6 @@ class PropertyTable:
             True,
         ),
     }
-
-    # we should really use removeprefix("VR") instead of [2:], but that only
-    # exists since Python 3.9
-    vr_properties = [
-        vrname[2:] for vrname in full_property_list.keys() if vrname.startswith("VR")
-    ]
 
     # halo properties derived from other properties by SOAP
     soap_properties = [

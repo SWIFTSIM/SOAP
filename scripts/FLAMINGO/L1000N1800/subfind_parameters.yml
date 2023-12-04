@@ -1,0 +1,30 @@
+Parameters:
+  # Values in this section are substituted into the other sections
+  sim_dir:     /cosma8/data/dp004/flamingo/Runs/
+  output_dir:  /cosma8/data/dp004/jch/FLAMINGO/ScienceRuns/
+  scratch_dir: /snap8/scratch/dp004/jch/FLAMINGO/ScienceRuns/
+
+Snapshots:
+  # Location of the Swift snapshots:
+  # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
+  filename: "{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
+
+HaloFinder:
+  # Which halo finder we're using : VR, HBTplus or Gadget4
+  type: Gadget4
+  # Base name for halo finder output file names:
+  # for Gadget-4 subfind this is the name of the group ordered snapshot files without the trailing .*.hdf5
+  filename: "{scratch_dir}/{sim_name}/gadget_snapshots/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
+
+GroupMembership:
+  # Where to write the group membership files
+  filename: "{output_dir}/{sim_name}/Subfind/SOAP_uncompressed/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+  # Where to write halo size information
+  halo_sizes_file: "{output_dir}/{sim_name}/Subfind/SOAP_uncompressed/membership_{snap_nr:04d}/membership_{snap_nr:04d}.nr_particles.hdf5"
+
+HaloProperties:
+  # Where to write the halo properties file
+  filename: "{output_dir}/{sim_name}/Subfind/SOAP_uncompressed/halo_properties_{snap_nr:04d}.hdf5"
+  # Where to write temporary chunk output
+  chunk_dir: "{scratch_dir}/{sim_name}/SOAP-tmp/Subfind/"
+  

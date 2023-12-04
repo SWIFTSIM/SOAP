@@ -111,7 +111,7 @@ def identify_datasets(filename, nr_files, ptypes, registry):
 
     # Scan snapshot files to find shape, type and units for each quantity
     for file_nr in range(nr_files):
-        infile = h5py.File(filename % {"file_nr": file_nr}, "r")
+        infile = h5py.File(filename.format(file_nr=file_nr), "r")
         nr_left = 0
         for ptype in ptypes:
             if to_find[ptype]:
@@ -154,7 +154,7 @@ class SWIFTCellGrid:
         self.extra_filename = extra_filename
 
         # Open the input file
-        with h5py.File(snap_filename % {"file_nr": 0}, "r") as infile:
+        with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
 
             # Get the snapshot unit system
             self.snap_unit_registry = swift_units.unit_registry_from_snapshot(infile)
@@ -308,7 +308,7 @@ class SWIFTCellGrid:
         self.ptypes_ref = {}
         if snap_filename_ref is not None:
             # Determine any particle types present in the reference snapshot but not in the current snapshot
-            with h5py.File(snap_filename_ref % {"file_nr": 0}, "r") as infile:
+            with h5py.File(snap_filename_ref.format(file_nr=0), "r") as infile:
                 for name in infile["Cells/Counts"]:
                     if name not in self.ptypes:
                         self.ptypes_ref.append(name)
@@ -442,7 +442,7 @@ class SWIFTCellGrid:
         # By file, then by particle type, then by dataset, then by offset in the file
         all_tasks = collections.deque()
         for file_nr in all_file_nrs:
-            filename = self.snap_filename % {"file_nr": file_nr}
+            filename = self.snap_filename.format(file_nr=file_nr)
             for ptype in reads_for_type:
                 for dataset in property_names[ptype]:
                     if dataset in self.snap_metadata[ptype]:
@@ -464,7 +464,7 @@ class SWIFTCellGrid:
         # Create additional read tasks for the extra data files
         if self.extra_filename is not None:
             for file_nr in all_file_nrs:
-                filename = self.extra_filename % {"file_nr": file_nr}
+                filename = self.extra_filename.format(file_nr=file_nr)
                 for ptype in reads_for_type:
                     for dataset in property_names[ptype]:
                         if dataset in self.extra_metadata[ptype]:

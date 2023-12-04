@@ -253,7 +253,7 @@ class DummyHaloGenerator:
         # the random halo always gets GroupNr 1
         groupnr_halo = 1
         # structure type: mostly centrals, but some satellites
-        structuretype = np.random.choice([10, 20], p=[0.99, 0.01])
+        is_central = np.random.choice([1, 0], p=[0.99, 0.01])
 
         # Generate a random radius from an exponential distribution.
         # The chosen beta parameter should ensure that ~90% of the values is
@@ -550,7 +550,7 @@ class DummyHaloGenerator:
         input_halo = {}
         input_halo["cofp"] = centre
         input_halo["index"] = groupnr_halo
-        input_halo["Structuretype"] = structuretype
+        input_halo["is_central"] = is_central
 
         nu_density = (
             self.dummy_cellgrid.cosmology["Omega_nu_0"]

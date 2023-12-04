@@ -161,7 +161,7 @@ class ChunkTask:
         comm_size = comm.Get_size()
 
         # Create object to store the results for this chunk
-        nr_halos = len(self.halo_arrays["ID"].full)
+        nr_halos = len(self.halo_arrays["index"].full)
         results = result_set.ResultSet(initial_size=max(1, nr_halos // comm_size))
 
         # Unpack arrays we need
@@ -196,7 +196,7 @@ class ChunkTask:
             message(
                 "identified %d cells to read in %.2fs" % (nr_cells, t1_mask - t0_mask)
             )
-            nr_halos = len(self.halo_arrays["ID"].full)
+            nr_halos = len(self.halo_arrays["index"].full)
 
             # Get the cosmology info from the input snapshot
             critical_density = cellgrid.critical_density
