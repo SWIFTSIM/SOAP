@@ -1243,7 +1243,7 @@ class PropertyTable:
         "com": (
             "CentreOfMass",
             3,
-            np.float32,
+            np.float64,
             "Mpc",
             "Centre of mass.",
             "basic",
@@ -1253,7 +1253,7 @@ class PropertyTable:
         "com_gas": (
             "GasCentreOfMass",
             3,
-            np.float32,
+            np.float64,
             "Mpc",
             "Centre of mass of gas.",
             "gas",
@@ -1263,7 +1263,7 @@ class PropertyTable:
         "com_star": (
             "StellarCentreOfMass",
             3,
-            np.float32,
+            np.float64,
             "Mpc",
             "Centre of mass of stars.",
             "star",
