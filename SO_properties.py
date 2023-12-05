@@ -1392,8 +1392,6 @@ class SOProperties(HaloProperty):
             "Velocities",
             "XrayLuminosities",
             "XrayPhotonLuminosities",
-            # "XrayLuminositiesRestframe",
-            # "XrayPhotonLuminositiesRestframe",
         ],
         "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
         "PartType4": [
