@@ -20,8 +20,14 @@ def io_test():
     t0 = time.time()
 
     # Open the snapshot
-    fname = "/cosma8/data/dp004/flamingo/Runs/L2800N5040/HYDRO_FIDUCIAL/snapshots/flamingo_0037/flamingo_0037.%(file_nr)d.hdf5"
-    cellgrid = swift_cells.SWIFTCellGrid(fname)
+    fname = "/cosma8/data/dp004/flamingo/Runs/L1000N0900/HYDRO_FIDUCIAL/snapshots/flamingo_0037/flamingo_0037.%(file_nr)d.hdf5"
+    try:
+        cellgrid = swift_cells.SWIFTCellGrid(fname)
+    except FileNotFoundError:
+        if comm_rank == 0:
+            print('File not found for running io_test')
+        return
+
 
     # Quantities to read
     property_names = {
@@ -30,13 +36,13 @@ def io_test():
     }
 
     # Specify region to read
-    pos_min = np.asarray((0.0, 0.0, 0.0)) * cellgrid.units.length
-    pos_max = np.asarray((50.0, 50.0, 50.0)) * cellgrid.units.length
+    pos_min = np.asarray((0.0, 0.0, 0.0)) * cellgrid.get_unit('snap_length')
+    pos_max = np.asarray((50.0, 50.0, 50.0)) * cellgrid.get_unit('snap_length')
 
     # Read in the region
     mask = cellgrid.empty_mask()
     cellgrid.mask_region(mask, pos_min, pos_max)
-    data = cellgrid.read_masked_cells_to_shared_memory(property_names, mask, comm)
+    data = cellgrid.read_masked_cells_to_shared_memory(property_names, mask, comm, 8)
 
     comm.barrier()
     t1 = time.time()
@@ -65,24 +71,32 @@ def io_test():
     if comm_rank == 0:
 
         # Plot all particles
-        pos = data["PartType1"]["Coordinates"].full
-        plt.plot(pos[:, 0], pos[:, 1], "k,", alpha=0.05)
+        pos = data["PartType1"]["Coordinates"]
+        plt.plot(pos.full[:, 0], pos.full[:, 1], "k,", alpha=0.05)
         plt.gca().set_aspect("equal")
 
         # Use the mesh to plot a sub-region
-        pos_min = np.asarray((20, 20, 20), dtype=float) * cellgrid.units.length
-        pos_max = np.asarray((40, 40, 40), dtype=float) * cellgrid.units.length
+        pos_min = np.asarray((20, 20, 20), dtype=float) * cellgrid.get_unit('snap_length')
+        pos_max = np.asarray((40, 40, 40), dtype=float) * cellgrid.get_unit('snap_length')
         idx = mesh.query(pos_min, pos_max)
-        plt.plot(pos[idx, 0], pos[idx, 1], "r,")
+        plt.plot(pos.full[idx, 0], pos.full[idx, 1], "r,")
 
         # Try selecting a sphere
-        centre = np.asarray((30, 30, 30)) * cellgrid.units.length
-        radius = 10 * cellgrid.units.length
+        centre = np.asarray((30, 30, 30)) * cellgrid.get_unit('snap_length')
+        radius = 10 * cellgrid.get_unit('snap_length')
         idx = mesh.query_radius(centre, radius, pos)
-        plt.plot(pos[idx, 0], pos[idx, 1], "g,")
+        plt.plot(pos.full[idx, 0], pos.full[idx, 1], "g,")
 
-        plt.show()
+        plt.xlim(0, 150)
+        plt.ylim(0, 150)
+        plt.savefig(f"io_test.png", dpi=300)
+        plt.close()
 
+    # Free the shared particle data
+    for ptype in data:
+        for name in data[ptype]:
+            data[ptype][name].free()
+    mesh.free()
 
 if __name__ == "__main__":
     io_test()
