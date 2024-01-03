@@ -25,9 +25,8 @@ def io_test():
         cellgrid = swift_cells.SWIFTCellGrid(fname)
     except FileNotFoundError:
         if comm_rank == 0:
-            print('File not found for running io_test')
+            print("File not found for running io_test")
         return
-
 
     # Quantities to read
     property_names = {
@@ -36,8 +35,8 @@ def io_test():
     }
 
     # Specify region to read
-    pos_min = np.asarray((0.0, 0.0, 0.0)) * cellgrid.get_unit('snap_length')
-    pos_max = np.asarray((50.0, 50.0, 50.0)) * cellgrid.get_unit('snap_length')
+    pos_min = np.asarray((0.0, 0.0, 0.0)) * cellgrid.get_unit("snap_length")
+    pos_max = np.asarray((50.0, 50.0, 50.0)) * cellgrid.get_unit("snap_length")
 
     # Read in the region
     mask = cellgrid.empty_mask()
@@ -76,14 +75,18 @@ def io_test():
         plt.gca().set_aspect("equal")
 
         # Use the mesh to plot a sub-region
-        pos_min = np.asarray((20, 20, 20), dtype=float) * cellgrid.get_unit('snap_length')
-        pos_max = np.asarray((40, 40, 40), dtype=float) * cellgrid.get_unit('snap_length')
+        pos_min = np.asarray((20, 20, 20), dtype=float) * cellgrid.get_unit(
+            "snap_length"
+        )
+        pos_max = np.asarray((40, 40, 40), dtype=float) * cellgrid.get_unit(
+            "snap_length"
+        )
         idx = mesh.query(pos_min, pos_max)
         plt.plot(pos.full[idx, 0], pos.full[idx, 1], "r,")
 
         # Try selecting a sphere
-        centre = np.asarray((30, 30, 30)) * cellgrid.get_unit('snap_length')
-        radius = 10 * cellgrid.get_unit('snap_length')
+        centre = np.asarray((30, 30, 30)) * cellgrid.get_unit("snap_length")
+        radius = 10 * cellgrid.get_unit("snap_length")
         idx = mesh.query_radius(centre, radius, pos)
         plt.plot(pos.full[idx, 0], pos.full[idx, 1], "g,")
 
@@ -97,6 +100,7 @@ def io_test():
         for name in data[ptype]:
             data[ptype][name].free()
     mesh.free()
+
 
 if __name__ == "__main__":
     io_test()

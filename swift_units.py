@@ -13,7 +13,9 @@ def unit_registry_from_snapshot(snap):
         name: float(value[0])
         for name, value in snap["PhysicalConstants/CGS"].attrs.items()
     }
-    cosmology = {name: float(value[0]) for name, value in snap["Cosmology"].attrs.items()}
+    cosmology = {
+        name: float(value[0]) for name, value in snap["Cosmology"].attrs.items()
+    }
     a = unyt.unyt_quantity(cosmology["Scale-factor"])
     h = unyt.unyt_quantity(cosmology["h"])
 

@@ -44,10 +44,10 @@ class SharedMesh:
 
         # Then we can evaluate the minimum and maximum coordinates across
         # ranks which have particles with an allreduce.
-        self.pos_min = np.empty_like(pos_min_local*1)
-        comm.Allreduce(pos_min_local*1, self.pos_min, op=MPI.MIN)
-        self.pos_max = np.empty_like(pos_max_local*1)
-        comm.Allreduce(pos_max_local*1, self.pos_max, op=MPI.MAX)
+        self.pos_min = np.empty_like(pos_min_local * 1)
+        comm.Allreduce(pos_min_local * 1, self.pos_min, op=MPI.MIN)
+        self.pos_max = np.empty_like(pos_max_local * 1)
+        comm.Allreduce(pos_max_local * 1, self.pos_max, op=MPI.MAX)
         assert np.all(pos.local >= self.pos_min)
         assert np.all(pos.local <= self.pos_max)
 
