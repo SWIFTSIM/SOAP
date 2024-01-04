@@ -94,7 +94,7 @@ def get_angular_momentum(
         vrel = velocity
     else:
         vrel = velocity - ref_velocity[None, :]
-    return (mass[:, None] * unyt.array.ucross(prel, vrel)).sum(axis=0)
+    return (mass[:, None] * np.cross(prel, vrel)).sum(axis=0)
 
 
 def get_angular_momentum_and_kappa_corot(
@@ -158,9 +158,9 @@ def get_angular_momentum_and_kappa_corot(
     else:
         vrel = velocity - ref_velocity[None, :]
 
-    Lpart = mass[:, None] * unyt.array.ucross(prel, vrel)
+    Lpart = mass[:, None] * np.cross(prel, vrel)
     Ltot = Lpart.sum(axis=0)
-    Lnrm = unyt.array.unorm(Ltot)
+    Lnrm = np.linalg.norm(Ltot)
 
     if do_counterrot_mass:
         M_counterrot = unyt.unyt_array(
@@ -235,7 +235,7 @@ def get_inertia_tensor(
 ) -> unyt.unyt_array:
     """
     Get the inertia tensor of the given particle distribution, computed as 
-    I_{ij} = m*x_i*x_j.
+    I_{ij} = m*x_i*x_j / Mtot.
 
     Parameters:
      - mass: unyt.unyt_array
@@ -246,9 +246,9 @@ def get_inertia_tensor(
     Returns the inertia tensor.
     """
     # 3x3 inertia tensor
-    Itensor = (mass[:, None, None] * position[:, None:, None] * position[:, None]).sum(
-        axis=0
-    )
+    Itensor = (
+        mass[:, None, None] / mass.sum() * position[:, None:, None] * position[:, None]
+    ).sum(axis=0)
 
     # Symmetric, so only return lower triangle
     Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
@@ -290,21 +290,74 @@ def get_projected_inertia_tensor(
     else:
         raise AttributeError(f"Invalid axis: {axis}!")
 
-    Itensor = (mass[:, None, None]) * np.ones((mass.shape[0], 2, 2))
-    # Note: unyt currently ignores the position units in the *=
-    # i.e. Itensor is dimensionless throughout (even though it should not be)
-    for i in range(2):
-        for j in range(2):
-            Itensor[:, i, j] *= (
-                projected_position[:, i].value * projected_position[:, j].value
-            )
+    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
+
+    Itensor *= projected_position[:, :, None] * projected_position[:, None, :]
+
     Itensor = Itensor.sum(axis=0)
+
+    Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
+
+    Itensor *= position.units * position.units
+
+    return Itensor
+
+
+def get_reduced_inertia_tensor(mass, position):
+    # Remove the particle at the centre of the halo which otherwise causes division over 0.
+    norm = np.linalg.norm(position, axis=1) ** 2
+    argmin = np.argmin(norm)
+    position = np.delete(position, argmin, 0)  # Removing
+    mass = np.delete(mass, argmin)
+    norm = np.delete(norm, argmin)
+    # 3x3 inertia tensor
     Itensor = (
-        np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
-        * position.units
-        * position.units
-        * mass.units
+        mass[:, None, None]
+        / mass.sum()
+        * position[:, None:, None]
+        * position[:, None]
+        / norm[:, None, None]
+    ).sum(axis=0)
+
+    # Symmetric, so only return lower triangle
+    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
+    return Itensor
+
+
+def get_reduced_projected_inertia_tensor(mass, position, axis):
+    # Remove the particle at the centre of the halo which otherwise causes division over 0.
+    norm = np.linalg.norm(position, axis=1) ** 2
+    argmin = np.argmin(norm)
+    position = np.delete(position, argmin, 0)  # Removing
+    mass = np.delete(mass, argmin)
+    norm = np.delete(norm, argmin)
+    projected_position = unyt.unyt_array(
+        np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
     )
+    if axis == 0:
+        projected_position[:, 0] = position[:, 1]
+        projected_position[:, 1] = position[:, 2]
+    elif axis == 1:
+        projected_position[:, 0] = position[:, 2]
+        projected_position[:, 1] = position[:, 0]
+    elif axis == 2:
+        projected_position[:, 0] = position[:, 0]
+        projected_position[:, 1] = position[:, 1]
+    else:
+        raise AttributeError(f"Invalid axis: {axis}!")
+
+    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
+
+    Itensor *= (
+        projected_position[:, :, None]
+        * projected_position[:, None, :]
+        / norm[:, None, None].value
+    )
+
+    Itensor = Itensor.sum(axis=0)
+
+    Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
+
     return Itensor
 
 

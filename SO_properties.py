@@ -32,6 +32,7 @@ from kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
+    get_reduced_inertia_tensor,
 )
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from property_table import PropertyTable
@@ -315,12 +316,12 @@ class SOParticleData:
             typearr[:] = ptype
             types.append(typearr)
             groupnr.append(self.get_dataset(f"{ptype}/GroupNr_bound"))
-        self.mass = unyt.array.uconcatenate(mass)
-        self.radius = unyt.array.uconcatenate(radius)
-        self.position = unyt.array.uconcatenate(position)
-        self.velocity = unyt.array.uconcatenate(velocity)
+        self.mass = np.concatenate(mass)
+        self.radius = np.concatenate(radius)
+        self.position = np.concatenate(position)
+        self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
-        self.groupnr = unyt.array.uconcatenate(groupnr)
+        self.groupnr = np.concatenate(groupnr)
 
         # figure out which particles in the list are bound to a halo that is not the
         # central halo
@@ -356,8 +357,8 @@ class SOParticleData:
             )
             pos = self.get_dataset("PartType6/Coordinates") - self.centre[None, :]
             nur = np.sqrt(np.sum(pos ** 2, axis=1))
-            all_mass = unyt.array.uconcatenate([self.mass, numass])
-            all_r = unyt.array.uconcatenate([self.radius, nur])
+            all_mass = np.concatenate([self.mass, numass / unyt.dimensionless])
+            all_r = np.concatenate([self.radius, nur])
         else:
             all_mass = self.mass
             all_r = self.radius
@@ -504,10 +505,8 @@ class SOParticleData:
         _, vmax = get_vmax(self.mass, self.radius)
         if vmax > 0:
             vrel = self.velocity - self.vcom[None, :]
-            Ltot = unyt.array.unorm(
-                (self.mass[:, None] * unyt.array.ucross(self.position, vrel)).sum(
-                    axis=0
-                )
+            Ltot = np.linalg.norm(
+                (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
             )
             return Ltot / (np.sqrt(2.0) * self.Mtotpart * self.SO_r * vmax)
         return None
@@ -520,6 +519,12 @@ class SOParticleData:
         if self.Mtotpart == 0:
             return None
         return get_inertia_tensor(self.mass, self.position)
+
+    @lazy_property
+    def ReducedTotalInertiaTensor(self):
+        if self.Mtotpart == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass, self.position)
 
     @lazy_property
     def Mfrac_satellites(self) -> unyt.unyt_quantity:
@@ -646,6 +651,12 @@ class SOParticleData:
         return get_inertia_tensor(self.gas_masses, self.gas_pos)
 
     @lazy_property
+    def ReducedGasInertiaTensor(self):
+        if self.Mgas == 0:
+            return None
+        return get_reduced_inertia_tensor(self.gas_masses, self.gas_pos)
+
+    @lazy_property
     def dm_masses(self) -> unyt.unyt_array:
         """
         Masses of dark matter particles.
@@ -712,6 +723,12 @@ class SOParticleData:
         if self.Mdm == 0:
             return None
         return get_inertia_tensor(self.dm_masses, self.dm_pos)
+
+    @lazy_property
+    def ReducedDMInertiaTensor(self):
+        if self.Mdm == 0:
+            return None
+        return get_reduced_inertia_tensor(self.dm_masses, self.dm_pos)
 
     @lazy_property
     def star_masses(self) -> unyt.unyt_array:
@@ -826,6 +843,12 @@ class SOParticleData:
         return get_inertia_tensor(self.star_masses, self.star_pos)
 
     @lazy_property
+    def ReducedStellarInertiaTensor(self):
+        if self.Mstar == 0:
+            return None
+        return get_reduced_inertia_tensor(self.star_masses, self.star_pos)
+
+    @lazy_property
     def baryon_masses(self) -> unyt.unyt_array:
         """
         Masses of baryon (gas + star) particles.
@@ -882,8 +905,7 @@ class SOParticleData:
             return None
         baryon_relvel = self.baryon_vel - self.baryon_vcom[None, :]
         return (
-            self.baryon_masses[:, None]
-            * unyt.array.ucross(self.baryon_pos, baryon_relvel)
+            self.baryon_masses[:, None] * np.cross(self.baryon_pos, baryon_relvel)
         ).sum(axis=0)
 
     @lazy_property
@@ -894,6 +916,12 @@ class SOParticleData:
         if self.Mbaryons == 0:
             return None
         return get_inertia_tensor(self.baryon_masses, self.baryon_pos)
+
+    @lazy_property
+    def ReducedBaryonInertiaTensor(self):
+        if self.Mbaryons == 0:
+            return None
+        return get_reduced_inertia_tensor(self.baryon_masses, self.baryon_pos)
 
     @lazy_property
     def Mbh_dynamical(self) -> unyt.unyt_quantity:
@@ -2144,6 +2172,11 @@ class SOProperties(HaloProperty):
             "DMInertiaTensor",
             "StellarInertiaTensor",
             "BaryonInertiaTensor",
+            "ReducedTotalInertiaTensor",
+            "ReducedGasInertiaTensor",
+            "ReducedDMInertiaTensor",
+            "ReducedStellarInertiaTensor",
+            "ReducedBaryonInertiaTensor",
             "DopplerB",
             "gasOfrac",
             "gasFefrac",

@@ -145,6 +145,7 @@ from kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
+    get_reduced_inertia_tensor,
 )
 
 from swift_cells import SWIFTCellGrid
@@ -272,10 +273,10 @@ class ApertureParticleData:
             typearr[:] = ptype
             types.append(typearr)
 
-        self.mass = unyt.array.uconcatenate(mass)
-        self.position = unyt.array.uconcatenate(position)
-        self.radius = unyt.array.uconcatenate(radius)
-        self.velocity = unyt.array.uconcatenate(velocity)
+        self.mass = np.concatenate(mass)
+        self.position = np.concatenate(position)
+        self.radius = np.concatenate(radius)
+        self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
 
         self.mask = self.radius <= self.aperture_radius
@@ -886,8 +887,8 @@ class ApertureParticleData:
         if vmax == 0:
             return None
         vrel = self.velocity - self.vcom[None, :]
-        Ltot = unyt.array.unorm(
-            (self.mass[:, None] * unyt.array.ucross(self.position, vrel)).sum(axis=0)
+        Ltot = np.linalg.norm(
+            (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
         )
         return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax)
 
@@ -1007,6 +1008,12 @@ class ApertureParticleData:
         return get_inertia_tensor(self.mass_gas, self.pos_gas)
 
     @lazy_property
+    def ReducedGasInertiaTensor(self):
+        if self.Mgas == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_gas, self.pos_gas)
+
+    @lazy_property
     def dm_mass_fraction(self) -> unyt.unyt_array:
         """
         Fractional mass of DM particles. See the documentation of star_mass_fraction
@@ -1055,6 +1062,12 @@ class ApertureParticleData:
         if self.Mdm == 0:
             return None
         return get_inertia_tensor(self.mass_dm, self.pos_dm)
+
+    @lazy_property
+    def ReducedDMInertiaTensor(self):
+        if self.Mdm == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm)
 
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
@@ -1145,6 +1158,12 @@ class ApertureParticleData:
         return get_velocity_dispersion_matrix(
             self.star_mass_fraction, self.vel_star, self.vcom_star
         )
+
+    @lazy_property
+    def ReducedStellarInertiaTensor(self):
+        if self.Mstar == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_star, self.pos_star)
 
     @lazy_property
     def Ekin_star(self) -> unyt.unyt_quantity:
@@ -2151,6 +2170,12 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def ReducedBaryonInertiaTensor(self):
+        if self.Mbaryons == 0:
+            return None
+        return get_reduced_inertia_tensor(self.mass_baryons, self.pos_baryons)
+
+    @lazy_property
     def LinearMassWeightedOxygenOverHydrogenOfGas(self) -> unyt.unyt_quantity:
         """
         Mass-weigthed sum of the total oxygen over hydrogen ratio of gas particles.
@@ -2518,6 +2543,10 @@ class ApertureProperties(HaloProperty):
             "DMInertiaTensor",
             "StellarInertiaTensor",
             "BaryonInertiaTensor",
+            "ReducedGasInertiaTensor",
+            "ReducedDMInertiaTensor",
+            "ReducedStellarInertiaTensor",
+            "ReducedBaryonInertiaTensor",
             "DtoTgas",
             "DtoTstar",
             "starOfrac",
