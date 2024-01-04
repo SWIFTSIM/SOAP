@@ -1323,7 +1323,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures","PartType0/ComptonYParameters"]
+            ["PartType0/Temperatures", "PartType0/ComptonYParameters"],
         ),
         "Tgas_cy_weighted_no_agn": (
             "GasComptonYTemperatureWithoutRecentAGNHeating",
@@ -1334,7 +1334,11 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures", "PartType0/ComptonYParameters", "PartType0/LastAGNFeedbackScaleFactors"],
+            [
+                "PartType0/Temperatures",
+                "PartType0/ComptonYParameters",
+                "PartType0/LastAGNFeedbackScaleFactors",
+            ],
         ),
         "Tgas_cy_weighted_core_excision": (
             "GasComptonYTemperatureCoreExcision",
@@ -1345,7 +1349,11 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures", "PartType0/ComptonYParameters","PartType0/Coordinates"]
+            [
+                "PartType0/Temperatures",
+                "PartType0/ComptonYParameters",
+                "PartType0/Coordinates",
+            ],
         ),
         "Tgas_cy_weighted_core_excision_no_agn": (
             "GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision",
@@ -1356,7 +1364,12 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures", "PartType0/ComptonYParameters","PartType0/Coordinates",  "PartType0/LastAGNFeedbackScaleFactors"]
+            [
+                "PartType0/Temperatures",
+                "PartType0/ComptonYParameters",
+                "PartType0/Coordinates",
+                "PartType0/LastAGNFeedbackScaleFactors",
+            ],
         ),
         "Tgas_core_excision": (
             "GasTemperatureCoreExcision",
@@ -1367,7 +1380,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures","PartType0/Masses", "PartType0/Coordinates"]
+            ["PartType0/Temperatures", "PartType0/Masses", "PartType0/Coordinates"],
         ),
         "Tgas_no_cool_core_excision": (
             "GasTemperatureWithoutCoolGasCoreExcision",
@@ -1378,7 +1391,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures","PartType0/Masses", "PartType0/Coordinates"]
+            ["PartType0/Temperatures", "PartType0/Masses", "PartType0/Coordinates"],
         ),
         "Tgas_no_agn_core_excision": (
             "GasTemperatureWithoutRecentAGNHeatingCoreExcision",
@@ -1389,7 +1402,12 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures","PartType0/Masses", "PartType0/Coordinates", "PartType0/LastAGNFeedbackScaleFactors"]
+            [
+                "PartType0/Temperatures",
+                "PartType0/Masses",
+                "PartType0/Coordinates",
+                "PartType0/LastAGNFeedbackScaleFactors",
+            ],
         ),
         "Tgas_no_cool_no_agn_core_excision": (
             "GasTemperatureWithoutCoolGasAndRecentAGNHeatingCoreExcision",
@@ -1400,7 +1418,12 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures","PartType0/Masses", "PartType0/Coordinates", "PartType0/LastAGNFeedbackScaleFactors"]
+            [
+                "PartType0/Temperatures",
+                "PartType0/Masses",
+                "PartType0/Coordinates",
+                "PartType0/LastAGNFeedbackScaleFactors",
+            ],
         ),
         "TotalInertiaTensor": (
             "TotalInertiaTensor",
@@ -1539,7 +1562,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            ["PartType0/XrayLuminosities"]
+            ["PartType0/XrayLuminosities"],
         ),
         "Xraylum_restframe": (
             "XRayLuminosityInRestframe",
@@ -1550,7 +1573,13 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            ["PartType0/XrayLuminositiesRestframe"],
+            [  # These properties are required for the Xray calculator
+                # (which computes restframe quantities). Can't include PartType0/XrayLuminositiesRestframe
+                # as it is calculated by SOAP.
+                "PartType0/Densities",
+                "PartType0/Temperatures",
+                "PartType0/SmoothedElementMassFractions",
+            ],
         ),
         "Xraylum_no_agn": (
             "XRayLuminosityWithoutRecentAGNHeating",
@@ -1576,8 +1605,12 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [
-                "PartType0/XrayLuminositiesRestframe",
+            [  # These properties are required for the Xray calculator
+                # (which computes restframe quantities). Can't include PartType0/XrayLuminositiesRestframe
+                # as it is calculated by SOAP.
+                "PartType0/Densities",
+                "PartType0/Temperatures",
+                "PartType0/SmoothedElementMassFractions",
                 "PartType0/LastAGNFeedbackScaleFactors",
                 "PartType0/Temperatures",
             ],
@@ -1591,10 +1624,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [
-                "PartType0/XrayLuminosities",
-                "PartType0/Coordinates"
-            ],
+            ["PartType0/XrayLuminosities", "PartType0/Coordinates"],
         ),
         "Xraylum_restframe_core_excision": (
             "XRayLuminosityInRestframeCoreExcision",
@@ -1605,9 +1635,13 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [
-                "PartType0/XrayLuminositiesRestframe",
-                "PartType0/Coordinates"
+            [  # These properties are required for the Xray calculator
+                # (which computes restframe quantities). Can't include PartType0/XrayLuminositiesRestframe
+                # as it is calculated by SOAP.
+                "PartType0/Densities",
+                "PartType0/Temperatures",
+                "PartType0/SmoothedElementMassFractions",
+                "PartType0/Coordinates",
             ],
         ),
         "Xraylum_no_agn_core_excision": (
@@ -1635,10 +1669,13 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [
-                "PartType0/XrayLuminositiesRestframe",
-                "PartType0/LastAGNFeedbackScaleFactors",
+            [  # These properties are required for the Xray calculator
+                # (which computes restframe quantities). Can't include PartType0/XrayLuminositiesRestframe
+                # as it is calculated by SOAP.
+                "PartType0/Densities",
                 "PartType0/Temperatures",
+                "PartType0/SmoothedElementMassFractions",
+                "PartType0/LastAGNFeedbackScaleFactors",
                 "PartType0/Coordinates",
             ],
         ),
@@ -1662,7 +1699,13 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            ["PartType0/XrayPhotonLuminositiesRestframe"],
+            [  # These properties are required for the Xray calculator
+                # (which computes restframe quantities). Can't include XrayPhotonLuminositiesRestframe
+                # as it is calculated by SOAP.
+                "PartType0/Densities",
+                "PartType0/Temperatures",
+                "PartType0/SmoothedElementMassFractions",
+            ],
         ),
         "Xrayphlum_no_agn": (
             "XRayPhotonLuminosityWithoutRecentAGNHeating",
@@ -1688,10 +1731,13 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [
-                "PartType0/XrayPhotonLuminositiesRestframe",
-                "PartType0/LastAGNFeedbackScaleFactors",
+            [  # These properties are required for the Xray calculator
+                # (which computes restframe quantities). Can't include PartType0/XrayPhotonLuminositiesRestframe
+                # as it is calculated by SOAP.
+                "PartType0/Densities",
                 "PartType0/Temperatures",
+                "PartType0/SmoothedElementMassFractions",
+                "PartType0/LastAGNFeedbackScaleFactors",
             ],
         ),
         "Xrayphlum_core_excision": (
@@ -1702,9 +1748,12 @@ class PropertyTable:
             "Total observer-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
             "gas",
             "DMantissa9",
-            False, 
-            [
-                "PartType0/XrayPhotonLuminositiesRestframe",
+            False,
+            [  # These properties are required for the Xray calculator
+                # (which computes restframe quantities). Can't include PartType0/XrayPhotonLuminositiesRestframe
+                # as it is calculated by SOAP.
+                "PartType0/Densities",  # To compute X-rays
+                "PartType0/SmoothedElementMassFractions",  # To compute X-rays
                 "PartType0/Temperatures",
                 "PartType0/Coordinates",
             ],
@@ -1718,8 +1767,12 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [
-                "PartType0/XrayPhotonLuminositiesRestframe",
+            [  # These properties are required for the Xray calculator
+                # (which computes restframe quantities). Can't include PartType0/XrayPhotonLuminositiesRestframe
+                # as it is calculated by SOAP.
+                "PartType0/Densities",
+                "PartType0/Temperatures",
+                "PartType0/SmoothedElementMassFractions",
                 "PartType0/Coordinates",
             ],
         ),
@@ -1748,8 +1801,11 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [
-                "PartType0/XrayPhotonLuminositiesRestframe",
+            [  # These properties are required for the Xray calculator
+                # (which computes restframe quantities). Can't include PartType0/XrayPhotonLuminositiesRestframe
+                # as it is calculated by SOAP.
+                "PartType0/Densities",
+                "PartType0/SmoothedElementMassFractions",
                 "PartType0/Temperatures",
                 "PartType0/LastAGNFeedbackScaleFactors",
                 "PartType0/Coordinates",
@@ -1764,7 +1820,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures", "PartType0/Densities","PartType0/Masses"],
+            ["PartType0/Temperatures", "PartType0/Densities", "PartType0/Masses"],
         ),
         "SpectroscopicLikeTemperature_no_agn": (
             "SpectroscopicLikeTemperatureWithoutRecentAGNHeating",
@@ -1775,7 +1831,12 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures", "PartType0/Densities","PartType0/LastAGNFeedbackScaleFactors","PartType0/Masses"],
+            [
+                "PartType0/Temperatures",
+                "PartType0/Densities",
+                "PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/Masses",
+            ],
         ),
         "SpectroscopicLikeTemperature_core_excision": (
             "SpectroscopicLikeTemperatureCoreExcision",
@@ -1786,7 +1847,13 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures", "PartType0/Densities","PartType0/LastAGNFeedbackScaleFactors","PartType0/Masses","PartType0/Coordinates"],
+            [
+                "PartType0/Temperatures",
+                "PartType0/Densities",
+                "PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/Masses",
+                "PartType0/Coordinates",
+            ],
         ),
         "SpectroscopicLikeTemperature_no_agn_core_excision": (
             "SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision",
@@ -1797,7 +1864,14 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
-            ["PartType0/Temperatures", "PartType0/Densities","PartType0/LastAGNFeedbackScaleFactors","PartType0/Masses","PartType0/Coordinates","PartType0/LastAGNFeedbackScaleFactors"],
+            [
+                "PartType0/Temperatures",
+                "PartType0/Densities",
+                "PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/Masses",
+                "PartType0/Coordinates",
+                "PartType0/LastAGNFeedbackScaleFactors",
+            ],
         ),
         "com": (
             "CentreOfMass",
