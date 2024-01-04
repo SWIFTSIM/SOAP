@@ -379,6 +379,12 @@ class PropertyTable:
             "baryon",
             "FMantissa9",
             False,
+            [
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+            ],
         ),
         "DMInertiaTensor": (
             "DarkMatterInertiaTensor",
@@ -477,6 +483,7 @@ class PropertyTable:
             "dm",
             "FMantissa9",
             True,
+            ["PartType1/Coordinates", "PartType1/Masses"],
         ),
         "DopplerB": (
             "DopplerB",
@@ -777,6 +784,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
+            ["PartType0/Coordinates", "PartType0/Masses"],
         ),
         "HalfMassRadiusBaryon": (
             "HalfMassRadiusBaryons",
@@ -1234,6 +1242,12 @@ class PropertyTable:
             "baryon",
             "FMantissa9",
             False,
+            [
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+            ],
         ),
         "ProjectedGasInertiaTensor": (
             "ProjectedGasInertiaTensor",
@@ -1255,6 +1269,7 @@ class PropertyTable:
             "gas",
             "FMantissa9",
             False,
+            ["PartType0/Coordinates", "PartType0/Masses"],
         ),
         "ProjectedStellarInertiaTensor": (
             "ProjectedStellarInertiaTensor",
@@ -1276,6 +1291,7 @@ class PropertyTable:
             "star",
             "FMantissa9",
             False,
+            ["PartType4/Coordinates", "PartType4/Masses"],
         ),
         "R_vmax": (
             "MaximumCircularVelocityRadius",
@@ -1328,6 +1344,7 @@ class PropertyTable:
             "star",
             "FMantissa9",
             False,
+            ["PartType4/Coordinates", "PartType4/Masses"],
         ),
         "StellarLuminosity": (
             "StellarLuminosity",
@@ -1535,6 +1552,16 @@ class PropertyTable:
             "general",
             "FMantissa9",
             True,
+            [
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType1/Coordinates",
+                "PartType1/Masses",
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType5/Coordinates",
+                "PartType5/DynamicalMasses",
+            ],
         ),
         "VRID": (
             "ID",
