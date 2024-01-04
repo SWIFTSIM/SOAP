@@ -2840,7 +2840,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                 tablestr += "\\hline{}"
             tablestr += "\\rule{0pt}{4ex}"
             tablestr += " & ".join([v for v in print_table_props]) + "\\\\*\n"
-            tablestr += f"\\multicolumn{{10}}{{p{{15cm}}}}{{\\rule{{30pt}}{{0pt}}{prop_description}}}\\\\\n"
+            tablestr += f"\\multicolumn{{11}}{{p{{15cm}}}}{{\\rule{{30pt}}{{0pt}}{prop_description}}}\\\\\n"
         tablestr += """\\end{longtable}
 \\end{landscape}"""
         # standalone table file footer
