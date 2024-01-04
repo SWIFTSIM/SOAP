@@ -1112,7 +1112,7 @@ class SOParticleData:
         ).sum()
 
     @lazy_property
-    def Tgas_no_agn_core_excision(self)-> unyt.unyt_quantity:
+    def Tgas_no_agn_core_excision(self) -> unyt.unyt_quantity:
         """
         Mass-weighted average gas temperature, excluding the inner core and gas
         recently heated by AGN.
@@ -1132,7 +1132,7 @@ class SOParticleData:
         """
         Mass-weighted average gas temperature, excluding the inner core and cool
         gas. 
-        """        
+        """
         if self.Ngas_no_cool_core_excision == 0:
             return None
         return (
@@ -1615,9 +1615,9 @@ class SOParticleData:
 
     @lazy_property
     def SpectroscopicLikeTemperature(self) -> unyt.unyt_quantity:
-        '''
+        """
         Temperature of the gas, as inferred from spectroscopic-like estimates.
-        '''
+        """
         numerator = np.sum(
             self.gas_densities[self.gas_selection_xray_temperature]
             * self.gas_masses[self.gas_selection_xray_temperature]
@@ -1634,10 +1634,10 @@ class SOParticleData:
 
     @lazy_property
     def SpectroscopicLikeTemperature_no_agn(self) -> unyt.unyt_quantity:
-        '''
+        """
         Temperature of the gas, as inferred from spectroscopic-like estimates,
         excluding gas particles that were recently heated by AGN feedback.
-        '''
+        """
         numerator = np.sum(
             self.gas_densities[self.gas_no_agn_xray_temperature]
             * self.gas_masses[self.gas_no_agn_xray_temperature]
@@ -1654,10 +1654,10 @@ class SOParticleData:
 
     @lazy_property
     def SpectroscopicLikeTemperature_core_excision(self) -> unyt.unyt_quantity:
-        '''
+        """
         Temperature of the gas, as inferred from spectroscopic-like estimates,
         excluding those in the inner core.
-        '''
+        """
         numerator = np.sum(
             self.gas_densities[self.gas_selection_core_excision_xray_temperature]
             * self.gas_masses[self.gas_selection_core_excision_xray_temperature]
@@ -1676,10 +1676,10 @@ class SOParticleData:
 
     @lazy_property
     def SpectroscopicLikeTemperature_no_agn_core_excision(self) -> unyt.unyt_quantity:
-        '''
+        """
         Temperature of the gas, as inferred from spectroscopic-like estimates,
         excluding those in the inner core and recently heated by AGN.
-        '''
+        """
         numerator = np.sum(
             self.gas_densities[self.gas_selection_core_excision_no_agn_xray_temperature]
             * self.gas_masses[self.gas_selection_core_excision_no_agn_xray_temperature]
@@ -2408,8 +2408,6 @@ class SOProperties(HaloProperty):
                             assert (
                                 SO[name].shape == val.shape
                             ), f"Attempting to store {name} with wrong dimensions"
-                            # print (name, val.shape, SO[name].shape)
-                            
                             if unit == "dimensionless":
                                 SO[name] = unyt.unyt_array(
                                     val.astype(dtype),
@@ -2445,6 +2443,7 @@ class SOProperties(HaloProperty):
             )
 
         return
+
 
 class CoreExcisedSOProperties(SOProperties):
     # Add the extra core excised properties we want from the table
@@ -2485,8 +2484,14 @@ class CoreExcisedSOProperties(SOProperties):
 
         # initialise the SOProperties object
         super().__init__(
-            cellgrid, parameters, recently_heated_gas_filter, category_filter, SOval, type
+            cellgrid,
+            parameters,
+            recently_heated_gas_filter,
+            category_filter,
+            SOval,
+            type,
         )
+
 
 class RadiusMultipleSOProperties(SOProperties):
     """

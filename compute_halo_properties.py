@@ -228,14 +228,14 @@ def compute_halo_properties():
 
     halo_prop_list.append(
         SO_properties.CoreExcisedSOProperties(
-        cellgrid,
-        parameter_file,
-        recently_heated_gas_filter,
-        category_filter,
-        500.0,
-        "crit",
-        core_excision_fraction=0.15,
-    )
+            cellgrid,
+            parameter_file,
+            recently_heated_gas_filter,
+            category_filter,
+            500.0,
+            "crit",
+            core_excision_fraction=0.15,
+        )
     )
 
     for variation in SO_variations:
@@ -254,7 +254,6 @@ def compute_halo_properties():
                     SO_variations[variation]["type"],
                 )
             )
-
 
     aperture_variations = parameter_file.get_halo_type_variations(
         "ApertureProperties",
