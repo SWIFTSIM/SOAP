@@ -115,7 +115,6 @@ def combine_chunks(
     outfile = h5py.File(output_file, "r+", driver="mpio", comm=comm_world)
 
     # Certain properties are needed to compute subhalo ranking by mass
-    # TODO: check where the information is being removed...
     props_to_keep = ("VR/ID", "BoundSubhaloProperties/TotalMass", "VR/HostHaloID")
     props_kept = {}
 
@@ -149,24 +148,22 @@ def combine_chunks(
 
             del data
 
-    # TODO: FLAMINGO-RELATED; causes a crash when saving hdf5 files.
-    # with MPITimer("Writing subhalo ranking by mass", comm_world):
-    #     # Now write out subhalo ranking by mass within host halos, if we computed all the required quantities.
-    #     if len(props_kept) == len(props_to_keep):
-    #         subhalo_rank = compute_subhalo_rank(
-    #             props_kept["VR/HostHaloID"],
-    #             props_kept["VR/ID"],
-    #             props_kept["BoundSubhaloProperties/TotalMass"],
-    #             comm_world,
-    #         )
-    #         print("Save data for dataset entry ", name, " with max value ", data[name].max())
-    #         dataset = phdf5.collective_write(
-    #             outfile,
-    #             "SOAP/SubhaloRankByBoundMass",
-    #             subhalo_rank,
-    #             create_dataset=False,
-    #             comm=comm_world,
-    #         )
+    with MPITimer("Writing subhalo ranking by mass", comm_world):
+        # Now write out subhalo ranking by mass within host halos, if we computed all the required quantities.
+        if len(props_kept) == len(props_to_keep):
+            subhalo_rank = compute_subhalo_rank(
+                props_kept["VR/HostHaloID"],
+                props_kept["VR/ID"],
+                props_kept["BoundSubhaloProperties/TotalMass"],
+                comm_world,
+            )
+            dataset = phdf5.collective_write(
+                outfile,
+                "SOAP/SubhaloRankByBoundMass",
+                subhalo_rank,
+                create_dataset=False,
+                comm=comm_world,
+            )
 
     # Done.
     outfile.close()

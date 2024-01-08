@@ -1033,6 +1033,7 @@ class SubhaloParticleData:
         """
         return self.get_dataset(f"PartType0/{self.grnr}") == self.index
 
+    @lazy_property
     def ReducedBaryonInertiaTensor(self):
         if self.Mbaryon == 0:
             return None

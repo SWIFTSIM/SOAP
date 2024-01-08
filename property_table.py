@@ -2588,16 +2588,17 @@ class PropertyTable:
                 "PartType4/IronMassFractionsFromSNIa",
             ],
         ),
-        # "SOAPSubhaloRankByBoundMass": (
-        #     "SubhaloRankByBoundMass",
-        #     1,
-        #     np.int32,
-        #     "dimensionless",
-        #     "Ranking by mass of the halo within its parent field halo. Zero for the most massive halo in the field halo.",
-        #     "SOAP",
-        #     "None",
-        #     True, # TODO: add required (FLAMINGO) particle properties
-        # ),
+        "SOAPSubhaloRankByBoundMass": (
+            "SubhaloRankByBoundMass",
+            1,
+            np.int32,
+            "dimensionless",
+            "Ranking by mass of the halo within its parent field halo. Zero for the most massive halo in the field halo.",
+            "SOAP",
+            "None",
+            True,
+            [],
+        ),
         "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": (
             "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
             1,
