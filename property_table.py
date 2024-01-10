@@ -1680,9 +1680,11 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [  # These properties are required for the Xray calculator
-                # (which computes restframe quantities). Can't include PartType0/XrayLuminositiesRestframe
-                # as it is calculated by SOAP.
+            # Can't include PartType0/XrayLuminositiesRestframe as it is
+            # calculated by SOAP. The following properties are required
+            # for the Xray calculator (which computes restframe quantities).
+            # TODO: Is it always calculated by SOAP or just for flamingo?
+            [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
                 "PartType0/SmoothedElementMassFractions",
@@ -1712,9 +1714,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [  # These properties are required for the Xray calculator
-                # (which computes restframe quantities). Can't include PartType0/XrayLuminositiesRestframe
-                # as it is calculated by SOAP.
+            [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
                 "PartType0/SmoothedElementMassFractions",
@@ -1742,9 +1742,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [  # These properties are required for the Xray calculator
-                # (which computes restframe quantities). Can't include PartType0/XrayLuminositiesRestframe
-                # as it is calculated by SOAP.
+            [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
                 "PartType0/SmoothedElementMassFractions",
@@ -1776,9 +1774,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [  # These properties are required for the Xray calculator
-                # (which computes restframe quantities). Can't include PartType0/XrayLuminositiesRestframe
-                # as it is calculated by SOAP.
+            [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
                 "PartType0/SmoothedElementMassFractions",
@@ -1806,9 +1802,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [  # These properties are required for the Xray calculator
-                # (which computes restframe quantities). Can't include XrayPhotonLuminositiesRestframe
-                # as it is calculated by SOAP.
+            [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
                 "PartType0/SmoothedElementMassFractions",
@@ -1838,9 +1832,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [  # These properties are required for the Xray calculator
-                # (which computes restframe quantities). Can't include PartType0/XrayPhotonLuminositiesRestframe
-                # as it is calculated by SOAP.
+            [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
                 "PartType0/SmoothedElementMassFractions",
@@ -1856,9 +1848,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [  # These properties are required for the Xray calculator
-                # (which computes restframe quantities). Can't include PartType0/XrayPhotonLuminositiesRestframe
-                # as it is calculated by SOAP.
+            [
                 "PartType0/Densities",  # To compute X-rays
                 "PartType0/SmoothedElementMassFractions",  # To compute X-rays
                 "PartType0/Temperatures",
@@ -1874,9 +1864,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [  # These properties are required for the Xray calculator
-                # (which computes restframe quantities). Can't include PartType0/XrayPhotonLuminositiesRestframe
-                # as it is calculated by SOAP.
+            [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
                 "PartType0/SmoothedElementMassFractions",
@@ -1908,9 +1896,7 @@ class PropertyTable:
             "gas",
             "DMantissa9",
             False,
-            [  # These properties are required for the Xray calculator
-                # (which computes restframe quantities). Can't include PartType0/XrayPhotonLuminositiesRestframe
-                # as it is calculated by SOAP.
+            [
                 "PartType0/Densities",
                 "PartType0/SmoothedElementMassFractions",
                 "PartType0/Temperatures",

@@ -2437,7 +2437,6 @@ class SOProperties(HaloProperty):
                     if do_calculation[category]:
                         val = getattr(part_props, name)
                         if val is not None:
-                            # print (name, SO[name].shape)
                             assert (
                                 SO[name].shape == val.shape
                             ), f"Attempting to store {name} with wrong dimensions"

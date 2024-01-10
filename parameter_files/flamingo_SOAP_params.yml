@@ -89,6 +89,11 @@ ApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
+    ReducedTotalInertiaTensor: true
+    ReducedGasInertiaTensor: true
+    ReducedDarkMatterInertiaTensor: true
+    ReducedStellarInertiaTensor: true
+    ReducedBaryonInertiaTensor: true
     SpinParameter: true
     StarFormationRate: true
     StarFormingGasMass: true
@@ -193,6 +198,9 @@ ProjectedApertureProperties:
     ProjectedGasInertiaTensor: true
     ProjectedStellarAxisLengths: false
     ProjectedStellarInertiaTensor: true
+    ReducedProjectedGasInertiaTensor: true
+    ReducedProjectedStellarInertiaTensor: true
+    ReducedProjectedBaryonInertiaTensor: true
     StarFormationRate: true
     StarFormingGasMassFractionInMetals: false
     StellarInitialMass: true
@@ -239,6 +247,8 @@ SOProperties:
     GasCentreOfMassVelocity: true
     GasComptonYTemperature: true
     GasComptonYTemperatureWithoutRecentAGNHeating: true
+    GasComptonYTemperatureCoreExcision: true
+    GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision: true
     GasInertiaTensor: true
     GasMass: true
     GasMassFractionInIron: true
@@ -246,9 +256,13 @@ SOProperties:
     GasMassFractionInOxygen: true
     GasMassInMetals: false
     GasTemperature: true
+    GasTemperatureCoreExcision: true
     GasTemperatureWithoutCoolGas: true
     GasTemperatureWithoutCoolGasAndRecentAGNHeating: true
+    GasTemperatureWithoutCoolGasAndRecentAGNHeatingCoreExcision: true
+    GasTemperatureWithoutCoolGasCoreExcision: true
     GasTemperatureWithoutRecentAGNHeating: true
+    GasTemperatureWithoutRecentAGNHeatingCoreExcision: true
     HotGasMass: true
     KineticEnergyGas: true
     KineticEnergyStars: true
@@ -268,7 +282,9 @@ SOProperties:
     RawNeutrinoMass: true
     SORadius: true
     SpectroscopicLikeTemperature: true
+    SpectroscopicLikeTemperatureCoreExcision: true
     SpectroscopicLikeTemperatureWithoutRecentAGNHeating: true
+    SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: true
     SpinParameter: true
     StarFormationRate: true
     StarFormingGasMassFractionInMetals: true
@@ -283,20 +299,31 @@ SOProperties:
     StellarMassFractionInMetals: true
     StellarMassFractionInOxygen: true
     StellarMassInMetals: false
+    ReducedTotalInertiaTensor: true
+    ReducedGasInertiaTensor: true
+    ReducedDarkMatterInertiaTensor: true
+    ReducedStellarInertiaTensor: true
+    ReducedBaryonInertiaTensor: true
     ThermalEnergyGas: true
     TotalAxisLengths: false
     TotalInertiaTensor: true
     TotalMass: true
     XRayLuminosity: true
-    XRayLuminosityInRestframe: true
-    XRayLuminosityInRestframeWithoutRecentAGNHeating: true
+    XRayLuminosityCoreExcision: true
     XRayLuminosityWithoutRecentAGNHeating: true
+    XRayLuminosityWithoutRecentAGNHeatingCoreExcision: true
+    XRayLuminosityInRestframe: true
+    XRayLuminosityInRestframeCoreExcision: true
+    XRayLuminosityInRestframeWithoutRecentAGNHeating: true
+    XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: true
     XRayPhotonLuminosity: true
-    XRayPhotonLuminosityInRestframe: false #true
-    Xrayphlum_restframe_no_agn_core_excision: false
-    Xrayphlum_restframe_core_excision: false
-    XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: false #true
+    XRayPhotonLuminosityCoreExcision: true
     XRayPhotonLuminosityWithoutRecentAGNHeating: true
+    XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision: true
+    XRayPhotonLuminosityInRestframe: true
+    XRayPhotonLuminosityInRestframeCoreExcision: true
+    XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
+    XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: true
   variations:
     50_crit:
       type: crit
@@ -383,6 +410,11 @@ SubhaloProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
+    ReducedTotalInertiaTensor: true
+    ReducedGasInertiaTensor: true
+    ReducedDarkMatterInertiaTensor: true
+    ReducedStellarInertiaTensor: true
+    ReducedBaryonInertiaTensor: true
     SpinParameter: true
     StarFormationRate: true
     StarFormingGasMass: true

@@ -172,6 +172,7 @@ class ParameterFile:
             if property in self.parameters[halo_type]["properties"]:
                 mask[property] = self.parameters[halo_type]["properties"][property]
             else:
+                print(f'Calculating {property} for {halo_type} as it is undefined in the parameter file')
                 mask[property] = True
                 self.parameters[halo_type]["properties"][property] = True
         return mask
