@@ -1243,6 +1243,47 @@ class SubhaloParticleData:
         return self.stellar_birth_density.max()
 
     @lazy_property
+    def stellar_birth_temperature(self) -> unyt.unyt_array:
+        """
+        Birth temperatures of star particles.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/BirthTemperatures")[self.star_mask_all]
+
+    @lazy_property
+    def LogarithmicallyAveragedStellarBirthTemperature(self) -> unyt.unyt_quantity:
+        """
+        Logarithmically averaged birth temperature of star particles.
+
+        The average is computed in natural logarithm space.
+        """
+        if self.Nstar == 0:
+            return None
+        log_birth_temperature = np.log(
+            self.stellar_birth_temperature / self.stellar_birth_temperature.units
+        )
+        return np.exp(log_birth_temperature.mean()) * self.stellar_birth_temperature.units
+
+    @lazy_property
+    def MinimumStellarBirthTemperature(self) -> unyt.unyt_quantity:
+        """
+        Minimum birth temperature of the star particles in the subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.stellar_birth_temperature.min()
+
+    @lazy_property
+    def MaximumStellarBirthTemperature(self) -> unyt.unyt_quantity:
+        """
+        Maximum birth temperature of the star particles in the subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.stellar_birth_temperature.max()
+
+    @lazy_property
     def LastSupernovaEventMaximumGasDensity(self) -> unyt.unyt_quantity:
         """
         Maximum gas density during the last feedback event of the gas particles.
@@ -1394,6 +1435,9 @@ class SubhaloProperties(HaloProperty):
             "LogarithmicallyAveragedStellarBirthDensity",
             "MinimumStellarBirthDensity",
             "MaximumStellarBirthDensity",
+            "LogarithmicallyAveragedStellarBirthTemperature",
+            "MinimumStellarBirthTemperature",
+            "MaximumStellarBirthTemperature",
             "LastSupernovaEventMaximumGasDensity",
         ]
     ]
