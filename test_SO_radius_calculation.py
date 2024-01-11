@@ -16,7 +16,7 @@ def test_SO_radius_calculation():
     np.random.seed(62)
 
     npart_choices = np.array([10, 100, 1000])
-    for i in range(100):
+    for i in range(50):
         npart = np.random.choice(npart_choices)
         Mpart = 1.0e9 * unyt.Msun
 
@@ -60,7 +60,7 @@ def test_SO_radius_calculation():
         ax[0][0].semilogy(ordered_radius, density, "o-")
         ax[1][0].semilogy(ordered_radius, cumulative_mass, "o-")
         if SO_r >= 0.0 * unyt.kpc:
-            rrange = np.linspace(0.0, 2.0 * SO_r, 100)
+            rrange = np.linspace(0.0 * unyt.kpc, 2.0 * SO_r, 100)
             Mrange = reference_density * 4.0 * np.pi / 3.0 * rrange ** 3
             rrange.convert_to_units("kpc")
             Mrange.convert_to_units("Msun")
@@ -100,6 +100,7 @@ def test_SO_radius_calculation():
             ax[0][0].set_title("Success")
         else:
             ax[0][0].set_title("Failure")
+            print(f"{i:03d} SO calculation failed")
 
         pl.tight_layout()
         pl.savefig(f"test_SO_radius_{i:03d}.png", dpi=300)

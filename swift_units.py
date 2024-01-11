@@ -10,10 +10,12 @@ def unit_registry_from_snapshot(snap):
 
     # Read snapshot metadata
     physical_constants_cgs = {
-        name: float(value)
+        name: float(value[0])
         for name, value in snap["PhysicalConstants/CGS"].attrs.items()
     }
-    cosmology = {name: float(value) for name, value in snap["Cosmology"].attrs.items()}
+    cosmology = {
+        name: float(value[0]) for name, value in snap["Cosmology"].attrs.items()
+    }
     a = unyt.unyt_quantity(cosmology["Scale-factor"])
     h = unyt.unyt_quantity(cosmology["h"])
 
@@ -23,7 +25,7 @@ def unit_registry_from_snapshot(snap):
     # Define code and snapshot base units
     for group_name, prefix in (("Units", "snap"), ("InternalCodeUnits", "code")):
         units_cgs = {
-            name: float(value) for name, value in snap[group_name].attrs.items()
+            name: float(value[0]) for name, value in snap[group_name].attrs.items()
         }
         unyt.define_unit(
             prefix + "_length",

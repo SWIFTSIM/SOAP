@@ -32,7 +32,7 @@ def word_wrap_name(name):
         next_char = name[i]
         count += 1
         if count > maxlen and next_char.isupper() and last_was_lower:
-            output.append("\-")
+            output.append(r"\-")
         output.append(next_char)
         last_was_lower = next_char.isupper() == False
     return "".join(output)
@@ -95,9 +95,9 @@ class PropertyTable:
         "footnote_Mnu.tex": ["Mnu", "MnuNS"],
         "footnote_Xray.tex": [
             "Xraylum",
-            "Xraylum_no_agn",
+            "Xraylum_restframe",
             "Xrayphlum",
-            "Xrayphlum_no_agn",
+            "Xrayphlum_restframe",
         ],
         "footnote_compY.tex": ["compY", "compY_no_agn"],
         "footnote_dopplerB.tex": ["DopplerB"],
@@ -224,8 +224,18 @@ class PropertyTable:
             "BaryonInertiaTensor",
             6,
             np.float32,
-            "Msun*kpc**2",
+            "kpc**2",
             "3D baryon inertia tensor computed from the baryon (gas and stars) mass distribution, relative to the centre of potential. Stores diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
+            "baryon",
+            "FMantissa9",
+            False,
+        ),
+        "ReducedBaryonInertiaTensor": (
+            "ReducedBaryonInertiaTensor",
+            6,
+            np.float32,
+            "dimensionless",
+            "Reduced 3D baryon inertia tensor computed from the baryon (gas and stars) mass distribution, relative to the centre of potential. Stores diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "baryon",
             "FMantissa9",
             False,
@@ -234,8 +244,18 @@ class PropertyTable:
             "DarkMatterInertiaTensor",
             6,
             np.float32,
-            "Msun*kpc**2",
+            "kpc**2",
             "3D dark matter inertia tensor computed from the DM mass distribution, relative to the centre of potential. Stores diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
+            "dm",
+            "FMantissa9",
+            True,
+        ),
+        "ReducedDMInertiaTensor": (
+            "ReducedDarkMatterInertiaTensor",
+            6,
+            np.float32,
+            "dimensionless",
+            "Reduced 3D dark matter inertia tensor computed from the DM mass distribution, relative to the centre of potential. Stores diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "dm",
             "FMantissa9",
             True,
@@ -304,8 +324,18 @@ class PropertyTable:
             "GasInertiaTensor",
             6,
             np.float32,
-            "Msun*kpc**2",
+            "kpc**2",
             "3D gas inertia tensor computed from the gas mass distribution, relative to the centre of potential. Stores diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "ReducedGasInertiaTensor": (
+            "ReducedGasInertiaTensor",
+            6,
+            np.float32,
+            "dimensionless",
+            "Reduced 3D gas inertia tensor computed from the gas mass distribution, relative to the centre of potential. Stores diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "gas",
             "FMantissa9",
             False,
@@ -664,8 +694,18 @@ class PropertyTable:
             "ProjectedBaryonInertiaTensor",
             3,
             np.float32,
-            "Msun*kpc**2",
+            "kpc**2",
             "2D inertia tensor of the projected baryon (gas and stars) mass distribution, relative to the centre of potential. Diagonal and one off-diagonal component as (1,1), (2,2), (1,2).",
+            "baryon",
+            "FMantissa9",
+            False,
+        ),
+        "ReducedProjectedBaryonInertiaTensor": (
+            "ReducedProjectedBaryonInertiaTensor",
+            3,
+            np.float32,
+            "dimensionless",
+            "Reduced 2D inertia tensor of the projected baryon (gas and stars) mass distribution, relative to the centre of potential. Diagonal and one off-diagonal component as (1,1), (2,2), (1,2).",
             "baryon",
             "FMantissa9",
             False,
@@ -674,8 +714,18 @@ class PropertyTable:
             "ProjectedGasInertiaTensor",
             3,
             np.float32,
-            "Msun*kpc**2",
+            "kpc**2",
             "2D inertia tensor of the projected gas mass distribution, relative to the centre of potential. Diagonal and one off-diagonal component as (1,1), (2,2), (1,2).",
+            "gas",
+            "FMantissa9",
+            False,
+        ),
+        "ReducedProjectedGasInertiaTensor": (
+            "ReducedProjectedGasInertiaTensor",
+            3,
+            np.float32,
+            "dimensionless",
+            "Reduced 2D inertia tensor of the projected gas mass distribution, relative to the centre of potential. Diagonal and one off-diagonal component as (1,1), (2,2), (1,2).",
             "gas",
             "FMantissa9",
             False,
@@ -684,8 +734,18 @@ class PropertyTable:
             "ProjectedStellarInertiaTensor",
             3,
             np.float32,
-            "Msun*kpc**2",
+            "kpc**2",
             "2D inertia tensor of the projected stellar mass distribution, relative to the centre of potential. Diagonal and one off-diagonal component as (1,1), (2,2), (1,2).",
+            "star",
+            "FMantissa9",
+            False,
+        ),
+        "ReducedProjectedStellarInertiaTensor": (
+            "ReducedProjectedStellarInertiaTensor",
+            3,
+            np.float32,
+            "dimensionless",
+            "Reduced 2D inertia tensor of the projected stellar mass distribution, relative to the centre of potential. Diagonal and one off-diagonal component as (1,1), (2,2), (1,2).",
             "star",
             "FMantissa9",
             False,
@@ -724,8 +784,18 @@ class PropertyTable:
             "StellarInertiaTensor",
             6,
             np.float32,
-            "Msun*kpc**2",
+            "kpc**2",
             "3D stellar inertia tensor computed from the stellar mass distribution, relative to the centre of potential. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
+            "star",
+            "FMantissa9",
+            False,
+        ),
+        "ReducedStellarInertiaTensor": (
+            "ReducedStellarInertiaTensor",
+            6,
+            np.float32,
+            "dimensionless",
+            "Reduced 3D stellar inertia tensor computed from the stellar mass distribution, relative to the centre of potential. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "star",
             "FMantissa9",
             False,
@@ -864,8 +934,18 @@ class PropertyTable:
             "TotalInertiaTensor",
             6,
             np.float32,
-            "Msun*kpc**2",
+            "kpc**2",
             "3D inertia tensor computed from the total mass distribution, relative to the centre of potential. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
+            "general",
+            "FMantissa9",
+            True,
+        ),
+        "ReducedTotalInertiaTensor": (
+            "ReducedTotalInertiaTensor",
+            6,
+            np.float32,
+            "dimensionless",
+            "Reduced 3D inertia tensor computed from the total mass distribution, relative to the centre of potential. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3).",
             "general",
             "FMantissa9",
             True,
@@ -1091,7 +1171,7 @@ class PropertyTable:
             False,
         ),
         "Xrayphlum_restframe_core_excision": (
-            "XRayPhotonLuminosityCoreExcision",
+            "XRayPhotonLuminosityInRestframeCoreExcision",
             3,
             np.float64,
             "1/s",
@@ -1163,7 +1243,7 @@ class PropertyTable:
         "com": (
             "CentreOfMass",
             3,
-            np.float32,
+            np.float64,
             "Mpc",
             "Centre of mass.",
             "basic",
@@ -1173,7 +1253,7 @@ class PropertyTable:
         "com_gas": (
             "GasCentreOfMass",
             3,
-            np.float32,
+            np.float64,
             "Mpc",
             "Centre of mass of gas.",
             "gas",
@@ -1183,7 +1263,7 @@ class PropertyTable:
         "com_star": (
             "StellarCentreOfMass",
             3,
-            np.float32,
+            np.float64,
             "Mpc",
             "Centre of mass of stars.",
             "star",
@@ -1530,7 +1610,7 @@ class PropertyTable:
 \\begin{document}"""
 
         tablestr = """\\begin{landscape}
-\\begin{longtable}{p{20em}llllllllll}
+\\begin{longtable}{p{15em}llllllllll}
 Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\\
 \\multicolumn{11}{l}{\\rule{30pt}{0pt}Description}\\\\
 \\hline{}\\endhead{}"""
@@ -1561,7 +1641,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
             prop_projected = (
                 checkmark if "ProjectedApertureProperties" in prop["types"] else xmark
             )
-            prop_SO = checkmark if "SOProperties" in prop["types"] else xmark
+            prop_SO = checkmark if "CoreExcisedSOProperties" in prop["types"] else xmark
             table_props = [
                 prop_outputname,
                 prop_shape,
@@ -1587,7 +1667,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                 tablestr += "\\hline{}"
             tablestr += "\\rule{0pt}{4ex}"
             tablestr += " & ".join([v for v in print_table_props]) + "\\\\*\n"
-            tablestr += f"\\multicolumn{{10}}{{p{{20cm}}}}{{\\rule{{30pt}}{{0pt}}{prop_description}}}\\\\\n"
+            tablestr += f"\\multicolumn{{10}}{{p{{15cm}}}}{{\\rule{{30pt}}{{0pt}}{prop_description}}}\\\\\n"
         tablestr += """\\end{longtable}
 \\end{landscape}"""
         tailstr = "\\end{document}"

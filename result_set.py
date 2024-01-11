@@ -59,7 +59,7 @@ def concatenate(result_sets):
 
         # Store concatenated arrays in the output
         list_of_arrays = [rs.result_arrays[name][0] for rs in result_sets]
-        concatenated_array = unyt.array.uconcatenate(list_of_arrays, axis=0)
+        concatenated_array = np.concatenate(list_of_arrays, axis=0)
         description = rs.result_arrays[name][1]
         output.result_arrays[name] = [concatenated_array, description]
 
