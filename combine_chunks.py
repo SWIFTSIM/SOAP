@@ -87,6 +87,7 @@ def combine_chunks(
             params.attrs["halo_ids"] = (
                 args.halo_ids if args.halo_ids is not None else np.ndarray(0, dtype=int)
             )
+            params.attrs["git_hash"] = args.git_hash
             # NOTE: FLAMINGO
             recently_heated_gas_metadata = recently_heated_gas_filter.get_metadata()
             recently_heated_gas_params = outfile.create_group("RecentlyHeatedGasFilter")

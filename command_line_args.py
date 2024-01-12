@@ -1,5 +1,6 @@
 #!/bin/env python
 
+import subprocess
 import sys
 import os
 import argparse
@@ -15,6 +16,8 @@ class ThrowingArgumentParser(argparse.ArgumentParser):
         sys.stderr.write(message + "\n")
         raise ArgumentParserError(message)
 
+def get_git_hash() -> str:
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
 def get_halo_props_args(comm):
     """
@@ -122,6 +125,7 @@ def get_halo_props_args(comm):
             args = parser.parse_args()
         except ArgumentParserError as e:
             args = None
+        args.git_hash = get_git_hash()
 
     else:
         args = None
