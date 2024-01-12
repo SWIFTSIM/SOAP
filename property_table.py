@@ -106,7 +106,7 @@ class PropertyTable:
     # category used for properties copied over directly from the Velociraptor
     # output. VR properties should not be included by any of the halo types,
     # they are only there to complete the documentation!
-    categories = ["basic", "general", "gas", "dm", "star", "baryon", "VR"]
+    categories = ["basic", "general", "gas", "dm", "star", "baryon", "VR", "SOAP"]
     # some properties require an additional explanation in the form of a
     # footnote. These footnotes are .tex files in the 'documentation' folder
     # (that should exist). The name of the file acts as a key in the dictionary

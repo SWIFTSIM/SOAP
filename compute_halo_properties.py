@@ -347,6 +347,7 @@ def compute_halo_properties():
             print("for central halos only")
         else:
             print("for central and satellite halos")
+        parameter_file.print_unregistered_properties()
 
     # Ensure output dir exists
     if comm_world_rank == 0:

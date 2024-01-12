@@ -102,6 +102,8 @@ ApertureProperties:
     StarFormingGasMassFractionInOxygen: true
     StarFormingGasMassInMetals: false
     StellarAxisLengths: false
+    StellarCentreOfMass: true
+    StellarCentreOfMassVelocity: true
     StellarInertiaTensor: true
     StellarInitialMass: true
     StellarLuminosity: true

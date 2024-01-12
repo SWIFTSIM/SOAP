@@ -115,7 +115,9 @@ class ParameterFile:
         if file_name is not None:
             with open(file_name, "r") as handle:
                 self.parameters = yaml.safe_load(handle)
+                self.unregistered_parameters = set()
         else:
+            self.unregistered_parameters = None
             if parameter_dictionary is not None:
                 self.parameters = parameter_dictionary
             else:
@@ -172,10 +174,19 @@ class ParameterFile:
             if property in self.parameters[halo_type]["properties"]:
                 mask[property] = self.parameters[halo_type]["properties"][property]
             else:
-                print(f'Calculating {property} for {halo_type} as it is undefined in the parameter file')
                 mask[property] = True
                 self.parameters[halo_type]["properties"][property] = True
+                if self.unregistered_parameters is not None:
+                    self.unregistered_parameters.add((halo_type, property))
         return mask
+
+    def print_unregistered_properties(self) -> None:
+        """
+        Prints a list of any properties that will be calculated that are not present in the parameter file
+        """
+        if self.unregistered_parameters is not None:
+            for halo_type, property in self.unregistered_parameters:
+                print(f'Calculating {property} for {halo_type} as it is undefined in the parameter file')
 
     def get_halo_type_variations(
         self, halo_type: str, default_variations: Dict
