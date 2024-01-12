@@ -27,6 +27,9 @@
 module purge
 module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
 
+export FLAMINGO_SCRATCH_DIR=/snap8/scratch/dp004/dc-mcgi1/SOAP_merge_colibre/victor/
+export FLAMINGO_OUTPUT_DIR=/snap8/scratch/dp004/dc-mcgi1/SOAP_merge_colibre/victor/
+
 # Get location for temporary output
 if [[ "${FLAMINGO_SCRATCH_DIR}" ]] ; then
   scratch_dir="${FLAMINGO_SCRATCH_DIR}"
@@ -77,4 +80,5 @@ lfs setstripe --stripe-count=-1 --stripe-size=32M ${outdir}
 mpirun python3 -u -m mpi4py ./compute_halo_properties.py \
     ${swift_filename} ${chunkdir} ${vr_basename} ${outfile} ${SLURM_ARRAY_TASK_ID} \
     --chunks=${nr_chunks} ${dmo_flag} \
-    --extra-input=${extra_filename}
+    --extra-input=${extra_filename} \
+    --parameters parameter_files/flamingo_SOAP_params.yml

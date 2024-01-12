@@ -41,4 +41,5 @@ mkdir -p "${outdir}"
 # Run SOAP on one core processing the selected halos. Use 'python3 -m pdb' to start in the debugger.
 python3 ./compute_halo_properties.py --dmo \
     ${swift_filename} ${scratchdir} ${vr_basename} ${outfile} ${snap_nr} \
-    --chunks=1 --extra-input=${extra_filename} --halo-ids ${halo_ids}
+    --chunks=1 --extra-input=${extra_filename} --halo-ids ${halo_ids} \
+    --parameters parameter_files/flamingo_SOAP_params.yml
