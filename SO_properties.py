@@ -2828,6 +2828,14 @@ def test_SO_properties():
                     input_data[ptype] = {}
                     for dset in prop_calc.particle_properties[ptype]:
                         input_data[ptype][dset] = data[ptype][dset]
+            # Adding Restframe luminosties as they are calculated in halo_tasks
+            if "PartType0" in input_data:
+                for dset in [
+                    "XrayLuminositiesRestframe",
+                    "XrayPhotonLuminositiesRestframe",
+                ]:
+                    input_data["PartType0"][dset] = data["PartType0"][dset]
+                    input_data["PartType0"][dset] = data["PartType0"][dset]
             input_halo_copy = input_halo.copy()
             input_data_copy = input_data.copy()
             prop_calc.calculate(input_halo, rmax, input_data, halo_result)

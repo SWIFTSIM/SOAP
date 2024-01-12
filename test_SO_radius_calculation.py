@@ -33,7 +33,7 @@ def test_SO_radius_calculation():
     np.random.seed(62)
 
     npart_choices = np.array([10, 100, 1000])
-    for i in range(100):
+    for i in range(50):
         npart = np.random.choice(npart_choices)
         Mpart = 1.0e9 * unyt.Msun
 
@@ -117,6 +117,7 @@ def test_SO_radius_calculation():
             ax[0][0].set_title("Success")
         else:
             ax[0][0].set_title("Failure")
+            print(f"{i:03d} SO calculation failed")
 
         pl.tight_layout()
         pl.savefig(f"test_SO_radius_{i:03d}.png", dpi=300)

@@ -1070,6 +1070,15 @@ class ApertureParticleData:
         return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm)
 
     @lazy_property
+    def com_star(self) -> unyt.unyt_array:
+        """
+        Centre of mass of star particles in the aperture.
+        """
+        if self.Mstar == 0:
+            return None
+        return (self.star_mass_fraction[:, None] * self.pos_star).sum(axis=0) + self.centre
+
+    @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
         """
         Centre of mass velocity of star particles.
@@ -2509,7 +2518,9 @@ class ApertureProperties(HaloProperty):
             "BHmaxAR",
             "BHmaxlasteventa",
             "com",
+            "com_star",
             "vcom",
+            "vcom_star",
             "Lgas",
             "Ldm",
             "Lstar",
