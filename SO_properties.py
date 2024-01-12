@@ -2670,6 +2670,8 @@ def test_SO_properties():
             "aliases": {
                 "PartType0/ElementMassFractions": "PartType0/SmoothedElementMassFractions",
                 "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
+                "PartType0/XrayLuminositiesRestframe": "PartType0/XrayLuminositiesRestframe",
+                "PartType0/XrayPhotonLuminositiesRestframe": "PartType0/XrayPhotonLuminositiesRestframe",
             }
         }
     )
@@ -2703,7 +2705,7 @@ def test_SO_properties():
         dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, 5.0, "mean"
     )
 
-    parameters.write_parameters("SO.used_values.yml")
+    parameters.write_parameters("SO.used_parameters.yml")
 
     for i in range(100):
         (
