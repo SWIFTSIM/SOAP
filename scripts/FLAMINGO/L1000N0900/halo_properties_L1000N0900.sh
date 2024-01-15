@@ -27,9 +27,6 @@
 module purge
 module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
 
-export FLAMINGO_SCRATCH_DIR=/snap8/scratch/dp004/dc-mcgi1/SOAP_merge_colibre/victor/
-export FLAMINGO_OUTPUT_DIR=/snap8/scratch/dp004/dc-mcgi1/SOAP_merge_colibre/victor/
-
 # Get location for temporary output
 if [[ "${FLAMINGO_SCRATCH_DIR}" ]] ; then
   scratch_dir="${FLAMINGO_SCRATCH_DIR}"
@@ -66,7 +63,7 @@ outfile="${outbase}/halo_properties_%(snap_nr)04d.hdf5"
 
 # Check for DMO run
 dmo_flag=""
-if [[ $sim == DMO_* ]] ; then
+if [[ $sim == *DMO_* ]] ; then
   dmo_flag="--dmo"
 fi
 

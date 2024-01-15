@@ -63,7 +63,7 @@ outfile="${outbase}/halo_properties_%(snap_nr)04d.hdf5"
 
 # Check for DMO run
 dmo_flag=""
-if [[ $sim == DMO_* ]] ; then
+if [[ $sim == *DMO_* ]] ; then
   dmo_flag="--dmo"
 fi
 
