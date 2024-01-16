@@ -184,9 +184,10 @@ class ParameterFile:
         """
         Prints a list of any properties that will be calculated that are not present in the parameter file
         """
-        if self.unregistered_parameters is not None:
+        if (self.unregistered_parameters is not None) and (len(self.unregistered_parameters) != 0):
+            print('The following properties were not found in the parameter file, but will be calculated:')
             for halo_type, property in self.unregistered_parameters:
-                print(f'Calculating {property} for {halo_type} as it is undefined in the parameter file')
+                print(f'  {halo_type.ljust(30)}{property}')
 
     def get_halo_type_variations(
         self, halo_type: str, default_variations: Dict

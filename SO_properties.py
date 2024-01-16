@@ -243,7 +243,7 @@ class SOParticleData:
         nu_density: unyt.unyt_quantity,
         observer_position: unyt.unyt_array,
         snapshot_datasets: SnapshotDatasets,
-        core_excision_fraction,  # TODO: add type check
+        core_excision_fraction: float,
     ):
         """
         Constructor.
@@ -268,6 +268,9 @@ class SOParticleData:
          - snapshot_datasets: SnapshotDatasets
            Object containing metadata about the datasets in the snapshot, like
            appropriate aliases and column names.
+         - core_excision_fraction: float
+           Ignore particles within a sphere of core_excision_fraction * SORadius
+           when calculating CoreExcision properties
         """
         self.input_halo = input_halo
         self.data = data
@@ -938,47 +941,89 @@ class SOParticleData:
         return self.gas_selection.sum()
 
     @lazy_property
-    def Ngas_no_agn(self):
+    def Ngas_no_agn(self) -> int:
+        """Number of gas particles, excluding those recently heated by AGN."""
+        if self.Ngas == 0:
+            return 0
         return self.gas_no_agn.sum()
 
     @lazy_property
-    def Ngas_no_cool(self):
+    def Ngas_no_cool(self) -> int:
+        """
+        Number of non-cool gas particles (i.e. temperature > 1.e5 K).
+        """
+        if self.Ngas == 0:
+            return 0
         return self.gas_no_cool.sum()
 
     @lazy_property
-    def Ngas_no_cool_no_agn(self):
+    def Ngas_no_cool_no_agn(self) -> int:
+        """
+        Number of gas particles that are not cold (temperature > 1.e5 K) and that
+        were not recently heated by AGN feedback.
+        """
+        if self.Ngas == 0:
+            return 0
         return self.gas_no_cool_no_agn.sum()
 
     @lazy_property
-    def Ngas_core_excision(self):
+    def Ngas_core_excision(self) -> int:
+        """
+        Number of gas particles, exluding those in the inner core.
+        """
+        if self.Ngas == 0:
+            return 0
         return self.gas_selection_core_excision.sum()
 
     @lazy_property
-    def Ngas_no_agn_core_excision(self):
+    def Ngas_no_agn_core_excision(self) -> int:
+        """
+        Number of gas particles, excluding those which are in the inner core or were recently heated by AGN.
+        """
+        if self.Ngas == 0:
+            return 0
         return self.gas_selection_no_agn_core_excision.sum()
 
     @lazy_property
-    def Ngas_no_cool_core_excision(self):
+    def Ngas_no_cool_core_excision(self) -> int:
+        """
+        Number of gas particles, excluding those which are in the inner core or are cold (temperature > 1.e5 K).
+        """
+        if self.Ngas == 0:
+            return 0
         return self.gas_selection_core_excision_no_cool.sum()
 
     @lazy_property
-    def Ngas_no_cool_no_agn_core_excision(self):
+    def Ngas_no_cool_no_agn_core_excision(self) -> int:
+        """
+        Number of gas particles, excluding those which are in the inner core, are cold (temperature > 1.e5 K), or were recently heated by AGN.
+        """
+        if self.Ngas == 0:
+            return 0
         return self.gas_selection_core_excision_no_cool_no_agn.sum()
 
     @lazy_property
-    def Ngas_xray_temperature(self):
+    def Ngas_xray_temperature(self) -> int:
+        if self.Ngas == 0:
+            return 0
         return self.gas_selection_xray_temperature.sum()
 
     @lazy_property
-    def Ngas_xray_temperature_no_agn(self):
+    def Ngas_xray_temperature_no_agn(self) -> int:
+        if self.Ngas == 0:
+            return 0
         return self.gas_no_agn_xray_temperature.sum()
 
     @lazy_property
-    def Ngas_core_excision_xray_temperature(self):
+    def Ngas_core_excision_xray_temperature(self) -> int:
+        if self.Ngas == 0:
+            return 0
         return self.gas_selection_core_excision_xray_temperature.sum()
 
     @lazy_property
-    def Ngas_core_excision_xray_temperature_no_agn(self):
+    def Ngas_core_excision_xray_temperature_no_agn(self) -> int:
+        if self.Ngas == 0:
+            return 0
         return self.gas_selection_core_excision_no_agn_xray_temperature.sum()
 
     @lazy_property
@@ -1073,7 +1118,12 @@ class SOParticleData:
         return self.gas_temperatures > 1.0e5 * unyt.K
 
     @lazy_property
-    def Tgas_cy_weighted(self):
+    def Tgas_cy_weighted(self) -> unyt.unyt_quantity:
+        """
+        ComptonY-weighted average gas temperature.
+        """
+        if self.Ngas == 0:
+            return None
         gas_compY_sum = self.gas_compY.sum()
         if gas_compY_sum == 0:
             return None
@@ -1082,7 +1132,12 @@ class SOParticleData:
         ).sum()
 
     @lazy_property
-    def Tgas_cy_weighted_no_agn(self):
+    def Tgas_cy_weighted_no_agn(self) -> unyt.unyt_quantity:
+        """
+        ComptonY-weighted average gas temperature, excluding gas recently heated by AGN.
+        """
+        if self.Ngas == 0:
+            return None
         gas_compY_sum = self.gas_compY[self.gas_no_agn].sum()
         if gas_compY_sum == 0:
             return None
@@ -1096,6 +1151,8 @@ class SOParticleData:
         """
         ComptonY-weighted average gas temperature, excluding the inner core.
         """
+        if self.Ngas == 0:
+            return None
         gas_compY_sum = self.gas_compY[self.gas_selection_core_excision].sum()
         if gas_compY_sum == 0:
             return None
@@ -1113,6 +1170,8 @@ class SOParticleData:
         ComptonY-weighted average gas temperature, excluding the inner core and 
         gas recently heated by AGN.
         """
+        if self.Ngas == 0:
+            return None
         gas_compY_sum = self.gas_compY[self.gas_selection_no_agn_core_excision].sum()
         if gas_compY_sum == 0:
             return None
@@ -1186,10 +1245,6 @@ class SOParticleData:
                 / self.gas_masses[self.gas_selection_core_excision_no_cool_no_agn].sum()
             )
         ).sum()
-
-    @lazy_property
-    def gas_no_cool(self):
-        return self.gas_temperatures > 1.0e5 * unyt.K
 
     @lazy_property
     def gas_selection_core_excision(self):
@@ -1487,7 +1542,7 @@ class SOParticleData:
         were not recently heated by AGN feedback.
         """
         if self.Ngas == 0:
-            return None
+            return np.zeros(0, dtype=bool)
         return self.gas_no_cool & self.gas_no_agn
 
     @lazy_property
@@ -1615,26 +1670,38 @@ class SOParticleData:
 
     @lazy_property
     def gas_selection_xray_temperature(self):
+        if self.Ngas == 0:
+            return None
         return self.gas_temperatures > 1.16e6 * unyt.K
 
     @lazy_property
     def gas_no_agn_xray_temperature(self):
+        if self.Ngas == 0:
+            return None
         return self.gas_no_agn & self.gas_selection_xray_temperature
 
     @lazy_property
     def gas_selection_core_excision_xray_temperature(self):
+        if self.Ngas == 0:
+            return None
         return self.gas_selection_core_excision & self.gas_selection_xray_temperature
 
     @lazy_property
     def gas_selection_core_excision_no_cool(self):
+        if self.Ngas == 0:
+            return None
         return self.gas_selection_core_excision & self.gas_no_cool
 
     @lazy_property
     def gas_selection_core_excision_no_cool_no_agn(self):
+        if self.Ngas == 0:
+            return None
         return self.gas_selection_core_excision & self.gas_no_cool & self.gas_no_agn
 
     @lazy_property
     def gas_selection_core_excision_no_agn_xray_temperature(self):
+        if self.Ngas == 0:
+            return None
         return (
             self.gas_selection_core_excision
             & self.gas_no_agn
@@ -1646,6 +1713,8 @@ class SOParticleData:
         """
         Temperature of the gas, as inferred from spectroscopic-like estimates.
         """
+        if self.Ngas == 0:
+            return None
         numerator = np.sum(
             self.gas_densities[self.gas_selection_xray_temperature]
             * self.gas_masses[self.gas_selection_xray_temperature]
@@ -1666,6 +1735,8 @@ class SOParticleData:
         Temperature of the gas, as inferred from spectroscopic-like estimates,
         excluding gas particles that were recently heated by AGN feedback.
         """
+        if self.Ngas == 0:
+            return None
         numerator = np.sum(
             self.gas_densities[self.gas_no_agn_xray_temperature]
             * self.gas_masses[self.gas_no_agn_xray_temperature]
@@ -1686,6 +1757,8 @@ class SOParticleData:
         Temperature of the gas, as inferred from spectroscopic-like estimates,
         excluding those in the inner core.
         """
+        if self.Ngas == 0:
+            return None
         numerator = np.sum(
             self.gas_densities[self.gas_selection_core_excision_xray_temperature]
             * self.gas_masses[self.gas_selection_core_excision_xray_temperature]
@@ -1708,6 +1781,8 @@ class SOParticleData:
         Temperature of the gas, as inferred from spectroscopic-like estimates,
         excluding those in the inner core and recently heated by AGN.
         """
+        if self.Ngas == 0:
+            return None
         numerator = np.sum(
             self.gas_densities[self.gas_selection_core_excision_no_agn_xray_temperature]
             * self.gas_masses[self.gas_selection_core_excision_no_agn_xray_temperature]

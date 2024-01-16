@@ -133,7 +133,12 @@ def compute_halo_properties():
         (cellgrid, parsec_cgs, solar_mass_cgs, a)
     )
 
-    parameter_file = ParameterFile(args.parameters)
+    # Process parameter file
+    if comm_world_rank == 0:
+        parameter_file = ParameterFile(args.parameters)
+    else:
+        parameter_file = None
+    parameter_file = comm_world.bcast(parameter_file)
     cellgrid.snapshot_datasets.setup_aliases(parameter_file.get_aliases())
     cellgrid.snapshot_datasets.setup_defined_constants(
         parameter_file.get_defined_constants()
