@@ -93,6 +93,7 @@ ApertureProperties:
     StarFormingGasMassFractionInOxygen: true
     StarFormingGasMassInMetals: true
     StellarAxisLengths: true
+    StellarCentreOfMass: false
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
@@ -104,6 +105,16 @@ ApertureProperties:
     StellarVelocityDispersionMatrix: true
     TotalMass: true
     TotalSNIaRate: true
+    BaryonInertiaTensor: false
+    ReducedStellarInertiaTensor: false
+    GasMassInColdDenseDiffuseMetals: false
+    StellarCentreOfMassVelocity: false
+    GasInertiaTensor: false
+    StellarInertiaTensor: false
+    DarkMatterInertiaTensor: false
+    ReducedBaryonInertiaTensor: false
+    ReducedDarkMatterInertiaTensor: false
+    ReducedGasInertiaTensor: false
   variations:
     exclusive_100_kpc:
       inclusive: false
@@ -160,6 +171,12 @@ ProjectedApertureProperties:
     StellarMassFractionInOxygen: true
     StellarProjectedVelocityDispersion: true
     TotalMass: true
+    ProjectedBaryonInertiaTensor: false
+    ProjectedGasInertiaTensor: false
+    ProjectedStellarInertiaTensor: false
+    ReducedProjectedBaryonInertiaTensor: false
+    ReducedProjectedGasInertiaTensor: false
+    ReducedProjectedStellarInertiaTensor: false
   variations:
     100_kpc:
       radius_in_kpc: 100.0
@@ -196,10 +213,18 @@ SOProperties:
     GasMassFractionInMetals: true
     GasMassFractionInOxygen: true
     GasMassInMetals: true
+    GasComptonYTemperature: false
+    GasComptonYTemperatureCoreExcision: false
+    GasComptonYTemperatureWithoutRecentAGNHeating: false
+    GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision: false
     GasTemperature: true
+    GasTemperatureCoreExcision: false
     GasTemperatureWithoutCoolGas: true
     GasTemperatureWithoutCoolGasAndRecentAGNHeating: true
     GasTemperatureWithoutRecentAGNHeating: true
+    GasTemperatureWithoutCoolGasAndRecentAGNHeatingCoreExcision: false
+    GasTemperatureWithoutCoolGasCoreExcision: false
+    GasTemperatureWithoutRecentAGNHeatingCoreExcision: false
     HotGasMass: true
     KineticEnergyGas: true
     KineticEnergyStars: true
@@ -234,10 +259,36 @@ SOProperties:
     ThermalEnergyGas: true
     TotalAxisLengths: true
     TotalMass: true
+    XRayLuminosity: false
+    XRayLuminosityCoreExcision: false
+    XRayLuminosityWithoutRecentAGNHeating: false
+    XRayLuminosityWithoutRecentAGNHeatingCoreExcision: false
     XRayLuminosityInRestframe: true
+    XRayLuminosityInRestframeCoreExcision: false
     XRayLuminosityInRestframeWithoutRecentAGNHeating: true
+    XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: false
+    XRayPhotonLuminosity: false
+    XRayPhotonLuminosityCoreExcision: false
+    XRayPhotonLuminosityWithoutRecentAGNHeating: false
+    XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision: false
     XRayPhotonLuminosityInRestframe: true
+    XRayPhotonLuminosityInRestframeCoreExcision: false
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
+    XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: false
+    BaryonInertiaTensor: false
+    DarkMatterInertiaTensor: false
+    GasInertiaTensor: false
+    StellarInertiaTensor: false
+    TotalInertiaTensor: false
+    ReducedBaryonInertiaTensor: false
+    ReducedDarkMatterInertiaTensor: false
+    ReducedGasInertiaTensor: false
+    ReducedStellarInertiaTensor: false
+    ReducedTotalInertiaTensor: false
+    SpectroscopicLikeTemperature: false
+    SpectroscopicLikeTemperatureCoreExcision: false
+    SpectroscopicLikeTemperatureWithoutRecentAGNHeating: false
+    SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: false
   variations:
     200_crit:
       type: crit
@@ -315,6 +366,16 @@ SubhaloProperties:
     StellarVelocityDispersionMatrix: true
     TotalAxisLengths: true
     TotalMass: true
+    BaryonInertiaTensor: false
+    DarkMatterInertiaTensor: false
+    GasInertiaTensor: false
+    StellarInertiaTensor: false
+    TotalInertiaTensor: false
+    ReducedBaryonInertiaTensor: false
+    ReducedDarkMatterInertiaTensor: false
+    ReducedGasInertiaTensor: false
+    ReducedStellarInertiaTensor: false
+    ReducedTotalInertiaTensor: false
   variations:
     Bound:
       bound_only: true
