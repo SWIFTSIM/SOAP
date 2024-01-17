@@ -1685,9 +1685,10 @@ class PropertyTable:
             # for the Xray calculator (which computes restframe quantities).
             # TODO: Is it always calculated by SOAP or just for flamingo?
             [
+                "PartType0/XrayLuminosities",
                 "PartType0/Densities",
                 "PartType0/Temperatures",
-                "PartType0/SmoothedElementMassFractions",
+                "PartType0/ElementMassFractions",
             ],
         ),
         "Xraylum_no_agn": (
@@ -1715,9 +1716,10 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
+                "PartType0/XrayLuminosities",
                 "PartType0/Densities",
                 "PartType0/Temperatures",
-                "PartType0/SmoothedElementMassFractions",
+                "PartType0/ElementMassFractions",
                 "PartType0/LastAGNFeedbackScaleFactors",
                 "PartType0/Temperatures",
             ],
@@ -1745,7 +1747,7 @@ class PropertyTable:
             [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
-                "PartType0/SmoothedElementMassFractions",
+                "PartType0/ElementMassFractions",
                 "PartType0/Coordinates",
             ],
         ),
@@ -1777,7 +1779,7 @@ class PropertyTable:
             [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
-                "PartType0/SmoothedElementMassFractions",
+                "PartType0/ElementMassFractions",
                 "PartType0/LastAGNFeedbackScaleFactors",
                 "PartType0/Coordinates",
             ],
@@ -1803,9 +1805,10 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
+                "PartType0/XrayPhotonLuminosities",
                 "PartType0/Densities",
                 "PartType0/Temperatures",
-                "PartType0/SmoothedElementMassFractions",
+                "PartType0/ElementMassFractions",
             ],
         ),
         "Xrayphlum_no_agn": (
@@ -1833,9 +1836,10 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
+                "PartType0/XrayPhotonLuminosities",
                 "PartType0/Densities",
                 "PartType0/Temperatures",
-                "PartType0/SmoothedElementMassFractions",
+                "PartType0/ElementMassFractions",
                 "PartType0/LastAGNFeedbackScaleFactors",
             ],
         ),
@@ -1850,7 +1854,7 @@ class PropertyTable:
             False,
             [
                 "PartType0/Densities",  # To compute X-rays
-                "PartType0/SmoothedElementMassFractions",  # To compute X-rays
+                "PartType0/ElementMassFractions",  # To compute X-rays
                 "PartType0/Temperatures",
                 "PartType0/Coordinates",
             ],
@@ -1867,7 +1871,7 @@ class PropertyTable:
             [
                 "PartType0/Densities",
                 "PartType0/Temperatures",
-                "PartType0/SmoothedElementMassFractions",
+                "PartType0/ElementMassFractions",
                 "PartType0/Coordinates",
             ],
         ),
@@ -1898,7 +1902,7 @@ class PropertyTable:
             False,
             [
                 "PartType0/Densities",
-                "PartType0/SmoothedElementMassFractions",
+                "PartType0/ElementMassFractions",
                 "PartType0/Temperatures",
                 "PartType0/LastAGNFeedbackScaleFactors",
                 "PartType0/Coordinates",

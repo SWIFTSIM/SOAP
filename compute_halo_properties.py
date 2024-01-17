@@ -353,6 +353,8 @@ def compute_halo_properties():
         else:
             print("for central and satellite halos")
         parameter_file.print_unregistered_properties()
+        if parameter_file.recalculate_xrays():
+            print('Recalculating xray properties')
 
     # Ensure output dir exists
     if comm_world_rank == 0:
@@ -390,7 +392,7 @@ def compute_halo_properties():
             "photons_intrinsic_restframe",
         ]
         xray_calculator = XrayCalculator(
-            cellgrid.z, table_path, xray_bands, observing_types
+            cellgrid.z, table_path, xray_bands, observing_types, parameter_file.recalculate_xrays()
         )
     else:
         xray_calculator = None

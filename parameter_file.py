@@ -298,3 +298,10 @@ class ParameterFile:
             return dict(self.parameters["defined_constants"])
         else:
             return dict()
+
+    def recalculate_xrays(self) -> bool:
+        """
+        Returns a bool indicating if xray properties should be recomputed.
+        Defaults to true.
+        """
+        return self.parameters.get("recalculate_xrays", True)
