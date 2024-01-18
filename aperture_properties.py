@@ -2141,7 +2141,9 @@ class ApertureParticleData:
              :,
              self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
              ]
-        return (16.0 * nN) / (14.0 * nO)
+        ratio = np.zeros_like(nN)
+        ratio[nO != 0] = (16.0 * nN[nO!=0]) / (14.0 * nO[nO!=0])
+        return ratio
 
     @lazy_property
     def gas_C_over_O_total(self) -> unyt.unyt_array:
@@ -2158,7 +2160,9 @@ class ApertureParticleData:
              :,
              self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
              ]
-        return (16.0 * nC) / (12.011 * nO)
+        ratio = np.zeros_like(nC)
+        ratio[nO != 0] = (16.0 * nC[nO!=0]) / (12.011 * nO[nO!=0])
+        return ratio
 
     @lazy_property
     def gas_N_over_O_diffuse(self) -> unyt.unyt_array:
@@ -2176,7 +2180,9 @@ class ApertureParticleData:
              :,
              self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
              ]
-        return (16.0 * nN) / (14.0 * nO)
+        ratio = np.zeros_like(nN)
+        ratio[nO != 0] = (16.0 * nN[nO!=0]) / (14.0 * nO[nO!=0])
+        return ratio
 
     @lazy_property
     def gas_C_over_O_diffuse(self) -> unyt.unyt_array:
@@ -2193,7 +2199,9 @@ class ApertureParticleData:
              :,
              self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
              ]
-        return (16.0 * nC) / (12.011 * nO)
+        ratio = np.zeros_like(nC)
+        ratio[nO != 0] = (16.0 * nC[nO!=0]) / (12.011 * nO[nO!=0])
+        return ratio
 
     @lazy_property
     def gas_O_over_H_diffuse(self) -> unyt.unyt_array:
