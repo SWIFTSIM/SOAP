@@ -1284,7 +1284,9 @@ class SubhaloParticleData:
         log_birth_temperature = np.log(
             self.stellar_birth_temperature / self.stellar_birth_temperature.units
         )
-        return np.exp(log_birth_temperature.mean()) * self.stellar_birth_temperature.units
+        return (
+            np.exp(log_birth_temperature.mean()) * self.stellar_birth_temperature.units
+        )
 
     @lazy_property
     def MinimumStellarBirthTemperature(self) -> unyt.unyt_quantity:

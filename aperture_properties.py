@@ -1076,7 +1076,9 @@ class ApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return (self.star_mass_fraction[:, None] * self.pos_star).sum(axis=0) + self.centre
+        return (self.star_mass_fraction[:, None] * self.pos_star).sum(
+            axis=0
+        ) + self.centre
 
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
@@ -2134,15 +2136,14 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         nN = self.gas_element_fractions[
-             :,
-             self.snapshot_datasets.get_column_index("ElementMassFractions", "Nitrogen"),
-             ]
+            :,
+            self.snapshot_datasets.get_column_index("ElementMassFractions", "Nitrogen"),
+        ]
         nO = self.gas_element_fractions[
-             :,
-             self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
-             ]
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+        ]
         ratio = np.zeros_like(nN)
-        ratio[nO != 0] = (16.0 * nN[nO!=0]) / (14.0 * nO[nO!=0])
+        ratio[nO != 0] = (16.0 * nN[nO != 0]) / (14.0 * nO[nO != 0])
         return ratio
 
     @lazy_property
@@ -2153,15 +2154,13 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         nC = self.gas_element_fractions[
-             :,
-             self.snapshot_datasets.get_column_index("ElementMassFractions", "Carbon"),
-             ]
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Carbon")
+        ]
         nO = self.gas_element_fractions[
-             :,
-             self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
-             ]
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+        ]
         ratio = np.zeros_like(nC)
-        ratio[nO != 0] = (16.0 * nC[nO!=0]) / (12.011 * nO[nO!=0])
+        ratio[nO != 0] = (16.0 * nC[nO != 0]) / (12.011 * nO[nO != 0])
         return ratio
 
     @lazy_property
@@ -2173,15 +2172,14 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         nN = self.gas_diffuse_element_fractions[
-             :,
-             self.snapshot_datasets.get_column_index("ElementMassFractions", "Nitrogen"),
-             ]
+            :,
+            self.snapshot_datasets.get_column_index("ElementMassFractions", "Nitrogen"),
+        ]
         nO = self.gas_diffuse_element_fractions[
-             :,
-             self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
-             ]
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+        ]
         ratio = np.zeros_like(nN)
-        ratio[nO != 0] = (16.0 * nN[nO!=0]) / (14.0 * nO[nO!=0])
+        ratio[nO != 0] = (16.0 * nN[nO != 0]) / (14.0 * nO[nO != 0])
         return ratio
 
     @lazy_property
@@ -2192,15 +2190,13 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         nC = self.gas_diffuse_element_fractions[
-             :,
-             self.snapshot_datasets.get_column_index("ElementMassFractions", "Carbon"),
-             ]
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Carbon")
+        ]
         nO = self.gas_diffuse_element_fractions[
-             :,
-             self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen"),
-             ]
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+        ]
         ratio = np.zeros_like(nC)
-        ratio[nO != 0] = (16.0 * nC[nO!=0]) / (12.011 * nO[nO!=0])
+        ratio[nO != 0] = (16.0 * nC[nO != 0]) / (12.011 * nO[nO != 0])
         return ratio
 
     @lazy_property
@@ -2516,7 +2512,7 @@ class ApertureParticleData:
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit(
-            self,
+        self,
     ) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the logarithm of the diffuse nitrogen over oxygen ratio of gas
@@ -2526,13 +2522,13 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         return (
-                self.gas_log10_N_over_O_diffuse_low_limit[self.gas_is_cold_dense]
-                * self.mass_gas[self.gas_is_cold_dense]
+            self.gas_log10_N_over_O_diffuse_low_limit[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit(
-            self,
+        self,
     ) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the logarithm of the diffuse nitrogen over oxygen ratio of gas
@@ -2542,13 +2538,13 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         return (
-                self.gas_log10_N_over_O_diffuse_high_limit[self.gas_is_cold_dense]
-                * self.mass_gas[self.gas_is_cold_dense]
+            self.gas_log10_N_over_O_diffuse_high_limit[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit(
-            self,
+        self,
     ) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the logarithm of the diffuse carbon over oxygen ratio of gas
@@ -2558,13 +2554,13 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         return (
-                self.gas_log10_C_over_O_diffuse_low_limit[self.gas_is_cold_dense]
-                * self.mass_gas[self.gas_is_cold_dense]
+            self.gas_log10_C_over_O_diffuse_low_limit[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit(
-            self,
+        self,
     ) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the logarithm of the diffuse carbon over oxygen ratio of gas
@@ -2574,8 +2570,8 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         return (
-                self.gas_log10_C_over_O_diffuse_high_limit[self.gas_is_cold_dense]
-                * self.mass_gas[self.gas_is_cold_dense]
+            self.gas_log10_C_over_O_diffuse_high_limit[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
