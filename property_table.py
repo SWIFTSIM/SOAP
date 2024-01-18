@@ -2805,14 +2805,15 @@ class PropertyTable:
         else:
             return ""
 
-    def __init__(self):
+    def __init__(self, parameters):
         """
         Constructor.
         """
         self.properties = {}
         self.footnotes = []
+        self.parameters = parameters
 
-    def add_properties(self, halo_property: HaloProperty):
+    def add_properties(self, halo_property: HaloProperty, base_halo_type: str):
         """
         Add all the properties calculated for a particular halo type to the
         internal dictionary.
@@ -2834,6 +2835,17 @@ class PropertyTable:
                 prop_partprops,
             ),
         ) in enumerate(props):
+            # Don't include property if it's set to false in parameter file
+            # Do include property if it isn't defined in parameter file
+            try:
+                parameter_file_properties = self.parameters[base_halo_type][
+                    "properties"
+                ]
+                if not parameter_file_properties.get(prop_outputname, True):
+                    continue
+            except KeyError:
+                pass
+
             prop_units = (
                 unyt.unyt_quantity(1, units=prop_units)
                 .units.latex_repr.replace(
@@ -3043,14 +3055,14 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
 
 class DummyProperties:
     """
-    Dummy HaloProperty object used to ensure all properties are in the property
-    table, even if some of them are not computed for any halo type (e.g. the
-    'VR' properties).
+    Dummy HaloProperty object used to include properties which are not computed 
+    for any halo type (e.g. the 'VR' properties).
     """
 
     property_list = [
         (prop, *PropertyTable.full_property_list[prop])
         for prop in PropertyTable.full_property_list.keys()
+        if prop.startswith(("SOAP", "VR"))
     ]
 
 
@@ -3063,6 +3075,9 @@ if __name__ == "__main__":
     below.
     """
 
+    from parameter_file import ParameterFile
+    import sys
+
     # get all the halo types
     # we only import them here to avoid circular imports when this script is
     # imported from another script
@@ -3071,13 +3086,19 @@ if __name__ == "__main__":
     from SO_properties import CoreExcisedSOProperties
     from subhalo_properties import SubhaloProperties
 
-    table = PropertyTable()
-    table.add_properties(ExclusiveSphereProperties)
-    table.add_properties(InclusiveSphereProperties)
-    table.add_properties(ProjectedApertureProperties)
-    table.add_properties(CoreExcisedSOProperties)
-    table.add_properties(SubhaloProperties)
-    table.add_properties(DummyProperties)
+    try:
+        parameters = ParameterFile(sys.argv[1]).parameters
+    except IndexError:
+        print("Pass the parameter file as an argument")
+        exit()
+
+    table = PropertyTable(parameters)
+    table.add_properties(ExclusiveSphereProperties, "ApertureProperties")
+    table.add_properties(InclusiveSphereProperties, "ApertureProperties")
+    table.add_properties(ProjectedApertureProperties, "ProjectedApertureProperties")
+    table.add_properties(CoreExcisedSOProperties, "SOProperties")
+    table.add_properties(SubhaloProperties, "SubhaloProperties")
+    table.add_properties(DummyProperties, "")
 
     # set to 'True' to print the internal property table
     # the resulting stdout output can be directly copy-pasted above to replace
