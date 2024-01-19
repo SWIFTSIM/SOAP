@@ -77,11 +77,8 @@ ApertureProperties:
     LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit: true
     LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit: true
     LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit: true
-    LogarithmicallyAveragedStellarBirthDensity: true
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
-    MaximumStellarBirthDensity: true
-    MinimumStellarBirthDensity: true
     MolecularHydrogenMass: true
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleID: true
@@ -342,18 +339,21 @@ SubhaloProperties:
     KappaCorotGas: true
     KappaCorotStars: true
     LastSupernovaEventMaximumGasDensity: true
-    LogarithmicallyAveragedStellarBirthDensity: true
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
     MaximumCircularVelocity: true
     MaximumCircularVelocityRadius: true
     MaximumDarkMatterCircularVelocity: true
     MaximumDarkMatterCircularVelocityRadius: true
+    MedianBirthDensity: true
     MaximumStellarBirthDensity: true
     MinimumStellarBirthDensity: true
-    LogarithmicallyAveragedStellarBirthTemperature: true
+    MedianStellarBirthTemperature: true
     MinimumStellarBirthTemperature: true
     MaximumStellarBirthTemperature: true
+    MedianStellarBirthPressure: true
+    MinimumStellarBirthPressure: true
+    MaximumStellarBirthPressure: true
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true

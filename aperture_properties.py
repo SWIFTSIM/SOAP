@@ -1930,48 +1930,6 @@ class ApertureParticleData:
         return self.mass_gas[self.gas_is_cold_dense].sum()
 
     @lazy_property
-    def stellar_birth_density(self) -> unyt.unyt_array:
-        """
-        Stellar birth density of star particles.
-        """
-        if self.Nstar == 0:
-            return None
-        return self.get_dataset("PartType4/BirthDensities")[self.star_mask_all][
-            self.star_mask_ap
-        ]
-
-    @lazy_property
-    def LogarithmicallyAveragedStellarBirthDensity(self) -> unyt.unyt_quantity:
-        """
-        Logarithmic average of the stellar birth densities.
-        """
-        if self.Nstar == 0:
-            return None
-        # note: the stellar birth density cannot be zero for physical reasons
-        log_birth_density = np.log(
-            self.stellar_birth_density / self.stellar_birth_density.units
-        )
-        return np.exp(log_birth_density.mean()) * self.stellar_birth_density.units
-
-    @lazy_property
-    def MinimumStellarBirthDensity(self) -> unyt.unyt_quantity:
-        """
-        Minimum stellar birth density.
-        """
-        if self.Nstar == 0:
-            return None
-        return self.stellar_birth_density.min()
-
-    @lazy_property
-    def MaximumStellarBirthDensity(self) -> unyt.unyt_quantity:
-        """
-        Maximum stellar birth density.
-        """
-        if self.Nstar == 0:
-            return None
-        return self.stellar_birth_density.max()
-
-    @lazy_property
     def gas_diffuse_element_fractions(self) -> unyt.unyt_array:
         """
         Diffuse element fractions of gas particles.
@@ -2918,9 +2876,6 @@ class ApertureProperties(HaloProperty):
             "DustSmallGrainMassInMolecularGas",
             "DustSmallGrainMassInColdDenseGas",
             "GasMassInColdDenseGas",
-            "LogarithmicallyAveragedStellarBirthDensity",
-            "MaximumStellarBirthDensity",
-            "MinimumStellarBirthDensity",
             "DiffuseCarbonMass",
             "DiffuseOxygenMass",
             "DiffuseMagnesiumMass",

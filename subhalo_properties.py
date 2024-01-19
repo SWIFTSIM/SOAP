@@ -1228,22 +1228,13 @@ class SubhaloParticleData:
         return self.get_dataset("PartType4/BirthDensities")[self.star_mask_all]
 
     @lazy_property
-    def LogarithmicallyAveragedStellarBirthDensity(self) -> unyt.unyt_quantity:
+    def MedianStellarBirthDensity(self) -> unyt.unyt_quantity:
         """
-        Logarithmically averaged birth density of star particles.
-
-        The average is computed in natural logarithm space.
-
-        Note that stellar birth densities are per construction always
-        non-negative, since zero density gas can never become a star particle.
+        Median birth density of the star particles in the subhalo.
         """
         if self.Nstar == 0:
             return None
-        # note: the stellar birth density cannot be zero for physical reasons
-        log_birth_density = np.log(
-            self.stellar_birth_density / self.stellar_birth_density.units
-        )
-        return np.exp(log_birth_density.mean()) * self.stellar_birth_density.units
+        return np.median(self.stellar_birth_density)
 
     @lazy_property
     def MinimumStellarBirthDensity(self) -> unyt.unyt_quantity:
@@ -1264,6 +1255,43 @@ class SubhaloParticleData:
         return self.stellar_birth_density.max()
 
     @lazy_property
+    def stellar_birth_pressure(self) -> unyt.unyt_array:
+        """
+        Birth pressures of star particles.
+        """
+        if self.Nstar == 0:
+            return None
+        birth_densities = self.stellar_birth_density / unyt.mh
+        return birth_densities * self.stellar_birth_temperature
+
+    @lazy_property
+    def MedianStellarBirthPressure(self) -> unyt.unyt_quantity:
+        """
+        Median birth pressure of the star particles in the subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+        return np.median(self.stellar_birth_pressure)
+
+    @lazy_property
+    def MinimumStellarBirthPressure(self) -> unyt.unyt_quantity:
+        """
+        Minimum birth pressure of the star particles in the subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.stellar_birth_pressure.min()
+
+    @lazy_property
+    def MaximumStellarBirthPressure(self) -> unyt.unyt_quantity:
+        """
+        Maximum birth pressure of the star particles in the subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.stellar_birth_pressure.max()
+
+    @lazy_property
     def stellar_birth_temperature(self) -> unyt.unyt_array:
         """
         Birth temperatures of star particles.
@@ -1273,20 +1301,13 @@ class SubhaloParticleData:
         return self.get_dataset("PartType4/BirthTemperatures")[self.star_mask_all]
 
     @lazy_property
-    def LogarithmicallyAveragedStellarBirthTemperature(self) -> unyt.unyt_quantity:
+    def MedianStellarBirthTemperature(self) -> unyt.unyt_quantity:
         """
-        Logarithmically averaged birth temperature of star particles.
-
-        The average is computed in natural logarithm space.
+        Median birth temperature of the star particles in the subhalo.
         """
         if self.Nstar == 0:
             return None
-        log_birth_temperature = np.log(
-            self.stellar_birth_temperature / self.stellar_birth_temperature.units
-        )
-        return (
-            np.exp(log_birth_temperature.mean()) * self.stellar_birth_temperature.units
-        )
+        return np.median(self.stellar_birth_temperature)
 
     @lazy_property
     def MinimumStellarBirthTemperature(self) -> unyt.unyt_quantity:
@@ -1460,12 +1481,15 @@ class SubhaloProperties(HaloProperty):
             "stellar_age_lw",
             "Mgas_SF",
             "gasmetalfrac_SF",
-            "LogarithmicallyAveragedStellarBirthDensity",
+            "MedianStellarBirthDensity",
             "MinimumStellarBirthDensity",
             "MaximumStellarBirthDensity",
-            "LogarithmicallyAveragedStellarBirthTemperature",
+            "MedianStellarBirthTemperature",
             "MinimumStellarBirthTemperature",
             "MaximumStellarBirthTemperature",
+            "MedianStellarBirthPressure",
+            "MinimumStellarBirthPressure",
+            "MaximumStellarBirthPressure",
             "LastSupernovaEventMaximumGasDensity",
         ]
     ]

@@ -74,15 +74,12 @@ ApertureProperties:
     LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit: false
     LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit: false
     LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit: false
-    LogarithmicallyAveragedStellarBirthDensity: false
     LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit: false
     LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit: false
     LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit: false
     LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit: false
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
-    MaximumStellarBirthDensity: false
-    MinimumStellarBirthDensity: false
     MolecularHydrogenMass: false
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleID: true
@@ -386,18 +383,21 @@ SubhaloProperties:
     KappaCorotGas: true
     KappaCorotStars: true
     LastSupernovaEventMaximumGasDensity: false
-    LogarithmicallyAveragedStellarBirthDensity: false
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
     MaximumCircularVelocity: true
     MaximumCircularVelocityRadius: true
     MaximumDarkMatterCircularVelocity: true
     MaximumDarkMatterCircularVelocityRadius: true
+    MedianStellarBirthDensity: false
     MaximumStellarBirthDensity: false
     MinimumStellarBirthDensity: false
+    MedianStellarBirthTemperature: false
     MaximumStellarBirthTemperature: false
-    LogarithmicallyAveragedStellarBirthTemperature: false
     MinimumStellarBirthTemperature: false
+    MedianStellarBirthPressure: false
+    MaximumStellarBirthPressure: false
+    MinimumStellarBirthPressure: false
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
