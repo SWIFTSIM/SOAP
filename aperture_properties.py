@@ -1327,6 +1327,15 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def GasMassInColdDenseMetals(self) -> unyt.unyt_quantity:
+        """
+        Mass of metals in cold, dense gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.gas_Mgasmetal[self.gas_is_cold_dense].sum()
+
+    @lazy_property
     def GasMassInColdDenseDiffuseMetals(self) -> unyt.unyt_quantity:
         """
         Mass of metals in cold, dense gas, excluding metals locked up in dust.
@@ -1617,6 +1626,7 @@ class ApertureParticleData:
         """
         Dust mass fractions in gas particles.
         """
+        print("Entering dust mass fractions")
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][
@@ -1908,11 +1918,29 @@ class ApertureParticleData:
 
         Diffuse means the contribution from dust has been removed.
         """
+        print('Entering in gas diffuse')
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/ElementMassFractionsDiffuse")[
             self.gas_mask_all
         ][self.gas_mask_ap]
+
+    @lazy_property
+    def gas_carbon_mass(self) -> unyt.unyt_array:
+        """
+        Carbon mass of gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Carbon"
+                ),
+                ]
+                * self.mass_gas
+        )
 
     @lazy_property
     def gas_diffuse_carbon_mass(self) -> unyt.unyt_array:
@@ -1929,6 +1957,23 @@ class ApertureParticleData:
                 ),
             ]
             * self.mass_gas
+        )
+
+    @lazy_property
+    def gas_oxygen_mass(self) -> unyt.unyt_array:
+        """
+        Oxygen mass of gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Oxygen"
+                ),
+                ]
+                * self.mass_gas
         )
 
     @lazy_property
@@ -1949,6 +1994,23 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def gas_magnesium_mass(self) -> unyt.unyt_array:
+        """
+        Magnesium mass of gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Magnesium"
+                ),
+                ]
+                * self.mass_gas
+        )
+
+    @lazy_property
     def gas_diffuse_magnesium_mass(self) -> unyt.unyt_array:
         """
         Diffuse magnesium mass of gas particles.
@@ -1963,6 +2025,23 @@ class ApertureParticleData:
                 ),
             ]
             * self.mass_gas
+        )
+
+    @lazy_property
+    def gas_silicon_mass(self) -> unyt.unyt_array:
+        """
+        Silicon mass of gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Silicon"
+                ),
+                ]
+                * self.mass_gas
         )
 
     @lazy_property
@@ -1983,6 +2062,21 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def gas_iron_mass(self) -> unyt.unyt_array:
+        """
+        Iron mass of gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+                ]
+                * self.mass_gas
+        )
+
+    @lazy_property
     def gas_diffuse_iron_mass(self) -> unyt.unyt_array:
         """
         Diffuse iron mass of gas particles.
@@ -1998,6 +2092,15 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def CarbonMass(self) -> unyt.unyt_quantity:
+        """
+        Carbon mass in gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.gas_carbon_mass.sum()
+
+    @lazy_property
     def DiffuseCarbonMass(self) -> unyt.unyt_quantity:
         """
         Diffuse carbon mass in gas.
@@ -2005,6 +2108,15 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         return self.gas_diffuse_carbon_mass.sum()
+
+    @lazy_property
+    def OxygenMass(self) -> unyt.unyt_quantity:
+        """
+        Oxygen mass in gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.gas_oxygen_mass.sum()
 
     @lazy_property
     def DiffuseOxygenMass(self) -> unyt.unyt_quantity:
@@ -2016,6 +2128,15 @@ class ApertureParticleData:
         return self.gas_diffuse_oxygen_mass.sum()
 
     @lazy_property
+    def MagnesiumMass(self) -> unyt.unyt_quantity:
+        """
+        Magnesium mass in gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.gas_magnesium_mass.sum()
+
+    @lazy_property
     def DiffuseMagnesiumMass(self) -> unyt.unyt_quantity:
         """
         Diffuse magnesium mass in gas.
@@ -2025,6 +2146,15 @@ class ApertureParticleData:
         return self.gas_diffuse_magnesium_mass.sum()
 
     @lazy_property
+    def SiliconMass(self) -> unyt.unyt_quantity:
+        """
+        Silicon mass in gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.gas_silicon_mass.sum()
+
+    @lazy_property
     def DiffuseSiliconMass(self) -> unyt.unyt_quantity:
         """
         Diffuse silicon mass in gas.
@@ -2032,6 +2162,15 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         return self.gas_diffuse_silicon_mass.sum()
+
+    @lazy_property
+    def IronMass(self) -> unyt.unyt_quantity:
+        """
+        Iron mass in gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.gas_iron_mass.sum()
 
     @lazy_property
     def DiffuseIronMass(self) -> unyt.unyt_quantity:
@@ -2290,6 +2429,24 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def gas_log10_O_over_H_low_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the oxygen over hydrogen ratio of gas particles.
+
+        Uses a lower limit on the ratio of 1.e-4 times the solar ratio,
+        which is set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.gas_O_over_H_total,
+                self.snapshot_datasets.get_defined_constant("O_H_sun") * 1.0e-4,
+                np.inf,
+            )
+        )
+
+    @lazy_property
     def gas_log10_O_over_H_diffuse_low_limit(self) -> unyt.unyt_array:
         """
         Logarithm of the diffuse oxygen over hydrogen ratio of gas particles.
@@ -2303,6 +2460,24 @@ class ApertureParticleData:
             np.clip(
                 self.gas_O_over_H_diffuse,
                 self.snapshot_datasets.get_defined_constant("O_H_sun") * 1.0e-4,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def gas_log10_O_over_H_high_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the oxygen over hydrogen ratio of gas particles.
+
+        Uses a lower limit on the ratio of 1.e-3 times the solar ratio,
+        which is set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.gas_O_over_H_total,
+                self.snapshot_datasets.get_defined_constant("O_H_sun") * 1.0e-3,
                 np.inf,
             )
         )
@@ -2403,6 +2578,38 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
+    def LogarithmicMassWeightedOxygenOverHydrogenOfGasLowLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the oxygen over hydrogen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-4 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_log10_O_over_H_low_limit[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedOxygenOverHydrogenOfGasHighLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the oxygen over hydrogen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-3 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_log10_O_over_H_high_limit[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
     def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit(
         self,
     ) -> unyt.unyt_quantity:
@@ -2432,6 +2639,134 @@ class ApertureParticleData:
         return (
             self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
             * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedNitrogenOverOxygenOfGasLowLimit(
+            self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the nitrogen over oxygen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-4 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_log10_N_over_O_total_low_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedNitrogenOverOxygenOfGasHighLimit(
+            self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the nitrogen over oxygen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-3 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_log10_N_over_O_total_high_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedCarbonOverOxygenOfGasLowLimit(
+            self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the carbon over oxygen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-4 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_log10_C_over_O_total_low_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedCarbonOverOxygenOfGasHighLimit(
+            self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the carbon over oxygen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-3 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_log10_C_over_O_total_high_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedOxygenOverHydrogenOfAtomicGasLowLimit(
+            self,
+    ) -> unyt.unyt_quantity:
+        """
+        Atomic mass-weighted sum of the logarithm of the oxygen over hydrogen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-4 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_log10_O_over_H_low_limit[self.gas_is_cold_dense]
+                * self.gas_mass_HI[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedOxygenOverHydrogenOfAtomicGasHighLimit(
+            self,
+    ) -> unyt.unyt_quantity:
+        """
+        Atomic mass-weighted sum of the logarithm of the oxygen over hydrogen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-3 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_log10_O_over_H_high_limit[self.gas_is_cold_dense]
+                * self.gas_mass_HI[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedOxygenOverHydrogenOfMolecularGasLowLimit(
+            self,
+    ) -> unyt.unyt_quantity:
+        """
+        Molecular mass-weighted sum of the logarithm of the oxygen over hydrogen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-4 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_log10_O_over_H_low_limit[self.gas_is_cold_dense]
+                * self.gas_mass_H2[self.gas_is_cold_dense]
+        ).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedOxygenOverHydrogenOfMolecularGasHighLimit(
+            self,
+    ) -> unyt.unyt_quantity:
+        """
+        Molecular mass-weighted sum of the logarithm of the oxygen over hydrogen ratio of gas
+        particles, using a lower limit on the ratio
+        of 1.e-3 times the solar ratio, set in the parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+                self.gas_log10_O_over_H_high_limit[self.gas_is_cold_dense]
+                * self.gas_mass_H2[self.gas_is_cold_dense]
         ).sum()
 
     @lazy_property
@@ -2845,12 +3180,27 @@ class ApertureProperties(HaloProperty):
             "DiffuseMagnesiumMass",
             "DiffuseSiliconMass",
             "DiffuseIronMass",
+            "CarbonMass",
+            "OxygenMass",
+            "MagnesiumMass",
+            "SiliconMass",
+            "IronMass",
             "LinearMassWeightedOxygenOverHydrogenOfGas",
             "LinearMassWeightedNitrogenOverOxygenOfGas",
             "LinearMassWeightedCarbonOverOxygenOfGas",
             "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas",
             "LinearMassWeightedDiffuseNitrogenOverOxygenOfGas",
             "LinearMassWeightedDiffuseCarbonOverOxygenOfGas",
+            "LogarithmicMassWeightedNitrogenOverOxygenOfGasLowLimit",
+            "LogarithmicMassWeightedNitrogenOverOxygenOfGasHighLimit",
+            "LogarithmicMassWeightedCarbonOverOxygenOfGasLowLimit",
+            "LogarithmicMassWeightedCarbonOverOxygenOfGasHighLimit",
+            "LogarithmicMassWeightedOxygenOverHydrogenOfGasLowLimit",
+            "LogarithmicMassWeightedOxygenOverHydrogenOfGasHighLimit",
+            "LogarithmicMassWeightedOxygenOverHydrogenOfAtomicGasLowLimit",
+            "LogarithmicMassWeightedOxygenOverHydrogenOfAtomicGasHighLimit",
+            "LogarithmicMassWeightedOxygenOverHydrogenOfMolecularGasLowLimit",
+            "LogarithmicMassWeightedOxygenOverHydrogenOfMolecularGasHighLimit",
             "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit",
             "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit",
             "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit",
@@ -2865,6 +3215,7 @@ class ApertureProperties(HaloProperty):
             "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit",
             "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit",
             "GasMassInColdDenseDiffuseMetals",
+            "GasMassInColdDenseMetals",
             "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit",
             "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
         ]
