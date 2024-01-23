@@ -66,7 +66,6 @@ class SnapshotDatasets:
             # a colum index
             for iname, colname in enumerate(column_names):
                 self.named_columns[name][colname.decode("utf-8")] = iname
-
         try:
             self.dust_grain_composition = file_handle["SubgridScheme"][
                 "GrainToElementMapping"

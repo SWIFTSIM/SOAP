@@ -205,7 +205,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
             "C_O_sun": 0.549 * unyt.dimensionless,
             "N_O_sun": 0.138 * unyt.dimensionless,
             "O_H_sun": 4.9e-04 * unyt.dimensionless,
-            "Fe_H_sun": 2.82e-5 * unyt.dimensionless,
+            "Fe_H_sun": 3.16e-5 * unyt.dimensionless,
         }
 
         self.named_columns = {
