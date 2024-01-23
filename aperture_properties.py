@@ -1626,7 +1626,6 @@ class ApertureParticleData:
         """
         Dust mass fractions in gas particles.
         """
-        print("Entering dust mass fractions")
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][
@@ -1918,7 +1917,6 @@ class ApertureParticleData:
 
         Diffuse means the contribution from dust has been removed.
         """
-        print('Entering in gas diffuse')
         if self.Ngas == 0:
             return None
         return self.get_dataset("PartType0/ElementMassFractionsDiffuse")[
