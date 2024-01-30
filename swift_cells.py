@@ -157,7 +157,11 @@ class SWIFTCellGrid:
         # Open the input file
         with h5py.File(snap_filename % {"file_nr": 0}, "r") as infile:
 
-            self.snapshot_datasets = SnapshotDatasets(infile)
+            if snap_filename_ref is None:
+                self.snapshot_datasets = SnapshotDatasets(infile)
+            else:
+                with h5py.File(snap_filename_ref % {"file_nr": 0}, "r") as ref_file:
+                    self.snapshot_datasets = SnapshotDatasets(ref_file)
 
             # Get the snapshot unit system
             self.snap_unit_registry = swift_units.unit_registry_from_snapshot(infile)
