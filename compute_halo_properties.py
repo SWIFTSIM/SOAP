@@ -220,28 +220,31 @@ def compute_halo_properties():
             and SO_variations[variation]["radius_multiple"] > 0.0
         ):
             continue
-        halo_prop_list.append(
-            SO_properties.SOProperties(
-                cellgrid,
-                parameter_file,
-                recently_heated_gas_filter,
-                category_filter,
-                SO_variations[variation]["value"],
-                SO_variations[variation]["type"],
+        if "core_excision_fraction" in SO_variations[variation]:
+            halo_prop_list.append(
+                SO_properties.CoreExcisedSOProperties(
+                    cellgrid,
+                    parameter_file,
+                    recently_heated_gas_filter,
+                    category_filter,
+                    SO_variations[variation]["value"],
+                    SO_variations[variation]["type"],
+                    core_excision_fraction=SO_variations[variation][
+                        "core_excision_fraction"
+                    ],
+                )
             )
-        )
-
-    halo_prop_list.append(
-        SO_properties.CoreExcisedSOProperties(
-            cellgrid,
-            parameter_file,
-            recently_heated_gas_filter,
-            category_filter,
-            500.0,
-            "crit",
-            core_excision_fraction=0.15,
-        )
-    )
+        else:
+            halo_prop_list.append(
+                SO_properties.SOProperties(
+                    cellgrid,
+                    parameter_file,
+                    recently_heated_gas_filter,
+                    category_filter,
+                    SO_variations[variation]["value"],
+                    SO_variations[variation]["type"],
+                )
+            )
 
     for variation in SO_variations:
         if (

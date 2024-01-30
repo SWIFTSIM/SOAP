@@ -3122,8 +3122,8 @@ if __name__ == "__main__":
     try:
         parameters = ParameterFile(sys.argv[1]).parameters
     except IndexError:
-        print("Pass the parameter file as an argument")
-        exit()
+        print("No parameter file passed. Outputting all properties")
+        parameters = {}
 
     table = PropertyTable(parameters)
     table.add_properties(ExclusiveSphereProperties, "ApertureProperties")

@@ -335,6 +335,7 @@ SOProperties:
     500_crit:
       type: crit
       value: 500.0
+      core_excision_fraction: 0.15
     5xR500_crit:
       type: crit
       value: 500.0
