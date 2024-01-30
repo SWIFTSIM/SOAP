@@ -31,6 +31,7 @@ def get_soap_args(comm):
     parser.add_argument("--reference-snapshot", help="Specify reference snapshot number containing all particle types", metavar="N", type=int)
     parser.add_argument("--profile", metavar="LEVEL", type=int, default=0, help="Run with profiling (0=off, 1=first MPI rank only, 2=all ranks)")
     parser.add_argument("--max-ranks-reading", type=int, default=32, help="Number of ranks per node reading snapshot data")
+    parser.add_argument("--compress", action="store_true", help="Apply (lossy) compression to the output")
     all_args = parser.parse_args()
 
     # Combine with parameters from configuration file
@@ -59,7 +60,8 @@ def get_soap_args(comm):
     args.reference_snapshot = all_args["Parameters"]["reference_snapshot"]
     args.profile = all_args["Parameters"]["profile"]
     args.max_ranks_reading = all_args["Parameters"]["max_ranks_reading"]
-
+    args.compression = all_args["Parameters"]["compress"]
+    
     return args
 
 
