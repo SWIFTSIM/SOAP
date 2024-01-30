@@ -122,14 +122,20 @@ def collective_write(group, name, data, comm):
 
     # Convert the data to the same type as the dataset in the file:
     # Collective writes fail if any conversion needs to be done.
-    # Converting to a larger type would cause a buffer overrun so we don't
-    # allow that (we're supposed to be compressing the data!)
+    # First need to copy to a buffer large enough for the conversion.
     data_dtype = h5py.h5t.py_create(data.dtype)
-    if file_dtype.get_size() > data_dtype.get_size():
-        raise RuntimeError("Cannot convert to a larger type when writing output!")
-    buf = np.ascontiguousarray(data.copy()).flatten()
-    h5py.h5t.convert(data_dtype, file_dtype, len(buf), buf)
-    
+    nr_elements = 1
+    for s in data.shape:
+        nr_elements *= s
+    bytes_in_memory = nr_elements * data_dtype.get_size()
+    bytes_converted = nr_elements * file_dtype.get_size()
+    max_bytes = max(bytes_in_memory, bytes_converted)
+    buf = np.ndarray(max_bytes, dtype=np.uint8)
+    buf[:bytes_in_memory] = data.flatten().view(dtype=np.uint8)[:bytes_in_memory]
+
+    # Then carry out the conversion
+    h5py.h5t.convert(data_dtype, file_dtype, nr_elements, buf)
+        
     # We need to use the low level interface here because the h5py high
     # level interface omits zero sized writes, which causes a hang in
     # collective mode if a rank has nothing to write.
