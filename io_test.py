@@ -74,20 +74,10 @@ def io_test():
         plt.plot(pos.full[:, 0], pos.full[:, 1], "k,", alpha=0.05)
         plt.gca().set_aspect("equal")
 
-        # Use the mesh to plot a sub-region
-        pos_min = np.asarray((20, 20, 20), dtype=float) * cellgrid.get_unit(
-            "snap_length"
-        )
-        pos_max = np.asarray((40, 40, 40), dtype=float) * cellgrid.get_unit(
-            "snap_length"
-        )
-        idx = mesh.query(pos_min, pos_max)
-        plt.plot(pos.full[idx, 0], pos.full[idx, 1], "r,")
-
         # Try selecting a sphere
         centre = np.asarray((30, 30, 30)) * cellgrid.get_unit("snap_length")
         radius = 10 * cellgrid.get_unit("snap_length")
-        idx = mesh.query_radius(centre, radius, pos)
+        idx = mesh.query_radius_periodic(centre, radius, pos, boxsize)
         plt.plot(pos.full[idx, 0], pos.full[idx, 1], "g,")
 
         plt.xlim(0, 150)
