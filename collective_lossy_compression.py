@@ -3,6 +3,8 @@
 # Apply lossy compression to SOAP output using parallel IO.
 #
 
+import time
+
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
@@ -82,6 +84,8 @@ def compress_file(input_file, output_file):
     #
     # Write all of the datasets to the new file
     #
+    comm.barrier()
+    t0 = time.time()
     outfile = h5py.File(output_file, "r+", driver="mpio", comm=comm)
     for i, name in enumerate(sorted(names)):
         obj = outfile[name]
@@ -89,7 +93,14 @@ def compress_file(input_file, output_file):
             message(f"Writing [{i}/{n}]: {name}")
             lossy_filters.collective_write(outfile, name, data[name], comm=comm)
     outfile.close()
-        
+    comm.barrier()
+    t1 = time.time()
+
+    elapsed = comm.allreduce(t1-t0, op=MPI.MAX)
+
+    message(f"Time elapsed = {elapsed}s")
+    
+    
     
 if __name__ == "__main__":
 
