@@ -172,7 +172,7 @@ def combine_chunks(
                 props_kept["BoundSubhaloProperties/TotalMass"],
                 comm_world,
             )
-            dataset = phdf5.collective_write(
+            dataset = lossy_filters.collective_write(
                 outfile,
                 "SOAP/SubhaloRankByBoundMass",
                 subhalo_rank,
