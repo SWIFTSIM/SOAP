@@ -35,6 +35,7 @@ output_dir=""
 snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 
 # Generate input and output file names
+#TODO: If there are multiple snapshot files the extension should be .%(file_nr)d.hdf5
 snapshot_filename="${snapshot_dir}colibre_${snapnum}.hdf5"
 vr_basename="${vr_dir}halo_${snapnum}"
 chunkdir="${scratch_dir}/SOAP-tmp/"

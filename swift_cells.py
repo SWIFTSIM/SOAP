@@ -312,7 +312,7 @@ class SWIFTCellGrid:
             )
 
         # Scan reference snapshot for missing particle types (e.g. stars or black holes at high z)
-        self.ptypes_ref = {}
+        self.ptypes_ref = []
         if snap_filename_ref is not None:
             # Determine any particle types present in the reference snapshot but not in the current snapshot
             with h5py.File(snap_filename_ref % {"file_nr": 0}, "r") as infile:
