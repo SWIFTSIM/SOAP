@@ -306,6 +306,7 @@ class SOParticleData:
         velocity = []
         types = []
         groupnr = []
+        fofid = []
         softening = []
         for ptype in self.types_present:
             if ptype == "PartType6":
@@ -322,6 +323,7 @@ class SOParticleData:
             typearr[:] = ptype
             types.append(typearr)
             groupnr.append(self.get_dataset(f"{ptype}/GroupNr_bound"))
+            fofid.append(self.get_dataset(f"{ptype}/FOFGroupIDs"))
             s = np.ones(r.shape, dtype="float64") * self.softening_of_parttype[ptype]
             softening.append(s)
         self.mass = np.concatenate(mass)
@@ -330,11 +332,8 @@ class SOParticleData:
         self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
         self.groupnr = np.concatenate(groupnr)
+        self.fofid = np.concatenate(fofid)
         self.softening = np.concatenate(softening)
-
-        # figure out which particles in the list are bound to a halo that is not the
-        # central halo
-        self.is_bound_to_satellite = (self.groupnr >= 0) & (self.groupnr != self.index)
 
     def compute_SO_radius_and_mass(
         self, reference_density: unyt.unyt_quantity, physical_radius: unyt.unyt_quantity
@@ -385,6 +384,8 @@ class SOParticleData:
         )
         # add mean neutrino mass
         cumulative_mass += self.nu_density * 4.0 / 3.0 * np.pi * ordered_radius ** 3
+        # Determine FOF ID of object using the central particle
+        fofid = self.fofid[order[0]]
 
         # Compute density within radius of each particle.
         # Will need to skip any at zero radius.
@@ -434,6 +435,11 @@ class SOParticleData:
         # the radius is set to a physical size but we have no mass nonetheless)
         SO_exists = self.SO_r > 0 and self.SO_mass > 0
 
+        # figure out which particles in the list are bound to a halo that is not the
+        # central halo
+        self.is_bound_to_satellite = (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid == fofid)
+        self.is_bound_to_external = (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid != fofid)
+
         if SO_exists:
             # Calculate DMO mass fraction found at SO_r
             # This is used when computing concentration_dmo
@@ -463,6 +469,7 @@ class SOParticleData:
             self.velocity = self.velocity[self.all_selection]
             self.types = self.types[self.all_selection]
             self.is_bound_to_satellite = self.is_bound_to_satellite[self.all_selection]
+            self.is_bound_to_external = self.is_bound_to_external[self.all_selection]
             self.softening = self.softening[self.all_selection]
 
             if self.has_neutrinos:
@@ -566,13 +573,22 @@ class SOParticleData:
     @lazy_property
     def Mfrac_satellites(self) -> unyt.unyt_quantity:
         """
-        Mass fraction contributed by particles that are bound to subhalos that
-        are not the main subhalo.
+        Mass fraction contributed by particles that are bound to subhalos other
+        than the main subhalo. Excludes particles from hostless subhalos and
+        from subhalos in other FOF groups.
 
         Note that this function is only called when we are guaranteed to have
         an SO, so we do not need to check SO_mass > 0.
         """
         return self.mass[self.is_bound_to_satellite].sum() / self.SO_mass
+
+    @lazy_property
+    def Mfrac_external(self) -> unyt.unyt_quantity:
+        """
+        Mass fraction contributed by particles that are bound to subhalos, but
+        are outside this FOF group. Includes particles from hostless subhalos.
+        """
+        return self.mass[self.is_bound_to_external].sum() / self.SO_mass
 
     @lazy_property
     def gas_masses(self) -> unyt.unyt_array:
@@ -2278,6 +2294,7 @@ class SOProperties(HaloProperty):
             "com",
             "vcom",
             "Mfrac_satellites",
+            "Mfrac_external",
             "Mgas",
             "Lgas",
             "com_gas",
@@ -2483,12 +2500,13 @@ class SOProperties(HaloProperty):
         # an entry in the data argument to calculate(), below.
         # (E.g. gas, star or BH particles in DMO runs)
         self.particle_properties = {
-            "PartType0": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
-            "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
-            "PartType4": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
+            "PartType0": ["Coordinates", "FOFGroupIDs", "GroupNr_bound", "Masses", "Velocities"],
+            "PartType1": ["Coordinates", "FOFGroupIDs", "GroupNr_bound", "Masses", "Velocities"],
+            "PartType4": ["Coordinates", "FOFGroupIDs", "GroupNr_bound", "Masses", "Velocities"],
             "PartType5": [
                 "Coordinates",
                 "DynamicalMasses",
+                "FOFGroupIDs",
                 "GroupNr_bound",
                 "Velocities",
             ],
