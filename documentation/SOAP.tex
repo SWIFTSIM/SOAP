@@ -242,7 +242,7 @@ membership information for each particle in the SWIFT snapshot. The
 datasets in these files are stored in the same order and with the same
 partitioning between files as the datasets in the snapshots. This
 allows SOAP to read halo membership information for sub-regions of the
-simulation volume without reading the full VR output. These files may
+simulation volume without reading the full halo-finder output. These files may
 also be useful for visualising the input halo catalogue.
 
 The group membership files are HDF5 files with one group for each
@@ -250,24 +250,30 @@ particle type, named PartType0, PartType1, ... as in the
 snapshots. Each group contains the following datasets:
 
 \begin{enumerate}
-\item \verb|GroupNr_all|: for each particle in the corresponding snapshot
+\item \verb|GroupNr_bound|: for each particle in the corresponding snapshot
+  file this contains the array index of the subhalo which the
+  particle is bound to. If a particle is not bound to any subhalo it
+  will have \verb|GroupNr_bound|=-1.
+\item \verb|Rank_bound|: the ranking by total energy of this particle within
+  the subhalo it belongs to, or -1 if the particle is not bound to
+  any subhalo. The particle with the most negative total energy has
+  \verb|Rank_bound|=0.
+\item \verb|GroupNr_all|: (VELOCIraptor only) for each particle in the
+  corresponding snapshot
   file this contains the array index of the VR group which the
   particle belongs to, regardless of whether it is bound or
   unbound. Particles in no group have \verb|GroupNr_all|=-1.
-\item \verb|GroupNr_bound|: for each particle in the corresponding snapshot
-  file this contains the array index of the VR group which the
-  particle is bound to. If a particle is not bound to any group it
-  will have \verb|GroupNr_bound|=-1.
-\item \verb|Rank_bound|: the ranking by total energy of this particle within
-  the VR group it belongs to, or -1 if the particle is not bound to
-  any group. The particle with the most negative total energy has
-  \verb|Rank_bound|=0. Note that this is not the same as the potential
-  minimum.
+\item \verb|FOFGroupIDs|: the 3D FOF group the particle is part of.
+  This field is only present if a FOF snapshot is listed in the
+  parameter file. This field is present in the snapshots themselves,
+  but for FLAMINGO hydro simulations the FOF was regenerated. If this
+  field is present it will overwrite the value from the snapshots when
+  SOAP is run.
 \end{enumerate}
 
 The GroupNr values stored here are zero based array indexes into the
-full VR halo catalogue, and not VELOCIraptor IDs (which start from
-one). The first group in the catalogue will have GroupNr=0 and ID=1.
+full subhalo catalogue, and not the subhalos IDs. For example the first group
+in the VELOCIraptor catalogue has GroupNr=0 and ID=1.
 
 The snapshot and group membership files can be combined into a single
 virtual snapshot file which allows swiftsimio and gadgetviewer to read

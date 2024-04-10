@@ -330,6 +330,8 @@ class SWIFTCellGrid:
             self.extra_metadata = identify_datasets(
                 extra_filename, self.nr_files, self.ptypes, self.snap_unit_registry
             )
+            if "FOFGroupIDs" in self.extra_metadata['PartType1']:
+                print('Using FOFGroupIDs from group membership files')
 
         # Scan reference snapshot for missing particle types (e.g. stars or black holes at high z)
         self.ptypes_ref = []

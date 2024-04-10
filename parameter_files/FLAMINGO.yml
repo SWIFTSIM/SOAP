@@ -8,6 +8,9 @@ Parameters:
 Snapshots:
   # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
   filename: "{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
+  # Pass the location of snapshots with FOF IDs if the FOF has been re-run
+  # If fof_filename is not passed the FOF IDs in the snapshot will be used
+  #fof_filename: "/cosma8/data/dp004/jlvc76/FLAMINGO/FOF/{sim_name}/fof_snapshot/flamingo_{snap_nr:04d}.hdf5"
 
 # Which halo finder we're using, and base name for halo finder output files
 HaloFinder:
