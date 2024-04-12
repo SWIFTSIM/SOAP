@@ -145,6 +145,7 @@ from kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
+    get_inertia_tensor_iterative,
     get_reduced_inertia_tensor,
 )
 
@@ -999,6 +1000,15 @@ class ApertureParticleData:
         return 0.5 * ekin_gas.sum()
 
     @lazy_property
+    def GasInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Intertia tensor of the gas component.
+        """
+        if self.Mgas == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass_gas, self.pos_gas)
+
+    @lazy_property
     def GasInertiaTensor(self) -> unyt.unyt_array:
         """
         Intertia tensor of the gas component.
@@ -1053,6 +1063,15 @@ class ApertureParticleData:
         return get_angular_momentum(
             self.mass_dm, self.pos_dm, self.vel_dm, ref_velocity=self.vcom_dm
         )
+
+    @lazy_property
+    def DMInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the DM component.
+        """
+        if self.Mdm == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass_dm, self.pos_dm)
 
     @lazy_property
     def DMInertiaTensor(self) -> unyt.unyt_array:
@@ -1149,6 +1168,15 @@ class ApertureParticleData:
         if not hasattr(self, "internal_Mcountrot_star"):
             self.compute_Lstar_props()
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
+
+    @lazy_property
+    def StellarInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar component.
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass_star, self.pos_star)
 
     @lazy_property
     def StellarInertiaTensor(self) -> unyt.unyt_array:
@@ -1254,6 +1282,15 @@ class ApertureParticleData:
         if not hasattr(self, "internal_kappa_bar"):
             self.compute_Lbar_props()
         return self.internal_kappa_bar
+
+    @lazy_property
+    def BaryonInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the baryonic (gas + stars) component.
+        """
+        if self.Mbaryons == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
     def BaryonInertiaTensor(self) -> unyt.unyt_array:
@@ -2841,6 +2878,11 @@ class ApertureProperties(HaloProperty):
             "HalfMassRadiusStar",
             "HalfMassRadiusBaryon",
             "spin_parameter",
+            # TODO: Total inertia tensor?
+            "GasInertiaTensorIterative",
+            "DMInertiaTensorIterative",
+            "StellarInertiaTensorIterative",
+            "BaryonInertiaTensorIterative",
             "GasInertiaTensor",
             "DMInertiaTensor",
             "StellarInertiaTensor",

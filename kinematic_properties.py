@@ -256,6 +256,99 @@ def get_inertia_tensor(
     return Itensor
 
 
+# TODO: Combine this with projected version?
+def get_inertia_tensor_iterative(
+    mass: unyt.unyt_array, position: unyt.unyt_array
+) -> unyt.unyt_array:
+    """
+    Get the inertia tensor of the given particle distribution, computed as 
+    I_{ij} = m*x_i*x_j / Mtot.
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Masses of the particles.
+     - position: unyt.unyt_array
+       Positions of the particles.
+
+    Returns the inertia tensor.
+    """
+    # 3x3 inertia tensor
+    Itensor = (
+        mass[:, None, None] / mass.sum() * position[:, None:, None] * position[:, None]
+    ).sum(axis=0)
+
+    # Symmetric, so only return lower triangle
+    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
+
+    # TODO: Proper usage of unyt
+    kpc = position.units
+    position = position.value
+    mass = mass.value
+
+    # TODO: What value to use for these parameters?
+    # Convergence criteria
+    max_iter = 20
+    tol = 1e-4
+
+    # TODO: Pass half-mass radius to this function
+    # Use half-mass radius for initial guess radius
+    r = np.linalg.norm(position, axis=1)
+    # TODO: What happens if we only have one particle?
+    R = 1.001 * np.median(np.sort(r))
+
+    # Initial search using sphere
+    eig_val = [1, 1, 1]
+    eig_vec = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    weight = mass / np.sum(mass)
+    q = 1000
+
+    for i_iter in range(max_iter):
+        # Check for convergence
+        new_q = np.sqrt(eig_val[1] / eig_val[2])
+        if abs((new_q - q) / q) < tol:
+            break
+        q = new_q
+        s = np.sqrt(eig_val[0] / eig_val[2])
+        p = np.sqrt(eig_val[0] / eig_val[1])
+
+        # Calculate ellipsoid axis lengths such that area is equal to initial circle
+        axis = np.array([
+            R * np.cbrt(s * p),
+            R * np.cbrt(q / p),
+            R / np.cbrt(q * s),
+        ])
+
+        # Transform particle postions
+        p = np.dot(position, eig_vec) / axis
+        r = np.linalg.norm(p, axis=1)
+
+        # TODO: Do we want to weight by distance?
+        # Weight particles
+        weight = mass / np.sum(mass[r < 1])
+        # Remove particles outside ellipse
+        weight[r > 1] = 0
+
+        # Calculate shape tensor
+        tensor = (weight[:, None, None] * position[:, :, None] * position[:, None, :]).sum(axis=0)
+        # Calculate eigenvalues (in ascending order)
+        try:
+            eig_val, eig_vec = np.linalg.eigh(tensor)
+        except LinAlgError:
+            print('LinAlgError 3D')
+            return np.zeros(6) * position.units * position.units
+        if not np.all(eig_val > 0):
+            return np.zeros(6) * position.units * position.units
+        # TODO: Check for invalid values?
+        # Is it possible to get a matrix that isn't positive definite? The centre could
+        # be outside the particles
+
+    # Return independent components
+    Itensor = np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
+    # Itensor *= position.units * position.units
+    Itensor *= kpc * kpc
+    return Itensor
+
+
 def get_projected_inertia_tensor(
     mass: unyt.unyt_array, position: unyt.unyt_array, axis: int
 ) -> unyt.unyt_array:
@@ -301,6 +394,105 @@ def get_projected_inertia_tensor(
     Itensor *= position.units * position.units
 
     return Itensor
+
+
+def get_projected_inertia_tensor_iterative(
+    mass: unyt.unyt_array, position: unyt.unyt_array, axis: int
+) -> unyt.unyt_array:
+    """
+    Get the inertia tensor of the given particle distribution, projected along the
+    given axis.
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Masses of the particles.
+     - position: unyt.unyt_array
+       Positions of the particles.
+     - axis: 0, 1, 2
+       Projection axis. Only the coordinates perpendicular to this axis are
+       taken into account.
+
+    Returns the inertia tensor.
+    """
+
+    projected_position = unyt.unyt_array(
+        np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
+    )
+    if axis == 0:
+        projected_position[:, 0] = position[:, 1]
+        projected_position[:, 1] = position[:, 2]
+    elif axis == 1:
+        projected_position[:, 0] = position[:, 2]
+        projected_position[:, 1] = position[:, 0]
+    elif axis == 2:
+        projected_position[:, 0] = position[:, 0]
+        projected_position[:, 1] = position[:, 1]
+    else:
+        raise AttributeError(f"Invalid axis: {axis}!")
+
+    # TODO: Proper usage of unyt
+    projected_position = projected_position.value
+    mass = mass.value
+
+    # TODO: What value to use for these parameters?
+    # Convergence criteria
+    max_iter = 20
+    tol = 1e-4
+
+    # TODO: Pass half-mass radius to this function
+    # Use half-mass radius for initial guess radius
+    r = np.linalg.norm(projected_position, axis=1)
+    # TODO: What happens if we only have one particle?
+    R = 1.001 * np.median(np.sort(r))
+
+    # Initial search using circle
+    eig_val = [1, 1]
+    eig_vec = np.array([[1, 0], [0, 1]])
+    weight = mass / np.sum(mass)
+    q = 1000
+
+    for i_iter in range(max_iter):
+        # Check for convergence
+        new_q = np.sqrt(eig_val[0] / eig_val[1])
+        if abs((new_q - q) / q) < tol:
+            break
+        q = new_q
+
+        # Calculate ellipsoid axis lengths such that area is equal to initial circle
+        axis = np.array([
+            R * np.sqrt(q),
+            R / np.sqrt(q),
+        ])
+
+        # Transform particle postions
+        p = np.dot(projected_position, eig_vec) / axis
+        r = np.linalg.norm(p, axis=1)
+
+        # TODO: Do we want to weight by distance?
+        # Weight particles
+        weight = mass / np.sum(mass[r < 1])
+        # Remove particles outside ellipse
+        weight[r > 1] = 0
+
+        # Calculate shape tensor
+        tensor = (weight[:, None, None] * projected_position[:, :, None] * projected_position[:, None, :]).sum(axis=0)
+        # Calculate eigenvalues (in ascending order)
+        try:
+            eig_val, eig_vec = np.linalg.eigh(tensor)
+        except LinAlgError:
+            print('LinAlgError projected')
+            return np.zeros(3) * position.units * position.units
+        if not np.all(eig_val > 0):
+            return np.zeros(3) * position.units * position.units
+        # TODO: Check for invalid values?
+        # Is it possible to get a matrix that isn't positive definite? The centre could
+        # be outside the particles
+
+    # Return independent components
+    Itensor = np.array((tensor[0, 0], tensor[1, 1], tensor[0, 1]))
+    Itensor *= position.units * position.units
+    return Itensor
+
 
 
 def get_reduced_inertia_tensor(mass, position):

@@ -28,6 +28,8 @@ from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from property_table import PropertyTable
 from kinematic_properties import get_projected_inertia_tensor
+from kinematic_properties import get_projected_inertia_tensor_iterative
+# TODO: Rename as projected_inertia_tensor_reduced?
 from kinematic_properties import get_reduced_projected_inertia_tensor
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
@@ -598,6 +600,19 @@ class SingleProjectionProjectedApertureParticleData:
         return np.sqrt((self.gas_mass_fraction * (proj_vgas - vcom_gas) ** 2).sum())
 
     @lazy_property
+    def ProjectedGasInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas in projection.
+        """
+        # Should't compute inertia tensor for very small numbers of particles
+        # TODO: What should this value be? Add it to property description?
+        if self.Mgas == 0:
+            return None
+        return get_projected_inertia_tensor(
+            self.proj_mass_gas, self.proj_pos_gas, self.iproj
+        )
+
+    @lazy_property
     def ProjectedGasInertiaTensor(self) -> unyt.unyt_array:
         """
         Inertia tensor of the gas in projection.
@@ -663,6 +678,19 @@ class SingleProjectionProjectedApertureParticleData:
         return np.sqrt((self.star_mass_fraction * (proj_vstar - vcom_star) ** 2).sum())
 
     @lazy_property
+    def ProjectedStellarInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stars in projection.
+        """
+        # Should't compute inertia tensor for very small numbers of particles
+        # TODO: What should this value be? Add it to property description?
+        if self.Mstar == 0:
+            return None
+        return get_projected_inertia_tensor(
+            self.proj_mass_star, self.proj_pos_star, self.iproj
+        )
+
+    @lazy_property
     def ProjectedStellarInertiaTensor(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stars in projection.
@@ -679,6 +707,19 @@ class SingleProjectionProjectedApertureParticleData:
             return None
         return get_reduced_projected_inertia_tensor(
             self.proj_mass_star, self.proj_pos_star, self.iproj
+        )
+
+    @lazy_property
+    def ProjectedBaryonInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the baryons (gas + stars) in projection.
+        """
+        # Should't compute inertia tensor for very small numbers of particles
+        # TODO: What should this value be? Add it to property description?
+        if self.Mbaryons == 0:
+            return None
+        return get_projected_inertia_tensor(
+            self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
         )
 
     @lazy_property
@@ -1110,6 +1151,9 @@ class ProjectedApertureProperties(HaloProperty):
             "BHmaxvel",
             "BHlasteventa",
             "BHmaxlasteventa",
+            "ProjectedGasInertiaTensorIterative",
+            "ProjectedStellarInertiaTensorIterative",
+            "ProjectedBaryonInertiaTensorIterative",
             "ProjectedGasInertiaTensor",
             "ProjectedStellarInertiaTensor",
             "ProjectedBaryonInertiaTensor",

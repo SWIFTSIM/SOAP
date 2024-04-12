@@ -34,6 +34,7 @@ from kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
+    get_inertia_tensor_iterative,
     get_reduced_inertia_tensor,
     get_velocity_dispersion_matrix,
 )
@@ -656,6 +657,15 @@ class SubhaloParticleData:
         return None
 
     @lazy_property
+    def TotalInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution of the subhalo.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass, self.position)
+
+    @lazy_property
     def TotalInertiaTensor(self) -> unyt.unyt_array:
         """
         Inertia tensor of the total mass distribution of the subhalo.
@@ -748,6 +758,15 @@ class SubhaloParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_gas / self.Mgas
 
     @lazy_property
+    def GasInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas particle distribution of the subhalo.
+        """
+        if self.Mgas == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass_gas, self.pos_gas)
+
+    @lazy_property
     def GasInertiaTensor(self) -> unyt.unyt_array:
         """
         Inertia tensor of the gas particle distribution of the subhalo.
@@ -803,6 +822,15 @@ class SubhaloParticleData:
         return get_angular_momentum(
             self.mass_dm, self.pos_dm, self.vel_dm, ref_velocity=self.vcom_dm
         )
+
+    @lazy_property
+    def DMInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the dark matter particle distribution in the subhalo.
+        """
+        if self.Mdm == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass_dm, self.pos_dm)
 
     @lazy_property
     def DMInertiaTensor(self) -> unyt.unyt_array:
@@ -935,6 +963,15 @@ class SubhaloParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
+    def StellarInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the star particle distribution in the subhalo.
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass_star, self.pos_star)
+
+    @lazy_property
     def StellarInertiaTensor(self) -> unyt.unyt_array:
         """
         Inertia tensor of the star particle distribution in the subhalo.
@@ -1028,6 +1065,16 @@ class SubhaloParticleData:
         if not hasattr(self, "internal_kappa_bar"):
             self.compute_Lbar_props()
         return self.internal_kappa_bar
+
+    @lazy_property
+    def BaryonInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the baryon (gas + star) particle distribution in the
+        subhalo.
+        """
+        if self.Mbaryon == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
     def BaryonInertiaTensor(self) -> unyt.unyt_array:
@@ -1478,6 +1525,11 @@ class SubhaloProperties(HaloProperty):
             "HalfMassRadiusDM",
             "HalfMassRadiusStar",
             "HalfMassRadiusBaryon",
+            "TotalInertiaTensorIterative",
+            "GasInertiaTensorIterative",
+            "DMInertiaTensorIterative",
+            "StellarInertiaTensorIterative",
+            "BaryonInertiaTensorIterative",
             "TotalInertiaTensor",
             "GasInertiaTensor",
             "DMInertiaTensor",

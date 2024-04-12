@@ -32,6 +32,7 @@ from kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
+    get_inertia_tensor_iterative,
     get_reduced_inertia_tensor,
 )
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
@@ -566,6 +567,15 @@ class SOParticleData:
         return get_inertia_tensor(self.mass, self.position)
 
     @lazy_property
+    def TotalInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution.
+        """
+        if self.Mtotpart == 0:
+            return None
+        return get_inertia_tensor_iterative(self.mass, self.position)
+
+    @lazy_property
     def ReducedTotalInertiaTensor(self):
         if self.Mtotpart == 0:
             return None
@@ -696,6 +706,15 @@ class SOParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_gas / self.Mgas
 
     @lazy_property
+    def GasInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas particles.
+        """
+        if self.Mgas == 0:
+            return None
+        return get_inertia_tensor_iterative(self.gas_masses, self.gas_pos)
+
+    @lazy_property
     def GasInertiaTensor(self) -> unyt.unyt_array:
         """
         Inertia tensor of the gas particles.
@@ -768,6 +787,15 @@ class SOParticleData:
         return get_angular_momentum(
             self.dm_masses, self.dm_pos, self.dm_vel, ref_velocity=self.vcom_dm
         )
+
+    @lazy_property
+    def DMInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the dark matter particle distribution.
+        """
+        if self.Mdm == 0:
+            return None
+        return get_inertia_tensor_iterative(self.dm_masses, self.dm_pos)
 
     @lazy_property
     def DMInertiaTensor(self) -> unyt.unyt_array:
@@ -888,6 +916,15 @@ class SOParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
+    def StellarInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar mass distribution.
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor_iterative(self.star_masses, self.star_pos)
+
+    @lazy_property
     def StellarInertiaTensor(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar mass distribution.
@@ -961,6 +998,15 @@ class SOParticleData:
         return (
             self.baryon_masses[:, None] * np.cross(self.baryon_pos, baryon_relvel)
         ).sum(axis=0)
+
+    @lazy_property
+    def BaryonInertiaTensorIterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the baryon (gas + star) particle distribution.
+        """
+        if self.Mbaryons == 0:
+            return None
+        return get_inertia_tensor_iterative(self.baryon_masses, self.baryon_pos)
 
     @lazy_property
     def BaryonInertiaTensor(self) -> unyt.unyt_array:
@@ -2349,6 +2395,11 @@ class SOProperties(HaloProperty):
             "Mnu",
             "spin_parameter",
             "SFR",
+            "TotalInertiaTensorIterative",
+            "GasInertiaTensorIterative",
+            "DMInertiaTensorIterative",
+            "StellarInertiaTensorIterative",
+            "BaryonInertiaTensorIterative",
             "TotalInertiaTensor",
             "GasInertiaTensor",
             "DMInertiaTensor",
