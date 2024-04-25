@@ -46,7 +46,7 @@ def combine_chunks(
 
     # Read the halo index from the scratch files and make a sorting index to put them in order
     with MPITimer("Establishing ID ordering of halos", comm_world):
-        halo_index = scratch_file.read("InputHalos/index")
+        halo_index = scratch_file.read("InputHalos/Index")
         order = psort.parallel_sort(halo_index, return_index=True, comm=comm_world)
         del halo_index
 

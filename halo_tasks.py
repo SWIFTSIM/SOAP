@@ -316,10 +316,12 @@ def process_single_halo(
             try:
                 props = PropertyTable.full_property_list[name]
             except KeyError:
+                full_name = name
                 description = "No description available"
             else:
+                full_name = props[0]
                 description = props[4]
-            halo_result[f"InputHalos/{name}"] = (input_halo[name], description)
+            halo_result[f"InputHalos/{full_name}"] = (input_halo[name], description)
 
     return halo_result
 
