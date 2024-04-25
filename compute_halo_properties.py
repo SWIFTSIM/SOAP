@@ -232,6 +232,7 @@ def compute_halo_properties():
                     recently_heated_gas_filter,
                     category_filter,
                     SO_variations[variation]["value"],
+                    float(SO_variations[variation].get("mass_limit_msun", 0)),
                     SO_variations[variation]["type"],
                     core_excision_fraction=SO_variations[variation][
                         "core_excision_fraction"
@@ -246,6 +247,7 @@ def compute_halo_properties():
                     recently_heated_gas_filter,
                     category_filter,
                     SO_variations[variation]["value"],
+                    float(SO_variations[variation].get("mass_limit_msun", 0)),
                     SO_variations[variation]["type"],
                 )
             )
@@ -263,6 +265,7 @@ def compute_halo_properties():
                     category_filter,
                     SO_variations[variation]["value"],
                     SO_variations[variation]["radius_multiple"],
+                    float(SO_variations[variation].get("mass_limit_msun", 0)),
                     SO_variations[variation]["type"],
                 )
             )

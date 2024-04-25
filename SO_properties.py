@@ -2381,6 +2381,7 @@ class SOProperties(HaloProperty):
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         category_filter: CategoryFilter,
         SOval: float,
+        mass_limit_msun: float,
         type: str = "mean",
     ):
         """
@@ -2403,6 +2404,9 @@ class SOProperties(HaloProperty):
          - SOval: float
            SO threshold value. The precise meaning of this parameter depends on
            the selected SO type.
+         - mass_limit_msun: float
+           Only compute the aperture for halos with a bound mass above this value.
+           Assumed to be in units of Msun
          - type: str
            SO type. Possible values are "mean", "crit", "physical" or "BN98",
            for respectively a multiple of the mean density, a multiple of the
@@ -2457,6 +2461,11 @@ class SOProperties(HaloProperty):
         elif type == "physical":
             self.physical_radius_mpc = 0.001 * SOval
 
+        # Setting mass limit, skips subhalos with less bound mass than this
+        self.mass_limit = mass_limit_msun * unyt.solar_mass
+        if mass_limit_msun > 0:
+            self.description = f'Only calculated for subhalos with bound mass > {mass_limit_msun:.2g} Msun'
+
         # Give this calculation a name so we can select it on the command line
         if type in ["mean", "crit"]:
             self.name = f"SO_{SOval:.0f}_{type}"
@@ -2494,6 +2503,7 @@ class SOProperties(HaloProperty):
             )
             self.SO_name = "BN98"
             self.label = f"within which the density is {self.critical_density_multiple:.2f} times the critical value"
+        self.group_name = f"SO/{self.SO_name}"
 
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the
@@ -2579,7 +2589,9 @@ class SOProperties(HaloProperty):
             SO[name] = unyt.unyt_array(val, dtype=dtype, units=unit, registry=registry)
 
         # SOs only exist for central galaxies
-        if input_halo["is_central"]:
+        # Only calculate for halos above mass limit
+        bound_mass = halo_result['BoundSubhaloProperties/TotalMass'][0]
+        if (input_halo["is_central"]) and (bound_mass > self.mass_limit):
             types_present = [type for type in self.particle_properties if type in data]
 
             part_props = SOParticleData(
@@ -2653,7 +2665,7 @@ class SOProperties(HaloProperty):
             description = prop[5]
             halo_result.update(
                 {
-                    f"SO/{self.SO_name}/{outputname}": (
+                    f"{self.group_name}/{outputname}": (
                         SO[name],
                         description.format(
                             label=self.label, core_excision=self.core_excision_string
@@ -2696,6 +2708,7 @@ class CoreExcisedSOProperties(SOProperties):
         recently_heated_gas_filter,
         category_filter,
         SOval,
+        mass_limit_msun,
         type="mean",
         core_excision_fraction=None,
     ):
@@ -2709,6 +2722,7 @@ class CoreExcisedSOProperties(SOProperties):
             recently_heated_gas_filter,
             category_filter,
             SOval,
+            mass_limit_msun,
             type,
         )
 
@@ -2735,6 +2749,7 @@ class RadiusMultipleSOProperties(SOProperties):
         category_filter: CategoryFilter,
         SOval: float,
         multiple: float,
+        mass_limit_msun: float,
         type: str = "mean",
     ):
         """
@@ -2762,6 +2777,9 @@ class RadiusMultipleSOProperties(SOProperties):
          - multiple: float
            Radius multiple to use. The actual radius is determined by multiplying
            the normal SO determined by the type and SOval with this value.
+         - mass_limit_msun: float
+           Only compute the aperture for halos with a bound mass above this value.
+           Assumed to be in units of Msun
          - type: str
            SO type. Possible values are "mean" or "crit", for respectively a multiple
            of the mean density or a multiple of the critical density.
@@ -2778,6 +2796,7 @@ class RadiusMultipleSOProperties(SOProperties):
             recently_heated_gas_filter,
             category_filter,
             0,
+            mass_limit_msun,
             "physical",
         )
 
@@ -2785,6 +2804,7 @@ class RadiusMultipleSOProperties(SOProperties):
         self.SO_name = f"{multiple:.0f}xR_{SOval:.0f}_{type}"
         self.label = f"with a radius that is {self.SO_name}"
         self.name = f"SO_{self.SO_name}"
+        self.group_name = f"SO/{self.SO_name}"
 
         self.requested_type = type
         self.requested_SOval = SOval
@@ -2877,19 +2897,19 @@ def test_SO_properties_random_halo():
     )
 
     property_calculator_50kpc = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 50.0, "physical"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 50.0, 0, "physical"
     )
     property_calculator_2500mean = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, "mean"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, 0, "mean"
     )
     property_calculator_2500crit = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, "crit"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, 0, "crit"
     )
     property_calculator_BN98 = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 0.0, "BN98"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 0.0, 0, "BN98"
     )
     property_calculator_5x2500mean = RadiusMultipleSOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, 5.0, "mean"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, 5.0, 0, "mean"
     )
 
     for i in range(100):
@@ -3028,6 +3048,7 @@ def test_SO_properties_random_halo():
             filter,
             cat_filter,
             50.0,
+            0,
             "physical",
         )
         property_calculator_2500mean = SOProperties(
@@ -3036,6 +3057,7 @@ def test_SO_properties_random_halo():
             filter,
             cat_filter,
             2500.0,
+            0,
             "mean",
         )
         property_calculator_2500crit = SOProperties(
@@ -3044,6 +3066,7 @@ def test_SO_properties_random_halo():
             filter,
             cat_filter,
             2500.0,
+            0,
             "crit",
         )
         property_calculator_BN98 = SOProperties(
@@ -3052,6 +3075,7 @@ def test_SO_properties_random_halo():
             filter,
             cat_filter,
             0.0,
+            0,
             "BN98",
         )
         property_calculator_5x2500mean = RadiusMultipleSOProperties(
@@ -3061,6 +3085,7 @@ def test_SO_properties_random_halo():
             cat_filter,
             2500.0,
             5.0,
+            0,
             "mean",
         )
 
@@ -3140,6 +3165,7 @@ def test_SO_properties_random_halo():
             filter,
             cat_filter,
             50.0,
+            0,
             "physical",
         )
         property_calculator_2500mean = SOProperties(
@@ -3148,6 +3174,7 @@ def test_SO_properties_random_halo():
             filter,
             cat_filter,
             2500.0,
+            0,
             "mean",
         )
         property_calculator_2500crit = SOProperties(
@@ -3156,6 +3183,7 @@ def test_SO_properties_random_halo():
             filter,
             cat_filter,
             2500.0,
+            0,
             "crit",
         )
         property_calculator_BN98 = SOProperties(
@@ -3164,6 +3192,7 @@ def test_SO_properties_random_halo():
             filter,
             cat_filter,
             0.0,
+            0,
             "BN98",
         )
         property_calculator_5x2500mean = RadiusMultipleSOProperties(
@@ -3173,6 +3202,7 @@ def test_SO_properties_random_halo():
             cat_filter,
             2500.0,
             5.0,
+            0,
             "mean",
         )
 
@@ -3272,7 +3302,7 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
     )
 
     property_calculator_200crit = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 200.0, "crit"
+        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 200.0, 0, "crit"
     )
 
     (input_halo, data, rmax, Mtot, Npart, particle_numbers) = dummy_halos.gen_nfw_halo(
