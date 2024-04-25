@@ -114,6 +114,11 @@ def combine_chunks(
                 attrs.update(compression_metadata)
                 for attr_name, attr_value in attrs.items():
                     dataset.attrs[attr_name] = attr_value
+
+            # Add metadata for certain halo types
+            for halo_prop in halo_prop_list:
+                if halo_prop.description != '':
+                    outfile[halo_prop.group_name].attrs["Description"] = halo_prop.description
             outfile.close()
     comm_world.barrier()
 

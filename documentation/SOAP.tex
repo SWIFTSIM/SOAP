@@ -37,7 +37,9 @@ that they halo finder has determined are bound to the subhalo. Subhalo propertie
 particles that are bound to the subhalo, and apply an additional radial cut (aperture). We use eight 
 different aperture radii (10, 30, 50, 100, 300, 500, 1000, 3000 kpc), so that every (sub-)halo has eight of 
 these. Exclusive sphere properties are contained within a group \verb+ExclusiveSphere/XXXkpc+, where 
-\verb+XXX+ is the corresponding aperture radius.
+\verb+XXX+ is the corresponding aperture radius. A mass limit can be specified in the parameter file,
+in which case only subhalos with a bound mass above the limit will have these properties calculated. The mass
+limit of an aperture is contained in the attributes of its group in the output file.
 
 \paragraph{Inclusive sphere quantities (IS)} use the same physical aperture radii as the exclusive sphere 
 quantities, but include all particles within the radius, regardless of their membership status. They are

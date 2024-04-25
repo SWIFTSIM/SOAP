@@ -299,6 +299,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
+                    float(aperture_variations[variation].get("mass_limit_msun", 0)),
                 )
             )
         else:
@@ -311,6 +312,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
+                    float(aperture_variations[variation].get("mass_limit_msun", 0)),
                 )
             )
     projected_aperture_variations = parameter_file.get_halo_type_variations(

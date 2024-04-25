@@ -65,14 +65,6 @@ class SOCatalogue:
         # Get expansion factor as a float
         a = a_unit.base_value
 
-        # Find minimum physical radius to read in
-        physical_radius_mpc = 0.0
-        for halo_prop in halo_prop_list:
-            physical_radius_mpc = max(
-                physical_radius_mpc, halo_prop.physical_radius_mpc
-            )
-        physical_radius_mpc = unyt.unyt_quantity(physical_radius_mpc, units=swift_pmpc)
-
         # Read the input halo catalogue
         common_props = (
             "index",
@@ -151,6 +143,19 @@ class SOCatalogue:
         local_halo["read_radius"] = local_halo["search_radius"].copy()
         min_radius = 5.0 * swift_cmpc
         local_halo["read_radius"] = local_halo["read_radius"].clip(min=min_radius)
+
+        # Find minimum physical radius to read in
+        physical_radius_mpc = 0.0
+        for halo_prop in halo_prop_list:
+            # Skip halo_types with a nonzero mass limit
+            # Assume mass limit is large enough to exclude majority of halos
+            if hasattr(halo_prop, "mass_limit"):
+                if halo_prop.mass_limit > 0 * unyt.Msun:
+                    continue
+            physical_radius_mpc = max(
+                physical_radius_mpc, halo_prop.physical_radius_mpc
+            )
+        physical_radius_mpc = unyt.unyt_quantity(physical_radius_mpc, units=swift_pmpc)
 
         # Ensure that both the initial search radius and the radius to read in
         # are >= the minimum physical radius required by property calculations

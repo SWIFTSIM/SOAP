@@ -2771,13 +2771,13 @@ class RadiusMultipleSOProperties(SOProperties):
                 "SOs with a radius that is a multiple of another SO radius are only allowed for type mean or crit!"
             )
 
-        # initialise the SOProperties object using a conservative physical radius estimate
+        # initialise the SOProperties object
         super().__init__(
             cellgrid,
             parameters,
             recently_heated_gas_filter,
             category_filter,
-            3000.0,
+            0,
             "physical",
         )
 
@@ -2901,7 +2901,7 @@ def test_SO_properties_random_halo():
             Npart,
             particle_numbers,
         ) = dummy_halos.get_random_halo([2, 10, 100, 1000, 10000], has_neutrinos=True)
-        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers, Mtot)
         rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
 
         # force the SO radius to be outside the search sphere and check that
@@ -3064,40 +3064,7 @@ def test_SO_properties_random_halo():
             "mean",
         )
 
-        halo_result_template = {
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers, Mtot)
         rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
 
         # force the SO radius to be within the search sphere
@@ -3209,40 +3176,7 @@ def test_SO_properties_random_halo():
             "mean",
         )
 
-        halo_result_template = {
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers, Mtot)
         rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
 
         # force the SO radius to be within the search sphere
@@ -3345,7 +3279,7 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
         100, c, num_part
     )
 
-    halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
+    halo_result_template = dummy_halos.get_halo_result_template(particle_numbers, Mtot)
 
     property_calculator_200crit.nu_density *= 0
     property_calculator_200crit.calculate(input_halo, rmax, data, halo_result_template)

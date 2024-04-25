@@ -34,3 +34,5 @@ class HaloProperty:
             "PartType5": cellgrid.baryon_softening,
             "PartType6": cellgrid.nu_softening,
         }  # Softening length of each particle type
+        self.group_name = ''  # Name of halo property in output hdf5 file
+        self.description = '' # Description for hdf5 group

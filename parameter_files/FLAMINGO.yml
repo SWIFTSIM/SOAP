@@ -155,6 +155,7 @@ ApertureProperties:
     exclusive_1000_kpc:
       inclusive: false
       radius_in_kpc: 1000.0
+      mass_limit_msun: 1e13
     exclusive_100_kpc:
       inclusive: false
       radius_in_kpc: 100.0
@@ -164,6 +165,7 @@ ApertureProperties:
     exclusive_3000kpc:
       inclusive: false
       radius_in_kpc: 3000.0
+      mass_limit_msun: 1e13
     exclusive_300kpc:
       inclusive: false
       radius_in_kpc: 300.0
@@ -179,6 +181,7 @@ ApertureProperties:
     inclusive_1000_kpc:
       inclusive: true
       radius_in_kpc: 1000.0
+      mass_limit_msun: 1e13
     inclusive_100_kpc:
       inclusive: true
       radius_in_kpc: 100.0
@@ -188,6 +191,7 @@ ApertureProperties:
     inclusive_3000kpc:
       inclusive: true
       radius_in_kpc: 3000.0
+      mass_limit_msun: 1e13
     inclusive_300kpc:
       inclusive: true
       radius_in_kpc: 300.0

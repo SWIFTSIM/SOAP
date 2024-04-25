@@ -488,9 +488,10 @@ class DummyHaloGenerator:
         return self.dummy_cellgrid
 
     @staticmethod
-    def get_halo_result_template(particle_numbers):
+    def get_halo_result_template(particle_numbers, Mtot):
         """
-        Return a halo_result object which only contains the number of each particle type.
+        Return a halo_result object which only contains the number of each particle type,
+        and the total halo mass.
         """
         return {
             f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
@@ -524,6 +525,14 @@ class DummyHaloGenerator:
                     units="dimensionless",
                 ),
                 "Dummy Nbh for filter",
+            ),
+            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Mtot'][0]}": (
+                unyt.unyt_array(
+                    Mtot,
+                    dtype=PropertyTable.full_property_list["Mtot"][2],
+                    units=Mtot.units,
+                ),
+                "Dummy mass for aperture properties",
             ),
         }
 

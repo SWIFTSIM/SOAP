@@ -23,7 +23,7 @@ import numpy as np
 import unyt
 
 from swift_cells import SWIFTCellGrid
-from halo_properties import HaloProperty
+from halo_properties import HaloProperty, ReadRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from property_table import PropertyTable
@@ -1229,6 +1229,10 @@ class ProjectedApertureProperties(HaloProperty):
 
         types_present = [type for type in self.particle_properties if type in data]
 
+
+        if search_radius < self.physical_radius_mpc * unyt.Mpc:
+            raise ReadRadiusTooSmallError("Search radius is smaller than aperture")
+
         part_props = ProjectedApertureParticleData(
             input_halo,
             data,
@@ -1347,10 +1351,10 @@ def test_projected_aperture_properties():
     )
 
     for i in range(100):
-        input_halo, data, _, _, _, particle_numbers = dummy_halos.get_random_halo(
+        input_halo, data, _, Mtot, _, particle_numbers = dummy_halos.get_random_halo(
             [1, 10, 100, 1000, 10000]
         )
-        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers, Mtot)
 
         input_data = {}
         for ptype in property_calculator.particle_properties:
@@ -1362,7 +1366,7 @@ def test_projected_aperture_properties():
         input_data_copy = input_data.copy()
         halo_result = dict(halo_result_template)
         property_calculator.calculate(
-            input_halo, 0.0 * unyt.kpc, input_data, halo_result
+            input_halo, 50 * unyt.kpc, input_data, halo_result
         )
         assert input_halo == input_halo_copy
         assert input_data == input_data_copy
@@ -1399,40 +1403,7 @@ def test_projected_aperture_properties():
             dummy_halos.get_cell_grid(), single_parameters, 30.0, category_filter
         )
 
-        halo_result_template = {
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers, Mtot)
 
         input_data = {}
         for ptype in property_calculator.particle_properties:
@@ -1444,7 +1415,7 @@ def test_projected_aperture_properties():
         input_data_copy = input_data.copy()
         halo_result = dict(halo_result_template)
         property_calculator.calculate(
-            input_halo, 0.0 * unyt.kpc, input_data, halo_result
+            input_halo, 50 * unyt.kpc, input_data, halo_result
         )
         assert input_halo == input_halo_copy
         assert input_data == input_data_copy
