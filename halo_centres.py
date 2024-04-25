@@ -37,6 +37,7 @@ class SOCatalogue:
         halo_prop_list,
         nr_chunks,
         halo_size_file,
+        min_read_radius_cmpc,
     ):
         """
         This reads in the halo catalogue and stores the halo properties in a
@@ -141,7 +142,7 @@ class SOCatalogue:
 
         # Compute initial radius to read in about each halo
         local_halo["read_radius"] = local_halo["search_radius"].copy()
-        min_radius = 5.0 * swift_cmpc
+        min_radius = min_read_radius_cmpc * swift_cmpc
         local_halo["read_radius"] = local_halo["read_radius"].clip(min=min_radius)
 
         # Find minimum physical radius to read in

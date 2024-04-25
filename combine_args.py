@@ -55,6 +55,8 @@ def combine_arguments(command_line_args, config_file):
             for name in config_file_args[section]:
                 if isinstance(config_file_args[section][name], str):
                     all_args[section][name] = pf.format(config_file_args[section][name], **format_values)
+                elif not isinstance(config_file_args[section][name], dict):
+                    all_args[section][name] = config_file_args[section][name]
 
     return all_args
     

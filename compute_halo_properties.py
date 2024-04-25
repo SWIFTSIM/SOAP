@@ -337,18 +337,6 @@ def compute_halo_properties():
     if comm_world_rank == 0 and args.output_parameters:
         parameter_file.write_parameters(args.output_parameters)
 
-    # Determine which calculations we're doing this time
-    if args.calculations is not None:
-
-        # Check we recognise all the names specified on the command line
-        all_names = [hp.name for hp in halo_prop_list]
-        for calc in args.calculations:
-            if calc not in all_names:
-                raise Exception("Don't recognise calculation name: %s" % calc)
-
-        # Filter out calculations which were not selected
-        halo_prop_list = [hp for hp in halo_prop_list if hp.name in args.calculations]
-
     if len(halo_prop_list) < 1:
         raise Exception("Must select at least one halo property calculation!")
 
@@ -427,6 +415,7 @@ def compute_halo_properties():
         halo_prop_list,
         args.chunks,
         args.halo_sizes_file.format(snap_nr=args.snapshot_nr),
+        args.min_read_radius_cmpc
     )
 
     # Generate the chunk task list

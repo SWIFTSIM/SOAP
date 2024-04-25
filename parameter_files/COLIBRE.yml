@@ -421,4 +421,5 @@ defined_constants:
   N_O_sun: 0.138
   C_O_sun: 0.549
 calculations:
-    recalculate_xrays: false
+  recalculate_xrays: false
+  min_read_radius_cmpc: 0.5
