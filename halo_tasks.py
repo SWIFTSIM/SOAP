@@ -313,13 +313,15 @@ def process_single_halo(
     # Store input halo quantites
     for name in input_halo:
         if name not in ("done", "task_id", "read_radius", "search_radius"):
+            full_name = name
             try:
                 props = PropertyTable.full_property_list[name]
             except KeyError:
-                full_name = name
                 description = "No description available"
             else:
-                full_name = props[0]
+                # Don't overwrite halo finder property names, e.g. don't want "VR/ID" replaced with "ID"
+                if '/' not in name:
+                    full_name = props[0]
                 description = props[4]
             halo_result[f"InputHalos/{full_name}"] = (input_halo[name], description)
 
