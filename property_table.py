@@ -2845,7 +2845,7 @@ class PropertyTable:
             3,
             np.float64,
             "cMpc",
-            "Centre of potential. Used as reference for all relative positions. Equal to the position of the most bound particle in the subhalo.",
+            "The centre of the subhalo as given by the halo finder. Used as reference for all relative positions. For VR and HBTplus this is equal to the position of the most bound particle in the subhalo.",
             "Input",
             "DScale5",
             True,
