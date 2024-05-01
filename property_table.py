@@ -2856,7 +2856,7 @@ class PropertyTable:
             1,
             np.int64,
             "dimensionless",
-            "Index of this halo in the original halo finder catalogue (first halo has index=0).",
+            "Index of this subhalo in the original halo finder catalogue. For HBT certain indices will be missing because the HBT catalogues contain orphan subhalos, but these are ignored by SOAP.",
             "Input",
             "None",
             True,
