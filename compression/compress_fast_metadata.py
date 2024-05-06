@@ -16,7 +16,7 @@ with open(f"{script_folder}/wrong_compression.yml", "r") as cfile:
     compression_fixes = yaml.safe_load(cfile)
 
 chunksize = 1000
-compression_opts = {"compression": "gzip", "compression_opts": 9}
+compression_opts = {"compression": "gzip", "compression_opts": 4}
 
 
 class H5visiter:
