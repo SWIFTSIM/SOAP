@@ -15,7 +15,6 @@ density to a hydrogen number density, i.e.
   n_H = rho / m_H
 """
 
-import numpy as np
 import unyt
 from numpy.typing import NDArray
 

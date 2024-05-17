@@ -1,7 +1,5 @@
 #!/bin/env python
 
-import numpy as np
-import unyt
 
 
 class ReadRadiusTooSmallError(Exception):
@@ -25,3 +23,12 @@ class HaloProperty:
         )  # Dimensionless unit used to define comoving quantities
         self.z = cellgrid.z  # redshift of this snapshot
         self.boxsize = cellgrid.boxsize  # boxsize as unyt_quantity
+        self.softening_of_parttype = {
+            "PartType0": cellgrid.baryon_softening,
+            "PartType1": cellgrid.dark_matter_softening,
+            "PartType2": cellgrid.baryon_softening,
+            "PartType3": cellgrid.baryon_softening,
+            "PartType4": cellgrid.baryon_softening,
+            "PartType5": cellgrid.baryon_softening,
+            "PartType6": cellgrid.nu_softening,
+        }  # Softening length of each particle type

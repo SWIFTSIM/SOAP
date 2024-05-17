@@ -220,7 +220,7 @@ def get_vmax(
     isort = np.argsort(radius)
     ordered_radius = radius[isort]
     cumulative_mass = mass[isort].cumsum()
-    nskip = max(1, np.argmax(ordered_radius > 0.0 * ordered_radius.units))
+    nskip = np.argmin(np.isclose(ordered_radius, 0.0 * ordered_radius.units))
     ordered_radius = ordered_radius[nskip:]
     if len(ordered_radius) == 0 or ordered_radius[0] == 0:
         return 0.0 * radius.units, np.sqrt(0.0 * G * mass.units / radius.units)

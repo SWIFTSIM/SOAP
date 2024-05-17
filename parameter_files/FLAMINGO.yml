@@ -1,3 +1,37 @@
+# Values in this section are substituted into the other sections
+Parameters:
+  sim_dir: 
+  output_dir: 
+  scratch_dir: 
+
+# Location of the Swift snapshots:
+Snapshots:
+  # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
+  filename: "{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
+
+# Which halo finder we're using, and base name for halo finder output files
+HaloFinder:
+  type: VR
+  filename: "{sim_dir}/{sim_name}/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
+  #type: HBTplus
+  #filename: "{sim_dir}/{sim_name}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
+  #type: Subfind
+  #filename: "{sim_dir}/{sim_name}/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
+  #type: Rockstar
+  #filename: "{sim_dir}/{sim_name}/Rockstar/snapshot_{snap_nr:04d}/halos_{snap_nr:04d}"
+
+GroupMembership:
+  # Where to write the group membership files
+  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+  # Where to write halo size information
+  halo_sizes_file: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}/membership_{snap_nr:04d}.nr_particles.hdf5"
+
+HaloProperties:
+  # Where to write the halo properties file
+  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/halo_properties_{snap_nr:04d}.hdf5"
+  # Where to write temporary chunk output
+  chunk_dir: "{scratch_dir}/{sim_name}/SOAP-tmp/{halo_finder}/"
+
 ApertureProperties:
   properties:
     AngularMomentumBaryons: true
@@ -430,14 +464,9 @@ SubhaloProperties:
   variations:
     Bound:
       bound_only: true
-    FOF:
-      bound_only: false
 aliases:
   PartType0/ElementMassFractions: PartType0/SmoothedElementMassFractions
   PartType4/ElementMassFractions: PartType4/SmoothedElementMassFractions
-  # PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
-  # PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
-  # PartType0/MetalMassFractionsDiffuse: PartType0/MetalMassFractions
 filters:
   baryon: 100
   dm: 100
@@ -447,4 +476,6 @@ filters:
 defined_constants:
   O_H_sun: 4.9e-4
   Fe_H_sun: 2.82e-5
-recalculate_xrays: true
+calculations:
+  recalculate_xrays: true
+  xray_table_path: /snap8/scratch/dp004/dc-bras1/cloudy/X_Ray_table_metals_full.hdf5

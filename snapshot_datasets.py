@@ -16,7 +16,7 @@ guarantee that column indices match the correct column name.
 import unyt
 import h5py
 
-from typing import Dict, List
+from typing import Dict
 from numpy.typing import NDArray
 
 

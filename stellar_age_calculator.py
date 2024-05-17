@@ -14,7 +14,7 @@ current scale factor.
 import numpy as np
 import unyt
 
-from astropy.cosmology import w0waCDM, z_at_value, Cosmology
+from astropy.cosmology import w0waCDM, Cosmology
 import astropy.constants as const
 import astropy.units as astropy_units
 

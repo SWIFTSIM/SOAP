@@ -4,7 +4,7 @@
 category_filter.py
 
 Filter used to determine which halo properties should be computed.
-This decision is based on the number of particles in the FOF subhalo and
+This decision is based on the number of particles in the subhalo and
 the category a particular halo property belongs to.
 
 There are 6 categories:
@@ -19,20 +19,21 @@ Additionally, this object also marks properties that should not be computed for 
 
 The filter thresholds for the 5 categories that use a threshold are read from the parameter
 file. The corresponding particle numbers are hardcoded to be read from the
-FOFSubhaloProperties properties.
+BoundSubhaloProperties properties.
 """
 
 from property_table import PropertyTable
 from typing import Dict
 
-# hardcoded names of the particle number data to use:
-# FOFSubhaloProperties/<correct name for Ngas/Ndm/Nstar/Nbh>
-gas_filter_name = f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}"
-dm_filter_name = f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}"
-star_filter_name = (
-    f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}"
+# Hardcoded names of the particle number data to use:
+gas_filter_name = (
+    f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}"
 )
-bh_filter_name = f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}"
+dm_filter_name = f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}"
+star_filter_name = (
+    f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}"
+)
+bh_filter_name = f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}"
 
 
 class CategoryFilter:
@@ -40,8 +41,8 @@ class CategoryFilter:
     Filter used to determine whether properties need to be calculated for a
     certain halo or not.
 
-    This decision is always based on the number of particles in the 6D FOF
-    group, and requires the calculation of FOFSubhaloProperties for each halo.
+    This decision is always based on the number of particles in the subhalo, 
+    and requires the calculation of BoundSubhaloProperties for each halo.
     """
 
     def __init__(self, filter_values: Dict, dmo: bool = False):
@@ -70,7 +71,7 @@ class CategoryFilter:
 
         Parameters:
          - Nx: int
-           Particle numbers for the FOF subhalo.
+           Particle numbers for the subhalo.
         Returns a dictionary containing True/False for each property category.
         """
         return {
@@ -85,12 +86,11 @@ class CategoryFilter:
 
     def get_filters(self, halo_result: Dict) -> Dict:
         """
-        Get the mask for each category, based on the particle numbers of
-        the FOF subhalo group.
+        Get the mask for each category, based on the particle numbers of the subhalo.
 
         Parameters:
          - halo_result: Dict
-           Halo result dictionary that contains the particle numbers for the FOF subhalo.
+           Halo result dictionary that contains the particle numbers for the subhalo.
         Returns a dictionary containing True/False for each property category.
         """
         Ndm = halo_result[dm_filter_name][0].value
@@ -148,8 +148,8 @@ class CategoryFilter:
          - Mask Datasets: Particle number datasets that were used for masking. This
            is a list of dataset names as they appear in the SOAP output (full path),
            e.g. [
-             "FOFSubhaloProperties/NumberOfGasParticles",
-             "FOFSubhaloProperties/NumberOfDarkMatterParticles"
+             "BoundSubhaloProperties/NumberOfGasParticles",
+             "BoundSubhaloProperties/NumberOfDarkMatterParticles"
            ]
            Only present if Masked==True.
          - Mask Threshold: Threshold value used for masking. A row in the output is
@@ -207,3 +207,14 @@ class CategoryFilter:
             # if we don't know the category, we cannot mask it
             # (e.g. "VR")
             return {"Masked": False}
+
+    def print_filters(self):
+        print('Category filter particle thresholds:')
+        print(f"  General   {self.Ngeneral}")
+        print(f"  DM        {self.Ndm}")
+        if self.dmo:
+            print("Run in DMO mode")
+        else:
+            print(f"  Gas       {self.Ngas}")
+            print(f"  Star      {self.Ngeneral}")
+            print(f"  Baryon    {self.Ngeneral}")

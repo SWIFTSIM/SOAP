@@ -2,14 +2,11 @@
 
 import time
 import numpy as np
-from mpi4py import MPI
 import unyt
 import h5py
 
-import task_queue
 import shared_mesh
 import shared_array
-import halo_tasks
 from dataset_names import mass_dataset, ptypes_for_so_masses
 from halo_tasks import process_halos
 from mask_cells import mask_cells
@@ -161,7 +158,7 @@ class ChunkTask:
         comm_size = comm.Get_size()
 
         # Create object to store the results for this chunk
-        nr_halos = len(self.halo_arrays["ID"].full)
+        nr_halos = len(self.halo_arrays["index"].full)
         results = result_set.ResultSet(initial_size=max(1, nr_halos // comm_size))
 
         # Unpack arrays we need
@@ -196,7 +193,7 @@ class ChunkTask:
             message(
                 "identified %d cells to read in %.2fs" % (nr_cells, t1_mask - t0_mask)
             )
-            nr_halos = len(self.halo_arrays["ID"].full)
+            nr_halos = len(self.halo_arrays["index"].full)
 
             # Get the cosmology info from the input snapshot
             critical_density = cellgrid.critical_density

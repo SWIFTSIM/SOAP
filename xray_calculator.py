@@ -44,8 +44,11 @@ class XrayCalculator:
         Load the x-ray tables for the specified bands and observing-types
         Only read the 2 redshifts closest to the redshift of the snapshot being processed by SOAP
         """
-        table = h5py.File(table_path, "r")
-        assert table["Date_String"][()] == 20230412
+        try:
+            table = h5py.File(table_path, "r")
+        except ValueError as e:
+            raise Exception('You must pass an x-ray table path') from e
+
         self.redshift_bins = table["/Bins/Redshift_bins"][()].astype(np.float32)
         idx_z, self.dx_z = self.get_index_1d(self.redshift_bins, np.array([redshift]))
         self.dx_z = self.dx_z[0]

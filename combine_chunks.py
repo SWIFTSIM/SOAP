@@ -2,7 +2,6 @@
 
 import numpy as np
 import h5py
-import unyt
 
 import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
@@ -18,8 +17,10 @@ def sub_snapnum(filename, snapnum):
     Substitute the snapshot number into a filename format string
     without substituting the file number.
     """
-    filename = filename.replace("%(file_nr)", "%%(file_nr)")
-    return filename % {"snap_nr": snapnum}
+    from virgo.util.partial_formatter import PartialFormatter
+    pf = PartialFormatter()
+    filename = pf.format(filename, snap_nr=snapnum, file_nr=None)    
+    return filename
 
 
 def combine_chunks(
@@ -42,11 +43,11 @@ def combine_chunks(
         scratch_file_format, file_idx=range(nr_chunks), comm=comm_world
     )
 
-    # Read the VR halo IDs from the scratch files and make a sorting index to put them in order
+    # Read the halo index from the scratch files and make a sorting index to put them in order
     with MPITimer("Establishing ID ordering of halos", comm_world):
-        vr_id = scratch_file.read(("VR/ID",))["VR/ID"]
-        order = psort.parallel_sort(vr_id, return_index=True, comm=comm_world)
-        del vr_id
+        halo_index = scratch_file.read("InputHalos/index")
+        order = psort.parallel_sort(halo_index, return_index=True, comm=comm_world)
+        del halo_index
 
     # Determine total number of halos
     total_nr_halos = comm_world.allreduce(len(order))
@@ -55,7 +56,7 @@ def combine_chunks(
     # output but will be computed by combining other halo properties.
     soap_metadata = []
     for soapkey in PropertyTable.soap_properties:
-        props = PropertyTable.full_property_list[f"SOAP{soapkey}"]
+        props = PropertyTable.full_property_list[f"{soapkey}"]
         name = f"SOAP/{soapkey}"
         size = props[1]
         if size == 1:
@@ -79,13 +80,14 @@ def combine_chunks(
             cellgrid.write_metadata(outfile.create_group("SWIFT"))
             params = outfile.create_group("Parameters")
             params.attrs["swift_filename"] = args.swift_filename
-            params.attrs["vr_basename"] = args.vr_basename
+            params.attrs["halo_basename"] = args.halo_basename
+            params.attrs["halo_format"] = args.halo_format
             params.attrs["snapshot_nr"] = args.snapshot_nr
             params.attrs["centrals_only"] = 0 if args.centrals_only == False else 1
             calc_names = sorted([hp.name for hp in halo_prop_list])
             params.attrs["calculations"] = calc_names
-            params.attrs["halo_ids"] = (
-                args.halo_ids if args.halo_ids is not None else np.ndarray(0, dtype=int)
+            params.attrs["halo_indices"] = (
+                args.halo_indices if args.halo_indices is not None else np.ndarray(0, dtype=int)
             )
             params.attrs["git_hash"] = args.git_hash
             # NOTE: FLAMINGO
@@ -96,6 +98,8 @@ def combine_chunks(
 
             # Create datasets for all halo properties
             for name, size, unit, dtype, description in ref_metadata + soap_metadata:
+                if description == 'No description available':
+                    print(f'{name} not found in property table')
                 shape = (total_nr_halos,) + size
                 dataset = outfile.create_dataset(
                     name, shape=shape, dtype=dtype, fillvalue=None
@@ -116,7 +120,10 @@ def combine_chunks(
     outfile = h5py.File(output_file, "r+", driver="mpio", comm=comm_world)
 
     # Certain properties are needed to compute subhalo ranking by mass
-    props_to_keep = ("VR/ID", "BoundSubhaloProperties/TotalMass", "VR/HostHaloID")
+    subhalo_rank_props = {
+        'VR': ("InputHalos/VR/ID", "BoundSubhaloProperties/TotalMass", "InputHalos/VR/hostHaloID"),
+        'HBTplus': ("InputHalos/HBTplus/HostHaloId", "BoundSubhaloProperties/TotalMass", "InputHalos/HBTplus/TrackId"),
+    }.get(args.halo_format, ())
     props_kept = {}
 
     with MPITimer("Writing output properties", comm_world):
@@ -138,7 +145,7 @@ def combine_chunks(
 
             # Keep a reference to any arrays we'll need later
             for name in names:
-                if name in props_to_keep:
+                if name in subhalo_rank_props:
                     props_kept[name] = data[name]
 
             # Write these properties to the output file
@@ -149,12 +156,21 @@ def combine_chunks(
 
             del data
 
-    with MPITimer("Writing subhalo ranking by mass", comm_world):
-        # Now write out subhalo ranking by mass within host halos, if we computed all the required quantities.
-        if len(props_kept) == len(props_to_keep):
+    # Now write out subhalo ranking by mass within host halos, if we have all the required quantities.
+    if (len(subhalo_rank_props) > 0) and (len(props_kept) == len(subhalo_rank_props)):
+        with MPITimer("Calculate and write subhalo ranking by mass", comm_world):
+            if args.halo_format == 'VR':
+                # Set field halos to be their own host (VR sets hostid=-1 in this case)
+                field = props_kept["InputHalos/VR/hostHaloID"] < 0
+                host_id = props_kept["InputHalos/VR/hostHaloID"].copy() # avoid modifying input
+                host_id[field] = props_kept["InputHalos/VR/ID"][field]
+            elif args.halo_format == 'HBTplus':
+                # Set hostless halos to have a unique FOF group by using -TrackId
+                hostless = props_kept["InputHalos/HBTplus/HostHaloId"] < 0
+                host_id = props_kept["InputHalos/HBTplus/HostHaloId"].copy()
+                host_id[hostless] = -props_kept["InputHalos/HBTplus/TrackId"][hostless]
             subhalo_rank = compute_subhalo_rank(
-                props_kept["VR/HostHaloID"],
-                props_kept["VR/ID"],
+                host_id,
                 props_kept["BoundSubhaloProperties/TotalMass"],
                 comm_world,
             )
@@ -165,6 +181,9 @@ def combine_chunks(
                 create_dataset=False,
                 comm=comm_world,
             )
+    else:
+        if comm_world.Get_rank() == 0:
+            print('Not calculating subhalo ranking by mass')
 
     # Done.
     outfile.close()

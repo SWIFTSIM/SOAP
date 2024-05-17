@@ -6,6 +6,7 @@
 #
 # export FLAMINGO_SCRATCH_DIR=/snap8/scratch/dp004/${USER}/FLAMINGO/ScienceRuns/
 # export FLAMINGO_OUTPUT_DIR=/cosma8/data/dp004/${USER}/FLAMINGO/ScienceRuns/
+# export HALO_FINDER=HBTplus
 #
 # To run:
 #
@@ -15,7 +16,7 @@
 #
 #SBATCH --ntasks=128
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/compress_membership_L1000N1800_%x.%a.out
+#SBATCH -o ./logs/compress_membership_L1000N1800_%x.%a.%j.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
@@ -44,6 +45,14 @@ else
   exit 1
 fi
 
+# Get halo finder used
+if [[ "${HALO_FINDER}" ]] ; then
+  halo_finder="${HALO_FINDER}"
+else
+  echo Please set HALO_FINDER
+  exit 1
+fi
+
 # Which snapshot to do
 snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 
@@ -51,10 +60,10 @@ snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 sim="L1000N1800/${SLURM_JOB_NAME}"
 
 # Location of the input to compress
-inbase="${scratch_dir}/${sim}/SOAP_uncompressed/"
+inbase="${scratch_dir}/${sim}/SOAP_uncompressed/${halo_finder}/"
 
 # Location of the compressed output
-outbase="${output_dir}/${sim}/SOAP/"
+outbase="${output_dir}/${sim}/SOAP/${halo_finder}/"
 
 # Create the output folder if it does not exist
 outdir="${outbase}/membership_${snapnum}"

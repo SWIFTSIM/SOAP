@@ -86,7 +86,7 @@ class RecentlyHeatedGasFilter:
 
         Omega_b = cellgrid.cosmology["Omega_b"]
         Omega_lambda = cellgrid.cosmology["Omega_lambda"]
-        Omega_r = cellgrid.cosmology["Omega_r"]
+        Omega_g = cellgrid.cosmology["Omega_g"]
         Omega_m = cellgrid.cosmology["Omega_m"]
         w_0 = cellgrid.cosmology["w_0"]
         w_a = cellgrid.cosmology["w_a"]
@@ -97,14 +97,14 @@ class RecentlyHeatedGasFilter:
         critdens_const = (3.0 / (8.0 * np.pi * const.G)).cgs.value
         a_B_c2 = (4.0 * const.sigma_sb / const.c ** 3).cgs.value
 
-        # SWIFT provides Omega_r, but we need a consistent Tcmb0 for astropy.
+        # SWIFT provides Omega_g, but we need a consistent Tcmb0 for astropy.
         # This is an exact inversion of the procedure performed in astropy.
         critical_density_0 = astropy_units.Quantity(
             critdens_const * H0.to("1/s").value ** 2,
             astropy_units.g / astropy_units.cm ** 3,
         )
 
-        Tcmb0 = (Omega_r * critical_density_0.value / a_B_c2) ** (1.0 / 4.0)
+        Tcmb0 = (Omega_g * critical_density_0.value / a_B_c2) ** (1.0 / 4.0)
 
         cosmology = w0waCDM(
             H0=H0.to_astropy(),

@@ -1,3 +1,35 @@
+# Values in this section are substituted into the other sections
+Parameters:
+  sim_dir: 
+  output_dir: 
+  scratch_dir: 
+
+# Location of the Swift snapshots:
+Snapshots:
+  # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
+  filename: "{sim_dir}/colibre_{snap_nr:04d}.hdf5"
+
+# Which halo finder we're using, and base name for halo finder output files
+HaloFinder:
+  type: HBTplus
+  filename: "{sim_dir}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
+  #type: VR
+  #filename: "{sim_dir}/halo_{snap_nr:04d}"
+  #type: Subfind
+  #filename: "{sim_dir}/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
+
+GroupMembership:
+  # Where to write the group membership files
+  filename: "{output_dir}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}.hdf5"
+  # Where to write halo size information
+  halo_sizes_file: "{output_dir}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}.nr_particles.hdf5"
+
+HaloProperties:
+  # Where to write the halo properties file
+  filename: "{output_dir}/SOAP_uncompressed/{halo_finder}/halo_properties_{snap_nr:04d}.hdf5"
+  # Where to write temporary chunk output
+  chunk_dir: "{scratch_dir}/SOAP-tmp/{halo_finder}/"
+
 ApertureProperties:
   properties:
     AngularMomentumBaryons: true
@@ -5,13 +37,11 @@ ApertureProperties:
     AngularMomentumGas: true
     AngularMomentumStars: true
     AtomicHydrogenMass: true
-    BaryonAxisLengths: false
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
     CentreOfMass: true
     CentreOfMassVelocity: true
-    DarkMatterAxisLengths: false
     DarkMatterMass: true
     DarkMatterVelocityDispersionMatrix: true
     DiffuseCarbonMass: true
@@ -35,7 +65,6 @@ ApertureProperties:
     DustSmallGrainMass: true
     DustSmallGrainMassInColdDenseGas: true
     DustSmallGrainMassInMolecularGas: true
-    GasAxisLengths: false
     GasMass: true
     GasMassFractionInIron: true
     GasMassFractionInMetals: true
@@ -97,7 +126,6 @@ ApertureProperties:
     StarFormingGasMassFractionInMetals: true
     StarFormingGasMassFractionInOxygen: true
     StarFormingGasMassInMetals: true
-    StellarAxisLengths: false
     StellarCentreOfMass: false
     StellarInitialMass: true
     StellarLuminosity: true
@@ -110,7 +138,7 @@ ApertureProperties:
     StellarVelocityDispersionMatrix: true
     TotalMass: true
     TotalSNIaRate: true
-    GasMassInColdDenseDiffuseMetals: false
+    GasMassInColdDenseDiffuseMetals: true
     StellarCentreOfMassVelocity: false
     BaryonInertiaTensor: true
     DarkMatterInertiaTensor: true
@@ -162,9 +190,6 @@ ProjectedApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    ProjectedBaryonAxisLengths: false
-    ProjectedGasAxisLengths: false
-    ProjectedStellarAxisLengths: false
     StarFormationRate: true
     StarFormingGasMassFractionInMetals: true
     StellarInitialMass: true
@@ -197,7 +222,6 @@ SOProperties:
     AngularMomentumDarkMatter: true
     AngularMomentumGas: true
     AngularMomentumStars: true
-    BaryonAxisLengths: false
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -205,12 +229,10 @@ SOProperties:
     CentreOfMassVelocity: true
     ComptonY: true
     ComptonYWithoutRecentAGNHeating: true
-    DarkMatterAxisLengths: false
     DarkMatterMass: true
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
     DopplerB: false
-    GasAxisLengths: false
     GasCentreOfMass: true
     GasCentreOfMassVelocity: true
     GasMass: true
@@ -251,7 +273,6 @@ SOProperties:
     SpinParameter: true
     StarFormationRate: true
     StarFormingGasMassFractionInMetals: true
-    StellarAxisLengths: false
     StellarCentreOfMass: true
     StellarCentreOfMassVelocity: true
     StellarInitialMass: true
@@ -262,7 +283,6 @@ SOProperties:
     StellarMassFractionInOxygen: true
     StellarMassInMetals: true
     ThermalEnergyGas: true
-    TotalAxisLengths: false
     TotalMass: true
     XRayLuminosity: false
     XRayLuminosityCoreExcision: false
@@ -310,18 +330,15 @@ SubhaloProperties:
     AngularMomentumDarkMatter: true
     AngularMomentumGas: true
     AngularMomentumStars: true
-    BaryonAxisLengths: false
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
     CentreOfMass: true
     CentreOfMassVelocity: true
-    DarkMatterAxisLengths: false
     DarkMatterMass: true
     DarkMatterVelocityDispersionMatrix: true
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
-    GasAxisLengths: false
     GasMass: true
     GasMassFractionInMetals: true
     GasMassInMetals: true
@@ -345,7 +362,7 @@ SubhaloProperties:
     MaximumCircularVelocityRadius: true
     MaximumDarkMatterCircularVelocity: true
     MaximumDarkMatterCircularVelocityRadius: true
-    MedianBirthDensity: true
+    MedianStellarBirthDensity: true
     MaximumStellarBirthDensity: true
     MinimumStellarBirthDensity: true
     MedianStellarBirthTemperature: true
@@ -368,14 +385,12 @@ SubhaloProperties:
     StarFormationRate: true
     StarFormingGasMass: true
     StarFormingGasMassFractionInMetals: true
-    StellarAxisLengths: false
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
     StellarMassFractionInMetals: true
     StellarMassInMetals: true
     StellarVelocityDispersionMatrix: true
-    TotalAxisLengths: false
     TotalMass: true
     BaryonInertiaTensor: true
     DarkMatterInertiaTensor: true
@@ -390,8 +405,6 @@ SubhaloProperties:
   variations:
     Bound:
       bound_only: true
-    FOF:
-      bound_only: false
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
@@ -407,4 +420,5 @@ defined_constants:
   Fe_H_sun: 3.16e-5
   N_O_sun: 0.138
   C_O_sun: 0.549
-recalculate_xrays: false
+calculations:
+    recalculate_xrays: false

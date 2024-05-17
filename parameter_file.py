@@ -308,4 +308,11 @@ class ParameterFile:
         Returns a bool indicating if xray properties should be recomputed.
         Defaults to true.
         """
-        return self.parameters.get("recalculate_xrays", True)
+        return self.parameters.get("calculations", {}).get("recalculate_xrays", True)
+
+    def get_xray_table_path(self) -> bool:
+        """
+        Returns the table to use for calculating xray properties.
+        Defaults to "", which will cause code to crash.
+        """
+        return self.parameters.get("calculations", {}).get("xray_table_path", "")

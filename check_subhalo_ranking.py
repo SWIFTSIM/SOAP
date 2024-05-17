@@ -3,7 +3,6 @@
 import numpy as np
 import h5py
 
-import virgo.util.match as m
 
 # Read VR IDs and positions
 filename = "/cosma8/data/dp004/flamingo/Runs/L1000N0900/HYDRO_FIDUCIAL_DATA/HYDRO_FIDUCIAL/VR/catalogue_0077/vr_catalogue_0077.properties.0"

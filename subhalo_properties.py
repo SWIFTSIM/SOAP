@@ -26,7 +26,7 @@ performed. See aperture_properties.py for a fully documented example.
 import numpy as np
 import unyt
 
-from halo_properties import HaloProperty
+from halo_properties import HaloProperty, ReadRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from kinematic_properties import (
@@ -74,6 +74,7 @@ class SubhaloParticleData:
         stellar_age_calculator: StellarAgeCalculator,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         snapshot_datasets: SnapshotDatasets,
+        softening_of_parttype: unyt.unyt_array,
     ):
         """
         Constructor.
@@ -106,6 +107,7 @@ class SubhaloParticleData:
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
         self.snapshot_datasets = snapshot_datasets
+        self.softening_of_parttype = softening_of_parttype
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -127,6 +129,7 @@ class SubhaloParticleData:
         radius = []
         velocity = []
         types = []
+        softening = []
         for ptype in self.types_present:
             grnr = self.get_dataset(f"{ptype}/{self.grnr}")
             in_halo = grnr == self.index
@@ -139,15 +142,17 @@ class SubhaloParticleData:
             r = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2 + pos[:, 2] ** 2)
             radius.append(r)
             velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
-            typearr = np.zeros(r.shape, dtype="U9")
-            typearr[:] = ptype
+            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
             types.append(typearr)
+            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
+            softening.append(s)
 
         self.mass = np.concatenate(mass)
         self.position = np.concatenate(position)
         self.radius = np.concatenate(radius)
         self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
+        self.softening = np.concatenate(softening)
 
     @lazy_property
     def gas_mask_sh(self) -> NDArray[bool]:
@@ -155,7 +160,7 @@ class SubhaloParticleData:
         Mask used to mask out gas particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return self.types == "PartType0"
+        return self.types == 0
 
     @lazy_property
     def dm_mask_sh(self) -> NDArray[bool]:
@@ -163,7 +168,7 @@ class SubhaloParticleData:
         Mask used to mask out dark matter particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return self.types == "PartType1"
+        return self.types == 1
 
     @lazy_property
     def star_mask_sh(self) -> NDArray[bool]:
@@ -171,7 +176,7 @@ class SubhaloParticleData:
         Mask used to mask out star particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return self.types == "PartType4"
+        return self.types == 4
 
     @lazy_property
     def bh_mask_sh(self) -> NDArray[bool]:
@@ -179,7 +184,7 @@ class SubhaloParticleData:
         Mask used to mask out black hole particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return self.types == "PartType5"
+        return self.types == 5
 
     @lazy_property
     def baryons_mask_sh(self) -> NDArray[bool]:
@@ -187,7 +192,7 @@ class SubhaloParticleData:
         Mask used to mask out baryon (gas + star) particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return (self.types == "PartType0") | (self.types == "PartType4")
+        return self.gas_mask_sh | self.star_mask_sh
 
     @lazy_property
     def Ngas(self) -> int:
@@ -613,6 +618,14 @@ class SubhaloParticleData:
         if not hasattr(self, "vmax"):
             self.r_vmax, self.vmax = get_vmax(self.mass, self.radius)
         return self.vmax
+
+    @lazy_property
+    def Vmax_soft(self):
+        if self.Mtot == 0:
+            return None
+        soft_r = np.maximum(self.softening, self.radius)
+        _, vmax = get_vmax(self.mass, soft_r)
+        return vmax
 
     @lazy_property
     def spin_parameter(self) -> unyt.unyt_quantity:
@@ -1261,7 +1274,8 @@ class SubhaloParticleData:
         """
         if self.Nstar == 0:
             return None
-        birth_densities = self.stellar_birth_density / unyt.mh
+        # Pressure in physical units can overflow float32
+        birth_densities = self.stellar_birth_density.astype(np.float64) / unyt.mh
         return birth_densities * self.stellar_birth_temperature
 
     @lazy_property
@@ -1453,6 +1467,7 @@ class SubhaloProperties(HaloProperty):
             "StellarLuminosity",
             "starmetalfrac",
             "Vmax",
+            "Vmax_soft",
             "R_vmax",
             "DM_Vmax",
             "DM_R_vmax",
@@ -1521,10 +1536,10 @@ class SubhaloProperties(HaloProperty):
            scale factor and the birth scale factor of the star particles.
          - category_filter: CategoryFilter
            Filter used to determine which properties can be calculated for this halo.
-           This depends on the number of particles in the FOF subhalo and the category
+           This depends on the number of particles in the subhalo and the category
            of each property.
          - bound_only: bool
-           Should properties include all particles in the FOF group, or only
+           Should properties include all particles in the 6DFOF group, or only
            gravitationally bound particles?
         """
 
@@ -1610,9 +1625,10 @@ class SubhaloProperties(HaloProperty):
             self.stellar_ages,
             self.filter,
             self.snapshot_datasets,
+            self.softening_of_parttype,
         )
 
-        if not self.bound_only:
+        if self.bound_only:
             # this is the halo that we use for the filter particle numbers,
             # so we have the get the numbers for the category filters manually
             Ngas = part_props.Ngas
@@ -1668,6 +1684,23 @@ class SubhaloProperties(HaloProperty):
                         )
                     else:
                         subhalo[name] += val
+
+        # Check that we found the expected number of halo member particles:
+        # If not, we need to try again with a larger search radius.
+        Ntot = part_props.Ngas + part_props.Ndm + part_props.Nstar + part_props.Nbh
+        if self.bound_only:
+            Nexpected = input_halo["nr_bound_part"]
+        else:
+            Nexpected = input_halo["nr_bound_part"] + input_halo["nr_unbound_part"]
+        if Ntot < Nexpected:
+            # Try again with a larger search radius
+            # print(f"Ntot = {Ntot}, Nexpected = {Nexpected}, search_radius = {search_radius}")
+            raise ReadRadiusTooSmallError(
+                "Search radius does not contain expected number of particles!"
+            )
+        elif Ntot > Nexpected:
+            # This would indicate a bug somewhere
+            raise RuntimeError("Found more particles than expected!")
 
         # Add these properties to the output
         if self.bound_only:
@@ -1737,8 +1770,6 @@ def test_subhalo_properties():
         cat_filter,
         False,
     )
-    parameters.write_parameters("subhalo.used_parameters.yml")
-
     # generate 100 random halos
     for i in range(100):
         input_halo, data, _, _, _, _ = dummy_halos.get_random_halo(
@@ -1747,8 +1778,8 @@ def test_subhalo_properties():
 
         halo_result = {}
         for subhalo_name, prop_calc in [
-            ("FOFSubhaloProperties", property_calculator_both),
             ("BoundSubhaloProperties", property_calculator_bound),
+            # ("FOFSubhaloProperties", property_calculator_both),
         ]:
             input_data = {}
             for ptype in prop_calc.particle_properties:
@@ -1804,7 +1835,7 @@ def test_subhalo_properties():
         )
         halo_result = {}
         for subhalo_name, prop_calc in [
-            ("FOFSubhaloProperties", property_calculator_both),
+            # ("FOFSubhaloProperties", property_calculator_both),
             ("BoundSubhaloProperties", property_calculator_bound),
         ]:
             input_data = {}

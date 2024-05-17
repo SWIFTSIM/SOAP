@@ -1,4 +1,6 @@
-\paragraph{$^{$FOOTNOTE_NUMBER$}$The satellite mass fraction} is obtained by summing the masses of all 
-particles within the inclusive sphere that are bound to a halo that is not the central (sub-)halo, and 
+\paragraph{$^{$FOOTNOTE_NUMBER$}$The satellite mass fractions} is obtained by summing the masses of all 
+particles within the inclusive sphere that are bound to a subhalo that is not the central subhalo, and 
 dividing this by $M_{\rm{}SO}$. This uses the same membership information that is also used to decide what 
-particles need to be included in the exclusive sphere and projected aperture properties.
+particles need to be included in the exclusive sphere and projected aperture properties. For MassFractionSatellites
+we only consider particles with the same FOF ID as the most bound particle in the central subhalo. For
+MassFractionExternal we include all particles with a FOF ID not equal to the most bound particle in the central subhalo.
