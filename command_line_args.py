@@ -18,7 +18,10 @@ class ThrowingArgumentParser(argparse.ArgumentParser):
 
 
 def get_git_hash() -> str:
-    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    soap_folder = os.path.realpath(__file__).removesuffix("/command_line_args.py")
+    command = f"cd {soap_folder}; git rev-parse HEAD"
+    result = subprocess.run(command, capture_output=True, shell=True)
+    return result.stdout.decode().rstrip()
 
 
 def get_halo_props_args(comm):
