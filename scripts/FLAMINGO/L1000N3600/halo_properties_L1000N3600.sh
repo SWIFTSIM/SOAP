@@ -12,7 +12,7 @@
 #
 #SBATCH --nodes=40
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/halo_properties_L1000N3600_%x.%a.%j.out
+#SBATCH -o ./logs/halo_properties_L1000N3600_%x.%a.%A.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive

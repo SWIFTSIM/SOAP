@@ -14,7 +14,7 @@
 #SBATCH --nodes=8
 #SBATCH --cpus-per-task=1
 #SBATCH --tasks-per-node=32
-#SBATCH -o ./logs/group_membership_L1000N3600_%x.%a.%j.out
+#SBATCH -o ./logs/group_membership_L1000N3600_%x.%a.%A.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
