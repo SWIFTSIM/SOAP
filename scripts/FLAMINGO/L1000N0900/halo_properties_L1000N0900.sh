@@ -22,6 +22,8 @@
 module purge
 module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
 
+set -e
+
 # Which snapshot to do
 snapnum=${SLURM_ARRAY_TASK_ID}
 
