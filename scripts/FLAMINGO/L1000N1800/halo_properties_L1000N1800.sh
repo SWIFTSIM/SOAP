@@ -37,7 +37,7 @@ if [[ $sim == *DMO_* ]] ; then
 fi
 
 mpirun python3 -u -m mpi4py ./compute_halo_properties.py \
-       --sim-name=${sim} --snap-nr=${snapnum} --chunks=4 ${dmo_flag} \
-       parameter_files/FLAMINGO.yml
+       --sim-name=${sim} --snap-nr=${snapnum} --reference-snapshot=77 \
+       --chunks=4 ${dmo_flag} parameter_files/FLAMINGO.yml
 
 echo "Job complete!"
