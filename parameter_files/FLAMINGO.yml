@@ -15,6 +15,7 @@ HaloFinder:
   filename: "{sim_dir}/{sim_name}/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
   #type: HBTplus
   #filename: "{sim_dir}/{sim_name}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
+  #fof_filename: "{sim_dir}/{sim_name}/fof_catalog/fof_output_{snap_nr:04d}.hdf5"
   #type: Subfind
   #filename: "{sim_dir}/{sim_name}/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
   #type: Rockstar
