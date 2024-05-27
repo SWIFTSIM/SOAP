@@ -5,6 +5,7 @@ import h5py
 
 import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
+from virgo.util.partial_formatter import PartialFormatter
 
 from subhalo_rank import compute_subhalo_rank
 import swift_units
@@ -70,6 +71,24 @@ def combine_chunks(
         description = props[4]
         soap_metadata.append((name, size, unit, dtype, description))
 
+    # Add metadata for FOF properties
+    fof_metadata = []
+    if (args.fof_group_filename != '') and (args.halo_format == 'HBTplus'):
+        for fofkey in ['Centres', 'Masses', 'Sizes']:
+            props = PropertyTable.full_property_list[f"FOF/{fofkey}"]
+            name = f"InputHalos/FOF/{fofkey}"
+            size = props[1]
+            if size == 1:
+                # Scalar quantity
+                size = ()
+            else:
+                # Vector quantity
+                size = (size,)
+            dtype = props[2]
+            unit = cellgrid.get_unit(props[3])
+            description = props[4]
+            fof_metadata.append((name, size, unit, dtype, description))
+
     # First MPI rank sets up the output file
     with MPITimer("Creating output file", comm_world):
         output_file = sub_snapnum(args.output_file, args.snapshot_nr)
@@ -97,7 +116,7 @@ def combine_chunks(
                 recently_heated_gas_params.attrs[at] = val
 
             # Create datasets for all halo properties
-            for name, size, unit, dtype, description in ref_metadata + soap_metadata:
+            for name, size, unit, dtype, description in ref_metadata + soap_metadata + fof_metadata:
                 if description == 'No description available':
                     print(f'{name} not found in property table')
                 shape = (total_nr_halos,) + size
@@ -124,6 +143,9 @@ def combine_chunks(
         'VR': ("InputHalos/VR/ID", "BoundSubhaloProperties/TotalMass", "InputHalos/VR/hostHaloID"),
         'HBTplus': ("InputHalos/HBTplus/HostHaloId", "BoundSubhaloProperties/TotalMass", "InputHalos/HBTplus/TrackId"),
     }.get(args.halo_format, ())
+    fof_props = {
+        'HBTplus': ("InputHalos/HBTplus/HostHaloId", "InputHalos/is_central"),
+    }.get(args.halo_format, ())
     props_kept = {}
 
     with MPITimer("Writing output properties", comm_world):
@@ -145,7 +167,7 @@ def combine_chunks(
 
             # Keep a reference to any arrays we'll need later
             for name in names:
-                if name in subhalo_rank_props:
+                if (name in subhalo_rank_props) or (name in fof_props):
                     props_kept[name] = data[name]
 
             # Write these properties to the output file
@@ -155,6 +177,43 @@ def combine_chunks(
                 )
 
             del data
+
+    # Save the properties from the FOF catalogues
+    if fof_metadata:
+
+        with h5py.File(args.fof_group_filename.format(file_nr=0, snap_nr= args.snapshot_nr), "r") as fof_file:
+            fof_reg = swift_units.unit_registry_from_snapshot(fof_file)
+            fof_com_unit = swift_units.units_from_attributes(fof_file['Groups/Centres'].attrs, fof_reg)
+            fof_mass_unit = swift_units.units_from_attributes(fof_file['Groups/Masses'].attrs, fof_reg)
+
+        pf = PartialFormatter()
+        fof_filename = pf.format(args.fof_group_filename, snap_nr=args.snapshot_nr, file_nr=None)
+        fof_file = phdf5.MultiFile(
+            fof_filename, file_nr_attr=("Header", "NumFilesPerSnapshot")
+        )
+
+        # Save data only for central halos which are not hostless
+        keep = (props_kept["InputHalos/is_central"]) == 1 & (props_kept["InputHalos/HBTplus/HostHaloId"] != -1)
+        fof_ids = props_kept["InputHalos/HBTplus/HostHaloId"][keep]
+        indices = psort.parallel_match(fof_ids, fof_file.read('Groups/GroupIDs'), comm=comm_world)
+        # Assert that a FOF group has been found for all subhalos which should have one
+        assert np.all(indices >= 0)
+
+        fof_com = np.zeros((keep.shape[0], 3), dtype=np.float64)
+        fof_com[keep] = psort.fetch_elements(fof_file.read('Groups/Centres'), indices, comm=comm_world)
+        props = PropertyTable.full_property_list[f"FOF/Centres"]
+        fof_com = (fof_com * fof_com_unit).to(cellgrid.get_unit(props[3]))
+        dataset = phdf5.collective_write(outfile, "InputHalos/FOF/Centres", fof_com, create_dataset=False, comm=comm_world)
+
+        fof_mass = np.zeros(keep.shape[0], dtype=np.float64)
+        fof_mass[keep] = psort.fetch_elements(fof_file.read('Groups/Masses'), indices, comm=comm_world)
+        props = PropertyTable.full_property_list[f"FOF/Masses"]
+        fof_mass = (fof_mass * fof_mass_unit).to(cellgrid.get_unit(props[3]))
+        dataset = phdf5.collective_write(outfile, "InputHalos/FOF/Masses", fof_mass, create_dataset=False, comm=comm_world)
+
+        fof_size = np.zeros(keep.shape[0], dtype=np.int64)
+        fof_size[keep] = psort.fetch_elements(fof_file.read('Groups/Sizes'), indices, comm=comm_world)
+        dataset = phdf5.collective_write(outfile, "InputHalos/FOF/Sizes", fof_size, create_dataset=False, comm=comm_world)
 
     # Now write out subhalo ranking by mass within host halos, if we have all the required quantities.
     if (len(subhalo_rank_props) > 0) and (len(props_kept) == len(subhalo_rank_props)):

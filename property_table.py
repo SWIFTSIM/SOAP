@@ -3095,6 +3095,40 @@ class PropertyTable:
             True,
             [],
         ),
+        # FOF properties
+        "FOF/Centres": (
+            "Centres",
+            3,
+            np.float64,
+            "cMpc",
+            "Centre of mass of the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            "FOF",
+            "DScale5",
+            True,
+            [],
+        ),
+        "FOF/Masses": (
+            "Masses",
+            1,
+            np.float32,
+            "Msun",
+            "Mass of the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            "FOF",
+            "FMantissa9",
+            True,
+            [],
+        ),
+        "FOF/Sizes": (
+            "Sizes",
+            1,
+            np.uint64,
+            "dimensionless",
+            "Number of particles in the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            "FOF",
+            "None",
+            True,
+            [],
+        ),
         # SOAP properties
         "SubhaloRankByBoundMass": (
             "SubhaloRankByBoundMass",
@@ -3284,7 +3318,7 @@ class PropertyTable:
 
         # sort the properties by category and then alphabetically within each
         # category
-        category_order = ["basic", "general", "gas", "dm", "star", "baryon", "Input", "VR", "HBTplus", "SOAP"]
+        category_order = ["basic", "general", "gas", "dm", "star", "baryon", "Input", "VR", "HBTplus", "FOF", "SOAP"]
         prop_names = sorted(
             self.properties.keys(),
             key=lambda key: (
@@ -3397,10 +3431,14 @@ class DummyProperties:
     """
 
     def __init__(self, halo_finder):
+        categories = ["SOAP", "Input", halo_finder]
+        # Currently FOF properties are only stored for HBT
+        if halo_finder == 'HBTplus':
+            categories += ["FOF"]
         self.property_list = [
             (prop, *info)
             for prop, info in PropertyTable.full_property_list.items()
-            if info[5] in ("SOAP", "Input", halo_finder)
+            if info[5] in categories
         ]
 
 if __name__ == "__main__":
