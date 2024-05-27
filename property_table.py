@@ -3178,7 +3178,10 @@ class PropertyTable:
                 parameter_file_properties = self.parameters[base_halo_type][
                     "properties"
                 ]
-                if not parameter_file_properties.get(prop_outputname, True):
+                # Whether to include properties missing from parameter file
+                calculations = self.parameters.get("calculations", {})
+                default = calculations.get("calculate_missing_properties", True)
+                if not parameter_file_properties.get(prop_outputname, default):
                     continue
             except KeyError:
                 pass
@@ -3265,7 +3268,7 @@ class PropertyTable:
             )
         print("}")
 
-    def print_table(self, tablefile: str, footnotefile: str, timestampfile: str, filterfile: str):
+    def print_table(self, tablefile: str, footnotefile: str, timestampfile: str, filterfile: str, variationsfile: str):
         """
         Print the table in .tex format and generate the documentation.
 
@@ -3388,7 +3391,61 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
         with open(filterfile, "w") as ofile:
             for name, value in parameters['filters'].items():
                 ofile.write(f'\\newcommand{{\\{name}filter}}{{{value}}}\n')
+        with open(variationsfile, "w") as ofile:
+            # Determine which ExlusiveSphere and InclusiveSphere apertures are present
+            variations_ES = set()
+            variations_IS = set()
+            apertures = parameters.get('ApertureProperties', {})
+            for _, variation in apertures.get('variations', {}).items():
+                if variation['inclusive']:
+                    variations_IS.add(int(variation['radius_in_kpc']))
+                else:
+                    variations_ES.add(int(variation['radius_in_kpc']))
+            # Write InclusiveSphere aperture list
+            if not variations_IS:
+                ofile.write(f'\\newcommand{{\\variationsIS}}{{-}}\n')
+            else:
+                variations_str = ', '.join(str(ap) for ap in sorted(variations_IS))
+                ofile.write(f'\\newcommand{{\\variationsIS}}{{{variations_str}}}\n')
+            # Write ExclusiveSphere aperture list
+            if not variations_ES:
+                ofile.write(f'\\newcommand{{\\variationsES}}{{-}}\n')
+            else:
+                variations_str = ', '.join(str(ap) for ap in sorted(variations_ES))
+                ofile.write(f'\\newcommand{{\\variationsES}}{{{variations_str}}}\n')
 
+            # Determine which projected apertures are present
+            variations_proj = set()
+            apertures = parameters.get('ProjectedApertureProperties', {})
+            for _, variation in apertures.get('variations', {}).items():
+                variations_proj.add(int(variation['radius_in_kpc']))
+            # Write ProjectedAperture list
+            if not variations_proj:
+                ofile.write(f'\\newcommand{{\\variationsEP}}{{-}}\n')
+            else:
+                variations_str = ', '.join(str(ap) for ap in sorted(variations_proj))
+                ofile.write(f'\\newcommand{{\\variationsEP}}{{{variations_str}}}\n')
+
+            # Determine which SO apertures are present
+            variations_SO = set()
+            apertures = parameters.get('SOProperties', {})
+            for _, variation in apertures.get('variations', {}).items():
+                name = ''
+                if 'radius_multiple' in variation:
+                    name += f'{int(variation["radius_multiple"])}x'
+                if variation['type'] == 'crit':
+                    name += f'{int(variation["value"])}c'
+                elif variation['type'] == 'mean':
+                    name += f'{int(variation["value"])}m'
+                elif variation['type'] == 'BN98':
+                    name += f'BN98'
+                variations_SO.add(name)
+            # Write SOProperties apertures list
+            if not variations_SO:
+                ofile.write(f'\\newcommand{{\\variationsSO}}{{-}}\n')
+            else:
+                variations_str = ', '.join(variations_SO)
+                ofile.write(f'\\newcommand{{\\variationsSO}}{{{variations_str}}}\n')
 
 class DummyProperties:
     """
@@ -3456,4 +3513,5 @@ if __name__ == "__main__":
         "documentation/footnotes.tex",
         "documentation/timestamp.tex",
         "documentation/filters.tex",
+        "documentation/variations.tex",
     )

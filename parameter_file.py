@@ -115,7 +115,10 @@ class ParameterFile:
         if file_name is not None:
             with open(file_name, "r") as handle:
                 self.parameters = yaml.safe_load(handle)
-                self.unregistered_parameters = set()
+                if self.calculate_missing_properties():
+                    self.unregistered_parameters = set()
+                else:
+                    self.unregistered_parameters = None
         else:
             self.unregistered_parameters = None
             if parameter_dictionary is not None:
@@ -173,18 +176,22 @@ class ParameterFile:
         for property in full_list:
             if property in self.parameters[halo_type]["properties"]:
                 mask[property] = self.parameters[halo_type]["properties"][property]
-            else:
+            elif self.calculate_missing_properties():
                 mask[property] = True
                 self.parameters[halo_type]["properties"][property] = True
                 if self.unregistered_parameters is not None:
                     self.unregistered_parameters.add((halo_type, property))
+            else:
+                mask[property] = False
         return mask
 
     def print_unregistered_properties(self) -> None:
         """
         Prints a list of any properties that will be calculated that are not present in the parameter file
         """
-        if (self.unregistered_parameters is not None) and (
+        if not self.calculate_missing_properties():
+            print("Properties not present in the parameter file will not be calculated")
+        elif (self.unregistered_parameters is not None) and (
             len(self.unregistered_parameters) != 0
         ):
             print(
@@ -316,3 +323,11 @@ class ParameterFile:
         Defaults to "", which will cause code to crash.
         """
         return self.parameters.get("calculations", {}).get("xray_table_path", "")
+
+    def calculate_missing_properties(self) -> bool:
+        """
+        Returns a bool indicating if properties missing from parameter file
+        should be computed. Defaults to true.
+        """
+        calculations = self.parameters.get("calculations", {})
+        return calculations.get("calculate_missing_properties", True)
