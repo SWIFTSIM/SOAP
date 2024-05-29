@@ -46,7 +46,7 @@ def combine_chunks(
 
     # Read the halo index from the scratch files and make a sorting index to put them in order
     with MPITimer("Establishing ID ordering of halos", comm_world):
-        halo_index = scratch_file.read("InputHalos/index")
+        halo_index = scratch_file.read("InputHalos/HaloCatalogueIndex")
         order = psort.parallel_sort(halo_index, return_index=True, comm=comm_world)
         del halo_index
 
@@ -141,10 +141,10 @@ def combine_chunks(
     # Certain properties are needed to compute subhalo ranking by mass
     subhalo_rank_props = {
         'VR': ("InputHalos/VR/ID", "BoundSubhaloProperties/TotalMass", "InputHalos/VR/hostHaloID"),
-        'HBTplus': ("InputHalos/HBTplus/HostHaloId", "BoundSubhaloProperties/TotalMass", "InputHalos/HBTplus/TrackId"),
+        'HBTplus': ("InputHalos/HBTplus/HostFOFId", "BoundSubhaloProperties/TotalMass", "InputHalos/HBTplus/TrackId"),
     }.get(args.halo_format, ())
     fof_props = {
-        'HBTplus': ("InputHalos/HBTplus/HostHaloId", "InputHalos/is_central"),
+        'HBTplus': ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"),
     }.get(args.halo_format, ())
     props_kept = {}
 
@@ -193,8 +193,8 @@ def combine_chunks(
         )
 
         # Save data only for central halos which are not hostless
-        keep = (props_kept["InputHalos/is_central"]) == 1 & (props_kept["InputHalos/HBTplus/HostHaloId"] != -1)
-        fof_ids = props_kept["InputHalos/HBTplus/HostHaloId"][keep]
+        keep = (props_kept["InputHalos/IsCentral"]) == 1 & (props_kept["InputHalos/HBTplus/HostFOFId"] != -1)
+        fof_ids = props_kept["InputHalos/HBTplus/HostFOFId"][keep]
         indices = psort.parallel_match(fof_ids, fof_file.read('Groups/GroupIDs'), comm=comm_world)
         # Assert that a FOF group has been found for all subhalos which should have one
         assert np.all(indices >= 0)
@@ -225,8 +225,8 @@ def combine_chunks(
                 host_id[field] = props_kept["InputHalos/VR/ID"][field]
             elif args.halo_format == 'HBTplus':
                 # Set hostless halos to have a unique FOF group by using -TrackId
-                hostless = props_kept["InputHalos/HBTplus/HostHaloId"] < 0
-                host_id = props_kept["InputHalos/HBTplus/HostHaloId"].copy()
+                hostless = props_kept["InputHalos/HBTplus/HostFOFId"] < 0
+                host_id = props_kept["InputHalos/HBTplus/HostFOFId"].copy()
                 host_id[hostless] = -props_kept["InputHalos/HBTplus/TrackId"][hostless]
             subhalo_rank = compute_subhalo_rank(
                 host_id,

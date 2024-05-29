@@ -2841,18 +2841,18 @@ class PropertyTable:
         ),
         # InputHalo properties
         "cofp": (
-            "cofp",
+            "HaloCentre",
             3,
             np.float64,
             "cMpc",
-            "Centre of potential. Used as reference for all relative positions. Equal to the position of the most bound particle in the subhalo.",
+            "The centre of the subhalo as given by the halo finder. Used as reference for all relative positions. For VR and HBTplus this is equal to the position of the most bound particle in the subhalo.",
             "Input",
             "DScale5",
             True,
             [],
         ),
         "index": (
-            "index",
+            "HaloCatalogueIndex",
             1,
             np.int64,
             "dimensionless",
@@ -2863,7 +2863,7 @@ class PropertyTable:
             [],
         ),
         "is_central": (
-            r"is\_central",
+            "IsCentral",
             1,
             np.int64,
             "dimensionless",
@@ -2874,7 +2874,7 @@ class PropertyTable:
             [],
         ),
         "nr_bound_part": (
-            r"nr\_bound\_part",
+            "NumberOfBoundParticles",
             1,
             np.int64,
             "dimensionless",
@@ -2953,11 +2953,11 @@ class PropertyTable:
             [],
         ),
         "HBTplus/HostHaloId": (
-            "HostHaloId",
+            "HostFOFId",
             1,
             np.int64,
             "dimensionless",
-            "ID of the host FOF halo of this subhalo. Hostless halos have HostHaloId == -1",
+            "ID of the host FOF halo of this subhalo. Hostless halos have HostFOFId == -1",
             "HBTplus",
             "None",
             True,
