@@ -3318,7 +3318,7 @@ def test_aperture_properties():
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
 
     # Now test the calculation for each property individually, to make sure that
@@ -3416,7 +3416,7 @@ def test_aperture_properties():
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
