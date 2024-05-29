@@ -3113,6 +3113,17 @@ class PropertyTable:
             True,
             [],
         ),
+        "HostHaloIndex": (
+            "HostHaloIndex",
+            1,
+            np.int64,
+            "dimensionless",
+            "Index (within the SOAP arrays) of the top level parent of this subhalo. -1 for central subhalos.",
+            "SOAP",
+            "None",
+            True,
+            [],
+        ),
     }
 
     # halo properties derived from other properties by SOAP

@@ -138,14 +138,19 @@ def combine_chunks(
     # Reopen the output file in parallel mode
     outfile = h5py.File(output_file, "r+", driver="mpio", comm=comm_world)
 
-    # Certain properties are needed to compute subhalo ranking by mass
+    # Certain properties need to be kept for calculating the SOAP properties
     subhalo_rank_props = {
-        'VR': ("InputHalos/VR/ID", "BoundSubhalo/TotalMass", "InputHalos/VR/hostHaloID"),
+        'VR': ("InputHalos/VR/ID", "BoundSubhalo/TotalMass", "InputHalos/VR/HostHaloID"),
         'HBTplus': ("InputHalos/HBTplus/HostFOFId", "BoundSubhalo/TotalMass", "InputHalos/HBTplus/TrackId"),
+    }.get(args.halo_format, ())
+    host_halo_index_props = {
+        'VR': ("InputHalos/VR/ID", "InputHalos/VR/HostHaloID"),
+        'HBTplus': ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"),
     }.get(args.halo_format, ())
     fof_props = {
         'HBTplus': ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"),
     }.get(args.halo_format, ())
+    props_to_keep = set((*subhalo_rank_props, *host_halo_index_props, *fof_props))
     props_kept = {}
 
     with MPITimer("Writing output properties", comm_world):
@@ -167,7 +172,7 @@ def combine_chunks(
 
             # Keep a reference to any arrays we'll need later
             for name in names:
-                if (name in subhalo_rank_props) or (name in fof_props):
+                if name in props_to_keep:
                     props_kept[name] = data[name]
 
             # Write these properties to the output file
@@ -180,12 +185,13 @@ def combine_chunks(
 
     # Save the properties from the FOF catalogues
     if fof_metadata:
-
+        # Extract units from FOF file
         with h5py.File(args.fof_group_filename.format(file_nr=0, snap_nr= args.snapshot_nr), "r") as fof_file:
             fof_reg = swift_units.unit_registry_from_snapshot(fof_file)
             fof_com_unit = swift_units.units_from_attributes(fof_file['Groups/Centres'].attrs, fof_reg)
             fof_mass_unit = swift_units.units_from_attributes(fof_file['Groups/Masses'].attrs, fof_reg)
 
+        # Open file in parallel
         pf = PartialFormatter()
         fof_filename = pf.format(args.fof_group_filename, snap_nr=args.snapshot_nr, file_nr=None)
         fof_file = phdf5.MultiFile(
@@ -193,7 +199,7 @@ def combine_chunks(
         )
 
         # Save data only for central halos which are not hostless
-        keep = (props_kept["InputHalos/IsCentral"]) == 1 & (props_kept["InputHalos/HBTplus/HostFOFId"] != -1)
+        keep = (props_kept["InputHalos/IsCentral"] == 1) & (props_kept["InputHalos/HBTplus/HostFOFId"] != -1)
         fof_ids = props_kept["InputHalos/HBTplus/HostFOFId"][keep]
         indices = psort.parallel_match(fof_ids, fof_file.read('Groups/GroupIDs'), comm=comm_world)
         # Assert that a FOF group has been found for all subhalos which should have one
@@ -215,13 +221,42 @@ def combine_chunks(
         fof_size[keep] = psort.fetch_elements(fof_file.read('Groups/Sizes'), indices, comm=comm_world)
         dataset = phdf5.collective_write(outfile, "InputHalos/FOF/Sizes", fof_size, create_dataset=False, comm=comm_world)
 
+    # Calculate the index of the parent subhalo of each satellite subhalo
+    if len(host_halo_index_props) > 0:
+        with MPITimer("Calculate and write host index of each satellite", comm_world):
+            if args.halo_format == 'VR':
+                sat_mask = props_kept["InputHalos/VR/HostHaloID"] != -1
+                host_ids = props_kept["InputHalos/VR/HostHaloID"][sat_mask]
+                # If we run on an incomplete catalogue (e.g. for testing) some satellites will have an index == -1
+                indices = psort.parallel_match(host_ids, props_kept["InputHalos/VR/ID"], comm=comm_world)
+                host_halo_index = -1 * np.ones(sat_mask.shape[0], dtype=np.int64)
+                host_halo_index[sat_mask] = indices
+            elif args.halo_format == 'HBTplus':
+                # Create array where FOF IDs are only set for centrals, so we can match to it
+                cen_fof_id = props_kept["InputHalos/HBTplus/HostFOFId"].copy()
+                sat_mask = props_kept["InputHalos/IsCentral"] == 0
+                cen_fof_id[sat_mask] = -1
+                host_ids = props_kept["InputHalos/HBTplus/HostFOFId"][sat_mask]
+                # If we run on an incomplete catalogue (e.g. for testing) some satellites will have an index == -1
+                indices = psort.parallel_match(host_ids, cen_fof_id, comm=comm_world)
+                host_halo_index = -1 * np.ones(sat_mask.shape[0], dtype=np.int64)
+                host_halo_index[sat_mask] = indices
+
+            dataset = phdf5.collective_write(
+                outfile,
+                "SOAP/HostHaloIndex",
+                host_halo_index,
+                create_dataset=False,
+                comm=comm_world,
+            )
+
     # Now write out subhalo ranking by mass within host halos, if we have all the required quantities.
-    if (len(subhalo_rank_props) > 0) and (len(props_kept) == len(subhalo_rank_props)):
+    if len(subhalo_rank_props) > 0:
         with MPITimer("Calculate and write subhalo ranking by mass", comm_world):
             if args.halo_format == 'VR':
                 # Set field halos to be their own host (VR sets hostid=-1 in this case)
-                field = props_kept["InputHalos/VR/hostHaloID"] < 0
-                host_id = props_kept["InputHalos/VR/hostHaloID"].copy() # avoid modifying input
+                field = props_kept["InputHalos/VR/HostHaloID"] < 0
+                host_id = props_kept["InputHalos/VR/HostHaloID"].copy() # avoid modifying input
                 host_id[field] = props_kept["InputHalos/VR/ID"][field]
             elif args.halo_format == 'HBTplus':
                 # Set hostless halos to have a unique FOF group by using -TrackId

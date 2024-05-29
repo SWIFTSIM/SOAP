@@ -321,8 +321,9 @@ def process_single_halo(
                 else:
                     dataset_name = prop[0]
                 dtype = prop[2]
+                arr = input_halo[name].astype(dtype)
                 unit = prop[3]
-                arr = input_halo[name].astype(dtype).to(unit)
+                arr.to(unit)
                 description = prop[4]
             # Property not present in PropertyTable. We log this fact to the output
             # within combine_chunks, rather than here.
