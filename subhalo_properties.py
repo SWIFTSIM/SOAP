@@ -1413,6 +1413,15 @@ class SubhaloParticleData:
             self.Mgas + self.Mstar,
         )
 
+    @lazy_property
+    def EncloseRadius(self) -> unyt.unyt_quantity:
+        """
+        Maximum radius of particles in the subhalo.
+        """
+        if self.Mtot == 0:
+            return None
+        return np.max(self.radius)
+
 
 class SubhaloProperties(HaloProperty):
     """
@@ -1506,6 +1515,7 @@ class SubhaloProperties(HaloProperty):
             "MinimumStellarBirthPressure",
             "MaximumStellarBirthPressure",
             "LastSupernovaEventMaximumGasDensity",
+            "EncloseRadius",
         ]
     ]
 

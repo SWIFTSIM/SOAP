@@ -402,6 +402,7 @@ SubhaloProperties:
     HalfMassRadiusGas: true
     HalfMassRadiusStars: true
     HalfMassRadiusTotal: true
+    EncloseRadius: true
     KappaCorotBaryons: true
     KappaCorotGas: true
     KappaCorotStars: true

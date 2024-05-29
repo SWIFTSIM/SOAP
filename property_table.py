@@ -855,6 +855,22 @@ class PropertyTable:
                 "PartType5/DynamicalMasses",
             ],
         ),
+        "EncloseRadius": (
+            "EncloseRadius",
+            1,
+            np.float32,
+            "cMpc",
+            "Radius of the particle furthest from the halo centre",
+            "basic",
+            "FMantissa9",
+            True,
+            [
+                "PartType0/Coordinates",
+                "PartType1/Coordinates",
+                "PartType4/Coordinates",
+                "PartType5/Coordinates",
+            ],
+        ),
         "HeliumMass": (
             "HeliumMass",
             1,
