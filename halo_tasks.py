@@ -321,9 +321,14 @@ def process_single_halo(
                 else:
                     dataset_name = prop[0]
                 dtype = prop[2]
-                arr = input_halo[name].astype(dtype)
                 unit = prop[3]
-                arr.to(unit)
+                # unyt_array.to outputs a float64 array, which is dangerous for integers
+                # so don't allow this to happen
+                if np.issubdtype(input_halo[name].dtype, np.integer) or np.issubdtype(dtype, np.integer):
+                    arr = input_halo[name].astype(dtype)
+                    assert input_halo[name].units == unyt.Unit(unit)
+                else:
+                    arr = input_halo[name].to(unit).astype(dtype)
                 description = prop[4]
             # Property not present in PropertyTable. We log this fact to the output
             # within combine_chunks, rather than here.
