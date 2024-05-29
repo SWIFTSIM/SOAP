@@ -2092,7 +2092,7 @@ class PropertyTable:
             "CentreOfMass",
             3,
             np.float64,
-            "Mpc",
+            "cMpc",
             "Centre of mass.",
             "basic",
             "DScale5",
@@ -2112,7 +2112,7 @@ class PropertyTable:
             "GasCentreOfMass",
             3,
             np.float64,
-            "Mpc",
+            "cMpc",
             "Centre of mass of gas.",
             "gas",
             "DScale5",
@@ -2123,7 +2123,7 @@ class PropertyTable:
             "StellarCentreOfMass",
             3,
             np.float64,
-            "Mpc",
+            "cMpc",
             "Centre of mass of stars.",
             "star",
             "DScale5",
@@ -2311,7 +2311,7 @@ class PropertyTable:
             "SORadius",
             1,
             np.float32,
-            "Mpc",
+            "cMpc",
             "Radius of a sphere {label}",
             "basic",
             "FMantissa9",
@@ -3217,15 +3217,19 @@ class PropertyTable:
             except KeyError:
                 pass
 
-            prop_units = (
-                unyt.unyt_quantity(1, units=prop_units)
-                .units.latex_repr.replace(
-                    "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
+            # Special case for cMpc, so we don't have to define a comoving unit
+            if prop_units == 'cMpc':
+                prop_units = r'\rm{cMpc}'
+            else:
+                prop_units = (
+                    unyt.unyt_quantity(1, units=prop_units)
+                    .units.latex_repr.replace(
+                        "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
+                    )
+                    .replace(
+                        "\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}"
+                    )
                 )
-                .replace(
-                    "\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}"
-                )
-            )
 
             prop_dtype = prop_dtype.__name__
             if prop_name in self.properties:
@@ -3462,9 +3466,6 @@ if __name__ == "__main__":
     from projected_aperture_properties import ProjectedApertureProperties
     from SO_properties import SOProperties, CoreExcisedSOProperties
     from subhalo_properties import SubhaloProperties
-
-    # Add cMpc unit needed for cofp
-    unyt.define_unit('cMpc', 1*unyt.Mpc)
 
     # Parse parameter file
     try:
