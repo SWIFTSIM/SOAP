@@ -158,12 +158,12 @@ def compute_halo_properties():
     )
 
     # Get the full list of property calculations we can do
-    # Note that the order matters: we need to do the BoundSubhaloProperties first,
+    # Note that the order matters: we need to do the BoundSubhalo first,
     # since quantities are filtered based on the particle numbers in there
     # Similarly, things like SO 5xR500_crit can only be done after
     # SO 500_crit for obvious reasons
     halo_prop_list = []
-    # Make sure BoundSubhaloProperties is always first
+    # Make sure BoundSubhalo is always first
     subhalo_variations = parameter_file.get_halo_type_variations(
         "SubhaloProperties",
         {"Bound": {"bound_only": True}},
@@ -180,7 +180,7 @@ def compute_halo_properties():
                     bound_only=subhalo_variations[variation]["bound_only"],
                 )
             )
-    assert len(halo_prop_list) > 0, 'BoundSubhaloProperties must be calculated'
+    assert len(halo_prop_list) > 0, 'BoundSubhalo must be calculated'
     # Adding FOFSubhaloProperties if present
     for variation in subhalo_variations:
         if not subhalo_variations[variation]["bound_only"]:

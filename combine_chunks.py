@@ -140,8 +140,8 @@ def combine_chunks(
 
     # Certain properties are needed to compute subhalo ranking by mass
     subhalo_rank_props = {
-        'VR': ("InputHalos/VR/ID", "BoundSubhaloProperties/TotalMass", "InputHalos/VR/hostHaloID"),
-        'HBTplus': ("InputHalos/HBTplus/HostFOFId", "BoundSubhaloProperties/TotalMass", "InputHalos/HBTplus/TrackId"),
+        'VR': ("InputHalos/VR/ID", "BoundSubhalo/TotalMass", "InputHalos/VR/hostHaloID"),
+        'HBTplus': ("InputHalos/HBTplus/HostFOFId", "BoundSubhalo/TotalMass", "InputHalos/HBTplus/TrackId"),
     }.get(args.halo_format, ())
     fof_props = {
         'HBTplus': ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"),
@@ -230,7 +230,7 @@ def combine_chunks(
                 host_id[hostless] = -props_kept["InputHalos/HBTplus/TrackId"][hostless]
             subhalo_rank = compute_subhalo_rank(
                 host_id,
-                props_kept["BoundSubhaloProperties/TotalMass"],
+                props_kept["BoundSubhalo/TotalMass"],
                 comm_world,
             )
             dataset = phdf5.collective_write(

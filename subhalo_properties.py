@@ -1714,7 +1714,7 @@ class SubhaloProperties(HaloProperty):
 
         # Add these properties to the output
         if self.bound_only:
-            prefix = "BoundSubhaloProperties"
+            prefix = "BoundSubhalo"
         else:
             prefix = "FOFSubhaloProperties"
         for prop in self.property_list:
@@ -1788,7 +1788,7 @@ def test_subhalo_properties():
 
         halo_result = {}
         for subhalo_name, prop_calc in [
-            ("BoundSubhaloProperties", property_calculator_bound),
+            ("BoundSubhalo", property_calculator_bound),
             # ("FOFSubhaloProperties", property_calculator_both),
         ]:
             input_data = {}
@@ -1846,7 +1846,7 @@ def test_subhalo_properties():
         halo_result = {}
         for subhalo_name, prop_calc in [
             # ("FOFSubhaloProperties", property_calculator_both),
-            ("BoundSubhaloProperties", property_calculator_bound),
+            ("BoundSubhalo", property_calculator_bound),
         ]:
             input_data = {}
             for ptype in prop_calc.particle_properties:

@@ -19,7 +19,7 @@ Additionally, this object also marks properties that should not be computed for 
 
 The filter thresholds for the 5 categories that use a threshold are read from the parameter
 file. The corresponding particle numbers are hardcoded to be read from the
-BoundSubhaloProperties properties.
+BoundSubhalo properties.
 """
 
 from property_table import PropertyTable
@@ -27,13 +27,13 @@ from typing import Dict
 
 # Hardcoded names of the particle number data to use:
 gas_filter_name = (
-    f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}"
+    f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}"
 )
-dm_filter_name = f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}"
+dm_filter_name = f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}"
 star_filter_name = (
-    f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}"
+    f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}"
 )
-bh_filter_name = f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}"
+bh_filter_name = f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}"
 
 
 class CategoryFilter:
@@ -42,7 +42,7 @@ class CategoryFilter:
     certain halo or not.
 
     This decision is always based on the number of particles in the subhalo, 
-    and requires the calculation of BoundSubhaloProperties for each halo.
+    and requires the calculation of BoundSubhalo for each halo.
     """
 
     def __init__(self, filter_values: Dict, dmo: bool = False):
@@ -148,8 +148,8 @@ class CategoryFilter:
          - Mask Datasets: Particle number datasets that were used for masking. This
            is a list of dataset names as they appear in the SOAP output (full path),
            e.g. [
-             "BoundSubhaloProperties/NumberOfGasParticles",
-             "BoundSubhaloProperties/NumberOfDarkMatterParticles"
+             "BoundSubhalo/NumberOfGasParticles",
+             "BoundSubhalo/NumberOfDarkMatterParticles"
            ]
            Only present if Masked==True.
          - Mask Threshold: Threshold value used for masking. A row in the output is
