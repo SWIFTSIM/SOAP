@@ -116,8 +116,7 @@ class ProjectedApertureParticleData:
             rprojz = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2)
             radius_projz.append(rprojz)
             velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
-            typearr = np.zeros(rprojx.shape, dtype="U9")
-            typearr[:] = ptype
+            typearr = int(ptype[-1]) * np.ones(rprojx.shape, dtype=np.int32)
             types.append(typearr)
 
         self.mass = np.concatenate(mass)
@@ -196,7 +195,7 @@ class SingleProjectionProjectedApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.projmask[self.types == "PartType0"]
+        return self.projmask[self.types == 0]
 
     @lazy_property
     def dm_mask_ap(self) -> NDArray[bool]:
@@ -207,7 +206,7 @@ class SingleProjectionProjectedApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.projmask[self.types == "PartType1"]
+        return self.projmask[self.types == 1]
 
     @lazy_property
     def star_mask_ap(self) -> NDArray[bool]:
@@ -218,7 +217,7 @@ class SingleProjectionProjectedApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.projmask[self.types == "PartType4"]
+        return self.projmask[self.types == 4]
 
     @lazy_property
     def bh_mask_ap(self) -> NDArray[bool]:
@@ -229,7 +228,7 @@ class SingleProjectionProjectedApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.projmask[self.types == "PartType5"]
+        return self.projmask[self.types == 5]
 
     @lazy_property
     def baryon_mask_ap(self) -> NDArray[bool]:
@@ -239,7 +238,7 @@ class SingleProjectionProjectedApertureParticleData:
         in the calculation. Note that baryons are gas and star particles,
         so "PartType0" and "PartType4".
         """
-        return self.projmask[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.projmask[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def Ngas(self) -> int:
@@ -274,21 +273,21 @@ class SingleProjectionProjectedApertureParticleData:
         """
         Mass of the gas particles.
         """
-        return self.proj_mass[self.proj_type == "PartType0"]
+        return self.proj_mass[self.proj_type == 0]
 
     @lazy_property
     def proj_mass_dm(self) -> unyt.unyt_array:
         """
         Mass of the DM particles.
         """
-        return self.proj_mass[self.proj_type == "PartType1"]
+        return self.proj_mass[self.proj_type == 1]
 
     @lazy_property
     def proj_mass_star(self) -> unyt.unyt_array:
         """
         Mass of the star particles.
         """
-        return self.proj_mass[self.proj_type == "PartType4"]
+        return self.proj_mass[self.proj_type == 4]
 
     @lazy_property
     def proj_mass_baryons(self) -> unyt.unyt_array:
@@ -296,7 +295,7 @@ class SingleProjectionProjectedApertureParticleData:
         Mass of the baryon particles (gas + stars).
         """
         return self.proj_mass[
-            (self.proj_type == "PartType0") | (self.proj_type == "PartType4")
+            (self.proj_type == 0) | (self.proj_type == 4)
         ]
 
     @lazy_property
@@ -304,21 +303,21 @@ class SingleProjectionProjectedApertureParticleData:
         """
         Projected position of the gas particles.
         """
-        return self.proj_position[self.proj_type == "PartType0"]
+        return self.proj_position[self.proj_type == 0]
 
     @lazy_property
     def proj_pos_dm(self) -> unyt.unyt_array:
         """
         Projected position of the DM particles.
         """
-        return self.proj_position[self.proj_type == "PartType1"]
+        return self.proj_position[self.proj_type == 1]
 
     @lazy_property
     def proj_pos_star(self) -> unyt.unyt_array:
         """
         Projected position of the star particles.
         """
-        return self.proj_position[self.proj_type == "PartType4"]
+        return self.proj_position[self.proj_type == 4]
 
     @lazy_property
     def proj_pos_baryons(self) -> unyt.unyt_array:
@@ -326,7 +325,7 @@ class SingleProjectionProjectedApertureParticleData:
         Projected position of the baryon (gas + stars) particles.
         """
         return self.proj_position[
-            (self.proj_type == "PartType0") | (self.proj_type == "PartType4")
+            (self.proj_type == 0) | (self.proj_type == 4)
         ]
 
     @lazy_property
@@ -362,7 +361,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         Total dynamical mass of BH particles.
         """
-        return self.proj_mass[self.proj_type == "PartType5"].sum()
+        return self.proj_mass[self.proj_type == 5].sum()
 
     @lazy_property
     def Mbaryons(self) -> unyt.unyt_quantity:
@@ -593,7 +592,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        proj_vgas = self.proj_velocity[self.proj_type == "PartType0", self.iproj]
+        proj_vgas = self.proj_velocity[self.proj_type == 0, self.iproj]
         vcom_gas = (self.gas_mass_fraction * proj_vgas).sum()
         return np.sqrt((self.gas_mass_fraction * (proj_vgas - vcom_gas) ** 2).sum())
 
@@ -635,7 +634,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mdm == 0:
             return None
-        proj_vdm = self.proj_velocity[self.proj_type == "PartType1", self.iproj]
+        proj_vdm = self.proj_velocity[self.proj_type == 1, self.iproj]
         vcom_dm = (self.dm_mass_fraction * proj_vdm).sum()
         return np.sqrt((self.dm_mass_fraction * (proj_vdm - vcom_dm) ** 2).sum())
 
@@ -658,7 +657,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        proj_vstar = self.proj_velocity[self.proj_type == "PartType4", self.iproj]
+        proj_vstar = self.proj_velocity[self.proj_type == 4, self.iproj]
         vcom_star = (self.star_mass_fraction * proj_vstar).sum()
         return np.sqrt((self.star_mass_fraction * (proj_vstar - vcom_star) ** 2).sum())
 
@@ -1025,7 +1024,7 @@ class SingleProjectionProjectedApertureParticleData:
         Half mass radius of gas.
         """
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == "PartType0"],
+            self.proj_radius[self.proj_type == 0],
             self.proj_mass_gas,
             self.Mgas,
         )
@@ -1036,7 +1035,7 @@ class SingleProjectionProjectedApertureParticleData:
         Half mass radius of dark matter.
         """
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == "PartType1"], self.proj_mass_dm, self.Mdm
+            self.proj_radius[self.proj_type == 1], self.proj_mass_dm, self.Mdm
         )
 
     @lazy_property
@@ -1045,7 +1044,7 @@ class SingleProjectionProjectedApertureParticleData:
         Half mass radius of stars.
         """
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == "PartType4"],
+            self.proj_radius[self.proj_type == 4],
             self.proj_mass_star,
             self.Mstar,
         )
@@ -1057,7 +1056,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         return get_half_mass_radius(
             self.proj_radius[
-                (self.proj_type == "PartType0") | (self.proj_type == "PartType4")
+                (self.proj_type == 0) | (self.proj_type == 4)
             ],
             self.proj_mass_baryons,
             self.Mbaryons,

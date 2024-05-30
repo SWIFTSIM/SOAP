@@ -1,11 +1,8 @@
 #!/bin/env python
 
-import os.path
-import h5py
 import numpy as np
 import unyt
 import virgo.util.match
-import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.gather_array as g
 
 import domain_decomposition
@@ -36,7 +33,6 @@ class SOCatalogue:
         halo_indices,
         halo_prop_list,
         nr_chunks,
-        halo_size_file,
     ):
         """
         This reads in the halo catalogue and stores the halo properties in a
@@ -88,7 +84,7 @@ class SOCatalogue:
             )
         elif halo_format == "HBTplus":
             halo_data = read_hbtplus.read_hbtplus_catalogue(
-                comm, halo_basename, a_unit, registry, boxsize, halo_size_file
+                comm, halo_basename, a_unit, registry, boxsize
             )
         elif halo_format == "Subfind":
             halo_data = read_subfind.read_gadget4_catalogue(

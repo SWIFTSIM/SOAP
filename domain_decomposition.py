@@ -3,8 +3,6 @@
 import numpy as np
 import virgo.util.peano as peano
 import virgo.mpi.parallel_sort as psort
-import unyt
-from mpi4py import MPI
 
 
 def peano_decomposition(boxsize, centres, nr_chunks, comm):

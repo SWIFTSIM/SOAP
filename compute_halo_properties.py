@@ -12,21 +12,14 @@ comm_world_size = comm_world.Get_size()
 
 import os
 import os.path
-import sys
-import traceback
 import time
 import numpy as np
-import h5py
 import unyt
 
-import virgo.mpi.parallel_hdf5 as phdf5
-import virgo.mpi.parallel_sort as psort
 
 import halo_centres
 import swift_cells
 import chunk_tasks
-import swift_units
-import halo_properties
 import task_queue
 import lustre
 import soap_args
@@ -424,7 +417,6 @@ def compute_halo_properties():
         args.halo_indices,
         halo_prop_list,
         args.chunks,
-        args.halo_sizes_file.format(snap_nr=args.snapshot_nr),
     )
 
     # Generate the chunk task list

@@ -1,7 +1,6 @@
 #!/bin/env python
 
 import yaml
-import argparse
 
 from virgo.util.partial_formatter import PartialFormatter
 

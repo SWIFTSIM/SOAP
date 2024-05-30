@@ -5,11 +5,10 @@ import os
 import numpy as np
 import h5py
 import unyt
+import pytest
 
 import virgo.mpi.util
 import virgo.mpi.parallel_hdf5 as phdf5
-import virgo.mpi.gather_array as ga
-import virgo.mpi.parallel_sort as ps
 
 from mpi4py import MPI
 
@@ -421,19 +420,19 @@ def read_vr_group_sizes(basename, suffix, comm):
             filename = vr_filename("catalog_particles") % {"file_nr": file_nr}
             with h5py.File(filename, "r") as infile:
                 nr_bound_part_in_file.append(
-                    int(infile["Num_of_particles_in_groups"][...])
+                    int(infile["Num_of_particles_in_groups"][0])
                 )
-                nr_files = int(infile["Num_of_files"][...])
+                nr_files = int(infile["Num_of_files"][0])
             # Read number of unbound particles per file
             filename = vr_filename("catalog_particles.unbound") % {"file_nr": file_nr}
             with h5py.File(filename, "r") as infile:
                 nr_unbound_part_in_file.append(
-                    int(infile["Num_of_particles_in_groups"][...])
+                    int(infile["Num_of_particles_in_groups"][0])
                 )
             # Read number of groups per file
             filename = vr_filename("catalog_groups") % {"file_nr": file_nr}
             with h5py.File(filename, "r") as infile:
-                nr_groups_in_file.append(int(infile["Num_of_groups"][...]))
+                nr_groups_in_file.append(int(infile["Num_of_groups"][0]))
             file_nr += 1
         nr_bound_part_in_file = np.asarray(nr_bound_part_in_file, dtype=int)
         nr_unbound_part_in_file = np.asarray(nr_unbound_part_in_file, dtype=int)
@@ -544,16 +543,8 @@ def read_vr_group_sizes(basename, suffix, comm):
     return nr_parts_bound, nr_parts_unbound
 
 
-if __name__ == "__main__":
-
-    from mpi4py import MPI
-
-    comm = MPI.COMM_WORLD
-    comm_rank = comm.Get_rank()
-
-    import sys
-
-    snap_nr = int(sys.argv[1])
+@pytest.mark.mpi
+def test_read_vr(snap_nr=50):
 
     basename = f"/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
     # basename = f"/cosma8/data/dp004/flamingo/Runs/L1000N0900/HYDRO_FIDUCIAL/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
@@ -565,3 +556,9 @@ if __name__ == "__main__":
     nr_halos_total = comm.allreduce(len(nr_parts_bound))
     if comm_rank == 0:
         print(f"Read {nr_halos_total} halos")
+
+
+if __name__ == "__main__":
+    import sys
+    snap_nr = int(sys.argv[1])
+    test_read_vr(snap_nr=snap_nr)

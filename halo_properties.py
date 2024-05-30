@@ -1,7 +1,5 @@
 #!/bin/env python
 
-import numpy as np
-import unyt
 
 
 class ReadRadiusTooSmallError(Exception):

@@ -142,10 +142,9 @@ class SubhaloParticleData:
             r = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2 + pos[:, 2] ** 2)
             radius.append(r)
             velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
-            typearr = np.zeros(r.shape, dtype="U9")
-            typearr[:] = ptype
+            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
             types.append(typearr)
-            s = np.ones(r.shape, dtype="float64") * self.softening_of_parttype[ptype]
+            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
             softening.append(s)
 
         self.mass = np.concatenate(mass)
@@ -161,7 +160,7 @@ class SubhaloParticleData:
         Mask used to mask out gas particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return self.types == "PartType0"
+        return self.types == 0
 
     @lazy_property
     def dm_mask_sh(self) -> NDArray[bool]:
@@ -169,7 +168,7 @@ class SubhaloParticleData:
         Mask used to mask out dark matter particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return self.types == "PartType1"
+        return self.types == 1
 
     @lazy_property
     def star_mask_sh(self) -> NDArray[bool]:
@@ -177,7 +176,7 @@ class SubhaloParticleData:
         Mask used to mask out star particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return self.types == "PartType4"
+        return self.types == 4
 
     @lazy_property
     def bh_mask_sh(self) -> NDArray[bool]:
@@ -185,7 +184,7 @@ class SubhaloParticleData:
         Mask used to mask out black hole particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return self.types == "PartType5"
+        return self.types == 5
 
     @lazy_property
     def baryons_mask_sh(self) -> NDArray[bool]:
@@ -193,7 +192,7 @@ class SubhaloParticleData:
         Mask used to mask out baryon (gas + star) particles that belong to this subhalo in
         arrays containing all particles, e.g. self.mass.
         """
-        return (self.types == "PartType0") | (self.types == "PartType4")
+        return self.gas_mask_sh | self.star_mask_sh
 
     @lazy_property
     def Ngas(self) -> int:
@@ -1276,7 +1275,7 @@ class SubhaloParticleData:
         if self.Nstar == 0:
             return None
         # Pressure in physical units can overflow float32
-        birth_densities = self.stellar_birth_density.astype('float64') / unyt.mh
+        birth_densities = self.stellar_birth_density.astype(np.float64) / unyt.mh
         return birth_densities * self.stellar_birth_temperature
 
     @lazy_property

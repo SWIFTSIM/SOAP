@@ -16,7 +16,7 @@
 #
 #SBATCH --ntasks=128
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/compress_membership_L1000N0900_%x.%a.out
+#SBATCH -o ./logs/compress_membership_L1000N0900_%x.%a.%j.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive

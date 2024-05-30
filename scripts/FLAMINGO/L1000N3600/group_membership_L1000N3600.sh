@@ -9,12 +9,12 @@
 #
 # cd SOAP
 # mkdir logs
-# sbatch -J HYDRO_FIDUCIAL --array=0-77%4 ./scripts/FLAMINGO/L1000N3600/group_membership_L1000N3600.sh
+# sbatch -J HYDRO_FIDUCIAL --array=0-78%4 ./scripts/FLAMINGO/L1000N3600/group_membership_L1000N3600.sh
 #
 #SBATCH --nodes=8
 #SBATCH --cpus-per-task=1
 #SBATCH --tasks-per-node=32
-#SBATCH -o ./logs/group_membership_L1000N3600_%x.%a.out
+#SBATCH -o ./logs/group_membership_L1000N3600_%x.%a.%A.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
@@ -23,6 +23,8 @@
 
 module purge
 module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
+
+set -e
 
 # Which snapshot to do
 snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`

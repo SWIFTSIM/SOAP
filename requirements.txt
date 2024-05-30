@@ -1,0 +1,8 @@
+h5py
+unyt>=3
+astropy
+numba
+scipy
+pandas
+pytest-mpi
+matplotlib

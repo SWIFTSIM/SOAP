@@ -8,8 +8,6 @@ import unyt
 from dataset_names import mass_dataset, ptypes_for_so_masses
 from halo_properties import ReadRadiusTooSmallError
 import shared_array
-import result_set
-import halo_properties
 from property_table import PropertyTable
 
 

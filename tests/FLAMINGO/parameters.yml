@@ -13,7 +13,6 @@ HaloFinder:
 GroupMembership:
   # Use the pre-existing membership files
   filename: "{sim_dir}/{sim_name}/SOAP/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
-  halo_sizes_file: ""
 
 HaloProperties:
   # Where to write the halo properties file

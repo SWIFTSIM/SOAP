@@ -1,8 +1,8 @@
 # Values in this section are substituted into the other sections
 Parameters:
-  sim_dir:     /cosma8/data/dp004/dc-mcgi1/COLIBRE/ScienceRuns/L050N0376/
-  output_dir:  /cosma8/data/dp004/dc-mcgi1/COLIBRE/ScienceRuns/L050N0376/
-  scratch_dir:  /snap8/scratch/dp004/dc-mcgi1/COLIBRE/ScienceRuns/L050N0376/
+  sim_dir: 
+  output_dir: 
+  scratch_dir: 
 
 # Location of the Swift snapshots:
 Snapshots:
@@ -21,8 +21,6 @@ HaloFinder:
 GroupMembership:
   # Where to write the group membership files
   filename: "{output_dir}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}.hdf5"
-  # Where to write halo size information
-  halo_sizes_file: "{output_dir}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}.nr_particles.hdf5"
 
 HaloProperties:
   # Where to write the halo properties file

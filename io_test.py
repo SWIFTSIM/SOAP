@@ -12,9 +12,10 @@ comm_size = comm.Get_size()
 
 import swift_cells
 import shared_mesh
+import pytest
 
-
-def io_test():
+@pytest.mark.mpi
+def test_io():
 
     comm.barrier()
     t0 = time.time()
@@ -93,4 +94,4 @@ def io_test():
 
 
 if __name__ == "__main__":
-    io_test()
+    test_io()

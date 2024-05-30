@@ -2,14 +2,11 @@
 
 import time
 import numpy as np
-from mpi4py import MPI
 import unyt
 import h5py
 
-import task_queue
 import shared_mesh
 import shared_array
-import halo_tasks
 from dataset_names import mass_dataset, ptypes_for_so_masses
 from halo_tasks import process_halos
 from mask_cells import mask_cells

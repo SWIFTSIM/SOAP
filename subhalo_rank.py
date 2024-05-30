@@ -2,6 +2,7 @@
 
 import numpy as np
 import h5py
+import pytest
 
 import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5
@@ -84,10 +85,9 @@ def compute_subhalo_rank(host_id, subhalo_mass, comm):
 
     return subhalo_rank
 
+@pytest.mark.mpi
+def test_subhalo_rank():
 
-if __name__ == "__main__":
-
-    # Run test with "mpirun -np 8 python3 -m mpi4py ./subhalo_rank.py"
     from mpi4py import MPI
 
     comm = MPI.COMM_WORLD
@@ -129,3 +129,7 @@ if __name__ == "__main__":
         rank0 = all_ranks == 0
         rank0_hosts = all_host_ids[rank0]
         assert len(rank0_hosts) == len(np.unique(all_host_ids))
+
+if __name__ == '__main__':
+    # Run test with "mpirun -np 8 python3 -m mpi4py ./subhalo_rank.py"
+    test_subhalo_rank()

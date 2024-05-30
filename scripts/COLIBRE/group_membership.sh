@@ -12,7 +12,7 @@
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/colibre_membership.%a.out
+#SBATCH -o ./logs/colibre_membership.%a.%j.out
 #SBATCH -J group_membership_colibre
 #SBATCH -p cosma8
 #SBATCH -A dp004
@@ -29,6 +29,6 @@ snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 # Run the code
 mpirun python3 -u -m mpi4py ./group_membership.py \
        parameter_files/COLIBRE.yml \
-       --sim-name=${sim} --snap-nr=${snapnum}
+       --snap-nr=${snapnum}
 
 echo "Job complete!"

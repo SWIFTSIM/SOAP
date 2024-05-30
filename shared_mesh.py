@@ -4,6 +4,7 @@ import numpy as np
 import shared_array
 import virgo.mpi.parallel_sort as ps
 from mpi4py import MPI
+import pytest
 
 
 class SharedMesh:
@@ -236,8 +237,7 @@ def make_test_dataset(boxsize, total_nr_points, centre, radius, box_wrap, comm):
     comm.barrier()
     return pos
 
-
-def test_periodic_box(
+def _test_periodic_box(
     total_nr_points,
     centre,
     radius,
@@ -260,8 +260,6 @@ def test_periodic_box(
     comm_size = comm.Get_size()
     comm_rank = comm.Get_rank()
 
-    import unyt
-    import shared_array
 
     if comm_rank == 0:
         print(
@@ -335,15 +333,10 @@ def test_periodic_box(
             print(f"    {nr_failures} of {nr_queries*comm_size} queries FAILED")
             comm.Abort()
 
+@pytest.mark.mpi
+def test_shared_mesh():
 
-if __name__ == "__main__":
-
-    # Test cases. To be run using multiple MPI ranks on one compute node. E.g.
-    #
-    # mpirun -np 8 python3 ./shared_mesh.py
-    #
     import unyt
-
     # Use a different, reproducible seed on each rank
     from mpi4py import MPI
 
@@ -358,7 +351,7 @@ if __name__ == "__main__":
         radius = 0.5 * unyt.m
         centre, radius = comm.bcast((centre, radius))
         boxsize = 1.0 * unyt.m
-        test_periodic_box(
+        _test_periodic_box(
             1000,
             centre,
             radius,
@@ -378,7 +371,7 @@ if __name__ == "__main__":
                 centre = np.random.random_sample((3,)) * boxsize
                 radius = 0.25 * np.random.random_sample(()) * boxsize
                 centre, radius = comm.bcast((centre, radius))
-                test_periodic_box(
+                _test_periodic_box(
                     1000,
                     centre,
                     radius,
@@ -395,7 +388,7 @@ if __name__ == "__main__":
         radius = 0.5 * unyt.m
         centre, radius = comm.bcast((centre, radius))
         boxsize = 1.0 * unyt.m
-        test_periodic_box(
+        _test_periodic_box(
             0,
             centre,
             radius,
@@ -412,7 +405,7 @@ if __name__ == "__main__":
         radius = 0.5 * unyt.m
         centre, radius = comm.bcast((centre, radius))
         boxsize = 1.0 * unyt.m
-        test_periodic_box(
+        _test_periodic_box(
             1,
             centre,
             radius,
@@ -422,3 +415,7 @@ if __name__ == "__main__":
             resolution=resolution,
             max_search_radius=0.25 * boxsize,
         )
+
+
+if __name__ == "__main__":
+    test_shared_mesh()

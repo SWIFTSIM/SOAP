@@ -13,7 +13,7 @@
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/colibre_properties_%a.out
+#SBATCH -o ./logs/colibre_properties_%a.%j.out
 #SBATCH -J halo_properties_colibre
 #SBATCH -p cosma8
 #SBATCH -A dp004
@@ -33,6 +33,6 @@ dmo_flag=""
 #TODO: Set nodes and chunks
 mpirun python3 -u -m mpi4py ./compute_halo_properties.py \
        parameter_files/COLIBRE.yml \
-       --sim-name=${sim} --snap-nr=${snapnum} --chunks=1 ${dmo_flag}
+       --snap-nr=${snapnum} --chunks=1 ${dmo_flag}
 
 echo "Job complete!"

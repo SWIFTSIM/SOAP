@@ -1,5 +1,7 @@
 #!/bin/env python
 
+import os
+
 import numpy as np
 import h5py
 
@@ -7,7 +9,6 @@ import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5
 
 import lustre
-import command_line_args
 import read_vr
 
 from mpi4py import MPI
@@ -260,6 +261,7 @@ def consistent_match(match_index_12, match_index_21):
     # If we retrieved our own halo index, we have a match
     return np.where(match_back == local_halo_index, 1, 0)
 
+
 def get_match_vr_halos_args(comm):
     """
     Process command line arguments for halo matching program.
@@ -267,51 +269,36 @@ def get_match_vr_halos_args(comm):
     Returns a dict with the argument values, or None on failure.
     """
 
-    if comm.Get_rank() == 0:
+    from virgo.mpi.util import MPIArgumentParser
 
-        os.environ[
-            "COLUMNS"
-        ] = "80"  # Can't detect terminal width when running under MPI?
-
-        parser = ThrowingArgumentParser(description="Match halos between VR outputs.")
-        parser.add_argument(
-            "vr_basename1",
-            help="Base name of the first VELOCIraptor files, excluding trailing .properties[.N] etc.",
-        )
-        parser.add_argument(
-            "vr_basename2",
-            help="Base name of the second VELOCIraptor files, excluding trailing .properties[.N] etc.",
-        )
-        parser.add_argument(
-            "nr_particles",
-            metavar="N",
-            type=int,
-            help="Number of most bound particles to use.",
-        )
-        parser.add_argument("output_file", help="Output file name")
-        parser.add_argument(
-            "--use-types",
-            nargs="*",
-            type=int,
-            help="Only use the specified particle types (integer, 0-6)",
-        )
-        parser.add_argument(
-            "--to-field-halos-only",
-            action="store_true",
-            help="Only match to field halos (with hostHaloID=-1 in VR catalogue)",
-        )
-        try:
-            args = parser.parse_args()
-        except ArgumentParserError as e:
-            args = None
-
-    else:
-        args = None
-
-    args = comm.bcast(args)
-    if args is None:
-        MPI.Finalize()
-        sys.exit(0)
+    parser = MPIArgumentParser(comm, description="Find matching halos between snapshots")
+    parser.add_argument(
+        "vr_basename1",
+        help="Base name of the first VELOCIraptor files, excluding trailing .properties[.N] etc.",
+    )
+    parser.add_argument(
+        "vr_basename2",
+        help="Base name of the second VELOCIraptor files, excluding trailing .properties[.N] etc.",
+    )
+    parser.add_argument(
+        "nr_particles",
+        metavar="N",
+        type=int,
+        help="Number of most bound particles to use.",
+    )
+    parser.add_argument("output_file", help="Output file name")
+    parser.add_argument(
+        "--use-types",
+        nargs="*",
+        type=int,
+        help="Only use the specified particle types (integer, 0-6)",
+    )
+    parser.add_argument(
+        "--to-field-halos-only",
+        action="store_true",
+        help="Only match to field halos (with hostHaloID=-1 in VR catalogue)",
+    )
+    args = parser.parse_args()
 
     return args
 
@@ -319,7 +306,7 @@ def get_match_vr_halos_args(comm):
 if __name__ == "__main__":
 
     # Read command line parameters
-    args = command_line_args.get_match_vr_halos_args(comm)
+    args = get_match_vr_halos_args(comm)
 
     # Ensure output dir exists
     if comm_rank == 0:

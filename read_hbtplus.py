@@ -102,52 +102,18 @@ def read_hbtplus_groupnr(basename):
     del halo_offset
     del halo_index
 
-    # Now check for duplicates. HBTplus can assign the same particle to multiple
-    # subhalos in cases where a subhalo escapes its host and enters another halo.
-    # Here we assign such particles to the subhalo in which their rank_bound is lowest.
-    # Make a key to sort the particles by ID and then by bound rank where ID is equal.
-    sort_key_t = np.dtype([("id", ids_bound.dtype), ("rank", rank_bound.dtype)])
-    sort_key = np.ndarray(len(ids_bound), dtype=sort_key_t)
-    sort_key["id"] = ids_bound
-    sort_key["rank"] = rank_bound
-    assert np.all(sort_key["rank"] >= 0)  # HBTplus does not output unbound particles
-
-    # Sort the particles by ID and then by bound rank where the ID is the same.
-    order = psort.parallel_sort(sort_key, return_index=True, comm=comm)
-    del sort_key
-    ids_bound = psort.fetch_elements(ids_bound, order, comm=comm)
-    grnr_bound = psort.fetch_elements(grnr_bound, order, comm=comm)
-    rank_bound = psort.fetch_elements(rank_bound, order, comm=comm)
-    del order
-
-    # Then find the unique particle IDs
+    # HBTplus originally output duplicate particles, so this script previously
+    # assigned duplicate particles to a single subhalo based on their bound rank.
+    # HBT should no longer have duplicates, which is tested by this assert
     unique_ids_bound, unique_counts = psort.parallel_unique(
-        ids_bound, comm=comm, arr_sorted=True, return_counts=True
+        ids_bound, comm=comm, arr_sorted=False, return_counts=True
     )
-
-    # Compute sum of the counts of unique IDs on this MPI rank. This is
-    # not necessarily the same as len(ids_bound).
-    nr_ids_local = np.sum(unique_counts, dtype=int)
-
-    # Compute sum of the counts of unique IDs on all previous MPI ranks
-    nr_ids_prev_rank = comm.scan(nr_ids_local) - nr_ids_local
-
-    # Find the global offset of the first instance of each unique ID in the
-    # full array of IDs
-    unique_offsets = np.cumsum(unique_counts) - unique_counts + nr_ids_prev_rank
-
-    # Fetch the ID, grnr_bound and rank_bound of the first instance of each particle ID
-    ids_bound = psort.fetch_elements(ids_bound, unique_offsets, comm=comm)
-    assert np.all(
-        ids_bound == unique_ids_bound
-    )  # Check we computed unique_offsets correctly
-    rank_bound = psort.fetch_elements(rank_bound, unique_offsets, comm=comm)
-    grnr_bound = psort.fetch_elements(grnr_bound, unique_offsets, comm=comm)
+    assert np.max(unique_counts) == 1
 
     return total_nr_halos, ids_bound, grnr_bound, rank_bound
 
 
-def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize, halo_size_file):
+def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize):
     """
     Read in the HBTplus halo catalogue, distributed over communicator comm.
 
@@ -229,35 +195,12 @@ def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize, halo_size_
     mf = phdf5.MultiFile(filename, file_nr_dataset="NumberOfFiles", comm=comm)
     subhalo = mf.read("Subhalos")
 
-    # Subhalo["Nbound"] includes duplicate particle IDs so we can't use it here.
-    # Read the halo sizes file from group_membership.py instead.
-    halo_size_data = {}
-    with h5py.File(halo_size_file, "r", driver="mpio", comm=comm) as infile:
-        for ptype in sorted(list(infile)):
-            halo_size_data[ptype] = phdf5.collective_read(
-                infile[ptype]["nr_particles_bound"], comm
-            )
-
-    # Sum over particle types
-    nr_bound_part = None
-    for ptype in halo_size_data:
-        if nr_bound_part is None:
-            nr_bound_part = np.zeros_like(halo_size_data[ptype])
-        nr_bound_part += halo_size_data[ptype]
-    del halo_size_data
-
-    # Ensure that nr_bound_part is split over MPI ranks in the same way as the subhalos
-    ndesired = len(subhalo)
-    ndesired = comm.allgather(ndesired)
-    nr_bound_part = psort.repartition(nr_bound_part, ndesired, comm=comm)
-
-    # Wrap in a unyt array
+    # Load the number of bound particles
     nr_bound_part = unyt.unyt_array(
-        nr_bound_part, units=unyt.dimensionless, dtype=int, registry=registry
+        subhalo['Nbound'], units=unyt.dimensionless, dtype=int, registry=registry
     )
 
     # Only process resolved subhalos (HBTplus also outputs unresolved "orphan" subhalos)
-    # Here we use the number of particles EXCLUDING duplicates, i.e. not nbound from HBTplus.
     keep = nr_bound_part > 1
 
     # Assign indexes to halos: for each halo we're going to process we store the
@@ -275,10 +218,10 @@ def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize, halo_size_
         subhalo["ComovingMostBoundPosition"][keep, :] * LengthInMpch / h
     ) * swift_cmpc
 
-    # Initial guess at search radius for each halo - twice the half mass radius.
+    # Initial guess at search radius for each halos.
     # Search radius will be expanded if we don't find all of the bound particles.
     search_radius = (
-        2.0 * (subhalo["RHalfComoving"][keep] * LengthInMpch / h) * swift_cmpc
+        1.01 * (subhalo["REncloseComoving"][keep] * LengthInMpch / h) * swift_cmpc
     )
 
     # Central halo flag
@@ -302,6 +245,18 @@ def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize, halo_size_
     )
     parent_id = unyt.unyt_array(
         subhalo["NestedParentTrackId"][keep], units=unyt.dimensionless, dtype=int, registry=registry
+    )
+    descendant_id = unyt.unyt_array(
+        subhalo["DescendantTrackId"][keep], units=unyt.dimensionless, dtype=int, registry=registry
+    )
+    m_bound = unyt.unyt_array(
+        subhalo["Mbound"][keep], units=unyt.dimensionless, dtype=float, registry=registry
+    )
+    n_bound = unyt.unyt_array(
+        subhalo["Nbound"][keep], units=unyt.dimensionless, dtype=int, registry=registry
+    )
+    rank = unyt.unyt_array(
+        subhalo["Rank"][keep], units=unyt.dimensionless, dtype=int, registry=registry
     )
 
     # Peak mass
@@ -331,8 +286,12 @@ def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize, halo_size_
         "HostHaloId": host_halo_id,
         "Depth": depth,
         "TrackId": track_id,
+        "Mbound": m_bound,
+        "Nbound": n_bound,
+        "Rank": rank,
         "SnapshotIndexOfBirth": snapshot_birth,
         "NestedParentTrackId": parent_id,
+        "DescendantTrackId": descendant_id,
         "LastMaxMass": max_mass,
         "SnapshotIndexOfLastMaxMass": snapshot_max_mass,
         "VmaxPhysical": vmax,

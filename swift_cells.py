@@ -4,7 +4,6 @@ import collections
 
 import numpy as np
 import h5py
-import time
 from mpi4py import MPI
 import unyt
 import scipy.spatial
@@ -160,7 +159,7 @@ class SWIFTCellGrid:
             if snap_filename_ref is None:
                 self.snapshot_datasets = SnapshotDatasets(infile)
             else:
-                with h5py.File(snap_filename_ref % {"file_nr": 0}, "r") as ref_file:
+                with h5py.File(snap_filename_ref.format(file_nr=0), "r") as ref_file:
                     self.snapshot_datasets = SnapshotDatasets(ref_file)
 
             # Get the snapshot unit system

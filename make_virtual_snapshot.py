@@ -1,9 +1,7 @@
 #!/bin/env python
 
 import os.path
-import numpy as np
 import h5py
-import argparse
 import shutil
 
 

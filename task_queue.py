@@ -6,7 +6,6 @@ import time
 from mpi4py import MPI
 import collections
 import numpy as np
-import shared_array
 
 REQUEST_TASK_TAG = 1
 ASSIGN_TASK_TAG = 2

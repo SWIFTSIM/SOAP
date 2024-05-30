@@ -269,8 +269,7 @@ class ApertureParticleData:
             r = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2 + pos[:, 2] ** 2)
             radius.append(r)
             velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
-            typearr = np.zeros(r.shape, dtype="U9")
-            typearr[:] = ptype
+            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
             types.append(typearr)
 
         self.mass = np.concatenate(mass)
@@ -296,7 +295,7 @@ class ApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.mask[self.types == "PartType0"]
+        return self.mask[self.types == 0]
 
     @lazy_property
     def dm_mask_ap(self) -> NDArray[bool]:
@@ -307,7 +306,7 @@ class ApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.mask[self.types == "PartType1"]
+        return self.mask[self.types == 1]
 
     @lazy_property
     def star_mask_ap(self) -> NDArray[bool]:
@@ -318,7 +317,7 @@ class ApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.mask[self.types == "PartType4"]
+        return self.mask[self.types == 4]
 
     @lazy_property
     def bh_mask_ap(self) -> NDArray[bool]:
@@ -329,7 +328,7 @@ class ApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.mask[self.types == "PartType5"]
+        return self.mask[self.types == 5]
 
     @lazy_property
     def baryon_mask_ap(self) -> NDArray[bool]:
@@ -339,7 +338,7 @@ class ApertureParticleData:
         in the calculation. Note that baryons are gas and star particles,
         so "PartType0" and "PartType4".
         """
-        return self.mask[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.mask[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def Ngas(self) -> int:
@@ -381,84 +380,84 @@ class ApertureParticleData:
         """
         Mass of the gas particles.
         """
-        return self.mass[self.type == "PartType0"]
+        return self.mass[self.type == 0]
 
     @lazy_property
     def mass_dm(self) -> unyt.unyt_array:
         """
         Mass of the DM particles.
         """
-        return self.mass[self.type == "PartType1"]
+        return self.mass[self.type == 1]
 
     @lazy_property
     def mass_star(self) -> unyt.unyt_array:
         """
         Mass of the star particles.
         """
-        return self.mass[self.type == "PartType4"]
+        return self.mass[self.type == 4]
 
     @lazy_property
     def mass_baryons(self) -> unyt.unyt_array:
         """
         Mass of the baryon particles (gas + stars).
         """
-        return self.mass[(self.type == "PartType0") | (self.type == "PartType4")]
+        return self.mass[(self.type == 0) | (self.type == 4)]
 
     @lazy_property
     def pos_gas(self) -> unyt.unyt_array:
         """
         Position of the gas particles.
         """
-        return self.position[self.type == "PartType0"]
+        return self.position[self.type == 0]
 
     @lazy_property
     def pos_dm(self) -> unyt.unyt_array:
         """
         Position of the DM particles.
         """
-        return self.position[self.type == "PartType1"]
+        return self.position[self.type == 1]
 
     @lazy_property
     def pos_star(self) -> unyt.unyt_array:
         """
         Position of the star particles.
         """
-        return self.position[self.type == "PartType4"]
+        return self.position[self.type == 4]
 
     @lazy_property
     def pos_baryons(self) -> unyt.unyt_array:
         """
         Position of the baryon (gas+stars) particles.
         """
-        return self.position[(self.type == "PartType0") | (self.type == "PartType4")]
+        return self.position[(self.type == 0) | (self.type == 4)]
 
     @lazy_property
     def vel_gas(self) -> unyt.unyt_array:
         """
         Velocity of the gas particles.
         """
-        return self.velocity[self.type == "PartType0"]
+        return self.velocity[self.type == 0]
 
     @lazy_property
     def vel_dm(self) -> unyt.unyt_array:
         """
         Velocity of the DM particles.
         """
-        return self.velocity[self.type == "PartType1"]
+        return self.velocity[self.type == 1]
 
     @lazy_property
     def vel_star(self) -> unyt.unyt_array:
         """
         Velocity of the star particles.
         """
-        return self.velocity[self.type == "PartType4"]
+        return self.velocity[self.type == 4]
 
     @lazy_property
     def vel_baryons(self) -> unyt.unyt_array:
         """
         Velocity of the baryon (gas+star) particles.
         """
-        return self.velocity[(self.type == "PartType0") | (self.type == "PartType4")]
+        return self.velocity[(self.type == 0) | (self.type == 4)]
 
     @lazy_property
     def Mtot(self) -> unyt.unyt_quantity:
@@ -493,7 +492,7 @@ class ApertureParticleData:
         """
         Total dynamical mass of BH particles.
         """
-        return self.mass[self.type == "PartType5"].sum()
+        return self.mass[self.type == 5].sum()
 
     @lazy_property
     def Mbaryons(self) -> unyt.unyt_quantity:
@@ -2741,7 +2740,7 @@ class ApertureParticleData:
         Half mass radius of gas.
         """
         return get_half_mass_radius(
-            self.radius[self.type == "PartType0"], self.mass_gas, self.Mgas
+            self.radius[self.type == 0], self.mass_gas, self.Mgas
         )
 
     @lazy_property
@@ -2750,7 +2749,7 @@ class ApertureParticleData:
         Half mass radius of dark matter.
         """
         return get_half_mass_radius(
-            self.radius[self.type == "PartType1"], self.mass_dm, self.Mdm
+            self.radius[self.type == 1], self.mass_dm, self.Mdm
         )
 
     @lazy_property
@@ -2759,7 +2758,7 @@ class ApertureParticleData:
         Half mass radius of stars.
         """
         return get_half_mass_radius(
-            self.radius[self.type == "PartType4"], self.mass_star, self.Mstar
+            self.radius[self.type == 4], self.mass_star, self.Mstar
         )
 
     @lazy_property
@@ -2768,7 +2767,7 @@ class ApertureParticleData:
         Half mass radius of baryons (gas + stars).
         """
         return get_half_mass_radius(
-            self.radius[(self.type == "PartType0") | (self.type == "PartType4")],
+            self.radius[(self.type == 0) | (self.type == 4)],
             self.mass_baryons,
             self.Mbaryons,
         )

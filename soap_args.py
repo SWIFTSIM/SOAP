@@ -53,7 +53,6 @@ def get_soap_args(comm):
     args.scratch_dir = all_args["HaloProperties"]["chunk_dir"]
     args.halo_basename = all_args["HaloFinder"]["filename"]
     args.halo_format = all_args["HaloFinder"]["type"]
-    args.halo_sizes_file = all_args["GroupMembership"]["halo_sizes_file"]
     args.output_file = all_args["HaloProperties"]["filename"]
     args.snapshot_nr = all_args["Parameters"]["snap_nr"]
     args.chunks = all_args["Parameters"]["chunks"]
@@ -69,60 +68,12 @@ def get_soap_args(comm):
     args.output_parameters = all_args["Parameters"]["output_parameters"]
     args.git_hash = all_args["git_hash"]
 
-    return args
-
-
-def get_match_vr_halos_args(comm):
-    """
-    Process command line arguments for halo matching program.
-
-    Returns a dict with the argument values, or None on failure.
-    """
-
+    # Check we can write to the halo properties file
     if comm.Get_rank() == 0:
-
-        os.environ[
-            "COLUMNS"
-        ] = "80"  # Can't detect terminal width when running under MPI?
-
-        parser = ThrowingArgumentParser(description="Match halos between VR outputs.")
-        parser.add_argument(
-            "vr_basename1",
-            help="Base name of the first VELOCIraptor files, excluding trailing .properties[.N] etc.",
-        )
-        parser.add_argument(
-            "vr_basename2",
-            help="Base name of the second VELOCIraptor files, excluding trailing .properties[.N] etc.",
-        )
-        parser.add_argument(
-            "nr_particles",
-            metavar="N",
-            type=int,
-            help="Number of most bound particles to use.",
-        )
-        parser.add_argument("output_file", help="Output file name")
-        parser.add_argument(
-            "--use-types",
-            nargs="*",
-            type=int,
-            help="Only use the specified particle types (integer, 0-6)",
-        )
-        parser.add_argument(
-            "--to-field-halos-only",
-            action="store_true",
-            help="Only match to field halos (with hostHaloID=-1 in VR catalogue)",
-        )
-        try:
-            args = parser.parse_args()
-        except ArgumentParserError as e:
-            args = None
-
-    else:
-        args = None
-
-    args = comm.bcast(args)
-    if args is None:
-        MPI.Finalize()
-        sys.exit(0)
+        dirname = os.path.dirname(os.path.abspath(args.output_file))
+        # Directory may not exist yet, so move up the tree until we find one that does
+        while not os.path.exists(dirname):
+            dirname = os.path.dirname(dirname)
+        assert os.access(dirname, os.W_OK), "Can't write to output directory"
 
     return args

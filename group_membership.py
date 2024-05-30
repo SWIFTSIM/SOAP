@@ -1,8 +1,5 @@
 #!/bin/env python
 
-import sys
-import os.path
-import re
 import numpy as np
 import h5py
 
@@ -42,14 +39,12 @@ if __name__ == "__main__":
     halo_format = args["HaloFinder"]["type"]
     halo_basename = args["HaloFinder"]["filename"]
     output_file = args["GroupMembership"]["filename"]
-    halo_sizes_file = args["GroupMembership"]["halo_sizes_file"]
     
     # Substitute in the snapshot number where necessary
     pf = PartialFormatter()
     swift_filename = pf.format(swift_filename, snap_nr=snap_nr, file_nr=None)
     fof_filename = pf.format(fof_filename, snap_nr=snap_nr, file_nr=None)
     halo_basename = pf.format(halo_basename, snap_nr=snap_nr, file_nr=None)
-    halo_sizes_file = pf.format(halo_sizes_file, snap_nr=snap_nr, file_nr=None)
     output_file = pf.format(output_file, snap_nr=snap_nr, file_nr=None)
     
     # Ensure output dir exists
@@ -188,23 +183,6 @@ if __name__ == "__main__":
             swift_grnr_unbound[matched == False] = -1
             swift_grnr_all = np.maximum(swift_grnr_bound, swift_grnr_unbound)
 
-        # Compute the number of bound particles of this type in each halo
-        if comm_rank == 0:
-            print("  Computing number of bound particles in each halo")
-        in_halo = swift_grnr_bound >= 0
-        npart_bound_type = psort.parallel_bincount(
-            swift_grnr_bound[in_halo], minlength=total_nr_halos, comm=comm
-        )
-
-        # Compute the number of bound+unbound particles of this type in each halo
-        if ids_unbound is not None:
-            if comm_rank == 0:
-                print("  Computing number of bound+unbound particles in each halo")
-            in_halo = swift_grnr_all >= 0
-            npart_all_type = psort.parallel_bincount(
-                swift_grnr_all[in_halo], minlength=total_nr_halos, comm=comm
-            )
-
         if ptype in fof_ptypes:
             if comm_rank == 0:
                 print("  Matching FOF catalogue to snapshot")
@@ -220,17 +198,6 @@ if __name__ == "__main__":
             create_file = False
         else:
             mode = "r+"
-
-        # Write the number of particles per halo to an output file
-        with h5py.File(halo_sizes_file, mode, driver="mpio", comm=comm) as hsf:
-            grp = hsf.create_group(ptype)
-            phdf5.collective_write(
-                grp, "nr_particles_bound", npart_bound_type, comm=comm
-            )
-            if ids_unbound is not None:
-                phdf5.collective_write(
-                    grp, "nr_particles_all", npart_all_type, comm=comm
-                )
 
         # Set up dataset attributes
         unit_attrs = {

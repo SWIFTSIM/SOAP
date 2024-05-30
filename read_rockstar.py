@@ -2,12 +2,10 @@
 
 import os
 
-import h5py
 import numpy as np
 import pandas as pd
 import unyt
 
-import virgo.mpi.util
 import virgo.mpi.parallel_hdf5 as phdf5
 from virgo.formats.rockstar import HalosFile
 

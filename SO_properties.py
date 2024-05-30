@@ -27,7 +27,6 @@ from scipy.optimize import brentq
 
 from halo_properties import HaloProperty, ReadRadiusTooSmallError
 from kinematic_properties import (
-    get_velocity_dispersion_matrix,
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
     get_vmax,
@@ -245,6 +244,7 @@ class SOParticleData:
         snapshot_datasets: SnapshotDatasets,
         core_excision_fraction: float,
         softening_of_parttype: unyt.unyt_array,
+        skip_concentration: bool
     ):
         """
         Constructor.
@@ -272,6 +272,11 @@ class SOParticleData:
          - core_excision_fraction: float
            Ignore particles within a sphere of core_excision_fraction * SORadius
            when calculating CoreExcision properties
+         - softening_of_parttype: unyt.unyt_array
+           Softening length of each particle types
+         - skip_concentration: bool
+           Whether to skip the concentration calculation, since the method is only
+           valid for certain SO variations
         """
         self.input_halo = input_halo
         self.data = data
@@ -283,6 +288,7 @@ class SOParticleData:
         self.snapshot_datasets = snapshot_datasets
         self.core_excision_fraction = core_excision_fraction
         self.softening_of_parttype = softening_of_parttype
+        self.skip_concentration = skip_concentration
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -319,12 +325,11 @@ class SOParticleData:
             r = np.sqrt(np.sum(pos ** 2, axis=1))
             radius.append(r)
             velocity.append(self.get_dataset(f"{ptype}/Velocities"))
-            typearr = np.zeros(r.shape, dtype="U9")
-            typearr[:] = ptype
+            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
             types.append(typearr)
             groupnr.append(self.get_dataset(f"{ptype}/GroupNr_bound"))
             fofid.append(self.get_dataset(f"{ptype}/FOFGroupIDs"))
-            s = np.ones(r.shape, dtype="float64") * self.softening_of_parttype[ptype]
+            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
             softening.append(s)
         self.mass = np.concatenate(mass)
         self.radius = np.concatenate(radius)
@@ -444,8 +449,8 @@ class SOParticleData:
         if SO_exists:
             # Calculate DMO mass fraction found at SO_r
             # This is used when computing concentration_dmo
-            dm_r = self.radius[self.types == "PartType1"]
-            dm_m = self.mass[self.types == "PartType1"]
+            dm_r = self.radius[self.types == 1]
+            dm_m = self.mass[self.types == 1]
             order = np.argsort(dm_r)
             ordered_dm_r = dm_r[order]
             outside_radius = ordered_dm_r > self.SO_r
@@ -458,10 +463,10 @@ class SOParticleData:
                     self.dm_missed_mass = (self.SO_r - r1) / (r2 - r1) * dm_m[order][i]
 
             # Removing particles outside SO radius
-            self.gas_selection = self.radius[self.types == "PartType0"] < self.SO_r
-            self.dm_selection = self.radius[self.types == "PartType1"] < self.SO_r
-            self.star_selection = self.radius[self.types == "PartType4"] < self.SO_r
-            self.bh_selection = self.radius[self.types == "PartType5"] < self.SO_r
+            self.gas_selection = self.radius[self.types == 0] < self.SO_r
+            self.dm_selection = self.radius[self.types == 1] < self.SO_r
+            self.star_selection = self.radius[self.types == 4] < self.SO_r
+            self.bh_selection = self.radius[self.types == 5] < self.SO_r
 
             self.all_selection = self.radius < self.SO_r
             self.mass = self.mass[self.all_selection]
@@ -596,21 +601,21 @@ class SOParticleData:
         """
         Masses of gas particles.
         """
-        return self.mass[self.types == "PartType0"]
+        return self.mass[self.types == 0]
 
     @lazy_property
     def gas_pos(self) -> unyt.unyt_array:
         """
         Positions of gas particles.
         """
-        return self.position[self.types == "PartType0"]
+        return self.position[self.types == 0]
 
     @lazy_property
     def gas_vel(self) -> unyt.unyt_array:
         """
         Velocities of gas particles.
         """
-        return self.velocity[self.types == "PartType0"]
+        return self.velocity[self.types == 0]
 
     @lazy_property
     def Mgas(self) -> unyt.unyt_quantity:
@@ -715,21 +720,21 @@ class SOParticleData:
         """
         Masses of dark matter particles.
         """
-        return self.mass[self.types == "PartType1"]
+        return self.mass[self.types == 1]
 
     @lazy_property
     def dm_pos(self) -> unyt.unyt_array:
         """
         Positions of dark matter particles.
         """
-        return self.position[self.types == "PartType1"]
+        return self.position[self.types == 1]
 
     @lazy_property
     def dm_vel(self) -> unyt.unyt_array:
         """
         Velocities of dark matter particles.
         """
-        return self.velocity[self.types == "PartType1"]
+        return self.velocity[self.types == 1]
 
     @lazy_property
     def Mdm(self) -> unyt.unyt_quantity:
@@ -789,21 +794,21 @@ class SOParticleData:
         """
         Masses of star particles.
         """
-        return self.mass[self.types == "PartType4"]
+        return self.mass[self.types == 4]
 
     @lazy_property
     def star_pos(self) -> unyt.unyt_array:
         """
         Positions of star particles.
         """
-        return self.position[self.types == "PartType4"]
+        return self.position[self.types == 4]
 
     @lazy_property
     def star_vel(self) -> unyt.unyt_array:
         """
         Velocities of star particles.
         """
-        return self.velocity[self.types == "PartType4"]
+        return self.velocity[self.types == 4]
 
     @lazy_property
     def Mstar(self) -> unyt.unyt_quantity:
@@ -907,21 +912,21 @@ class SOParticleData:
         """
         Masses of baryon (gas + star) particles.
         """
-        return self.mass[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.mass[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def baryon_pos(self) -> unyt.unyt_array:
         """
         Positions of baryon (gas + star) particles.
         """
-        return self.position[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.position[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def baryon_vel(self) -> unyt.unyt_array:
         """
         Velocities of baryon (gas + star) particles.
         """
-        return self.velocity[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.velocity[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def Mbaryons(self) -> unyt.unyt_quantity:
@@ -982,7 +987,7 @@ class SOParticleData:
         """
         Total dynamical mass of black hole particles in the spherical overdensity.
         """
-        return self.mass[self.types == "PartType5"].sum()
+        return self.mass[self.types == 5].sum()
 
     @lazy_property
     def Ngas(self) -> int:
@@ -1300,7 +1305,7 @@ class SOParticleData:
     @lazy_property
     def gas_selection_core_excision(self):
         return (
-            self.radius[self.types == "PartType0"]
+            self.radius[self.types == 0]
             > self.core_excision_fraction * self.SO_r
         )
 
@@ -2215,6 +2220,8 @@ class SOParticleData:
         for i, b in enumerate(polynomial[::-1]):
             # Ensure scale factors have been removed
             c += b * np.log10(R1.to("dimensionless")) ** i
+        # Cap concentration values, as polynomial is only valid for 1<c<1000
+        c = max(min(c, 3), 0)
         return unyt.unyt_quantity(10 ** c, dtype=np.float32, units="dimensionless")
 
     def calculate_concentration(self, r):
@@ -2236,31 +2243,39 @@ class SOParticleData:
 
     @lazy_property
     def concentration(self):
+        if self.skip_concentration:
+            return None
         return self.calculate_concentration(self.radius)
 
     @lazy_property
     def concentration_soft(self):
+        if self.skip_concentration:
+            return None
         soft_r = np.maximum(self.softening, self.radius)
         return self.calculate_concentration(soft_r)
 
     def calculate_concentration_dmo(self, r):
         if r.shape[0] < 10:
             return None
-        R1 = np.sum(self.mass[self.types == "PartType1"] * r)
+        R1 = np.sum(self.mass[self.types == 1] * r)
         R1 += self.dm_missed_mass * self.r
         R1 /= self.r * (self.Mdm + self.dm_missed_mass)
         return self.concentration_from_R1(R1)
 
     @lazy_property
     def concentration_dmo(self):
-        r = self.radius[self.types == "PartType1"]
+        if self.skip_concentration:
+            return None
+        r = self.radius[self.types == 1]
         return self.calculate_concentration_dmo(r)
 
     @lazy_property
     def concentration_dmo_soft(self):
+        if self.skip_concentration:
+            return None
         soft_r = np.maximum(
-            self.softening[self.types == "PartType1"],
-            self.radius[self.types == "PartType1"],
+            self.softening[self.types == 1],
+            self.radius[self.types == 1],
         )
         return self.calculate_concentration_dmo(soft_r)
 
@@ -2443,6 +2458,9 @@ class SOProperties(HaloProperty):
             / cellgrid.a ** 3
         )
 
+        # The concentration calculation method is not valid for all SO definitions
+        self.skip_concentration = True
+
         # This specifies how large a sphere is read in:
         # we use default values that are sufficiently small/large to avoid reading in too many particles
         self.mean_density_multiple = 1000.0
@@ -2450,10 +2468,15 @@ class SOProperties(HaloProperty):
         self.physical_radius_mpc = 0.0
         if type == "mean":
             self.mean_density_multiple = SOval
+            if SOval == 200:
+                self.skip_concentration = False
         elif type == "crit":
             self.critical_density_multiple = SOval
+            if SOval == 200:
+                self.skip_concentration = False
         elif type == "BN98":
             self.critical_density_multiple = cellgrid.virBN98
+            self.skip_concentration = False
         elif type == "physical":
             self.physical_radius_mpc = 0.001 * SOval
 
@@ -2592,6 +2615,7 @@ class SOProperties(HaloProperty):
                 self.snapshot_datasets,
                 self.core_excision_fraction,
                 self.softening_of_parttype,
+                self.skip_concentration,
             )
 
             # we need to make sure the physical radius uses the correct unit
