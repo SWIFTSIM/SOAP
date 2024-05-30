@@ -467,13 +467,18 @@ class SWIFTCellGrid:
                         nr_parts[ptype] += count
 
         # Create read tasks in the required order:
-        # By file, then by particle type, then by dataset, then by offset in the file
+        # By file, then by particle type, then by dataset, then by offset in the file.
+        # Skip datasets which exist in the extra files because we should not read them
+        # from the snapshot.
         all_tasks = collections.deque()
         for file_nr in all_file_nrs:
             filename = self.snap_filename.format(file_nr=file_nr)
             for ptype in reads_for_type:
+                extra_metadata = {}
+                if self.extra_filename is not None:
+                    extra_metadata.update(self.extra_metadata[ptype])
                 for dataset in property_names[ptype]:
-                    if dataset in self.snap_metadata[ptype]:
+                    if dataset in self.snap_metadata[ptype] and dataset not in extra_metadata:
                         if file_nr in reads_for_type[ptype]:
                             for (file_offset, mem_offset, count) in reads_for_type[
                                 ptype
@@ -535,13 +540,13 @@ class SWIFTCellGrid:
                 for name in property_names[ptype]:
 
                     # Get metadata for array to allocate in memory
-                    if name in self.snap_metadata[ptype]:
-                        units, dtype, shape = self.snap_metadata[ptype][name]
-                    elif (
-                        self.extra_metadata is not None
+                    if (
+                        self.extra_filename is not None
                         and name in self.extra_metadata[ptype]
                     ):
                         units, dtype, shape = self.extra_metadata[ptype][name]
+                    elif name in self.snap_metadata[ptype]:
+                        units, dtype, shape = self.snap_metadata[ptype][name]
                     else:
                         raise Exception(
                             "Can't find required dataset %s in input file(s)!" % name
