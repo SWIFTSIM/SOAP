@@ -186,16 +186,22 @@ def combine_chunks(
     # Save the properties from the FOF catalogues
     if fof_metadata:
         # Extract units from FOF file
-        with h5py.File(args.fof_group_filename.format(file_nr=0, snap_nr= args.snapshot_nr), "r") as fof_file:
-            fof_reg = swift_units.unit_registry_from_snapshot(fof_file)
-            fof_com_unit = swift_units.units_from_attributes(fof_file['Groups/Centres'].attrs, fof_reg)
-            fof_mass_unit = swift_units.units_from_attributes(fof_file['Groups/Masses'].attrs, fof_reg)
-
+        if comm_world.Get_rank() == 0:
+            with h5py.File(args.fof_group_filename.format(file_nr=0, snap_nr= args.snapshot_nr), "r") as fof_file:
+                fof_reg = swift_units.unit_registry_from_snapshot(fof_file)
+                fof_com_unit = swift_units.units_from_attributes(fof_file['Groups/Centres'].attrs, fof_reg)
+                fof_mass_unit = swift_units.units_from_attributes(fof_file['Groups/Masses'].attrs, fof_reg)
+        else:
+            fof_reg = None
+            fof_com_unit = None
+            fof_mass_unit = None
+        (fof_reg, fof_com_unit, fof_mass_unit) = comm_world.bcast((fof_reg, fof_com_unit, fof_mass_unit))
+            
         # Open file in parallel
         pf = PartialFormatter()
         fof_filename = pf.format(args.fof_group_filename, snap_nr=args.snapshot_nr, file_nr=None)
         fof_file = phdf5.MultiFile(
-            fof_filename, file_nr_attr=("Header", "NumFilesPerSnapshot")
+            fof_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm_world
         )
 
         # Save data only for central halos which are not hostless
