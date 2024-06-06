@@ -79,10 +79,9 @@ def unit_registry_from_snapshot(snap):
         physical_constants_cgs["newton_G"] * unyt.cm ** 3 / unyt.g / unyt.s ** 2,
         registry=reg,
     )
-    swift_pmpc = unyt.Unit("swift_mpc", registry=reg)
     a_unit = unyt.Unit("a", registry=reg)
     unyt.define_unit(
-        "cMpc", 1 * a_unit * swift_pmpc, registry=reg
+        "cMpc", 1 * a_unit * unyt.Mpc, registry=reg
     )
 
     return reg
