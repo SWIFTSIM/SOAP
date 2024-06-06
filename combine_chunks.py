@@ -227,7 +227,7 @@ def combine_chunks(
         fof_size[keep] = psort.fetch_elements(fof_file.read('Groups/Sizes'), indices, comm=comm_world)
         dataset = phdf5.collective_write(outfile, "InputHalos/FOF/Sizes", fof_size, create_dataset=False, comm=comm_world)
 
-    # Calculate the index of the parent subhalo of each satellite subhalo
+    # Calculate the index in the SOAP output of the host field halo (VR) or the central subhalo of the host FOF group (HBTplus)
     if len(host_halo_index_props) > 0:
         with MPITimer("Calculate and write host index of each satellite", comm_world):
             if args.halo_format == 'VR':
