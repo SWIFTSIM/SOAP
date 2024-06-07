@@ -244,6 +244,7 @@ class SOParticleData:
         snapshot_datasets: SnapshotDatasets,
         core_excision_fraction: float,
         softening_of_parttype: unyt.unyt_array,
+        skip_concentration: bool
     ):
         """
         Constructor.
@@ -271,6 +272,11 @@ class SOParticleData:
          - core_excision_fraction: float
            Ignore particles within a sphere of core_excision_fraction * SORadius
            when calculating CoreExcision properties
+         - softening_of_parttype: unyt.unyt_array
+           Softening length of each particle types
+         - skip_concentration: bool
+           Whether to skip the concentration calculation, since the method is only
+           valid for certain SO variations
         """
         self.input_halo = input_halo
         self.data = data
@@ -282,6 +288,7 @@ class SOParticleData:
         self.snapshot_datasets = snapshot_datasets
         self.core_excision_fraction = core_excision_fraction
         self.softening_of_parttype = softening_of_parttype
+        self.skip_concentration = skip_concentration
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -2213,6 +2220,8 @@ class SOParticleData:
         for i, b in enumerate(polynomial[::-1]):
             # Ensure scale factors have been removed
             c += b * np.log10(R1.to("dimensionless")) ** i
+        # Cap concentration values, as polynomial is only valid for 1<c<1000
+        c = max(min(c, 3), 0)
         return unyt.unyt_quantity(10 ** c, dtype=np.float32, units="dimensionless")
 
     def calculate_concentration(self, r):
@@ -2234,10 +2243,14 @@ class SOParticleData:
 
     @lazy_property
     def concentration(self):
+        if self.skip_concentration:
+            return None
         return self.calculate_concentration(self.radius)
 
     @lazy_property
     def concentration_soft(self):
+        if self.skip_concentration:
+            return None
         soft_r = np.maximum(self.softening, self.radius)
         return self.calculate_concentration(soft_r)
 
@@ -2251,11 +2264,15 @@ class SOParticleData:
 
     @lazy_property
     def concentration_dmo(self):
+        if self.skip_concentration:
+            return None
         r = self.radius[self.types == 1]
         return self.calculate_concentration_dmo(r)
 
     @lazy_property
     def concentration_dmo_soft(self):
+        if self.skip_concentration:
+            return None
         soft_r = np.maximum(
             self.softening[self.types == 1],
             self.radius[self.types == 1],
@@ -2441,6 +2458,9 @@ class SOProperties(HaloProperty):
             / cellgrid.a ** 3
         )
 
+        # The concentration calculation method is not valid for all SO definitions
+        self.skip_concentration = True
+
         # This specifies how large a sphere is read in:
         # we use default values that are sufficiently small/large to avoid reading in too many particles
         self.mean_density_multiple = 1000.0
@@ -2448,10 +2468,15 @@ class SOProperties(HaloProperty):
         self.physical_radius_mpc = 0.0
         if type == "mean":
             self.mean_density_multiple = SOval
+            if SOval == 200:
+                self.skip_concentration = False
         elif type == "crit":
             self.critical_density_multiple = SOval
+            if SOval == 200:
+                self.skip_concentration = False
         elif type == "BN98":
             self.critical_density_multiple = cellgrid.virBN98
+            self.skip_concentration = False
         elif type == "physical":
             self.physical_radius_mpc = 0.001 * SOval
 
@@ -2590,6 +2615,7 @@ class SOProperties(HaloProperty):
                 self.snapshot_datasets,
                 self.core_excision_fraction,
                 self.softening_of_parttype,
+                self.skip_concentration,
             )
 
             # we need to make sure the physical radius uses the correct unit
@@ -3005,7 +3031,7 @@ def test_SO_properties_random_halo():
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
 
     # Now test the calculation for each property individually, to make sure that
@@ -3063,7 +3089,7 @@ def test_SO_properties_random_halo():
         )
 
         halo_result_template = {
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
                 unyt.unyt_array(
                     particle_numbers["PartType0"],
                     dtype=PropertyTable.full_property_list["Ngas"][2],
@@ -3071,7 +3097,7 @@ def test_SO_properties_random_halo():
                 ),
                 "Dummy Ngas for filter",
             ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
                 unyt.unyt_array(
                     particle_numbers["PartType1"],
                     dtype=PropertyTable.full_property_list["Ndm"][2],
@@ -3079,7 +3105,7 @@ def test_SO_properties_random_halo():
                 ),
                 "Dummy Ndm for filter",
             ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
                 unyt.unyt_array(
                     particle_numbers["PartType4"],
                     dtype=PropertyTable.full_property_list["Nstar"][2],
@@ -3087,7 +3113,7 @@ def test_SO_properties_random_halo():
                 ),
                 "Dummy Nstar for filter",
             ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
                 unyt.unyt_array(
                     particle_numbers["PartType5"],
                     dtype=PropertyTable.full_property_list["Nbh"][2],
@@ -3150,7 +3176,7 @@ def test_SO_properties_random_halo():
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
 
     # Now test the calculation for each property individually, to make sure that
@@ -3208,7 +3234,7 @@ def test_SO_properties_random_halo():
         )
 
         halo_result_template = {
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
                 unyt.unyt_array(
                     particle_numbers["PartType0"],
                     dtype=PropertyTable.full_property_list["Ngas"][2],
@@ -3216,7 +3242,7 @@ def test_SO_properties_random_halo():
                 ),
                 "Dummy Ngas for filter",
             ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
                 unyt.unyt_array(
                     particle_numbers["PartType1"],
                     dtype=PropertyTable.full_property_list["Ndm"][2],
@@ -3224,7 +3250,7 @@ def test_SO_properties_random_halo():
                 ),
                 "Dummy Ndm for filter",
             ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
                 unyt.unyt_array(
                     particle_numbers["PartType4"],
                     dtype=PropertyTable.full_property_list["Nstar"][2],
@@ -3232,7 +3258,7 @@ def test_SO_properties_random_halo():
                 ),
                 "Dummy Nstar for filter",
             ),
-            f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
                 unyt.unyt_array(
                     particle_numbers["PartType5"],
                     dtype=PropertyTable.full_property_list["Nbh"][2],
@@ -3295,7 +3321,7 @@ def test_SO_properties_random_halo():
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()

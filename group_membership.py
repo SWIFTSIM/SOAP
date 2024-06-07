@@ -34,6 +34,7 @@ if __name__ == "__main__":
 
     # Extract parameters we need
     snap_nr = args["Parameters"]["snap_nr"]
+    fof_filename = args["Snapshots"].get("fof_filename", "")
     swift_filename = args["Snapshots"]["filename"]
     halo_format = args["HaloFinder"]["type"]
     halo_basename = args["HaloFinder"]["filename"]
@@ -42,6 +43,7 @@ if __name__ == "__main__":
     # Substitute in the snapshot number where necessary
     pf = PartialFormatter()
     swift_filename = pf.format(swift_filename, snap_nr=snap_nr, file_nr=None)
+    fof_filename = pf.format(fof_filename, snap_nr=snap_nr, file_nr=None)
     halo_basename = pf.format(halo_basename, snap_nr=snap_nr, file_nr=None)
     output_file = pf.format(output_file, snap_nr=snap_nr, file_nr=None)
     
@@ -93,30 +95,48 @@ if __name__ == "__main__":
     min_nr_parts_local = comm.allreduce(nr_parts_local, op=MPI.MIN)
     if comm_rank == 0:
         print(f"Number of group particle IDs per rank min={min_nr_parts_local}, max={max_nr_parts_local}")
-    
-    # Determine SWIFT particle types which exist in the snapshot
-    ptypes = []
-    with h5py.File(swift_filename.format(file_nr=0), "r") as infile:
-        nr_types = infile["Header"].attrs["NumPartTypes"][0]
-        numpart_total = infile["Header"].attrs["NumPart_Total"].astype(np.int64) + (
-            infile["Header"].attrs["NumPart_Total_HighWord"].astype(np.int64) << 32
-        )
-        nr_files = infile["Header"].attrs["NumFilesPerSnapshot"][0]
-        for i in range(nr_types):
-            if numpart_total[i] > 0:
-                ptypes.append("PartType%d" % i)
+        # Determine SWIFT particle types which exist in the snapshot
+        ptypes = []
+        with h5py.File(swift_filename.format(file_nr=0), "r") as infile:
+            nr_types = infile["Header"].attrs["NumPartTypes"][0]
+            numpart_total = infile["Header"].attrs["NumPart_Total"].astype(np.int64) + (
+                infile["Header"].attrs["NumPart_Total_HighWord"].astype(np.int64) << 32
+            )
+            for i in range(nr_types):
+                if numpart_total[i] > 0:
+                    ptypes.append("PartType%d" % i)
+    else:
+        ptypes = None
+    ptypes = comm.bcast(ptypes)
 
     # Open the snapshot
     snap_file = phdf5.MultiFile(
         swift_filename, file_nr_attr=("Header", "NumFilesPerSnapshot")
     )
 
+    # Read in FOF file information if a separate file has been passed
+    fof_ptypes = []
+    if fof_filename != '':
+        # Determine particle types which exist in the FOF file
+        if comm_rank == 0:
+            with h5py.File(fof_filename.format(file_nr=0), "r") as infile:
+                nr_types = infile["Header"].attrs["NumPartTypes"][0]
+                for i in range(nr_types):
+                    if f'PartType{i}' in infile:
+                        fof_ptypes.append(f"PartType{i}")
+        fof_ptypes = comm.bcast(fof_ptypes)
+
+        # Open the FOF file
+        fof_file = phdf5.MultiFile(
+            fof_filename, file_nr_attr=("Header", "NumFilesPerSnapshot")
+        )
+
     # Loop over particle types
     create_file = True
     for ptype in ptypes:
 
         if comm_rank == 0:
-            print("Calculating group membership for type ", ptype)
+            print("Calculating group membership for type", ptype)
         swift_ids = snap_file.read(("ParticleIDs",), ptype)["ParticleIDs"]
 
         # Report memory load
@@ -163,6 +183,15 @@ if __name__ == "__main__":
             swift_grnr_unbound[matched == False] = -1
             swift_grnr_all = np.maximum(swift_grnr_bound, swift_grnr_unbound)
 
+        if ptype in fof_ptypes:
+            if comm_rank == 0:
+                print("  Matching FOF catalogue to snapshot")
+            fof_particle_ids = fof_file.read(("ParticleIDs",), ptype)["ParticleIDs"]
+            fof_group_ids = fof_file.read(("FOFGroupIDs",), ptype)["FOFGroupIDs"]
+            ptr = psort.parallel_match(swift_ids, fof_particle_ids)
+            swift_fof_group_ids = np.ndarray(len(swift_ids), dtype=fof_group_ids.dtype)
+            swift_fof_group_ids = psort.fetch_elements(fof_group_ids, ptr)
+
         # Determine if we need to create a new output file set
         if create_file:
             mode = "w"
@@ -192,10 +221,14 @@ if __name__ == "__main__":
             "GroupNr_all": {
                 "Description": "Index of halo in which this particle is a member (bound or unbound), or -1 if none"
             },
+            "FOFGroupIDs": {
+                "Description": "Friends-Of-Friends ID of the group in which this particle is a member, of -1 if none"
+            },
         }
         attrs["GroupNr_bound"].update(unit_attrs)
         attrs["Rank_bound"].update(unit_attrs)
         attrs["GroupNr_all"].update(unit_attrs)
+        attrs["FOFGroupIDs"].update(unit_attrs)
 
         # Write these particles out with the same layout as the input snapshot
         if comm_rank == 0:
@@ -206,6 +239,8 @@ if __name__ == "__main__":
             output["Rank_bound"] = swift_rank_bound
         if ids_unbound is not None:
             output["GroupNr_all"] = swift_grnr_all
+        if ptype in fof_ptypes:
+            output["FOFGroupIDs"] = swift_fof_group_ids
         snap_file.write(
             output,
             elements_per_file,

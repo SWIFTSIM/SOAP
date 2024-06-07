@@ -32,7 +32,7 @@ For all types, we use the halo membership and centre of potential as determined 
 \paragraph{Subhalo quantities (SH)} are computed for each subhalo identified by the halo finder, irrespective of whether 
 it is a field halo or a satellite (or even satellite of satellite and so on). They include all particles 
 that they halo finder has determined are bound to the subhalo. Subhalo properties are contained within the group 
-\verb+BoundSubhaloProperties+ in the output file.
+\verb+BoundSubhalo+ in the output file.
 
 \paragraph{Exclusive sphere quantities (ES)} are similar to subhalo quantities, but they include only the 
 particles that are bound to the subhalo, and apply an additional radial cut (aperture). We use eight 
@@ -146,7 +146,8 @@ Superscript numbers refer to more detailed explanations for some of the properti
 the next section. These do not belong to 
 any type. 
 
-Note that all units are always physical, and that the SOAP output contains all the relevant meta-data to 
+Almost all units are physical, with the exception being the properties used for loading halos (their position
+in the box, and the radius of the halos). In all cases the SOAP output contains the relevant meta-data to 
 convert between physical and co-moving units, i.e. information about how the quantity depends on the 
 scale-factor and what the conversion factor to and from CGS units is. All quantities are $h$-free.
 
@@ -245,7 +246,7 @@ membership information for each particle in the SWIFT snapshot. The
 datasets in these files are stored in the same order and with the same
 partitioning between files as the datasets in the snapshots. This
 allows SOAP to read halo membership information for sub-regions of the
-simulation volume without reading the full VR output. These files may
+simulation volume without reading the full halo-finder output. These files may
 also be useful for visualising the input halo catalogue.
 
 The group membership files are HDF5 files with one group for each
@@ -253,24 +254,30 @@ particle type, named PartType0, PartType1, ... as in the
 snapshots. Each group contains the following datasets:
 
 \begin{enumerate}
-\item \verb|GroupNr_all|: for each particle in the corresponding snapshot
+\item \verb|GroupNr_bound|: for each particle in the corresponding snapshot
+  file this contains the array index of the subhalo which the
+  particle is bound to. If a particle is not bound to any subhalo it
+  will have \verb|GroupNr_bound|=-1.
+\item \verb|Rank_bound|: the ranking by total energy of this particle within
+  the subhalo it belongs to, or -1 if the particle is not bound to
+  any subhalo. The particle with the most negative total energy has
+  \verb|Rank_bound|=0.
+\item \verb|GroupNr_all|: (VELOCIraptor only) for each particle in the
+  corresponding snapshot
   file this contains the array index of the VR group which the
   particle belongs to, regardless of whether it is bound or
   unbound. Particles in no group have \verb|GroupNr_all|=-1.
-\item \verb|GroupNr_bound|: for each particle in the corresponding snapshot
-  file this contains the array index of the VR group which the
-  particle is bound to. If a particle is not bound to any group it
-  will have \verb|GroupNr_bound|=-1.
-\item \verb|Rank_bound|: the ranking by total energy of this particle within
-  the VR group it belongs to, or -1 if the particle is not bound to
-  any group. The particle with the most negative total energy has
-  \verb|Rank_bound|=0. Note that this is not the same as the potential
-  minimum.
+\item \verb|FOFGroupIDs|: the 3D FOF group the particle is part of.
+  This field is only present if a FOF snapshot is listed in the
+  parameter file. This field is present in the snapshots themselves,
+  but for FLAMINGO hydro simulations the FOF was regenerated. If this
+  field is present it will overwrite the value from the snapshots when
+  SOAP is run.
 \end{enumerate}
 
 The GroupNr values stored here are zero based array indexes into the
-full VR halo catalogue, and not VELOCIraptor IDs (which start from
-one). The first group in the catalogue will have GroupNr=0 and ID=1.
+full subhalo catalogue, and not the subhalos IDs. For example the first group
+in the VELOCIraptor catalogue has GroupNr=0 and ID=1.
 
 The script make\_virtual\_snapshot.py will combine snapshot and group membership files
 into a single virtual snapshot file. This virtual file can be read by swiftsimio and 

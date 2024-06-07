@@ -10,6 +10,9 @@ Parameters:
 Snapshots:
   # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
   filename: "{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
+  # Pass the location of snapshots with FOF IDs if the FOF has been re-run
+  # If fof_filename is not passed the FOF IDs in the snapshot will be used
+  fof_filename: "/cosma8/data/dp004/jlvc76/FLAMINGO/FOF/{sim_name}/fof_snapshot/flamingo_{snap_nr:04d}.hdf5"
 
 # Which halo finder we're using, and base name for halo finder output files
 HaloFinder:
@@ -17,6 +20,7 @@ HaloFinder:
   filename: "{sim_dir}/{sim_name}/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
   #type: HBTplus
   #filename: "{sim_dir}/{sim_name}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
+  #fof_filename: "{sim_dir}/{sim_name}/fof_catalog/fof_output_{snap_nr:04d}.hdf5"
   #type: Subfind
   #filename: "{sim_dir}/{sim_name}/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
   #type: Rockstar
@@ -414,6 +418,7 @@ SubhaloProperties:
     HalfMassRadiusGas: true
     HalfMassRadiusStars: true
     HalfMassRadiusTotal: true
+    EncloseRadius: true
     KappaCorotBaryons: true
     KappaCorotGas: true
     KappaCorotStars: true
