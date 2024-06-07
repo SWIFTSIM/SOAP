@@ -353,6 +353,7 @@ def compute_halo_properties():
         else:
             print("for central and satellite halos")
         parameter_file.print_unregistered_properties()
+        parameter_file.print_invalid_properties()
         if parameter_file.recalculate_xrays():
             print(f"Recalculating xray properties using table: {parameter_file.get_xray_table_path()}")
         category_filter.print_filters()

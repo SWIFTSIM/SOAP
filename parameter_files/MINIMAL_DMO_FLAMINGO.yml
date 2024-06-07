@@ -42,7 +42,7 @@ SOProperties:
     CentreOfMassVelocity: true
     Concentration: true
     ConcentrationSoft: true
-    MassFractionSatellite: true
+    MassFractionSatellites: true
     MassFractionExternal: true
     NumberOfDarkMatterParticles: true
     SORadius: true
@@ -64,7 +64,7 @@ SubhaloProperties:
     CentreOfMassVelocity: true
     NumberOfDarkMatterParticles: true
     MaximumCircularVelocity: true
-    MaximumCircularVelocitySOFT: true
+    MaximumCircularVelocitySoft: true
     MaximumCircularVelocityRadius: true
     SpinParameter: true
     TotalMass: true

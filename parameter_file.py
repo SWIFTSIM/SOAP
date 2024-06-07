@@ -82,9 +82,10 @@ and can output this information in the form of a ".used_parameters" file,
 similar to the file produced by SWIFT.
 """
 
-import yaml
 from typing import Dict, Union, List, Tuple
+import yaml
 
+import property_table
 
 class ParameterFile:
     """
@@ -199,6 +200,27 @@ class ParameterFile:
             )
             for halo_type, property in self.unregistered_parameters:
                 print(f"  {halo_type.ljust(30)}{property}")
+
+    def print_invalid_properties(self) -> None:
+        """
+        Print a list of any properties in the parameter file that are not present in
+        the property table. This doesn't check if the property is defined for a specific
+        halo type.
+        """
+        invalid_properties = []
+        full_property_list = property_table.PropertyTable.full_property_list
+        valid_properties = [prop[0] for prop in full_property_list.values()]
+        for key in self.parameters:
+            # Skip keys which aren't halo types
+            if 'properties' not in self.parameters[key]:
+                continue
+            for prop in self.parameters[key]['properties']:
+                if prop not in valid_properties:
+                    invalid_properties.append(prop)
+        if len(invalid_properties):
+            print('The following properties were found in the parameter file, but are invalid:')
+            for prop in invalid_properties:
+                print(f"  {prop}")
 
     def get_halo_type_variations(
         self, halo_type: str, default_variations: Dict
