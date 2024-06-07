@@ -108,7 +108,7 @@ def read_hbtplus_groupnr(basename):
     unique_ids_bound, unique_counts = psort.parallel_unique(
         ids_bound, comm=comm, arr_sorted=False, return_counts=True
     )
-    assert np.max(unique_counts) == 1
+    assert len(unique_counts)==0 or np.max(unique_counts) == 1
 
     return total_nr_halos, ids_bound, grnr_bound, rank_bound
 
