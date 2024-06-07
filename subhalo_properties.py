@@ -620,12 +620,34 @@ class SubhaloParticleData:
         return self.vmax
 
     @lazy_property
-    def Vmax_soft(self):
+    def R_vmax_soft(self) -> unyt.unyt_quantity:
+        """
+        Radius at which the maximum circular velocity of the halo is reached.
+        Particles are set to have minimum radius equal to their softening length.
+
+        This includes contributions from all particle types.
+        """
         if self.Mtot == 0:
             return None
-        soft_r = np.maximum(self.softening, self.radius)
-        _, vmax = get_vmax(self.mass, soft_r)
-        return vmax
+        if not hasattr(self, "vmax_soft"):
+            soft_r = np.maximum(self.softening, self.radius)
+            self.r_vmax_soft, self.vmax_soft = get_vmax(self.mass, soft_r)
+        return self.r_vmax_soft
+
+    @lazy_property
+    def Vmax_soft(self):
+        """
+        Maximum circular velocity of the halo.
+        Particles are set to have minimum radius equal to their softening length.
+
+        This includes contributions from all particle types.
+        """
+        if self.Mtot == 0:
+            return None
+        if not hasattr(self, "vmax_soft"):
+            soft_r = np.maximum(self.softening, self.radius)
+            self.r_vmax_soft, self.vmax_soft = get_vmax(self.mass, soft_r)
+        return self.vmax_soft
 
     @lazy_property
     def spin_parameter(self) -> unyt.unyt_quantity:
@@ -640,8 +662,8 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        if self.R_vmax > 0 and self.Vmax > 0:
-            mask_r_vmax = self.radius <= self.R_vmax
+        if self.R_vmax_soft > 0 and self.Vmax_soft > 0:
+            mask_r_vmax = self.radius <= self.R_vmax_soft
             vrel = self.velocity[mask_r_vmax, :] - self.vcom[None, :]
             Ltot = np.linalg.norm(
                 (
