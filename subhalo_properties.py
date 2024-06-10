@@ -1629,17 +1629,19 @@ class SubhaloProperties(HaloProperty):
         )
 
         if self.bound_only:
-            # this is the halo that we use for the filter particle numbers,
-            # so we have the get the numbers for the category filters manually
-            Ngas = part_props.Ngas
-            Ndm = part_props.Ndm
-            Nstar = part_props.Nstar
-            Nbh = part_props.Nbh
-            do_calculation = self.category_filter.get_filters_direct(
-                Ngas, Ndm, Nstar, Nbh
+            # this is the halo type that we use for the filter particle numbers,
+            # so we have to pass the numbers for the category filters manually
+            do_calculation = self.category_filter.get_do_calculation(
+                halo_result,
+                {
+                    'BoundSubhaloProperties/NumberOfDarkMatterParticles': part_props.Ndm,
+                    'BoundSubhaloProperties/NumberOfGasParticles': part_props.Ngas,
+                    'BoundSubhaloProperties/NumberOfStarParticles': part_props.Nstar,
+                    'BoundSubhaloProperties/NumberOfBlackHoleParticles': part_props.Nbh,
+                }
             )
         else:
-            do_calculation = self.category_filter.get_filters(halo_result)
+            do_calculation = self.category_filter.get_do_calculation(halo_result)
 
         subhalo = {}
         # declare all the variables we will compute

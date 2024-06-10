@@ -267,29 +267,30 @@ class ParameterFile:
         else:
             return dict()
 
-    def get_filter_values(self, default_filters: Dict) -> Dict:
+    def get_filters(self, default_filters: Dict) -> Dict:
         """
-        Get a dictionary with category filter threshold values.
+        Get a dictionary with filters to use for SOAP.
 
         Parameters:
          - default_filter: Dict
-           Dictionary with default threshold values, which are used
-           if no values are found in the parameter file or if a particular
+           Dictionary with default filters, which are used
+           if no filters are found in the parameter file or if a particular
            category is missing.
 
-        Returns a dictionary with a threshold value for each category present
-        in default_filters.
+        Returns a dictionary with a threshold value for each category present,
+        the properties to use for the filter, and how to combine the properties
+        if multiple are listed.
         """
-        filter_values = dict(default_filters)
+        filters = dict(default_filters)
         if "filters" in self.parameters:
             for category in default_filters:
                 if category in self.parameters["filters"]:
-                    filter_values[category] = self.parameters["filters"][category]
+                    filters[category] = self.parameters["filters"][category]
                 else:
-                    self.parameters["filters"][category] = filter_values[category]
+                    self.parameters["filters"][category] = filters[category]
         else:
             self.parameters["filters"] = dict(default_filters)
-        return filter_values
+        return filters
 
     def get_defined_constants(self) -> Dict:
         """

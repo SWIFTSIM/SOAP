@@ -408,11 +408,32 @@ aliases:
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/MetalMassFractionsDiffuse: PartType0/MetalMassFractions
 filters:
-  baryon: 0
-  dm: 0
-  gas: 0
-  general: 0
-  star: 0
+  baryon:
+    limit: 0
+    properties:
+      - BoundSubhaloProperties/NumberOfGasParticles
+      - BoundSubhaloProperties/NumberOfStarParticles
+    combine_properties: sum
+  dm:
+    limit: 0
+    properties:
+      - BoundSubhaloProperties/NumberOfDarkMatterParticles
+  gas:
+    limit: 0
+    properties:
+      - BoundSubhaloProperties/NumberOfGasParticles
+  general:
+    limit: 0
+    properties:
+      - BoundSubhaloProperties/NumberOfGasParticles
+      - BoundSubhaloProperties/NumberOfDarkMatterParticles
+      - BoundSubhaloProperties/NumberOfStarParticles
+      - BoundSubhaloProperties/NumberOfBlackHoleParticles
+    combine_properties: sum
+  star:
+    limit: 0
+    properties:
+      - BoundSubhaloProperties/NumberOfStarParticles
 defined_constants:
   O_H_sun: 4.9e-4
   Fe_H_sun: 3.16e-5

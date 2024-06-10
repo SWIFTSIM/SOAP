@@ -2574,7 +2574,7 @@ class SOProperties(HaloProperty):
 
         registry = input_halo["cofp"].units.registry
 
-        do_calculation = self.category_filter.get_filters(halo_result)
+        do_calculation = self.category_filter.get_do_calculation(halo_result)
 
         SO = {}
         # declare all the variables we will compute

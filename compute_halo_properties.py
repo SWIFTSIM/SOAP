@@ -150,9 +150,47 @@ def compute_halo_properties():
 
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
     cold_dense_gas_filter = ColdDenseGasFilter(10.0 ** 4.5 * unyt.K, 0.1 / unyt.cm ** 3)
+    default_filters = {
+        'general': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhaloProperties/NumberOfDarkMatterParticles',
+                    'BoundSubhaloProperties/NumberOfGasParticles',
+                    'BoundSubhaloProperties/NumberOfStarParticles',
+                    'BoundSubhaloProperties/NumberOfBlackHoleParticles',
+                 ],
+                'combine_properties': 'sum'
+             },
+        'dm': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhaloProperties/NumberOfDarkMatterParticles',
+                 ],
+             },
+        'gas': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhaloProperties/NumberOfGasParticles',
+                 ],
+             },
+        'star': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhaloProperties/NumberOfStarParticles',
+                 ],
+             },
+        'baryon': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhaloProperties/NumberOfGasParticles',
+                    'BoundSubhaloProperties/NumberOfStarParticles',
+                 ],
+                'combine_properties': 'sum'
+             },
+    }
     category_filter = CategoryFilter(
-        parameter_file.get_filter_values(
-            {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        parameter_file.get_filters(
+            default_filters
         ),
         dmo=args.dmo,
     )

@@ -3042,7 +3042,7 @@ class ApertureProperties(HaloProperty):
             self.snapshot_datasets,
         )
 
-        do_calculation = self.category_filter.get_filters(halo_result)
+        do_calculation = self.category_filter.get_do_calculation(halo_result)
 
         aperture_sphere = {}
         # declare all the variables we will compute

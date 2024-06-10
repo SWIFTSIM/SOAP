@@ -3385,8 +3385,10 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                     fnstr = ifile.read()
                 fnstr = fnstr.replace("$FOOTNOTE_NUMBER$", f"{i+1}")
                 ofile.write(f"{fnstr}\n\n")
+        # TODO: Summary of each filter type is hardcoded in docs
         with open(filterfile, "w") as ofile:
-            for name, value in parameters['filters'].items():
+            for name, filter_info in parameters['filters'].items():
+                value = filter_info['limit']
                 ofile.write(f'\\newcommand{{\\{name}filter}}{{{value}}}\n')
 
 

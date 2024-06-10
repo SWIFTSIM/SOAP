@@ -25,17 +25,6 @@ BoundSubhaloProperties properties.
 from property_table import PropertyTable
 from typing import Dict
 
-# Hardcoded names of the particle number data to use:
-gas_filter_name = (
-    f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}"
-)
-dm_filter_name = f"BoundSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}"
-star_filter_name = (
-    f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}"
-)
-bh_filter_name = f"BoundSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}"
-
-
 class CategoryFilter:
     """
     Filter used to determine whether properties need to be calculated for a
@@ -45,7 +34,7 @@ class CategoryFilter:
     and requires the calculation of BoundSubhaloProperties for each halo.
     """
 
-    def __init__(self, filter_values: Dict, dmo: bool = False):
+    def __init__(self, filters: Dict, dmo: bool = False):
         """
         Construct the filter with the requested filter thresholds.
 
@@ -57,52 +46,42 @@ class CategoryFilter:
            Whether or not SOAP is run in DMO mode, in which case only properties that
            are marked for DMO calculation are actually computed.
         """
-        self.Ngeneral = filter_values["general"]
-        self.Ngas = filter_values["gas"]
-        self.Ndm = filter_values["dm"]
-        self.Nstar = filter_values["star"]
-        self.Nbaryon = filter_values["baryon"]
+        self.filters = filters
         self.dmo = dmo
 
-    def get_filters_direct(self, Ngas: int, Ndm: int, Nstar: int, Nbh: int) -> Dict:
+    def get_do_calculation(self, halo_result: Dict, precomputed_properties: Dict = {}) -> Dict:
         """
-        Get the mask for each category, directly based on the particle numbers of
-        gas, dm, stars and bh.
-
-        Parameters:
-         - Nx: int
-           Particle numbers for the subhalo.
-        Returns a dictionary containing True/False for each property category.
-        """
-        return {
-            "basic": True,
-            "general": Ngas + Ndm + Nstar + Nbh >= self.Ngeneral,
-            "gas": Ngas >= self.Ngas,
-            "dm": Ndm >= self.Ndm,
-            "star": Nstar >= self.Nstar,
-            "baryon": Ngas + Nstar >= self.Nbaryon,
-            "DMO": self.dmo,
-        }
-
-    def get_filters(self, halo_result: Dict) -> Dict:
-        """
-        Get the mask for each category, based on the particle numbers of the subhalo.
+        Get a mask for each category, depending on the properties of the subhalo.
 
         Parameters:
          - halo_result: Dict
-           Halo result dictionary that contains the particle numbers for the subhalo.
-        Returns a dictionary containing True/False for each property category.
+           Halo result dictionary that contains the properties for the subhalo.
+         - precomputed_properties: Dict
+           Helper dictionary that can be passed if necessary properties
+           have not yet been added to the halo result dictionary
+
+        Returns a dictionary containing True/False for each filter category.
         """
-        Ndm = halo_result[dm_filter_name][0].value
+        do_calculation = {'basic': True, 'DMO': self.dmo}
         if self.dmo:
-            Ngas = 0
-            Nstar = 0
-            Nbh = 0
-        else:
-            Ngas = halo_result[gas_filter_name][0].value
-            Nstar = halo_result[star_filter_name][0].value
-            Nbh = halo_result[bh_filter_name][0].value
-        return self.get_filters_direct(Ngas, Ndm, Nstar, Nbh)
+            precomputed_properties['BoundSubhaloProperties/NumberOfGasParticles'] = 0
+            precomputed_properties['BoundSubhaloProperties/NumberOfStarParticles'] = 0
+            precomputed_properties['BoundSubhaloProperties/NumberOfBlackHoleParticles'] = 0
+        for name, filter_info in self.filters.items():
+            if (len(filter_info['properties']) == 1) or (filter_info['combine_properties'] == 'sum'):
+                v = 0
+                for prop in filter_info['properties']:
+                    # Try to find the property in precomputed_properties
+                    if prop in precomputed_properties:
+                        v += precomputed_properties[prop]
+                    # If property is also not present in halo_result throw an error
+                    else:
+                        v += halo_result[prop][0].value
+                do_calculation[name] = v >= filter_info['limit']
+            else:
+                msg = f'Invalid combine_properties function for filter {name}'
+                raise NotImplementedError(msg)
+        return do_calculation
 
     def get_compression_metadata(self, property_output_name: str) -> Dict:
         """
@@ -155,6 +134,9 @@ class CategoryFilter:
          - Mask Threshold: Threshold value used for masking. A row in the output is
            masked (i.e. set to zero) if the sum of the elements in Mask Datasets is
            strictly below this value.
+         - Mask Dataset Combination: Only present if Mask Datasets contains multiple
+           values. Describes how the datasets were combined before comparing to the
+           threshold value.
 
         Note that it is hence always possible to reproduce the mask for a dataset using
         this metadata.
@@ -168,53 +150,23 @@ class CategoryFilter:
         # (e.g. "density_in_search_radius")
         if category is None or category == "basic":
             return {"Masked": False}
-        elif category == "general":
-            return {
+        elif category in self.filters:
+            metadata = {
                 "Masked": True,
-                "Mask Datasets": [
-                    gas_filter_name,
-                    dm_filter_name,
-                    star_filter_name,
-                    bh_filter_name,
-                ],
-                "Mask Threshold": self.Ngeneral,
+                "Mask Datasets": self.filters[category]['properties'],
+                "Mask Threshold": self.filters[category]['limit'],
             }
-        elif category == "gas":
-            return {
-                "Masked": True,
-                "Mask Datasets": [gas_filter_name],
-                "Mask Threshold": self.Ngas,
-            }
-        elif category == "dm":
-            return {
-                "Masked": True,
-                "Mask Datasets": [dm_filter_name],
-                "Mask Threshold": self.Ndm,
-            }
-        elif category == "star":
-            return {
-                "Masked": True,
-                "Mask Datasets": [star_filter_name],
-                "Mask Threshold": self.Nstar,
-            }
-        elif category == "baryon":
-            return {
-                "Masked": True,
-                "Mask Datasets": [gas_filter_name, star_filter_name],
-                "Mask Threshold": self.Nbaryon,
-            }
+            if len(self.filters[category]['properties']) > 1:
+                metadata["Mask Dataset Combination"] = self.filters[category]['combine_properties']
+            return metadata
         else:
             # if we don't know the category, we cannot mask it
             # (e.g. "VR")
             return {"Masked": False}
 
     def print_filters(self):
-        print('Category filter particle thresholds:')
-        print(f"  General   {self.Ngeneral}")
-        print(f"  DM        {self.Ndm}")
         if self.dmo:
             print("Run in DMO mode")
-        else:
-            print(f"  Gas       {self.Ngas}")
-            print(f"  Star      {self.Ngeneral}")
-            print(f"  Baryon    {self.Ngeneral}")
+        print('Category filters :')
+        for name, filter_info in self.filters.items():
+            print(f"  {name.ljust(10)}{filter_info['limit']}")
