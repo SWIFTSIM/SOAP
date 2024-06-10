@@ -855,6 +855,22 @@ class PropertyTable:
                 "PartType5/DynamicalMasses",
             ],
         ),
+        "EncloseRadius": (
+            "EncloseRadius",
+            1,
+            np.float32,
+            "cMpc",
+            "Radius of the particle furthest from the halo centre",
+            "basic",
+            "FMantissa9",
+            True,
+            [
+                "PartType0/Coordinates",
+                "PartType1/Coordinates",
+                "PartType4/Coordinates",
+                "PartType5/Coordinates",
+            ],
+        ),
         "HeliumMass": (
             "HeliumMass",
             1,
@@ -2092,7 +2108,7 @@ class PropertyTable:
             "CentreOfMass",
             3,
             np.float64,
-            "Mpc",
+            "cMpc",
             "Centre of mass.",
             "basic",
             "DScale5",
@@ -2112,7 +2128,7 @@ class PropertyTable:
             "GasCentreOfMass",
             3,
             np.float64,
-            "Mpc",
+            "cMpc",
             "Centre of mass of gas.",
             "gas",
             "DScale5",
@@ -2123,7 +2139,7 @@ class PropertyTable:
             "StellarCentreOfMass",
             3,
             np.float64,
-            "Mpc",
+            "cMpc",
             "Centre of mass of stars.",
             "star",
             "DScale5",
@@ -2311,7 +2327,7 @@ class PropertyTable:
             "SORadius",
             1,
             np.float32,
-            "Mpc",
+            "cMpc",
             "Radius of a sphere {label}",
             "basic",
             "FMantissa9",
@@ -2841,18 +2857,18 @@ class PropertyTable:
         ),
         # InputHalo properties
         "cofp": (
-            "cofp",
+            "HaloCentre",
             3,
             np.float64,
             "cMpc",
-            "Centre of potential. Used as reference for all relative positions. Equal to the position of the most bound particle in the subhalo.",
+            "The centre of the subhalo as given by the halo finder. Used as reference for all relative positions. For VR and HBTplus this is equal to the position of the most bound particle in the subhalo.",
             "Input",
             "DScale5",
             True,
             [],
         ),
         "index": (
-            "index",
+            "HaloCatalogueIndex",
             1,
             np.int64,
             "dimensionless",
@@ -2863,7 +2879,7 @@ class PropertyTable:
             [],
         ),
         "is_central": (
-            r"is\_central",
+            "IsCentral",
             1,
             np.int64,
             "dimensionless",
@@ -2874,7 +2890,7 @@ class PropertyTable:
             [],
         ),
         "nr_bound_part": (
-            r"nr\_bound\_part",
+            "NumberOfBoundParticles",
             1,
             np.int64,
             "dimensionless",
@@ -2953,11 +2969,11 @@ class PropertyTable:
             [],
         ),
         "HBTplus/HostHaloId": (
-            "HostHaloId",
+            "HostFOFId",
             1,
             np.int64,
             "dimensionless",
-            "ID of the host FOF halo of this subhalo. Hostless halos have HostHaloId == -1",
+            "ID of the host FOF halo of this subhalo. Hostless halos have HostFOFId == -1",
             "HBTplus",
             "None",
             True,
@@ -2977,7 +2993,7 @@ class PropertyTable:
         "HBTplus/SnapshotIndexOfBirth": (
             "SnapshotIndexOfBirth",
             1,
-            np.uint64,
+            np.int64,
             "dimensionless",
             "Snapshot when this subhalo was formed.",
             "HBTplus",
@@ -2988,7 +3004,7 @@ class PropertyTable:
         "HBTplus/NestedParentTrackId": (
             "NestedParentTrackId",
             1,
-            np.uint64,
+            np.int64,
             "dimensionless",
             "TrackId of the parent of this subhalo.",
             "HBTplus",
@@ -2999,42 +3015,9 @@ class PropertyTable:
         "HBTplus/DescendantTrackId": (
             "DescendantTrackId",
             1,
-            np.uint64,
+            np.int64,
             "dimensionless",
             "TrackId of the descendant of this subhalo.",
-            "HBTplus",
-            "None",
-            True,
-            [],
-        ),
-        "HBTplus/Mbound": (
-            "Mbound",
-            1,
-            np.float32,
-            "Msun",
-            "Bound mass of this subhalo.",
-            "HBTplus",
-            "FMantissa9",
-            True,
-            [],
-        ),
-        "HBTplus/Nbound": (
-            "Nbound",
-            1,
-            np.uint64,
-            "dimensionless",
-            "Number of particles bound to this subhalo.",
-            "HBTplus",
-            "None",
-            True,
-            [],
-        ),
-        "HBTplus/Rank": (
-            "Rank",
-            1,
-            np.uint64,
-            "dimensionless",
-            "Mass rank of this subhalo within its FOF group.",
             "HBTplus",
             "None",
             True,
@@ -3062,17 +3045,6 @@ class PropertyTable:
             True,
             [],
         ),
-        "HBTplus/VmaxPhysical": (
-            "VmaxPhysical",
-            1,
-            np.float32,
-            "km/s",
-            "Maximum circular velocity of this subhalo",
-            "HBTplus",
-            "FMantissa9",
-            True,
-            [],
-        ),
         "HBTplus/LastMaxVmaxPhysical": (
             "LastMaxVmaxPhysical",
             1,
@@ -3095,6 +3067,40 @@ class PropertyTable:
             True,
             [],
         ),
+        # FOF properties
+        "FOF/Centres": (
+            "Centres",
+            3,
+            np.float64,
+            "cMpc",
+            "Centre of mass of the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            "FOF",
+            "DScale5",
+            True,
+            [],
+        ),
+        "FOF/Masses": (
+            "Masses",
+            1,
+            np.float32,
+            "Msun",
+            "Mass of the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            "FOF",
+            "FMantissa9",
+            True,
+            [],
+        ),
+        "FOF/Sizes": (
+            "Sizes",
+            1,
+            np.uint64,
+            "dimensionless",
+            "Number of particles in the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            "FOF",
+            "None",
+            True,
+            [],
+        ),
         # SOAP properties
         "SubhaloRankByBoundMass": (
             "SubhaloRankByBoundMass",
@@ -3102,6 +3108,17 @@ class PropertyTable:
             np.int32,
             "dimensionless",
             "Ranking by mass of the halo within its parent field halo. Zero for the most massive halo in the field halo.",
+            "SOAP",
+            "None",
+            True,
+            [],
+        ),
+        "HostHaloIndex": (
+            "HostHaloIndex",
+            1,
+            np.int64,
+            "dimensionless",
+            "Index (within the SOAP arrays) of the top level parent of this subhalo. -1 for central subhalos.",
             "SOAP",
             "None",
             True,
@@ -3183,15 +3200,19 @@ class PropertyTable:
             except KeyError:
                 pass
 
-            prop_units = (
-                unyt.unyt_quantity(1, units=prop_units)
-                .units.latex_repr.replace(
-                    "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
+            # Special case for cMpc, so we don't have to define a comoving unit
+            if prop_units == 'cMpc':
+                prop_units = r'\rm{cMpc}'
+            else:
+                prop_units = (
+                    unyt.unyt_quantity(1, units=prop_units)
+                    .units.latex_repr.replace(
+                        "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
+                    )
+                    .replace(
+                        "\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}"
+                    )
                 )
-                .replace(
-                    "\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}"
-                )
-            )
 
             prop_dtype = prop_dtype.__name__
             if prop_name in self.properties:
@@ -3284,7 +3305,7 @@ class PropertyTable:
 
         # sort the properties by category and then alphabetically within each
         # category
-        category_order = ["basic", "general", "gas", "dm", "star", "baryon", "Input", "VR", "HBTplus", "SOAP"]
+        category_order = ["basic", "general", "gas", "dm", "star", "baryon", "Input", "VR", "HBTplus", "FOF", "SOAP"]
         prop_names = sorted(
             self.properties.keys(),
             key=lambda key: (
@@ -3399,10 +3420,14 @@ class DummyProperties:
     """
 
     def __init__(self, halo_finder):
+        categories = ["SOAP", "Input", halo_finder]
+        # Currently FOF properties are only stored for HBT
+        if halo_finder == 'HBTplus':
+            categories += ["FOF"]
         self.property_list = [
             (prop, *info)
             for prop, info in PropertyTable.full_property_list.items()
-            if info[5] in ("SOAP", "Input", halo_finder)
+            if info[5] in categories
         ]
 
 if __name__ == "__main__":
@@ -3426,9 +3451,6 @@ if __name__ == "__main__":
     from projected_aperture_properties import ProjectedApertureProperties
     from SO_properties import SOProperties, CoreExcisedSOProperties
     from subhalo_properties import SubhaloProperties
-
-    # Add cMpc unit needed for cofp
-    unyt.define_unit('cMpc', 1*unyt.Mpc)
 
     # Parse parameter file
     try:

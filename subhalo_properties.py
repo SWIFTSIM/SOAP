@@ -1413,6 +1413,15 @@ class SubhaloParticleData:
             self.Mgas + self.Mstar,
         )
 
+    @lazy_property
+    def EncloseRadius(self) -> unyt.unyt_quantity:
+        """
+        Maximum radius of particles in the subhalo.
+        """
+        if self.Mtot == 0:
+            return None
+        return np.max(self.radius)
+
 
 class SubhaloProperties(HaloProperty):
     """
@@ -1506,6 +1515,7 @@ class SubhaloProperties(HaloProperty):
             "MinimumStellarBirthPressure",
             "MaximumStellarBirthPressure",
             "LastSupernovaEventMaximumGasDensity",
+            "EncloseRadius",
         ]
     ]
 
@@ -1634,10 +1644,10 @@ class SubhaloProperties(HaloProperty):
             do_calculation = self.category_filter.get_do_calculation(
                 halo_result,
                 {
-                    'BoundSubhaloProperties/NumberOfDarkMatterParticles': part_props.Ndm,
-                    'BoundSubhaloProperties/NumberOfGasParticles': part_props.Ngas,
-                    'BoundSubhaloProperties/NumberOfStarParticles': part_props.Nstar,
-                    'BoundSubhaloProperties/NumberOfBlackHoleParticles': part_props.Nbh,
+                    'BoundSubhalo/NumberOfDarkMatterParticles': part_props.Ndm,
+                    'BoundSubhalo/NumberOfGasParticles': part_props.Ngas,
+                    'BoundSubhalo/NumberOfStarParticles': part_props.Nstar,
+                    'BoundSubhalo/NumberOfBlackHoleParticles': part_props.Nbh,
                 }
             )
         else:
@@ -1706,7 +1716,7 @@ class SubhaloProperties(HaloProperty):
 
         # Add these properties to the output
         if self.bound_only:
-            prefix = "BoundSubhaloProperties"
+            prefix = "BoundSubhalo"
         else:
             prefix = "FOFSubhaloProperties"
         for prop in self.property_list:
@@ -1780,7 +1790,7 @@ def test_subhalo_properties():
 
         halo_result = {}
         for subhalo_name, prop_calc in [
-            ("BoundSubhaloProperties", property_calculator_bound),
+            ("BoundSubhalo", property_calculator_bound),
             # ("FOFSubhaloProperties", property_calculator_both),
         ]:
             input_data = {}
@@ -1806,7 +1816,7 @@ def test_subhalo_properties():
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
 
     # Now test the calculation for each property individually, to make sure that
@@ -1838,7 +1848,7 @@ def test_subhalo_properties():
         halo_result = {}
         for subhalo_name, prop_calc in [
             # ("FOFSubhaloProperties", property_calculator_both),
-            ("BoundSubhaloProperties", property_calculator_bound),
+            ("BoundSubhalo", property_calculator_bound),
         ]:
             input_data = {}
             for ptype in prop_calc.particle_properties:
@@ -1865,7 +1875,7 @@ def test_subhalo_properties():
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()

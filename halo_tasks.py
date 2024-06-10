@@ -312,12 +312,31 @@ def process_single_halo(
     for name in input_halo:
         if name not in ("done", "task_id", "read_radius", "search_radius"):
             try:
-                props = PropertyTable.full_property_list[name]
+                prop = PropertyTable.full_property_list[name]
+                # Don't remove halo finder prefix
+                # e.g. don't want "VR/ID" replaced with "ID"
+                if '/' in name:
+                    group = name.split('/')[0]
+                    dataset_name = f'{group}/{prop[0]}'
+                else:
+                    dataset_name = prop[0]
+                dtype = prop[2]
+                unit = prop[3]
+                # unyt_array.to outputs a float64 array, which is dangerous for integers
+                # so don't allow this to happen
+                if np.issubdtype(input_halo[name].dtype, np.integer) or np.issubdtype(dtype, np.integer):
+                    arr = input_halo[name].astype(dtype)
+                    assert input_halo[name].units == unyt.Unit(unit)
+                else:
+                    arr = input_halo[name].to(unit).astype(dtype)
+                description = prop[4]
+            # Property not present in PropertyTable. We log this fact to the output
+            # within combine_chunks, rather than here.
             except KeyError:
+                dataset_name = name
+                arr = input_halo[name]
                 description = "No description available"
-            else:
-                description = props[4]
-            halo_result[f"InputHalos/{name}"] = (input_halo[name], description)
+            halo_result[f"InputHalos/{dataset_name}"] = (arr, description)
 
     return halo_result
 

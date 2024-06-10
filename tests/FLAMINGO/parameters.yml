@@ -402,6 +402,7 @@ SubhaloProperties:
     HalfMassRadiusGas: true
     HalfMassRadiusStars: true
     HalfMassRadiusTotal: true
+    EncloseRadius: true
     KappaCorotBaryons: true
     KappaCorotGas: true
     KappaCorotStars: true
@@ -459,29 +460,29 @@ filters:
   baryon:
     limit: 100
     properties:
-      - BoundSubhaloProperties/NumberOfGasParticles
-      - BoundSubhaloProperties/NumberOfStarParticles
+      - BoundSubhalo/NumberOfGasParticles
+      - BoundSubhalo/NumberOfStarParticles
     combine_properties: sum
   dm:
     limit: 100
     properties:
-      - BoundSubhaloProperties/NumberOfDarkMatterParticles
+      - BoundSubhalo/NumberOfDarkMatterParticles
   gas:
     limit: 100
     properties:
-      - BoundSubhaloProperties/NumberOfGasParticles
+      - BoundSubhalo/NumberOfGasParticles
   general:
     limit: 100
     properties:
-      - BoundSubhaloProperties/NumberOfGasParticles
-      - BoundSubhaloProperties/NumberOfDarkMatterParticles
-      - BoundSubhaloProperties/NumberOfStarParticles
-      - BoundSubhaloProperties/NumberOfBlackHoleParticles
+      - BoundSubhalo/NumberOfGasParticles
+      - BoundSubhalo/NumberOfDarkMatterParticles
+      - BoundSubhalo/NumberOfStarParticles
+      - BoundSubhalo/NumberOfBlackHoleParticles
     combine_properties: sum
   star:
     limit: 100
     properties:
-      - BoundSubhaloProperties/NumberOfStarParticles
+      - BoundSubhalo/NumberOfStarParticles
 defined_constants:
   O_H_sun: 4.9e-4
   Fe_H_sun: 2.82e-5
