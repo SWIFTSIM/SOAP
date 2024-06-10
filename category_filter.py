@@ -67,6 +67,7 @@ class CategoryFilter:
             precomputed_properties['BoundSubhalo/NumberOfGasParticles'] = 0
             precomputed_properties['BoundSubhalo/NumberOfStarParticles'] = 0
             precomputed_properties['BoundSubhalo/NumberOfBlackHoleParticles'] = 0
+            precomputed_properties['SO/200_crit/NumberOfGasParticles'] = 0
         for name, filter_info in self.filters.items():
             if (len(filter_info['properties']) == 1) or (filter_info['combine_properties'] == 'sum'):
                 v = 0

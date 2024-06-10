@@ -1733,7 +1733,7 @@ class PropertyTable:
             np.float64,
             "erg/s",
             "Total observer-frame Xray luminosity in three bands.",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             ["PartType0/XrayLuminosities"],
@@ -1744,7 +1744,7 @@ class PropertyTable:
             np.float64,
             "erg/s",
             "Total rest-frame Xray luminosity in three bands.",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             # Can't include PartType0/XrayLuminositiesRestframe as it is
@@ -1763,7 +1763,7 @@ class PropertyTable:
             np.float64,
             "erg/s",
             "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN.",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1778,7 +1778,7 @@ class PropertyTable:
             np.float64,
             "erg/s",
             "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN.",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1796,7 +1796,7 @@ class PropertyTable:
             np.float64,
             "erg/s",
             "Total observer-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             ["PartType0/XrayLuminosities", "PartType0/Coordinates"],
@@ -1807,7 +1807,7 @@ class PropertyTable:
             np.float64,
             "erg/s",
             "Total rest-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1823,7 +1823,7 @@ class PropertyTable:
             np.float64,
             "erg/s",
             "Total observer-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1839,7 +1839,7 @@ class PropertyTable:
             np.float64,
             "erg/s",
             "Total rest-frame Xray luminosity in three bands. Excludes gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1856,7 +1856,7 @@ class PropertyTable:
             np.float64,
             "1/s",
             "Total observer-frame Xray photon luminosity in three bands.",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             ["PartType0/XrayPhotonLuminosities"],
@@ -1867,7 +1867,7 @@ class PropertyTable:
             np.float64,
             "1/s",
             "Total rest-frame Xray photon luminosity in three bands.",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1883,7 +1883,7 @@ class PropertyTable:
             np.float64,
             "1/s",
             "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1898,7 +1898,7 @@ class PropertyTable:
             np.float64,
             "1/s",
             "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN.",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1915,7 +1915,7 @@ class PropertyTable:
             np.float64,
             "1/s",
             "Total observer-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1931,7 +1931,7 @@ class PropertyTable:
             np.float64,
             "1/s",
             "Total rest-frame Xray photon luminosity in three bands. Excludes gas in the inner {core_excision}",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1947,7 +1947,7 @@ class PropertyTable:
             np.float64,
             "1/s",
             "Total observer-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -1963,7 +1963,7 @@ class PropertyTable:
             np.float64,
             "1/s",
             "Total rest-frame Xray photon luminosity in three bands. Exclude gas that was recently heated by AGN. Excludes gas in the inner {core_excision}",
-            "gas",
+            "SOgas",
             "DMantissa9",
             False,
             [
@@ -3305,7 +3305,7 @@ class PropertyTable:
 
         # sort the properties by category and then alphabetically within each
         # category
-        category_order = ["basic", "general", "gas", "dm", "star", "baryon", "Input", "VR", "HBTplus", "FOF", "SOAP"]
+        category_order = ["basic", "general", "gas", "SOgas", "dm", "star", "baryon", "Input", "VR", "HBTplus", "FOF", "SOAP"]
         prop_names = sorted(
             self.properties.keys(),
             key=lambda key: (
@@ -3406,11 +3406,10 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                     fnstr = ifile.read()
                 fnstr = fnstr.replace("$FOOTNOTE_NUMBER$", f"{i+1}")
                 ofile.write(f"{fnstr}\n\n")
-        # TODO: Summary of each filter type is hardcoded in docs
         with open(filterfile, "w") as ofile:
             for name, filter_info in parameters['filters'].items():
                 value = filter_info['limit']
-                ofile.write(f'\\newcommand{{\\{name}filter}}{{{value}}}\n')
+                ofile.write(f'\\newcommand{{\\{name.lower()}filter}}{{{value}}}\n')
 
 
 class DummyProperties:

@@ -187,6 +187,12 @@ def compute_halo_properties():
                  ],
                 'combine_properties': 'sum'
              },
+        'SOgas': {
+                'limit': 100,
+                'properties': [
+                    'SO/200_crit/NumberOfGasParticles',
+                 ],
+             },
     }
     category_filter = CategoryFilter(
         parameter_file.get_filters(

@@ -342,15 +342,15 @@ SOProperties:
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: true
   variations:
+    200_crit:
+      type: crit
+      value: 200.0
     50_crit:
       type: crit
       value: 50.0
     100_crit:
       type: crit
       value: 100.0
-    200_crit:
-      type: crit
-      value: 200.0
     200_mean:
       type: mean
       value: 200.0
@@ -457,6 +457,14 @@ aliases:
   PartType0/ElementMassFractions: PartType0/SmoothedElementMassFractions
   PartType4/ElementMassFractions: PartType4/SmoothedElementMassFractions
 filters:
+  general:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfGasParticles
+      - BoundSubhalo/NumberOfDarkMatterParticles
+      - BoundSubhalo/NumberOfStarParticles
+      - BoundSubhalo/NumberOfBlackHoleParticles
+    combine_properties: sum
   baryon:
     limit: 100
     properties:
@@ -471,18 +479,14 @@ filters:
     limit: 100
     properties:
       - BoundSubhalo/NumberOfGasParticles
-  general:
-    limit: 100
-    properties:
-      - BoundSubhalo/NumberOfGasParticles
-      - BoundSubhalo/NumberOfDarkMatterParticles
-      - BoundSubhalo/NumberOfStarParticles
-      - BoundSubhalo/NumberOfBlackHoleParticles
-    combine_properties: sum
   star:
     limit: 100
     properties:
       - BoundSubhalo/NumberOfStarParticles
+  SOgas:
+    limit: 100
+    properties:
+      - SO/200_crit/NumberOfGasParticles
 defined_constants:
   O_H_sun: 4.9e-4
   Fe_H_sun: 2.82e-5

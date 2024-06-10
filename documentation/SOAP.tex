@@ -107,18 +107,20 @@ many more particles.
 \paragraph{Basic quantities (basic)} are never filtered out, and hence are calculated for all objects in the
 input halo catalogue.
 
-\paragraph{General derived quanties (general)} use a filter based on the total number of particles bound to the 
+\paragraph{General quanties (general)} use a filter based on the total number of particles bound to the 
 subhalo.
 
-\paragraph{Derived gas quantities (gas)} use a filter based on the number of gas particles bound to the subhalo. 
+\paragraph{Gas quantities (gas)} use a filter based on the number of gas particles bound to the subhalo. 
 
-\paragraph{Derived DM quantities (dm)} use a filter based on the number of DM particles bound to the subhalo.
+\paragraph{DM quantities (dm)} use a filter based on the number of DM particles bound to the subhalo.
 
-\paragraph{Derived stellar quantities (star)} use a filter based on the number of star particles bound to the 
+\paragraph{Stellar quantities (star)} use a filter based on the number of star particles bound to the 
 subhalo.
 
-\paragraph{Derived baryon quantities (baryon)} use a filter based on the number of gas and star particles 
+\paragraph{Baryon quantities (baryon)} use a filter based on the number of gas and star particles 
 bound to the subhalo.
+
+\paragraph{SO gas quantities (SOgas)} use a filter based on the number of gas particles within 200 crit.
 
 \paragraph{}Note that there are no quantities that use a BH or neutrino particle number filter.
 
@@ -132,6 +134,7 @@ gas & $N_{\rm{}gas} \geq{} \gasfilter$ \\
 dm & $N_{\rm{}dm} \geq{} \dmfilter$ \\
 star & $N_{\rm{}star} \geq{} \starfilter$ \\
 baryon & $N_{\rm{}gas}+N_{\rm{}star} \geq{} \baryonfilter$ \\
+SOgas & $N_{\rm{}gas, 200c} \geq{} \sogasfilter$ \\
 \end{longtable}
 
 \section{Overview table}

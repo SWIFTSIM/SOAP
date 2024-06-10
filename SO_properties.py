@@ -2574,8 +2574,6 @@ class SOProperties(HaloProperty):
 
         registry = input_halo["cofp"].units.registry
 
-        do_calculation = self.category_filter.get_do_calculation(halo_result)
-
         SO = {}
         # declare all the variables we will compute
         # we set them to 0 in case a particular variable cannot be computed
@@ -2589,7 +2587,7 @@ class SOProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             shape = prop[2]
@@ -2633,6 +2631,19 @@ class SOProperties(HaloProperty):
                 )
 
             if SO_exists:
+                if self.SO_name == '200_crit':
+                    # this is the halo type that we use for the filter particle numbers,
+                    # so we have to pass the numbers for the category filters manually
+                    # we can't do this earlier since the SO has to have been computed
+                    do_calculation = self.category_filter.get_do_calculation(
+                        halo_result,
+                        {
+                            'SO/200_crit/NumberOfGasParticles': part_props.Ngas,
+                        }
+                    )
+                else:
+                    do_calculation = self.category_filter.get_do_calculation(halo_result)
+
                 for prop in self.property_list:
                     outputname = prop[1]
                     # skip properties that are masked
@@ -2671,7 +2682,7 @@ class SOProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             description = prop[5]

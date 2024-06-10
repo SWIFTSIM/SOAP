@@ -1648,6 +1648,8 @@ class SubhaloProperties(HaloProperty):
                     'BoundSubhalo/NumberOfGasParticles': part_props.Ngas,
                     'BoundSubhalo/NumberOfStarParticles': part_props.Nstar,
                     'BoundSubhalo/NumberOfBlackHoleParticles': part_props.Nbh,
+                    # We should skip any properties which have the SOgas filter
+                    'SO/200_crit/NumberOfGasParticles': 0,
                 }
             )
         else:

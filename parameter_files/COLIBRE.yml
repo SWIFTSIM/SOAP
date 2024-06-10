@@ -410,6 +410,14 @@ aliases:
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/MetalMassFractionsDiffuse: PartType0/MetalMassFractions
 filters:
+  general:
+    limit: 0
+    properties:
+      - BoundSubhalo/NumberOfGasParticles
+      - BoundSubhalo/NumberOfDarkMatterParticles
+      - BoundSubhalo/NumberOfStarParticles
+      - BoundSubhalo/NumberOfBlackHoleParticles
+    combine_properties: sum
   baryon:
     limit: 0
     properties:
@@ -424,14 +432,6 @@ filters:
     limit: 0
     properties:
       - BoundSubhalo/NumberOfGasParticles
-  general:
-    limit: 0
-    properties:
-      - BoundSubhalo/NumberOfGasParticles
-      - BoundSubhalo/NumberOfDarkMatterParticles
-      - BoundSubhalo/NumberOfStarParticles
-      - BoundSubhalo/NumberOfBlackHoleParticles
-    combine_properties: sum
   star:
     limit: 0
     properties:
