@@ -1746,7 +1746,9 @@ def test_subhalo_properties():
     # initialise the DummyHaloGenerator with a random seed
     dummy_halos = DummyHaloGenerator(16902)
     cat_filter = CategoryFilter(
-        {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
+        dummy_halos.get_filters(
+            {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        )
     )
     parameters = ParameterFile(
         parameter_dictionary={

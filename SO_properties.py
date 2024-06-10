@@ -2874,7 +2874,9 @@ def test_SO_properties_random_halo():
     dummy_halos = DummyHaloGenerator(4251)
     filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
     cat_filter = CategoryFilter(
-        {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        dummy_halos.get_filters(
+            {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        )
     )
     parameters = ParameterFile(
         parameter_dictionary={
@@ -3088,40 +3090,7 @@ def test_SO_properties_random_halo():
             "mean",
         )
 
-        halo_result_template = {
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
         rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
 
         # force the SO radius to be within the search sphere
@@ -3233,40 +3202,7 @@ def test_SO_properties_random_halo():
             "mean",
         )
 
-        halo_result_template = {
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
         rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
 
         # force the SO radius to be within the search sphere
@@ -3335,7 +3271,9 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
 
     dummy_halos = DummyHaloGenerator(seed)
     cat_filter = CategoryFilter(
-        {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        dummy_halos.get_filters(
+            {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        )
     )
     parameters = ParameterFile(
         parameter_dictionary={

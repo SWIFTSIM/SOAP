@@ -154,36 +154,36 @@ def compute_halo_properties():
         'general': {
                 'limit': 100,
                 'properties': [
-                    'BoundSubhaloProperties/NumberOfDarkMatterParticles',
-                    'BoundSubhaloProperties/NumberOfGasParticles',
-                    'BoundSubhaloProperties/NumberOfStarParticles',
-                    'BoundSubhaloProperties/NumberOfBlackHoleParticles',
+                    'BoundSubhalo/NumberOfDarkMatterParticles',
+                    'BoundSubhalo/NumberOfGasParticles',
+                    'BoundSubhalo/NumberOfStarParticles',
+                    'BoundSubhalo/NumberOfBlackHoleParticles',
                  ],
                 'combine_properties': 'sum'
              },
         'dm': {
                 'limit': 100,
                 'properties': [
-                    'BoundSubhaloProperties/NumberOfDarkMatterParticles',
+                    'BoundSubhalo/NumberOfDarkMatterParticles',
                  ],
              },
         'gas': {
                 'limit': 100,
                 'properties': [
-                    'BoundSubhaloProperties/NumberOfGasParticles',
+                    'BoundSubhalo/NumberOfGasParticles',
                  ],
              },
         'star': {
                 'limit': 100,
                 'properties': [
-                    'BoundSubhaloProperties/NumberOfStarParticles',
+                    'BoundSubhalo/NumberOfStarParticles',
                  ],
              },
         'baryon': {
                 'limit': 100,
                 'properties': [
-                    'BoundSubhaloProperties/NumberOfGasParticles',
-                    'BoundSubhaloProperties/NumberOfStarParticles',
+                    'BoundSubhalo/NumberOfGasParticles',
+                    'BoundSubhalo/NumberOfStarParticles',
                  ],
                 'combine_properties': 'sum'
              },

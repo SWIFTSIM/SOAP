@@ -528,6 +528,47 @@ class DummyHaloGenerator:
         }
 
     @staticmethod
+    def get_filters(filter_limits):
+        return {
+            'general': {
+                    'limit': filter_limits['general'],
+                    'properties': [
+                        'BoundSubhalo/NumberOfDarkMatterParticles',
+                        'BoundSubhalo/NumberOfGasParticles',
+                        'BoundSubhalo/NumberOfStarParticles',
+                        'BoundSubhalo/NumberOfBlackHoleParticles',
+                     ],
+                    'combine_properties': 'sum'
+                 },
+            'dm': {
+                    'limit': filter_limits['dm'],
+                    'properties': [
+                        'BoundSubhalo/NumberOfDarkMatterParticles',
+                     ],
+                 },
+            'gas': {
+                    'limit': filter_limits['gas'],
+                    'properties': [
+                        'BoundSubhalo/NumberOfGasParticles',
+                     ],
+                 },
+            'star': {
+                    'limit': filter_limits['star'],
+                    'properties': [
+                        'BoundSubhalo/NumberOfStarParticles',
+                     ],
+                 },
+            'baryon': {
+                    'limit': filter_limits['baryon'],
+                    'properties': [
+                        'BoundSubhalo/NumberOfGasParticles',
+                        'BoundSubhalo/NumberOfStarParticles',
+                     ],
+                    'combine_properties': 'sum'
+                 },
+        }
+
+    @staticmethod
     def rnfw(n, con):
         """
         Return radius values from n particles from an NFW profile with the input concentration.
