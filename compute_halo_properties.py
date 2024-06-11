@@ -207,7 +207,7 @@ def compute_halo_properties():
     # Similarly, things like SO 5xR500_crit can only be done after
     # SO 500_crit for obvious reasons
     halo_prop_list = []
-    # Make sure BoundSubhalo is always first
+    # Make sure BoundSubhalo is always first, since it's used for most filters
     subhalo_variations = parameter_file.get_halo_type_variations(
         "SubhaloProperties",
         {"Bound": {"bound_only": True}},
@@ -239,6 +239,7 @@ def compute_halo_properties():
                 )
             )
 
+    # Add SOproperties next, since we have a filter that depends on SOproperties
     SO_variations = parameter_file.get_halo_type_variations(
         "SOProperties",
         {
@@ -268,6 +269,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
+                    SO_variations[variation].get('filter', 'basic'),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["type"],
                     core_excision_fraction=SO_variations[variation][
@@ -282,6 +284,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
+                    SO_variations[variation].get('filter', 'basic'),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["type"],
                 )
@@ -298,6 +301,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
+                    SO_variations[variation].get('filter', 'basic'),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["radius_multiple"],
                     SO_variations[variation]["type"],
@@ -336,6 +340,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
+                    aperture_variations[variation].get('filter', 'basic')
                 )
             )
         else:
@@ -348,6 +353,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
+                    aperture_variations[variation].get('filter', 'basic')
                 )
             )
     projected_aperture_variations = parameter_file.get_halo_type_variations(
@@ -366,6 +372,7 @@ def compute_halo_properties():
                 parameter_file,
                 projected_aperture_variations[variation]["radius_in_kpc"],
                 category_filter,
+                projected_aperture_variations[variation].get('filter', 'basic')
             )
         )
 
