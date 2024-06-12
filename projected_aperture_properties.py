@@ -1176,6 +1176,8 @@ class ProjectedApertureProperties(HaloProperty):
         self.halo_filter = halo_filter
 
         self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
+        self.group_name = f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc"
+        self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
         # Coordinates, Masses and Velocities are always required, as is

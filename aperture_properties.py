@@ -2976,8 +2976,11 @@ class ApertureProperties(HaloProperty):
 
         if self.inclusive:
             self.name = f"inclusive_sphere_{physical_radius_kpc:.0f}kpc"
+            self.group_name = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
         else:
             self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
+            self.group_name = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+        self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
         # Coordinates, Masses and Velocities are always required, as is
@@ -3110,10 +3113,6 @@ class ApertureProperties(HaloProperty):
                             aperture_sphere[name] += val
 
         # add the new properties to the halo_result dictionary
-        if self.inclusive:
-            prefix = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
-        else:
-            prefix = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
         for prop in self.property_list:
             outputname = prop[1]
             # skip properties that are masked
@@ -3126,7 +3125,7 @@ class ApertureProperties(HaloProperty):
             name = prop[0]
             description = prop[5]
             halo_result.update(
-                {f"{prefix}/{outputname}": (aperture_sphere[name], description)}
+                {f"{self.group_name}/{outputname}": (aperture_sphere[name], description)}
             )
 
         return

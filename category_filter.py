@@ -39,9 +39,23 @@ class CategoryFilter:
         Construct the filter with the requested filter thresholds.
 
         Parameters:
-         - filter_values: Dict
-           Dictionary containing the filter thresholds for the 5 categories that
-           require such a threshold. These should be read from the parameter file.
+         - filter: Dict
+           Dictionary where each key the the name of the filter (the category),
+           and each value is a dictionary describing the filter. An example filter
+           description dictionary is:
+               {
+                   'limit': 100,
+                   'properties': [
+                       'BoundSubhalo/NumberOfGasParticles',
+                       'BoundSubhalo/NumberOfStarParticles',
+                    ],
+                   'combine_properties': 'sum'
+               }
+           "limit" gives the threshold value above which the filter is satisfied
+           "properties" lists the properties used to compare with the limit
+           "combine_properties" is only required if there are multiple properties
+           listed, and describes how to reduce the different property values before
+           comparing the the threshold value
          - dmo: bool
            Whether or not SOAP is run in DMO mode, in which case only properties that
            are marked for DMO calculation are actually computed.
@@ -111,13 +125,34 @@ class CategoryFilter:
         else:
             return {"Lossy Compression Algorithm": compression, "Is Compressed": False}
 
-    def get_filter_metadata(self, property_output_name: str) -> Dict:
+    def get_filter_metadata_for_property(self, property_output_name: str) -> Dict:
         """
         Get the dictionary with category filter metadata for a particular property.
 
         Parameters:
          - property_output_name: str
            Name of a halo property as it appears in the output file.
+
+        Returns a dictionary with the same format as those output
+        by get_filter_metadata
+        """
+        base_output_name = property_output_name.split("/")[-1]
+        category = None
+        for _, prop in PropertyTable.full_property_list.items():
+            if prop[0] == base_output_name:
+                category = prop[5]
+        # category=None corresponds to quantities outside the table
+        # (e.g. "density_in_search_radius")
+        return self.get_filter_metadata(category)
+
+
+    def get_filter_metadata(self, category: str) -> Dict:
+        """
+        Get the dictionary with category filter metadata for a particular property.
+
+        Parameters:
+         - category: str
+           Name of the filter category to get metadata for.
 
         Returns a dictionary with category filter metadata. Currently, this
         dictionary contains the following keys:
@@ -142,13 +177,6 @@ class CategoryFilter:
         Note that it is hence always possible to reproduce the mask for a dataset using
         this metadata.
         """
-        base_output_name = property_output_name.split("/")[-1]
-        category = None
-        for _, prop in PropertyTable.full_property_list.items():
-            if prop[0] == base_output_name:
-                category = prop[5]
-        # category=None corresponds to quantities outside the table
-        # (e.g. "density_in_search_radius")
         if category is None or category == "basic":
             return {"Masked": False}
         elif category in self.filters:

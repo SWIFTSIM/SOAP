@@ -2523,6 +2523,10 @@ class SOProperties(HaloProperty):
             self.SO_name = "BN98"
             self.label = f"within which the density is {self.critical_density_multiple:.2f} times the critical value"
 
+        # Save name of group in the final output file
+        self.group_name = f"SO/{self.SO_name}"
+        self.mask_metadata = self.category_filter.get_filter_metadata(self.halo_filter)
+
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the
         # snapshot, that type will not be read in and will not have
@@ -2714,7 +2718,6 @@ class SOProperties(HaloProperty):
 
         return
 
-
 class CoreExcisedSOProperties(SOProperties):
     # Add the extra core excised properties we want from the table
     property_list = SOProperties.property_list + [
@@ -2840,6 +2843,7 @@ class RadiusMultipleSOProperties(SOProperties):
 
         # overwrite the name, SO_name and label
         self.SO_name = f"{multiple:.0f}xR_{SOval:.0f}_{type}"
+        self.group_name = f"SO/{self.SO_name}"
         self.label = f"with a radius that is {self.SO_name}"
         self.name = f"SO_{self.SO_name}"
 

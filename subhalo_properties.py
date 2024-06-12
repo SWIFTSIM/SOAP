@@ -1573,12 +1573,16 @@ class SubhaloProperties(HaloProperty):
         self.physical_radius_mpc = 0.0
 
         # Give this calculation a name so we can select it on the command line
+        # Also save name of group in the final output file, and mask metadata
         if bound_only:
             self.grnr = "GroupNr_bound"
             self.name = "bound_subhalo_properties"
+            self.group_name = "BoundSubhalo"
         else:
             self.grnr = "GroupNr_all"
             self.name = "fof_subhalo_properties"
+            self.group_name = "FOFSubhalo"
+        self.mask_metadata = {"Masked": False}
 
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the
@@ -1717,10 +1721,6 @@ class SubhaloProperties(HaloProperty):
             raise RuntimeError("Found more particles than expected!")
 
         # Add these properties to the output
-        if self.bound_only:
-            prefix = "BoundSubhalo"
-        else:
-            prefix = "FOFSubhaloProperties"
         for prop in self.property_list:
             outputname = prop[1]
             # skip properties that are masked
@@ -1731,7 +1731,7 @@ class SubhaloProperties(HaloProperty):
                 continue
             name = prop[0]
             description = prop[5]
-            halo_result.update({f"{prefix}/{outputname}": (subhalo[name], description)})
+            halo_result.update({f"{self.group_name}/{outputname}": (subhalo[name], description)})
 
 
 def test_subhalo_properties():
