@@ -23,7 +23,7 @@ import numpy as np
 import unyt
 
 from swift_cells import SWIFTCellGrid
-from halo_properties import HaloProperty
+from halo_properties import HaloProperty, ReadRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from property_table import PropertyTable
@@ -1269,6 +1269,9 @@ class ProjectedApertureProperties(HaloProperty):
 
         # Determine whether to skip halo
         if do_calculation[self.halo_filter]:
+            if search_radius < self.physical_radius_mpc * unyt.Mpc:
+                raise ReadRadiusTooSmallError("Search radius is smaller than aperture")
+
             types_present = [type for type in self.particle_properties if type in data]
             part_props = ProjectedApertureParticleData(
                 input_halo,
@@ -1391,9 +1394,23 @@ def test_projected_aperture_properties():
                         input_data[ptype][dset] = data[ptype][dset]
             input_halo_copy = input_halo.copy()
             input_data_copy = input_data.copy()
+
+            # Check halo fails if search radius is too small
+            halo_result = dict(halo_result_template)
+            if pc_name != 'filter_test':
+                with pytest.raises(ReadRadiusTooSmallError):
+                    pc_calc.calculate(
+                        input_halo, 10 * unyt.kpc, input_data, halo_result
+                    )
+            # Skipped halos shouldn't ever require a larger search radius
+            else:
+                pc_calc.calculate(
+                    input_halo, 10 * unyt.kpc, input_data, halo_result
+                )
+
             halo_result = dict(halo_result_template)
             pc_calc.calculate(
-                input_halo, 0.0 * unyt.kpc, input_data, halo_result
+                input_halo, 50 * unyt.kpc, input_data, halo_result
             )
             assert input_halo == input_halo_copy
             assert input_data == input_data_copy
@@ -1451,7 +1468,7 @@ def test_projected_aperture_properties():
         input_data_copy = input_data.copy()
         halo_result = dict(halo_result_template)
         property_calculator.calculate(
-            input_halo, 0.0 * unyt.kpc, input_data, halo_result
+            input_halo, 50 * unyt.kpc, input_data, halo_result
         )
         assert input_halo == input_halo_copy
         assert input_data == input_data_copy
@@ -1483,6 +1500,8 @@ if __name__ == "__main__":
     python3 -m pytest *.py
     in the main folder.
     """
+    import pytest
+
     print("Calling test_projected_aperture_properties()...")
     test_projected_aperture_properties()
     print("Test passed.")

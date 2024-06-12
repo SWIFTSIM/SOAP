@@ -1583,6 +1583,7 @@ class SubhaloProperties(HaloProperty):
             self.name = "fof_subhalo_properties"
             self.group_name = "FOFSubhalo"
         self.mask_metadata = {"Masked": False}
+        self.halo_filter = 'basic'
 
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the

@@ -493,3 +493,4 @@ defined_constants:
 calculations:
   recalculate_xrays: true
   xray_table_path: /snap8/scratch/dp004/dc-bras1/cloudy/X_Ray_table_metals_full.hdf5
+  min_read_radius_cmpc: 0.1

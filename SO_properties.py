@@ -2830,14 +2830,14 @@ class RadiusMultipleSOProperties(SOProperties):
                 "SOs with a radius that is a multiple of another SO radius are only allowed for type mean or crit!"
             )
 
-        # initialise the SOProperties object using a conservative physical radius estimate
+        # initialise the SOProperties object
         super().__init__(
             cellgrid,
             parameters,
             recently_heated_gas_filter,
             category_filter,
             halo_filter,
-            3000.0,
+            0,
             "physical",
         )
 
