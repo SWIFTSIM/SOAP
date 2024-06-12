@@ -12,7 +12,7 @@
 \input{filters}
 
 \title{SOAP -- Spherical Overdensity and Aperture Processor}
-\author{Bert Vandenbroucke, Joop Schaye, John Helly, Matthieu Schaller, Rob McGibbon}
+\author{Bert Vandenbroucke, Joop Schaye, John Helly, \\Matthieu Schaller, Rob McGibbon}
 \date{}
 
 \begin{document}
@@ -25,6 +25,8 @@
 
 SOAP computes different types of properties, depending on  how particles are included (by radius, in projection...). 
 For all types, we use the halo membership and centre of potential as determined by the input halo catalogue. 
+This documentation is generated using the SOAP parameter file, and so the properties listed reflect those
+present in the current run of SOAP, rather than all possible properties.
 
 \section{Property types}
 
@@ -67,21 +69,16 @@ achieved by ordering the calculations.
 \paragraph{InputHalos} Some properties are directly copied from the original halo catalogue that was passed
 to SOAP. These are stored in a separate group, \verb+InputHalos+.
 
-\paragraph{Some properties (currently just the subhalo ranking by mass) are computed by SOAP from other halo properties.} 
+\paragraph{SOAP} Some properties are computed by SOAP using the other halo properties
+present in the catalogue.
 These are stored in a separate group, \verb+SOAP+. This is just done for convenience; these quantities can be computed from the SOAP output alone.
 
-\paragraph{The table below summarises} the different halo types.
+\paragraph{The table below lists} the halo variations present in this run of SOAP.
+Note that there will be three groups (\verb+x+, \verb+y+ or \verb+z+) for each \verb+ProjectedAperture+ variation.
+Each variation can have a filter applied to it. If a halo does not satisfy the filter then the variation will
+not be calculated for that halo. More information on filters can be found in the next section.
 
-\begin{longtable}{llcp{6cm}}
- & Name & Inclusive? & Variations \\
-\hline{}SH & \verb+BoundSubhalo+ & \ding{53} & - \\
-ES & \verb+ExclusiveSphere/XXXkpc+ & \ding{53} & 30, 50, 100, 300, 500, 1000, 3000 kpc \\
-IS & \verb+InclusiveSphere/XXXkpc+ & \ding{51} & 30, 50, 100, 300, 500, 1000, 3000 kpc \\
-EP & \verb+ProjectedAperture/XXXkpc/projP+ & \ding{53} & 10, 30, 50, 100 kpc \\
-SO & \verb+SO/XXX+ & \ding{51} & 200 mean, (50, 100, 200, 500, 1000, 2500) crit, 5$\times{}$500 crit \\
-- & \verb+InputHalos/+ & - & Directly copied from halo catalogue \\
-- & \verb+SOAP/+ & - & Computed from other halo properties \\
-\end{longtable}
+\input{variations_table}
 
 \section{Property categories}
 
@@ -107,7 +104,7 @@ many more particles.
 \paragraph{Basic quantities (basic)} are never filtered out, and hence are calculated for all objects in the
 input halo catalogue.
 
-\paragraph{General quanties (general)} use a filter based on the total number of particles bound to the 
+\paragraph{General quantities (general)} use a filter based on the total number of particles bound to the 
 subhalo.
 
 \paragraph{Gas quantities (gas)} use a filter based on the number of gas particles bound to the subhalo. 
@@ -281,7 +278,7 @@ The GroupNr values stored here are zero based array indexes into the
 full subhalo catalogue, and not the subhalos IDs. For example the first group
 in the VELOCIraptor catalogue has GroupNr=0 and ID=1.
 
-The script `make_virtual_snapshot.py` will combine snapshot and group membership files 
+The script `make\_virtual\_snapshot.py` will combine snapshot and group membership files
 into a single virtual snapshot file. This virtual file can be read by swiftsimio and 
 gadgetviewer to provide halo membership information alongside other particle properties.
 Using the virtual file along with the spatial masking functionality within swiftsimio
