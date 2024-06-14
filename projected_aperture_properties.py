@@ -23,7 +23,7 @@ import numpy as np
 import unyt
 
 from swift_cells import SWIFTCellGrid
-from halo_properties import HaloProperty
+from halo_properties import HaloProperty, ReadRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from property_table import PropertyTable
@@ -1134,6 +1134,7 @@ class ProjectedApertureProperties(HaloProperty):
         parameters: ParameterFile,
         physical_radius_kpc: float,
         category_filter: CategoryFilter,
+        halo_filter: str,
     ):
         """
         Construct an ProjectedApertureProperties object with the given physical
@@ -1153,6 +1154,9 @@ class ProjectedApertureProperties(HaloProperty):
            Filter used to determine which properties can be calculated for this halo.
            This depends on the number of particles in the subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
         """
         super().__init__(cellgrid)
 
@@ -1169,8 +1173,11 @@ class ProjectedApertureProperties(HaloProperty):
 
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
+        self.halo_filter = halo_filter
 
         self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
+        self.group_name = f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc"
+        self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
         # Coordinates, Masses and Velocities are always required, as is
@@ -1226,26 +1233,14 @@ class ProjectedApertureProperties(HaloProperty):
         The halo_result dictionary is updated with the properties computed by this function.
         """
 
-        types_present = [type for type in self.particle_properties if type in data]
+        # This function call requires that 200_crit properties have been calculated
+        do_calculation = self.category_filter.get_do_calculation(halo_result)
+        registry = input_halo['cofp'].units.registry
 
-        part_props = ProjectedApertureParticleData(
-            input_halo,
-            data,
-            types_present,
-            self.physical_radius_mpc * unyt.Mpc,
-            self.snapshot_datasets,
-        )
-
-        do_calculation = self.category_filter.get_filters(halo_result)
-
-        registry = part_props.mass.units.registry
+        projected_aperture = {}
         # loop over the different projections
         for projname in ["projx", "projy", "projz"]:
-            proj_part_props = SingleProjectionProjectedApertureParticleData(
-                part_props, projname
-            )
-
-            projected_aperture = {}
+            projected_aperture[projname] = {}
             # declare all the variables we will compute
             # we set them to 0 in case a particular variable cannot be computed
             # all variables are defined with physical units and an appropriate dtype
@@ -1258,36 +1253,68 @@ class ProjectedApertureProperties(HaloProperty):
                     continue
                 # skip non-DMO properties in DMO run mode
                 is_dmo = prop[8]
-                if do_calculation["DMO"] and not is_dmo:
+                if self.category_filter.dmo and not is_dmo:
                     continue
                 name = prop[0]
                 shape = prop[2]
                 dtype = prop[3]
                 unit = prop[4]
-                category = prop[6]
                 if shape > 1:
                     val = [0] * shape
                 else:
                     val = 0
-                projected_aperture[name] = unyt.unyt_array(
+                projected_aperture[projname][name] = unyt.unyt_array(
                     val, dtype=dtype, units=unit, registry=registry
                 )
-                if do_calculation[category]:
-                    val = getattr(proj_part_props, name)
-                    if val is not None:
-                        assert (
-                            projected_aperture[name].shape == val.shape
-                        ), f"Attempting to store {name} with wrong dimensions"
-                        if unit == "dimensionless":
-                            projected_aperture[name] = unyt.unyt_array(
-                                val.astype(dtype),
-                                dtype=dtype,
-                                units=unit,
-                                registry=registry,
-                            )
-                        else:
-                            projected_aperture[name] += val
 
+        # Determine whether to skip halo
+        if do_calculation[self.halo_filter]:
+            if search_radius < self.physical_radius_mpc * unyt.Mpc:
+                raise ReadRadiusTooSmallError("Search radius is smaller than aperture")
+
+            types_present = [type for type in self.particle_properties if type in data]
+            part_props = ProjectedApertureParticleData(
+                input_halo,
+                data,
+                types_present,
+                self.physical_radius_mpc * unyt.Mpc,
+                self.snapshot_datasets,
+            )
+            for projname in ["projx", "projy", "projz"]:
+                proj_part_props = SingleProjectionProjectedApertureParticleData(
+                    part_props, projname
+                )
+                for prop in self.property_list:
+                    outputname = prop[1]
+                    # skip properties that are masked
+                    if not self.property_mask[outputname]:
+                        continue
+                    # skip non-DMO properties in DMO run mode
+                    is_dmo = prop[8]
+                    if do_calculation["DMO"] and not is_dmo:
+                        continue
+                    name = prop[0]
+                    shape = prop[2]
+                    dtype = prop[3]
+                    unit = prop[4]
+                    category = prop[6]
+                    if do_calculation[category]:
+                        val = getattr(proj_part_props, name)
+                        if val is not None:
+                            assert (
+                                projected_aperture[projname][name].shape == val.shape
+                            ), f"Attempting to store {name} with wrong dimensions"
+                            if unit == "dimensionless":
+                                projected_aperture[projname][name] = unyt.unyt_array(
+                                    val.astype(dtype),
+                                    dtype=dtype,
+                                    units=unit,
+                                    registry=registry,
+                                )
+                            else:
+                                projected_aperture[projname][name] += val
+
+        for projname in ["projx", "projy", "projz"]:
             # add the new properties to the halo_result dictionary
             prefix = (
                 f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc/{projname}"
@@ -1299,12 +1326,12 @@ class ProjectedApertureProperties(HaloProperty):
                     continue
                 # skip non-DMO properties in DMO run mode
                 is_dmo = prop[8]
-                if do_calculation["DMO"] and not is_dmo:
+                if self.category_filter.dmo and not is_dmo:
                     continue
                 name = prop[0]
                 description = prop[5]
                 halo_result.update(
-                    {f"{prefix}/{outputname}": (projected_aperture[name], description)}
+                    {f"{prefix}/{outputname}": (projected_aperture[projname][name], description)}
                 )
 
         return
@@ -1323,9 +1350,7 @@ def test_projected_aperture_properties():
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(127)
-    category_filter = CategoryFilter(
-        {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
-    )
+    category_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
     parameters = ParameterFile(
         parameter_dictionary={
             "aliases": {
@@ -1341,8 +1366,14 @@ def test_projected_aperture_properties():
         "ProjectedApertureProperties", {"30_kpc": {"radius_in_kpc": 30.0}}
     )
 
-    property_calculator = ProjectedApertureProperties(
-        dummy_halos.get_cell_grid(), parameters, 30.0, category_filter
+    pc_projected = ProjectedApertureProperties(
+        dummy_halos.get_cell_grid(), parameters, 30.0, category_filter, 'basic'
+    )
+
+    # Create a filter that no halos will satisfy
+    fail_filter = CategoryFilter(dummy_halos.get_filters({"general": 10000000}))
+    pc_filter_test = ProjectedApertureProperties(
+        dummy_halos.get_cell_grid(), parameters, 30.0, fail_filter, 'general'
     )
 
     for i in range(100):
@@ -1351,34 +1382,61 @@ def test_projected_aperture_properties():
         )
         halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
 
-        input_data = {}
-        for ptype in property_calculator.particle_properties:
-            if ptype in data:
-                input_data[ptype] = {}
-                for dset in property_calculator.particle_properties[ptype]:
-                    input_data[ptype][dset] = data[ptype][dset]
-        input_halo_copy = input_halo.copy()
-        input_data_copy = input_data.copy()
-        halo_result = dict(halo_result_template)
-        property_calculator.calculate(
-            input_halo, 0.0 * unyt.kpc, input_data, halo_result
-        )
-        assert input_halo == input_halo_copy
-        assert input_data == input_data_copy
+        for pc_name, pc_calc in [
+            ("ProjectedAperture", pc_projected),
+            ("filter_test", pc_filter_test),
+        ]:
+            input_data = {}
+            for ptype in pc_calc.particle_properties:
+                if ptype in data:
+                    input_data[ptype] = {}
+                    for dset in pc_calc.particle_properties[ptype]:
+                        input_data[ptype][dset] = data[ptype][dset]
+            input_halo_copy = input_halo.copy()
+            input_data_copy = input_data.copy()
 
-        for proj in ["projx", "projy", "projz"]:
-            for prop in property_calculator.property_list:
-                outputname = prop[1]
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
-                full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
-                assert full_name in halo_result
-                result = halo_result[full_name][0]
-                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
-                assert result.dtype == dtype
-                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
-                assert result.units.same_dimensions_as(unit.units)
+            # Check halo fails if search radius is too small
+            halo_result = dict(halo_result_template)
+            if pc_name != 'filter_test':
+                with pytest.raises(ReadRadiusTooSmallError):
+                    pc_calc.calculate(
+                        input_halo, 10 * unyt.kpc, input_data, halo_result
+                    )
+            # Skipped halos shouldn't ever require a larger search radius
+            else:
+                pc_calc.calculate(
+                    input_halo, 10 * unyt.kpc, input_data, halo_result
+                )
+
+            halo_result = dict(halo_result_template)
+            pc_calc.calculate(
+                input_halo, 50 * unyt.kpc, input_data, halo_result
+            )
+            assert input_halo == input_halo_copy
+            assert input_data == input_data_copy
+
+            for proj in ["projx", "projy", "projz"]:
+                for prop in pc_calc.property_list:
+                    outputname = prop[1]
+                    size = prop[2]
+                    dtype = prop[3]
+                    unit_string = prop[4]
+                    full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
+                    assert full_name in halo_result
+                    result = halo_result[full_name][0]
+                    assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
+                    assert result.dtype == dtype
+                    unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
+                    assert result.units.same_dimensions_as(unit.units)
+
+            # Check properties were not calculated for filtered halos
+            if pc_name == 'filter_test':
+                for proj in ["projx", "projy", "projz"]:
+                    for prop in pc_calc.property_list:
+                        outputname = prop[1]
+                        size = prop[2]
+                        full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
+                        assert np.all(halo_result[full_name][0].value == np.zeros(size))
 
     # Now test the calculation for each property individually, to make sure that
     # all properties read all the datasets they require
@@ -1395,43 +1453,10 @@ def test_projected_aperture_properties():
         single_parameters = ParameterFile(parameter_dictionary=single_property)
 
         property_calculator = ProjectedApertureProperties(
-            dummy_halos.get_cell_grid(), single_parameters, 30.0, category_filter
+            dummy_halos.get_cell_grid(), single_parameters, 30.0, category_filter, 'basic'
         )
 
-        halo_result_template = {
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
 
         input_data = {}
         for ptype in property_calculator.particle_properties:
@@ -1443,7 +1468,7 @@ def test_projected_aperture_properties():
         input_data_copy = input_data.copy()
         halo_result = dict(halo_result_template)
         property_calculator.calculate(
-            input_halo, 0.0 * unyt.kpc, input_data, halo_result
+            input_halo, 50 * unyt.kpc, input_data, halo_result
         )
         assert input_halo == input_halo_copy
         assert input_data == input_data_copy
@@ -1475,6 +1500,8 @@ if __name__ == "__main__":
     python3 -m pytest *.py
     in the main folder.
     """
+    import pytest
+
     print("Calling test_projected_aperture_properties()...")
     test_projected_aperture_properties()
     print("Test passed.")

@@ -126,12 +126,18 @@ def combine_chunks(
                 # Add units and description
                 attrs = swift_units.attributes_from_units(unit)
                 attrs["Description"] = description
-                mask_metadata = category_filter.get_filter_metadata(name)
+                mask_metadata = category_filter.get_filter_metadata_for_property(name)
                 attrs.update(mask_metadata)
                 compression_metadata = category_filter.get_compression_metadata(name)
                 attrs.update(compression_metadata)
                 for attr_name, attr_value in attrs.items():
                     dataset.attrs[attr_name] = attr_value
+
+            # Save masks for each halo variation
+            for halo_prop in halo_prop_list:
+                for attr_name, attr_value in halo_prop.mask_metadata.items():
+                    outfile[halo_prop.group_name].attrs[attr_name] = attr_value
+
             outfile.close()
     comm_world.barrier()
 
