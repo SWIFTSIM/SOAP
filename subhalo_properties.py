@@ -34,7 +34,6 @@ from kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
-    get_reduced_inertia_tensor,
     get_velocity_dispersion_matrix,
 )
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
@@ -656,18 +655,27 @@ class SubhaloParticleData:
 
     @lazy_property
     def TotalInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the total mass distribution of the subhalo.
-        """
         if self.Mtot == 0:
             return None
-        return get_inertia_tensor(self.mass, self.position)
+        return get_inertia_tensor(self.mass, self.position, self.HalfMassRadiusTot)
 
     @lazy_property
-    def ReducedTotalInertiaTensor(self):
+    def TotalInertiaTensorReduced(self) -> unyt.unyt_array:
         if self.Mtot == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass, self.position)
+        return get_inertia_tensor(self.mass, self.position, self.HalfMassRadiusTot, reduced=True)
+
+    @lazy_property
+    def TotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        if self.Mtot == 0:
+            return None
+        return get_inertia_tensor(self.mass, self.position, self.HalfMassRadiusTot, max_iterations=1)
+
+    @lazy_property
+    def TotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        if self.Mtot == 0:
+            return None
+        return get_inertia_tensor(self.mass, self.position, self.HalfMassRadiusTot, reduced=True, max_iterations=1)
 
     @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
@@ -748,18 +756,27 @@ class SubhaloParticleData:
 
     @lazy_property
     def GasInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the gas particle distribution of the subhalo.
-        """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(self.mass_gas, self.pos_gas)
+        return get_inertia_tensor(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas)
 
     @lazy_property
-    def ReducedGasInertiaTensor(self):
+    def GasInertiaTensorReduced(self) -> unyt.unyt_array:
         if self.Mgas == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass_gas, self.pos_gas)
+        return get_inertia_tensor(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, reduced=True)
+
+    @lazy_property
+    def GasInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        if self.Mgas == 0:
+            return None
+        return get_inertia_tensor(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, max_iterations=1)
+
+    @lazy_property
+    def GasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        if self.Mgas == 0:
+            return None
+        return get_inertia_tensor(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, reduced=True, max_iterations=1)
 
     @lazy_property
     def veldisp_matrix_gas(self) -> unyt.unyt_array:
@@ -804,19 +821,28 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def DMInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the dark matter particle distribution in the subhalo.
-        """
+    def DarkMatterInertiaTensor(self) -> unyt.unyt_array:
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(self.mass_dm, self.pos_dm)
+        return get_inertia_tensor(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM)
 
     @lazy_property
-    def ReducedDMInertiaTensor(self):
+    def DarkMatterInertiaTensorReduced(self) -> unyt.unyt_array:
         if self.Mdm == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm)
+        return get_inertia_tensor(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, reduced=True)
+
+    @lazy_property
+    def DarkMatterInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        if self.Mdm == 0:
+            return None
+        return get_inertia_tensor(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, max_iterations=1)
+
+    @lazy_property
+    def DarkMatterInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        if self.Mdm == 0:
+            return None
+        return get_inertia_tensor(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, reduced=True, max_iterations=1)
 
     @lazy_property
     def veldisp_matrix_dm(self) -> unyt.unyt_array:
@@ -935,18 +961,27 @@ class SubhaloParticleData:
 
     @lazy_property
     def StellarInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the star particle distribution in the subhalo.
-        """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(self.mass_star, self.pos_star)
+        return get_inertia_tensor(self.mass_star, self.pos_star, self.HalfMassRadiusStar)
 
     @lazy_property
-    def ReducedStellarInertiaTensor(self):
+    def StellarInertiaTensorReduced(self) -> unyt.unyt_array:
         if self.Mstar == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass_star, self.pos_star)
+        return get_inertia_tensor(self.mass_star, self.pos_star, self.HalfMassRadiusStar, reduced=True)
+
+    @lazy_property
+    def StellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor(self.mass_star, self.pos_star, self.HalfMassRadiusStar, max_iterations=1)
+
+    @lazy_property
+    def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor(self.mass_star, self.pos_star, self.HalfMassRadiusStar, reduced=True, max_iterations=1)
 
     @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
@@ -1029,28 +1064,12 @@ class SubhaloParticleData:
         return self.internal_kappa_bar
 
     @lazy_property
-    def BaryonInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the baryon (gas + star) particle distribution in the
-        subhalo.
-        """
-        if self.Mbaryon == 0:
-            return None
-        return get_inertia_tensor(self.mass_baryons, self.pos_baryons)
-
-    @lazy_property
     def gas_mask_all(self) -> NDArray[bool]:
         """
         Mask that can be used to filter out gas particles that belong to this
         subhalo in raw particle arrays, like PartType0/Masses.
         """
         return self.get_dataset(f"PartType0/{self.grnr}") == self.index
-
-    @lazy_property
-    def ReducedBaryonInertiaTensor(self):
-        if self.Mbaryon == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
@@ -1486,16 +1505,22 @@ class SubhaloProperties(HaloProperty):
             "HalfMassRadiusDM",
             "HalfMassRadiusStar",
             "HalfMassRadiusBaryon",
-            "TotalInertiaTensor",
             "GasInertiaTensor",
-            "DMInertiaTensor",
+            "DarkMatterInertiaTensor",
             "StellarInertiaTensor",
-            "BaryonInertiaTensor",
-            "ReducedTotalInertiaTensor",
-            "ReducedGasInertiaTensor",
-            "ReducedDMInertiaTensor",
-            "ReducedStellarInertiaTensor",
-            "ReducedBaryonInertiaTensor",
+            "TotalInertiaTensor",
+            "GasInertiaTensorReduced",
+            "DarkMatterInertiaTensorReduced",
+            "StellarInertiaTensorReduced",
+            "TotalInertiaTensorReduced",
+            "GasInertiaTensorNoniterative",
+            "DarkMatterInertiaTensorNoniterative",
+            "StellarInertiaTensorNoniterative",
+            "TotalInertiaTensorNoniterative",
+            "GasInertiaTensorReducedNoniterative",
+            "DarkMatterInertiaTensorReducedNoniterative",
+            "StellarInertiaTensorReducedNoniterative",
+            "TotalInertiaTensorReducedNoniterative",
             "veldisp_matrix_gas",
             "veldisp_matrix_dm",
             "veldisp_matrix_star",

@@ -144,8 +144,6 @@ from kinematic_properties import (
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
     get_vmax,
-    get_inertia_tensor,
-    get_reduced_inertia_tensor,
 )
 
 from swift_cells import SWIFTCellGrid
@@ -998,21 +996,6 @@ class ApertureParticleData:
         return 0.5 * ekin_gas.sum()
 
     @lazy_property
-    def GasInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Intertia tensor of the gas component.
-        """
-        if self.Mgas == 0:
-            return None
-        return get_inertia_tensor(self.mass_gas, self.pos_gas)
-
-    @lazy_property
-    def ReducedGasInertiaTensor(self):
-        if self.Mgas == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_gas, self.pos_gas)
-
-    @lazy_property
     def dm_mass_fraction(self) -> unyt.unyt_array:
         """
         Fractional mass of DM particles. See the documentation of star_mass_fraction
@@ -1052,21 +1035,6 @@ class ApertureParticleData:
         return get_angular_momentum(
             self.mass_dm, self.pos_dm, self.vel_dm, ref_velocity=self.vcom_dm
         )
-
-    @lazy_property
-    def DMInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the DM component.
-        """
-        if self.Mdm == 0:
-            return None
-        return get_inertia_tensor(self.mass_dm, self.pos_dm)
-
-    @lazy_property
-    def ReducedDMInertiaTensor(self):
-        if self.Mdm == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm)
 
     @lazy_property
     def com_star(self) -> unyt.unyt_array:
@@ -1150,15 +1118,6 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
-    def StellarInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the stellar component.
-        """
-        if self.Mstar == 0:
-            return None
-        return get_inertia_tensor(self.mass_star, self.pos_star)
-
-    @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
         """
         Velocity dispersion matrix of the stars.
@@ -1168,12 +1127,6 @@ class ApertureParticleData:
         return get_velocity_dispersion_matrix(
             self.star_mass_fraction, self.vel_star, self.vcom_star
         )
-
-    @lazy_property
-    def ReducedStellarInertiaTensor(self):
-        if self.Mstar == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_star, self.pos_star)
 
     @lazy_property
     def Ekin_star(self) -> unyt.unyt_quantity:
@@ -1253,15 +1206,6 @@ class ApertureParticleData:
         if not hasattr(self, "internal_kappa_bar"):
             self.compute_Lbar_props()
         return self.internal_kappa_bar
-
-    @lazy_property
-    def BaryonInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the baryonic (gas + stars) component.
-        """
-        if self.Mbaryons == 0:
-            return None
-        return get_inertia_tensor(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
     def gas_mask_all(self) -> NDArray[bool]:
@@ -2353,12 +2297,6 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def ReducedBaryonInertiaTensor(self):
-        if self.Mbaryons == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_baryons, self.pos_baryons)
-
-    @lazy_property
     def LinearMassWeightedOxygenOverHydrogenOfGas(self) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the total oxygen over hydrogen ratio of gas particles.
@@ -2840,14 +2778,6 @@ class ApertureProperties(HaloProperty):
             "HalfMassRadiusStar",
             "HalfMassRadiusBaryon",
             "spin_parameter",
-            "GasInertiaTensor",
-            "DMInertiaTensor",
-            "StellarInertiaTensor",
-            "BaryonInertiaTensor",
-            "ReducedGasInertiaTensor",
-            "ReducedDMInertiaTensor",
-            "ReducedStellarInertiaTensor",
-            "ReducedBaryonInertiaTensor",
             "DtoTgas",
             "DtoTstar",
             "starOfrac",

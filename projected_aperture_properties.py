@@ -28,7 +28,6 @@ from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from property_table import PropertyTable
 from kinematic_properties import get_projected_inertia_tensor
-from kinematic_properties import get_reduced_projected_inertia_tensor
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
@@ -175,6 +174,7 @@ class SingleProjectionProjectedApertureParticleData:
         self.index = part_props.index
         self.centre = part_props.centre
         self.types = part_props.types
+        self.aperture_radius = part_props.aperture_radius
 
         self.iproj = {"projx": 0, "projy": 1, "projz": 2}[projection]
         self.projmask = getattr(part_props, f"mask_{projection}")
@@ -598,22 +598,27 @@ class SingleProjectionProjectedApertureParticleData:
 
     @lazy_property
     def ProjectedGasInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the gas in projection.
-        """
         if self.Mgas == 0:
             return None
-        return get_projected_inertia_tensor(
-            self.proj_mass_gas, self.proj_pos_gas, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius)
 
     @lazy_property
-    def ReducedProjectedGasInertiaTensor(self):
+    def ProjectedGasInertiaTensorReduced(self):
         if self.Mgas == 0:
             return None
-        return get_reduced_projected_inertia_tensor(
-            self.proj_mass_gas, self.proj_pos_gas, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, reduced=True)
+
+    @lazy_property
+    def ProjectedGasInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        if self.Mgas == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, max_iterations=1)
+
+    @lazy_property
+    def ProjectedGasInertiaTensorReducedNoniterative(self):
+        if self.Mgas == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
 
     @lazy_property
     def dm_mass_fraction(self) -> unyt.unyt_array:
@@ -663,41 +668,27 @@ class SingleProjectionProjectedApertureParticleData:
 
     @lazy_property
     def ProjectedStellarInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the stars in projection.
-        """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
-            self.proj_mass_star, self.proj_pos_star, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius)
 
     @lazy_property
-    def ReducedProjectedStellarInertiaTensor(self):
+    def ProjectedStellarInertiaTensorReduced(self):
         if self.Mstar == 0:
             return None
-        return get_reduced_projected_inertia_tensor(
-            self.proj_mass_star, self.proj_pos_star, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, reduced=True)
 
     @lazy_property
-    def ProjectedBaryonInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the baryons (gas + stars) in projection.
-        """
-        if self.Mbaryons == 0:
+    def ProjectedStellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
-            self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, max_iterations=1)
 
     @lazy_property
-    def ReducedProjectedBaryonInertiaTensor(self):
-        if self.Mbaryons == 0:
+    def ProjectedStellarInertiaTensorReducedNoniterative(self):
+        if self.Mstar == 0:
             return None
-        return get_reduced_projected_inertia_tensor(
-            self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
 
     @lazy_property
     def gas_mask_all(self) -> NDArray[bool]:
@@ -1111,7 +1102,12 @@ class ProjectedApertureProperties(HaloProperty):
             "BHmaxlasteventa",
             "ProjectedGasInertiaTensor",
             "ProjectedStellarInertiaTensor",
-            "ProjectedBaryonInertiaTensor",
+            "ProjectedGasInertiaTensorReduced",
+            "ProjectedStellarInertiaTensorReduced",
+            "ProjectedGasInertiaTensorNoniterative",
+            "ProjectedStellarInertiaTensorNoniterative",
+            "ProjectedGasInertiaTensorReducedNoniterative",
+            "ProjectedStellarInertiaTensorReducedNoniterative",
             "HydrogenMass",
             "HeliumMass",
             "MolecularHydrogenMass",
@@ -1122,9 +1118,6 @@ class ProjectedApertureProperties(HaloProperty):
             "starmetalfrac",
             "gasmetalfrac",
             "gasmetalfrac_SF",
-            "ReducedProjectedGasInertiaTensor",
-            "ReducedProjectedStellarInertiaTensor",
-            "ReducedProjectedBaryonInertiaTensor",
         ]
     ]
 

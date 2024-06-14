@@ -27,13 +27,11 @@ ApertureProperties:
     AngularMomentumGas: true
     AngularMomentumStars: true
     AtomicHydrogenMass: false
-    BaryonInertiaTensor: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
     CentreOfMass: true
     CentreOfMassVelocity: true
-    DarkMatterInertiaTensor: true
     DarkMatterMass: true
     DarkMatterVelocityDispersionMatrix: false
     DiffuseCarbonMass: false
@@ -58,7 +56,6 @@ ApertureProperties:
     DustSmallGrainMassInColdDenseGas: false
     DustSmallGrainMassInMolecularGas: false
     GasMassInColdDenseDiffuseMetals: false
-    GasInertiaTensor: true
     GasMass: true
     GasMassFractionInIron: true
     GasMassFractionInMetals: true
@@ -113,11 +110,6 @@ ApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    ReducedTotalInertiaTensor: true
-    ReducedGasInertiaTensor: true
-    ReducedDarkMatterInertiaTensor: true
-    ReducedStellarInertiaTensor: true
-    ReducedBaryonInertiaTensor: true
     SpinParameter: true
     StarFormationRate: true
     StarFormingGasMass: true
@@ -127,7 +119,6 @@ ApertureProperties:
     StarFormingGasMassInMetals: false
     StellarCentreOfMass: true
     StellarCentreOfMassVelocity: true
-    StellarInertiaTensor: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
@@ -217,12 +208,14 @@ ProjectedApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    ProjectedBaryonInertiaTensor: true
     ProjectedGasInertiaTensor: true
+    ProjectedGasInertiaTensorReduced: true
+    ProjectedGasInertiaTensorNoniterative: false
+    ProjectedGasInertiaTensorReducedNoniterative: false
     ProjectedStellarInertiaTensor: true
-    ReducedProjectedGasInertiaTensor: true
-    ReducedProjectedStellarInertiaTensor: true
-    ReducedProjectedBaryonInertiaTensor: true
+    ProjectedStellarInertiaTensorReduced: true
+    ProjectedStellarInertiaTensorNoniterative: false
+    ProjectedStellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
     StarFormingGasMassFractionInMetals: false
     StellarInitialMass: true
@@ -249,7 +242,6 @@ SOProperties:
     AngularMomentumDarkMatter: true
     AngularMomentumGas: true
     AngularMomentumStars: true
-    BaryonInertiaTensor: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -257,7 +249,6 @@ SOProperties:
     CentreOfMassVelocity: true
     ComptonY: true
     ComptonYWithoutRecentAGNHeating: true
-    DarkMatterInertiaTensor: true
     DarkMatterMass: true
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
@@ -268,7 +259,6 @@ SOProperties:
     GasComptonYTemperatureWithoutRecentAGNHeating: true
     GasComptonYTemperatureCoreExcision: true
     GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision: true
-    GasInertiaTensor: true
     GasMass: true
     GasMassFractionInIron: true
     GasMassFractionInMetals: true
@@ -309,7 +299,6 @@ SOProperties:
     StarFormingGasMassFractionInMetals: true
     StellarCentreOfMass: true
     StellarCentreOfMassVelocity: true
-    StellarInertiaTensor: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
@@ -317,13 +306,23 @@ SOProperties:
     StellarMassFractionInMetals: true
     StellarMassFractionInOxygen: true
     StellarMassInMetals: false
-    ReducedTotalInertiaTensor: true
-    ReducedGasInertiaTensor: true
-    ReducedDarkMatterInertiaTensor: true
-    ReducedStellarInertiaTensor: true
-    ReducedBaryonInertiaTensor: true
-    ThermalEnergyGas: true
     TotalInertiaTensor: true
+    GasInertiaTensor: true
+    DarkMatterInertiaTensor: true
+    StellarInertiaTensor: true
+    TotalInertiaTensorReduced: true
+    GasInertiaTensorReduced: true
+    DarkMatterInertiaTensorReduced: true
+    StellarInertiaTensorReduced: true
+    TotalInertiaTensorNoniterative: false
+    GasInertiaTensorNoniterative: false
+    DarkMatterInertiaTensorNoniterative: false
+    StellarInertiaTensorNoniterative: false
+    TotalInertiaTensorReducedNoniterative: false
+    GasInertiaTensorReducedNoniterative: false
+    DarkMatterInertiaTensorReducedNoniterative: false
+    StellarInertiaTensorReducedNoniterative: false
+    ThermalEnergyGas: true
     TotalMass: true
     XRayLuminosity: true
     XRayLuminosityCoreExcision: true
@@ -377,18 +376,15 @@ SubhaloProperties:
     AngularMomentumDarkMatter: true
     AngularMomentumGas: true
     AngularMomentumStars: true
-    BaryonInertiaTensor: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
     CentreOfMass: true
     CentreOfMassVelocity: true
-    DarkMatterInertiaTensor: true
     DarkMatterMass: true
     DarkMatterVelocityDispersionMatrix: true
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
-    GasInertiaTensor: true
     GasMass: true
     GasMassFractionInMetals: true
     GasMassInMetals: false
@@ -402,7 +398,6 @@ SubhaloProperties:
     HalfMassRadiusGas: true
     HalfMassRadiusStars: true
     HalfMassRadiusTotal: true
-    EncloseRadius: true
     KappaCorotBaryons: true
     KappaCorotGas: true
     KappaCorotStars: true
@@ -432,23 +427,32 @@ SubhaloProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    ReducedTotalInertiaTensor: true
-    ReducedGasInertiaTensor: true
-    ReducedDarkMatterInertiaTensor: true
-    ReducedStellarInertiaTensor: true
-    ReducedBaryonInertiaTensor: true
+    TotalInertiaTensor: true
+    GasInertiaTensor: true
+    DarkMatterInertiaTensor: true
+    StellarInertiaTensor: true
+    TotalInertiaTensorReduced: true
+    GasInertiaTensorReduced: true
+    DarkMatterInertiaTensorReduced: true
+    StellarInertiaTensorReduced: true
+    TotalInertiaTensorNoniterative: false
+    GasInertiaTensorNoniterative: false
+    DarkMatterInertiaTensorNoniterative: false
+    StellarInertiaTensorNoniterative: false
+    TotalInertiaTensorReducedNoniterative: false
+    GasInertiaTensorReducedNoniterative: false
+    DarkMatterInertiaTensorReducedNoniterative: false
+    StellarInertiaTensorReducedNoniterative: false
     SpinParameter: true
     StarFormationRate: true
     StarFormingGasMass: true
     StarFormingGasMassFractionInMetals: true
-    StellarInertiaTensor: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
     StellarMassFractionInMetals: true
     StellarMassInMetals: false
     StellarVelocityDispersionMatrix: true
-    TotalInertiaTensor: true
     TotalMass: true
   variations:
     Bound:

@@ -230,10 +230,8 @@ def get_vmax(
     return ordered_radius[imax], np.sqrt(v_over_G[imax] * G)
 
 
-def get_inertia_tensor(
-    mass: unyt.unyt_array, position: unyt.unyt_array
-) -> unyt.unyt_array:
-    """
+def get_inertia_tensor(mass, position, radius, reduced=False, max_iterations=20):
+    '''
     Get the inertia tensor of the given particle distribution, computed as 
     I_{ij} = m*x_i*x_j / Mtot.
 
@@ -242,24 +240,77 @@ def get_inertia_tensor(
        Masses of the particles.
      - position: unyt.unyt_array
        Positions of the particles.
+     - radius: unyt.unyt_quantity
+       Exclude particles outside this radius for the inertia tensor calculation
+     - reduced: bool
+       Whether to calculate the reduced inertia tensor
+     - max_iterations: int
+       The maximum number of iterations to repeat the inertia tensor calculation
 
     Returns the inertia tensor.
-    """
-    # 3x3 inertia tensor
-    Itensor = (
-        mass[:, None, None] / mass.sum() * position[:, None:, None] * position[:, None]
-    ).sum(axis=0)
+    '''
+    # Shouldn't calculate an inertia tensor for small numbers of particles
+    if position.shape[0] < 20:
+        return None
 
-    # Symmetric, so only return lower triangle
-    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
+    # Remove particles at centre if calculating reduced tensor
+    if reduced:
+        norm = np.linalg.norm(position, axis=1) ** 2
+        mask = np.logical_not(np.isclose(norm, 0))
+        position = position[mask]
+        mass = mass[mask]
+        norm = norm[mask]
 
-    return Itensor
+    # Set stopping criteria
+    tol = 0.0001
+    q = 1000
+
+    # Ensure we have consistent units
+    R = radius.to('kpc')
+    position = position.to('kpc')
+
+    # Start with a sphere
+    eig_val = [1, 1, 1]
+    eig_vec = np.array([
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+    ])
+
+    for _ in range(max_iterations):
+        # Calculate shape
+        old_q = q
+        q = np.sqrt(eig_val[1] / eig_val[2])
+        s = np.sqrt(eig_val[0] / eig_val[2])
+        p = np.sqrt(eig_val[0] / eig_val[1])
+
+        # Break if converged
+        if abs((old_q - q) / q) < tol:
+            break
+
+        # Calculate ellipsoid, determine which particles are inside
+        axis = R * np.array([
+            1 * np.cbrt(s * p),
+            1 * np.cbrt(q / p),
+            1 / np.cbrt(q * s),
+        ])
+        p = np.dot(position, eig_vec) / axis
+        r = np.linalg.norm(p, axis=1)
+        weight = mass / np.sum(mass[r <= 1])
+        weight[r > 1] = 0
+
+        # Calculate inertia tensor
+        tensor = weight[:, None, None] * position[:, :, None] * position[:, None, :]
+        if reduced:
+            tensor /= norm[:, None, None]
+        tensor = tensor.sum(axis=0)
+        eig_val, eig_vec = np.linalg.eigh(tensor.value)
+
+    return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
 
 
-def get_projected_inertia_tensor(
-    mass: unyt.unyt_array, position: unyt.unyt_array, axis: int
-) -> unyt.unyt_array:
-    """
+def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, max_iterations=20):
+    '''
     Get the inertia tensor of the given particle distribution, projected along the
     given axis.
 
@@ -271,9 +322,18 @@ def get_projected_inertia_tensor(
      - axis: 0, 1, 2
        Projection axis. Only the coordinates perpendicular to this axis are
        taken into account.
+     - radius: unyt.unyt_quantity
+       Exclude particles outside this radius for the inertia tensor calculation
+     - reduced: bool
+       Whether to calculate the reduced inertia tensor
+     - max_iterations: int
+       The maximum number of iterations to repeat the inertia tensor calculation
 
     Returns the inertia tensor.
-    """
+    '''
+    # Shouldn't calculate an inertia tensor for small numbers of particles
+    if position.shape[0] < 20:
+        return None
 
     projected_position = unyt.unyt_array(
         np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
@@ -290,76 +350,56 @@ def get_projected_inertia_tensor(
     else:
         raise AttributeError(f"Invalid axis: {axis}!")
 
-    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
+    # Remove particles at centre if calculating reduced tensor
+    if reduced:
+        norm = np.linalg.norm(projected_position, axis=1) ** 2
+        mask = np.logical_not(np.isclose(norm, 0))
+        projected_position = projected_position[mask]
+        mass = mass[mask]
+        norm = norm[mask]
 
-    Itensor *= projected_position[:, :, None] * projected_position[:, None, :]
+    # Set stopping criteria
+    tol = 0.0001
+    q = 1000
 
-    Itensor = Itensor.sum(axis=0)
+    # Ensure we have consistent units
+    R = radius.to('kpc')
+    projected_position = projected_position.to('kpc')
 
-    Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
+    # Start with a circle
+    eig_val = [1, 1]
+    eig_vec = np.array([
+        [1, 0],
+        [0, 1],
+    ])
 
-    Itensor *= position.units * position.units
+    for _ in range(max_iterations):
+        # Calculate shape
+        old_q = q
+        q = np.sqrt(eig_val[0] / eig_val[1])
 
-    return Itensor
+        # Break if converged
+        if abs((old_q - q) / q) < tol:
+            break
 
+        # Calculate ellipse, determine which particles are inside
+        axis = R * np.array([
+            1 * np.sqrt(q),
+            1 / np.sqrt(q),
+        ])
+        p = np.dot(projected_position, eig_vec) / axis
+        r = np.linalg.norm(p, axis=1)
+        weight = mass / np.sum(mass[r <= 1])
+        weight[r > 1] = 0
+        
+        # Calculate inertia tensor
+        tensor = weight[:, None, None] * projected_position[:, :, None] * projected_position[:, None, :]
+        if reduced:
+            tensor /= norm[:, None, None]
+        tensor = tensor.sum(axis=0)
+        eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
-def get_reduced_inertia_tensor(mass, position):
-    # Remove the particle at the centre of the halo which otherwise causes division over 0.
-    norm = np.linalg.norm(position, axis=1) ** 2
-    argmin = np.argmin(norm)
-    position = np.delete(position, argmin, 0)  # Removing
-    mass = np.delete(mass, argmin)
-    norm = np.delete(norm, argmin)
-    # 3x3 inertia tensor
-    Itensor = (
-        mass[:, None, None]
-        / mass.sum()
-        * position[:, None:, None]
-        * position[:, None]
-        / norm[:, None, None]
-    ).sum(axis=0)
-
-    # Symmetric, so only return lower triangle
-    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
-    return Itensor
-
-
-def get_reduced_projected_inertia_tensor(mass, position, axis):
-    # Remove the particle at the centre of the halo which otherwise causes division over 0.
-    norm = np.linalg.norm(position, axis=1) ** 2
-    argmin = np.argmin(norm)
-    position = np.delete(position, argmin, 0)  # Removing
-    mass = np.delete(mass, argmin)
-    norm = np.delete(norm, argmin)
-    projected_position = unyt.unyt_array(
-        np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
-    )
-    if axis == 0:
-        projected_position[:, 0] = position[:, 1]
-        projected_position[:, 1] = position[:, 2]
-    elif axis == 1:
-        projected_position[:, 0] = position[:, 2]
-        projected_position[:, 1] = position[:, 0]
-    elif axis == 2:
-        projected_position[:, 0] = position[:, 0]
-        projected_position[:, 1] = position[:, 1]
-    else:
-        raise AttributeError(f"Invalid axis: {axis}!")
-
-    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
-
-    Itensor *= (
-        projected_position[:, :, None]
-        * projected_position[:, None, :]
-        / norm[:, None, None].value
-    )
-
-    Itensor = Itensor.sum(axis=0)
-
-    Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
-
-    return Itensor
-
+    return np.concatenate([np.diag(tensor), [tensor[(0, 1)]]])
 
 if __name__ == "__main__":
     """
