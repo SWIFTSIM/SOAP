@@ -159,6 +159,7 @@ ApertureProperties:
     exclusive_1000_kpc:
       inclusive: false
       radius_in_kpc: 1000.0
+      filter: general
     exclusive_100_kpc:
       inclusive: false
       radius_in_kpc: 100.0
@@ -168,6 +169,7 @@ ApertureProperties:
     exclusive_3000kpc:
       inclusive: false
       radius_in_kpc: 3000.0
+      filter: general
     exclusive_300kpc:
       inclusive: false
       radius_in_kpc: 300.0
@@ -177,12 +179,14 @@ ApertureProperties:
     exclusive_500_kpc:
       inclusive: false
       radius_in_kpc: 500.0
+      filter: general
     exclusive_50_kpc:
       inclusive: false
       radius_in_kpc: 50.0
     inclusive_1000_kpc:
       inclusive: true
       radius_in_kpc: 1000.0
+      filter: general
     inclusive_100_kpc:
       inclusive: true
       radius_in_kpc: 100.0
@@ -192,6 +196,7 @@ ApertureProperties:
     inclusive_3000kpc:
       inclusive: true
       radius_in_kpc: 3000.0
+      filter: general
     inclusive_300kpc:
       inclusive: true
       radius_in_kpc: 300.0
@@ -201,6 +206,7 @@ ApertureProperties:
     inclusive_500_kpc:
       inclusive: true
       radius_in_kpc: 500.0
+      filter: general
     inclusive_50_kpc:
       inclusive: true
       radius_in_kpc: 50.0
@@ -253,12 +259,16 @@ ProjectedApertureProperties:
   variations:
     100_kpc:
       radius_in_kpc: 100.0
+      filter: general
     10_kpc:
       radius_in_kpc: 10.0
+      filter: general
     30_kpc:
       radius_in_kpc: 30.0
+      filter: general
     50_kpc:
       radius_in_kpc: 50.0
+      filter: general
 SOProperties:
   properties:
     AngularMomentumBaryons: true
@@ -364,9 +374,11 @@ SOProperties:
     50_crit:
       type: crit
       value: 50.0
+      filter: general
     100_crit:
       type: crit
       value: 100.0
+      filter: general
     200_mean:
       type: mean
       value: 200.0
@@ -378,15 +390,19 @@ SOProperties:
       type: crit
       value: 500.0
       radius_multiple: 5.0 
+      filter: general
     1000_crit:
       type: crit
       value: 1000.0
+      filter: general
     2500_crit:
       type: crit
       value: 2500.0
+      filter: general
     BN98:
       type: BN98
       value: 0.0
+      filter: general
 SubhaloProperties:
   properties:
     AngularMomentumBaryons: true
