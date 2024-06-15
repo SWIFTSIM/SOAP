@@ -273,8 +273,12 @@ SOProperties:
     CentreOfMassVelocity: true
     ComptonY: true
     ComptonYWithoutRecentAGNHeating: true
+    Concentration: true
+    ConcentrationSoft: true
     DarkMatterInertiaTensor: true
     DarkMatterMass: true
+    DarkMatterConcentration: true
+    DarkMatterConcentrationSoft: true
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
     DopplerB: true
@@ -302,6 +306,7 @@ SOProperties:
     KineticEnergyGas: true
     KineticEnergyStars: true
     MassFractionSatellites: true
+    MassFractionExternal: true
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
@@ -427,6 +432,7 @@ SubhaloProperties:
     MassWeightedMeanStellarAge: true
     MaximumCircularVelocity: true
     MaximumCircularVelocityRadius: true
+    MaximumCircularVelocitySoft: true
     MaximumDarkMatterCircularVelocity: true
     MaximumDarkMatterCircularVelocityRadius: true
     MedianStellarBirthDensity: false
