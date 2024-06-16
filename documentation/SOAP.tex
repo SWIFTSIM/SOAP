@@ -10,7 +10,6 @@
 \usepackage{xcolor}
 
 \input{filters}
-\input{variations}
 
 \title{SOAP -- Spherical Overdensity and Aperture Processor}
 \author{Bert Vandenbroucke, Joop Schaye, John Helly, Matthieu Schaller, Rob McGibbon}
@@ -75,11 +74,11 @@ These are stored in a separate group, \verb+SOAP+. This is just done for conveni
 
 \begin{longtable}{llcp{6cm}}
  & Name & Inclusive? & Variations \\
-\hline{}SH & \verb+BoundSubhaloProperties+ & \ding{53} & - \\
-ES & \verb+ExclusiveSphere/XXXkpc+ & \ding{53} & \variationsES \\
-IS & \verb+InclusiveSphere/XXXkpc+ & \ding{51} & \variationsIS \\
-EP & \verb+ProjectedAperture/XXXkpc/projP+ & \ding{53} & \variationsEP \\
-SO & \verb+SO/XXX+ & \ding{51} & \variationsSO \\
+\hline{}SH & \verb+BoundSubhalo+ & \ding{53} & - \\
+ES & \verb+ExclusiveSphere/XXXkpc+ & \ding{53} & 30, 50, 100, 300, 500, 1000, 3000 kpc \\
+IS & \verb+InclusiveSphere/XXXkpc+ & \ding{51} & 30, 50, 100, 300, 500, 1000, 3000 kpc \\
+EP & \verb+ProjectedAperture/XXXkpc/projP+ & \ding{53} & 10, 30, 50, 100 kpc \\
+SO & \verb+SO/XXX+ & \ding{51} & 200 mean, (50, 100, 200, 500, 1000, 2500) crit, 5$\times{}$500 crit \\
 - & \verb+InputHalos/+ & - & Directly copied from halo catalogue \\
 - & \verb+SOAP/+ & - & Computed from other halo properties \\
 \end{longtable}
@@ -279,7 +278,7 @@ The GroupNr values stored here are zero based array indexes into the
 full subhalo catalogue, and not the subhalos IDs. For example the first group
 in the VELOCIraptor catalogue has GroupNr=0 and ID=1.
 
-The script make\_virtual\_snapshot.py will combine snapshot and group membership files
+The script `make_virtual_snapshot.py` will combine snapshot and group membership files 
 into a single virtual snapshot file. This virtual file can be read by swiftsimio and 
 gadgetviewer to provide halo membership information alongside other particle properties.
 Using the virtual file along with the spatial masking functionality within swiftsimio
