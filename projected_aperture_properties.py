@@ -598,24 +598,42 @@ class SingleProjectionProjectedApertureParticleData:
 
     @lazy_property
     def ProjectedGasInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
         if self.Mgas == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius)
 
     @lazy_property
     def ProjectedGasInertiaTensorReduced(self):
+        """
+        Reduced inertia tensor of the gas mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
         if self.Mgas == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, reduced=True)
 
     @lazy_property
     def ProjectedGasInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas mass distribution in projection.
+        Computed in a single iteration using bound particles within the projected aperture.
+        """
         if self.Mgas == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, max_iterations=1)
 
     @lazy_property
     def ProjectedGasInertiaTensorReducedNoniterative(self):
+        """
+        Reduced inertia tensor of the gas mass distribution in projection.
+        Computed in a single iteration using bound particles within the projected aperture.
+        """
         if self.Mgas == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
@@ -668,24 +686,42 @@ class SingleProjectionProjectedApertureParticleData:
 
     @lazy_property
     def ProjectedStellarInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius)
 
     @lazy_property
     def ProjectedStellarInertiaTensorReduced(self):
+        """
+        Reduced inertia tensor of the stellar mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, reduced=True)
 
     @lazy_property
     def ProjectedStellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar mass distribution in projection.
+        Computed in a single iteration using bound particles within the projected aperture.
+        """
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, max_iterations=1)
 
     @lazy_property
     def ProjectedStellarInertiaTensorReducedNoniterative(self):
+        """
+        Reduced inertia tensor of the stellar mass distribution in projection.
+        Computed in a single iteration using bound particles within the projected aperture.
+        """
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)

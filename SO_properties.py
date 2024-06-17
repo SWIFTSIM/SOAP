@@ -562,24 +562,42 @@ class SOParticleData:
 
     @lazy_property
     def TotalInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius. Only considers particles within the SORadius
+        """
         if self.Mtotpart == 0:
             return None
         return get_inertia_tensor(self.mass, self.position, self.SO_r)
 
     @lazy_property
     def TotalInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius. Only considers particles within the SORadius
+        """
         if self.Mtotpart == 0:
             return None
         return get_inertia_tensor(self.mass, self.position, self.SO_r, reduced=True)
 
     @lazy_property
     def TotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution.
+        Computed in a single iteration using particles within the SORadius.
+        """
         if self.Mtotpart == 0:
             return None
         return get_inertia_tensor(self.mass, self.position, self.SO_r, max_iterations=1)
 
     @lazy_property
     def TotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution.
+        Computed in a single iteration using particles within the SORadius.
+        """
         if self.Mtotpart == 0:
             return None
         return get_inertia_tensor(self.mass, self.position, self.SO_r, reduced=True, max_iterations=1)
@@ -710,24 +728,42 @@ class SOParticleData:
 
     @lazy_property
     def GasInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius. Only considers particles within the SORadius
+        """
         if self.Mgas == 0:
             return None
         return get_inertia_tensor(self.gas_masses, self.gas_pos, self.SO_r)
 
     @lazy_property
     def GasInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the gas mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius. Only considers particles within the SORadius
+        """
         if self.Mgas == 0:
             return None
         return get_inertia_tensor(self.gas_masses, self.gas_pos, self.SO_r, reduced=True)
 
     @lazy_property
     def GasInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas mass distribution.
+        Computed in a single iteration using particles within the SORadius.
+        """
         if self.Mgas == 0:
             return None
         return get_inertia_tensor(self.gas_masses, self.gas_pos, self.SO_r, max_iterations=1)
 
     @lazy_property
     def GasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the gas mass distribution.
+        Computed in a single iteration using particles within the SORadius.
+        """
         if self.Mgas == 0:
             return None
         return get_inertia_tensor(self.gas_masses, self.gas_pos, self.SO_r, reduced=True, max_iterations=1)
@@ -793,24 +829,42 @@ class SOParticleData:
 
     @lazy_property
     def DarkMatterInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the dark matter mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius. Only considers particles within the SORadius
+        """
         if self.Mdm == 0:
             return None
         return get_inertia_tensor(self.dm_masses, self.dm_pos, self.SO_r)
 
     @lazy_property
     def DarkMatterInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the dark matter mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius. Only considers particles within the SORadius
+        """
         if self.Mdm == 0:
             return None
         return get_inertia_tensor(self.dm_masses, self.dm_pos, self.SO_r, reduced=True)
 
     @lazy_property
     def DarkMatterInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the dark matter mass distribution.
+        Computed in a single iteration using particles within the SORadius.
+        """
         if self.Mdm == 0:
             return None
         return get_inertia_tensor(self.dm_masses, self.dm_pos, self.SO_r, max_iterations=1)
 
     @lazy_property
     def DarkMatterInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the dark matter mass distribution.
+        Computed in a single iteration using particles within the SORadius.
+        """
         if self.Mdm == 0:
             return None
         return get_inertia_tensor(self.dm_masses, self.dm_pos, self.SO_r, reduced=True, max_iterations=1)
@@ -920,24 +974,42 @@ class SOParticleData:
 
     @lazy_property
     def StellarInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius. Only considers particles within the SORadius
+        """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor(self.star_masses, self.star_pos, self.SO_r)
 
     @lazy_property
     def StellarInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius. Only considers particles within the SORadius
+        """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor(self.star_masses, self.star_pos, self.SO_r, reduced=True)
 
     @lazy_property
     def StellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar mass distribution.
+        Computed in a single iteration using particles within the SORadius.
+        """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor(self.star_masses, self.star_pos, self.SO_r, max_iterations=1)
 
     @lazy_property
     def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution.
+        Computed in a single iteration using particles within the SORadius.
+        """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor(self.star_masses, self.star_pos, self.SO_r, reduced=True, max_iterations=1)
