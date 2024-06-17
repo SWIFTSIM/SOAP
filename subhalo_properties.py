@@ -1711,6 +1711,10 @@ class SubhaloProperties(HaloProperty):
                         subhalo[name].shape == val.shape
                     ), f"Attempting to store {name} with wrong dimensions"
                     if unit == "dimensionless":
+                        if hasattr(val, "units"):
+                            assert (
+                                val.units == unyt.dimensionless
+                            ), f'{name} is not dimensionless'
                         subhalo[name] = unyt.unyt_array(
                             val.astype(dtype),
                             dtype=dtype,

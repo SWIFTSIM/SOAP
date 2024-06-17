@@ -1977,7 +1977,7 @@ class SOParticleData:
         fac = unyt.sigma_thompson / unyt.c
         volumes = self.gas_masses / self.gas_densities
         area = np.pi * self.SO_r ** 2
-        return (fac * ne * vr * (volumes / area)).sum()
+        return (fac * ne * vr * (volumes / area)).sum().to('dimensionless')
 
     @lazy_property
     def Ndm(self) -> int:
@@ -2679,6 +2679,10 @@ class SOProperties(HaloProperty):
                                 SO[name].shape == val.shape
                             ), f"Attempting to store {name} with wrong dimensions"
                             if unit == "dimensionless":
+                                if hasattr(val, "units"):
+                                    assert (
+                                        val.units == unyt.dimensionless
+                                    ), f'{name} is not dimensionless'
                                 SO[name] = unyt.unyt_array(
                                     val.astype(dtype),
                                     dtype=dtype,

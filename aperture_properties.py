@@ -3009,6 +3009,10 @@ class ApertureProperties(HaloProperty):
                         aperture_sphere[name].shape == val.shape
                     ), f"Attempting to store {name} with wrong dimensions"
                     if unit == "dimensionless":
+                        if hasattr(val, "units"):
+                            assert (
+                                val.units == unyt.dimensionless
+                            ), f'{name} is not dimensionless'
                         aperture_sphere[name] = unyt.unyt_array(
                             val.astype(dtype),
                             dtype=dtype,
