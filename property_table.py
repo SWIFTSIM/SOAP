@@ -336,7 +336,7 @@ class PropertyTable:
             "MostMassiveBlackHolePosition",
             3,
             np.float64,
-            "kpc",
+            "cMpc",
             "Position of most massive black hole.",
             "general",
             "DScale5",
