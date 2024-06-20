@@ -1261,7 +1261,8 @@ class SubhaloParticleData:
         """
         if self.Nstar == 0:
             return None
-        birth_densities = self.stellar_birth_density / unyt.mh
+        # Pressure in physical units can overflow float32
+        birth_densities = self.stellar_birth_density.astype('float64') / unyt.mh
         return birth_densities * self.stellar_birth_temperature
 
     @lazy_property
