@@ -110,7 +110,7 @@ ApertureProperties:
     StellarVelocityDispersionMatrix: true
     TotalMass: true
     TotalSNIaRate: true
-    GasMassInColdDenseDiffuseMetals: false
+    GasMassInColdDenseDiffuseMetals: true
     StellarCentreOfMassVelocity: false
     BaryonInertiaTensor: true
     DarkMatterInertiaTensor: true
