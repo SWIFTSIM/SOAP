@@ -679,7 +679,7 @@ class SubhaloParticleData:
     def TotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the total mass distribution.
-        Computed in a single iteration using bound particles within HalfMassRadiusTot.
+        Computed using all bound particles within HalfMassRadiusTot.
         """
         if self.Mtot == 0:
             return None
@@ -689,7 +689,7 @@ class SubhaloParticleData:
     def TotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the total mass distribution.
-        Computed in a single iteration using bound particles within HalfMassRadiusTot.
+        Computed using all bound particles within HalfMassRadiusTot.
         """
         if self.Mtot == 0:
             return None
@@ -798,7 +798,7 @@ class SubhaloParticleData:
     def GasInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the gas mass distribution.
-        Computed in a single iteration using bound particles within HalfMassRadiusGas.
+        Computed using all bound gas particles within HalfMassRadiusGas.
         """
         if self.Mgas == 0:
             return None
@@ -808,7 +808,7 @@ class SubhaloParticleData:
     def GasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the gas mass distribution.
-        Computed in a single iteration using bound particles within HalfMassRadiusGas.
+        Computed using all bound gas particles within HalfMassRadiusGas.
         """
         if self.Mgas == 0:
             return None
@@ -882,7 +882,7 @@ class SubhaloParticleData:
     def DarkMatterInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the dark matter mass distribution.
-        Computed in a single iteration using bound particles within HalfMassRadiusDM.
+        Computed using all bound DM particles within HalfMassRadiusDM.
         """
         if self.Mdm == 0:
             return None
@@ -892,7 +892,7 @@ class SubhaloParticleData:
     def DarkMatterInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the dark matter mass distribution.
-        Computed in a single iteration using bound particles within HalfMassRadiusDM.
+        Computed using all bound DM particles within HalfMassRadiusDM.
         """
         if self.Mdm == 0:
             return None
@@ -1039,7 +1039,7 @@ class SubhaloParticleData:
     def StellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar mass distribution.
-        Computed in a single iteration using bound particles within HalfMassRadiusStar.
+        Computed using all bound star particles within HalfMassRadiusStar.
         """
         if self.Mstar == 0:
             return None
@@ -1049,7 +1049,7 @@ class SubhaloParticleData:
     def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the stellar mass distribution.
-        Computed in a single iteration using bound particles within HalfMassRadiusStar.
+        Computed using all bound star particles within HalfMassRadiusStar.
         """
         if self.Mstar == 0:
             return None

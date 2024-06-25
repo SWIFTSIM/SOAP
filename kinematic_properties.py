@@ -311,8 +311,8 @@ def get_inertia_tensor(mass, position, radius, reduced=False, max_iterations=20)
 
 def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, max_iterations=20):
     '''
-    Get the inertia tensor of the given particle distribution, projected along the
-    given axis.
+    Takes in the particle distribution projected along a given axis, and calculates the inertia
+    tensor using the projected values.
 
     Parameters:
      - mass: unyt.unyt_array

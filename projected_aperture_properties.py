@@ -608,7 +608,7 @@ class SingleProjectionProjectedApertureParticleData:
         return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius)
 
     @lazy_property
-    def ProjectedGasInertiaTensorReduced(self):
+    def ProjectedGasInertiaTensorReduced(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the gas mass distribution in projection.
         Computed iteratively using an ellipse with area equal to that of a circle with radius
@@ -622,17 +622,17 @@ class SingleProjectionProjectedApertureParticleData:
     def ProjectedGasInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the gas mass distribution in projection.
-        Computed in a single iteration using bound particles within the projected aperture.
+        Computed using all bound gas particles within the projected aperture.
         """
         if self.Mgas == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, max_iterations=1)
 
     @lazy_property
-    def ProjectedGasInertiaTensorReducedNoniterative(self):
+    def ProjectedGasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the gas mass distribution in projection.
-        Computed in a single iteration using bound particles within the projected aperture.
+        Computed using all bound gas particles within the projected aperture.
         """
         if self.Mgas == 0:
             return None
@@ -696,7 +696,7 @@ class SingleProjectionProjectedApertureParticleData:
         return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius)
 
     @lazy_property
-    def ProjectedStellarInertiaTensorReduced(self):
+    def ProjectedStellarInertiaTensorReduced(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the stellar mass distribution in projection.
         Computed iteratively using an ellipse with area equal to that of a circle with radius
@@ -710,17 +710,17 @@ class SingleProjectionProjectedApertureParticleData:
     def ProjectedStellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar mass distribution in projection.
-        Computed in a single iteration using bound particles within the projected aperture.
+        Computed using all bound star particles within the projected aperture.
         """
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, max_iterations=1)
 
     @lazy_property
-    def ProjectedStellarInertiaTensorReducedNoniterative(self):
+    def ProjectedStellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the stellar mass distribution in projection.
-        Computed in a single iteration using bound particles within the projected aperture.
+        Computed using all bound star particles within the projected aperture.
         """
         if self.Mstar == 0:
             return None

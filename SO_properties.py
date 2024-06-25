@@ -586,7 +586,7 @@ class SOParticleData:
     def TotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the total mass distribution.
-        Computed in a single iteration using particles within the SORadius.
+        Computed using all particles within the SORadius.
         """
         if self.Mtotpart == 0:
             return None
@@ -596,7 +596,7 @@ class SOParticleData:
     def TotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the total mass distribution.
-        Computed in a single iteration using particles within the SORadius.
+        Computed using all particles within the SORadius.
         """
         if self.Mtotpart == 0:
             return None
@@ -752,7 +752,7 @@ class SOParticleData:
     def GasInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the gas mass distribution.
-        Computed in a single iteration using particles within the SORadius.
+        Computed using all particles within the SORadius.
         """
         if self.Mgas == 0:
             return None
@@ -762,7 +762,7 @@ class SOParticleData:
     def GasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the gas mass distribution.
-        Computed in a single iteration using particles within the SORadius.
+        Computed using all particles within the SORadius.
         """
         if self.Mgas == 0:
             return None
@@ -853,7 +853,7 @@ class SOParticleData:
     def DarkMatterInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the dark matter mass distribution.
-        Computed in a single iteration using particles within the SORadius.
+        Computed using all particles within the SORadius.
         """
         if self.Mdm == 0:
             return None
@@ -863,7 +863,7 @@ class SOParticleData:
     def DarkMatterInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the dark matter mass distribution.
-        Computed in a single iteration using particles within the SORadius.
+        Computed using all particles within the SORadius.
         """
         if self.Mdm == 0:
             return None
@@ -998,7 +998,7 @@ class SOParticleData:
     def StellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar mass distribution.
-        Computed in a single iteration using particles within the SORadius.
+        Computed using all particles within the SORadius.
         """
         if self.Mstar == 0:
             return None
@@ -1008,7 +1008,7 @@ class SOParticleData:
     def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the stellar mass distribution.
-        Computed in a single iteration using particles within the SORadius.
+        Computed using all particles within the SORadius.
         """
         if self.Mstar == 0:
             return None
