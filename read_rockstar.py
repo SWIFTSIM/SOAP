@@ -163,7 +163,7 @@ def read_rockstar_catalogue(comm, basename, a_unit, registry, boxsize):
     files_on_rank = phdf5.assign_files(n_group_file, comm_size)
     first_file = np.cumsum(files_on_rank) - files_on_rank
 
-    # Extract properties from group catalog files
+    # Extract properties from group catalogue files
     local_halo = {
         'index': [],
         'cofp': [],
