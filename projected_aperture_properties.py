@@ -574,6 +574,48 @@ class SingleProjectionProjectedApertureParticleData:
         return (self.mass_fraction[:, None] * self.proj_velocity).sum(axis=0)
 
     @lazy_property
+    def ProjectedTotalInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius)
+
+    @lazy_property
+    def ProjectedTotalInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, reduced=True)
+
+    @lazy_property
+    def ProjectedTotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution in projection.
+        Computed using all bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, max_iterations=1)
+
+    @lazy_property
+    def ProjectedTotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution in projection.
+        Computed using all bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
+
+    @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
         """
         Fractional mass of gas particles. See the documentation of mass_fraction
@@ -1136,12 +1178,16 @@ class ProjectedApertureProperties(HaloProperty):
             "BHmaxvel",
             "BHlasteventa",
             "BHmaxlasteventa",
+            "ProjectedTotalInertiaTensor",
             "ProjectedGasInertiaTensor",
             "ProjectedStellarInertiaTensor",
+            "ProjectedTotalInertiaTensorReduced",
             "ProjectedGasInertiaTensorReduced",
             "ProjectedStellarInertiaTensorReduced",
+            "ProjectedTotalInertiaTensorNoniterative",
             "ProjectedGasInertiaTensorNoniterative",
             "ProjectedStellarInertiaTensorNoniterative",
+            "ProjectedTotalInertiaTensorReducedNoniterative",
             "ProjectedGasInertiaTensorReducedNoniterative",
             "ProjectedStellarInertiaTensorReducedNoniterative",
             "HydrogenMass",

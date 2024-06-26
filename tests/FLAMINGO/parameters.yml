@@ -208,6 +208,10 @@ ProjectedApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
+    ProjectedTotalInertiaTensor: true
+    ProjectedTotalInertiaTensorReduced: true
+    ProjectedTotalInertiaTensorNoniterative: false
+    ProjectedTotalInertiaTensorReducedNoniterative: false
     ProjectedGasInertiaTensor: true
     ProjectedGasInertiaTensorReduced: true
     ProjectedGasInertiaTensorNoniterative: false
