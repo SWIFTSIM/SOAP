@@ -28,7 +28,6 @@ from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from property_table import PropertyTable
 from kinematic_properties import get_projected_inertia_tensor
-from kinematic_properties import get_reduced_projected_inertia_tensor
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
@@ -175,6 +174,7 @@ class SingleProjectionProjectedApertureParticleData:
         self.index = part_props.index
         self.centre = part_props.centre
         self.types = part_props.types
+        self.aperture_radius = part_props.aperture_radius
 
         self.iproj = {"projx": 0, "projy": 1, "projz": 2}[projection]
         self.projmask = getattr(part_props, f"mask_{projection}")
@@ -574,6 +574,48 @@ class SingleProjectionProjectedApertureParticleData:
         return (self.mass_fraction[:, None] * self.proj_velocity).sum(axis=0)
 
     @lazy_property
+    def ProjectedTotalInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius)
+
+    @lazy_property
+    def ProjectedTotalInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, reduced=True)
+
+    @lazy_property
+    def ProjectedTotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution in projection.
+        Computed using all bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, max_iterations=1)
+
+    @lazy_property
+    def ProjectedTotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution in projection.
+        Computed using all bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
+
+    @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
         """
         Fractional mass of gas particles. See the documentation of mass_fraction
@@ -599,21 +641,44 @@ class SingleProjectionProjectedApertureParticleData:
     @lazy_property
     def ProjectedGasInertiaTensor(self) -> unyt.unyt_array:
         """
-        Inertia tensor of the gas in projection.
+        Inertia tensor of the gas mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
         """
         if self.Mgas == 0:
             return None
-        return get_projected_inertia_tensor(
-            self.proj_mass_gas, self.proj_pos_gas, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius)
 
     @lazy_property
-    def ReducedProjectedGasInertiaTensor(self):
+    def ProjectedGasInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the gas mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
         if self.Mgas == 0:
             return None
-        return get_reduced_projected_inertia_tensor(
-            self.proj_mass_gas, self.proj_pos_gas, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, reduced=True)
+
+    @lazy_property
+    def ProjectedGasInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas mass distribution in projection.
+        Computed using all bound gas particles within the projected aperture.
+        """
+        if self.Mgas == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, max_iterations=1)
+
+    @lazy_property
+    def ProjectedGasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the gas mass distribution in projection.
+        Computed using all bound gas particles within the projected aperture.
+        """
+        if self.Mgas == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
 
     @lazy_property
     def dm_mass_fraction(self) -> unyt.unyt_array:
@@ -664,40 +729,44 @@ class SingleProjectionProjectedApertureParticleData:
     @lazy_property
     def ProjectedStellarInertiaTensor(self) -> unyt.unyt_array:
         """
-        Inertia tensor of the stars in projection.
+        Inertia tensor of the stellar mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
-            self.proj_mass_star, self.proj_pos_star, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius)
 
     @lazy_property
-    def ReducedProjectedStellarInertiaTensor(self):
+    def ProjectedStellarInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
         if self.Mstar == 0:
             return None
-        return get_reduced_projected_inertia_tensor(
-            self.proj_mass_star, self.proj_pos_star, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, reduced=True)
 
     @lazy_property
-    def ProjectedBaryonInertiaTensor(self) -> unyt.unyt_array:
+    def ProjectedStellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
-        Inertia tensor of the baryons (gas + stars) in projection.
+        Inertia tensor of the stellar mass distribution in projection.
+        Computed using all bound star particles within the projected aperture.
         """
-        if self.Mbaryons == 0:
+        if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
-            self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, max_iterations=1)
 
     @lazy_property
-    def ReducedProjectedBaryonInertiaTensor(self):
-        if self.Mbaryons == 0:
+    def ProjectedStellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution in projection.
+        Computed using all bound star particles within the projected aperture.
+        """
+        if self.Mstar == 0:
             return None
-        return get_reduced_projected_inertia_tensor(
-            self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
 
     @lazy_property
     def gas_mask_all(self) -> NDArray[bool]:
@@ -1109,9 +1178,18 @@ class ProjectedApertureProperties(HaloProperty):
             "BHmaxvel",
             "BHlasteventa",
             "BHmaxlasteventa",
+            "ProjectedTotalInertiaTensor",
             "ProjectedGasInertiaTensor",
             "ProjectedStellarInertiaTensor",
-            "ProjectedBaryonInertiaTensor",
+            "ProjectedTotalInertiaTensorReduced",
+            "ProjectedGasInertiaTensorReduced",
+            "ProjectedStellarInertiaTensorReduced",
+            "ProjectedTotalInertiaTensorNoniterative",
+            "ProjectedGasInertiaTensorNoniterative",
+            "ProjectedStellarInertiaTensorNoniterative",
+            "ProjectedTotalInertiaTensorReducedNoniterative",
+            "ProjectedGasInertiaTensorReducedNoniterative",
+            "ProjectedStellarInertiaTensorReducedNoniterative",
             "HydrogenMass",
             "HeliumMass",
             "MolecularHydrogenMass",
@@ -1122,9 +1200,6 @@ class ProjectedApertureProperties(HaloProperty):
             "starmetalfrac",
             "gasmetalfrac",
             "gasmetalfrac_SF",
-            "ReducedProjectedGasInertiaTensor",
-            "ReducedProjectedStellarInertiaTensor",
-            "ReducedProjectedBaryonInertiaTensor",
         ]
     ]
 
@@ -1279,6 +1354,10 @@ class ProjectedApertureProperties(HaloProperty):
                             projected_aperture[name].shape == val.shape
                         ), f"Attempting to store {name} with wrong dimensions"
                         if unit == "dimensionless":
+                            if hasattr(val, "units"):
+                                assert (
+                                    val.units == unyt.dimensionless
+                                ), f'{name} is not dimensionless'
                             projected_aperture[name] = unyt.unyt_array(
                                 val.astype(dtype),
                                 dtype=dtype,
