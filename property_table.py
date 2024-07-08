@@ -268,7 +268,7 @@ class PropertyTable:
             np.float32,
             "Msun",
             "Total gas mass in atomic hydrogen.",
-            "gas",
+            "basic",
             "FMantissa9",
             False,
             [
@@ -1225,7 +1225,7 @@ class PropertyTable:
             np.float32,
             "Msun",
             "Total gas mass in molecular hydrogen.",
-            "gas",
+            "basic",
             "FMantissa9",
             False,
             [
