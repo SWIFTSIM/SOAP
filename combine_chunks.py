@@ -296,31 +296,46 @@ def combine_chunks(
 
     if ('reduced_snapshots' in args.calculations) and ('SO/200_crit/TotalMass' in props_kept):
         with MPITimer("Calculate and write reduced snapshot membership", comm_world):
-            # Determine mass bins
+            # Load parameters. We create mass bins with the lower limit of the smallest mass bin
+            # given by "min_halo_mass". The size of the bins is set by "halo_bin_size_dex".
+            # For each bin we keep at most "halos_per_bin" objects.
+            halos_per_bin = args.calculations['reduced_snapshots']['halos_per_bin']
             halo_bin_size = args.calculations['reduced_snapshots']['halo_bin size_dex']
             min_mass = np.log10(args.calculations['reduced_snapshots']['min_halo_mass'])
+
             # Load masses and convert to Msun
             mass_metadata = [metadata for metadata in ref_metadata if metadata[0] == 'SO/200_crit/TotalMass']
             mass_unit = cellgrid.get_unit(mass_metadata[0][2])
             mass = (props_kept['SO/200_crit/TotalMass'] * mass_unit).to('Msun').value
-            local_max_mass = np.max(mass)
+
+            # Determine mass bins
+            local_max_mass = np.max(mass) if mass.shape[0] else 0
             max_mass = comm_world.allreduce(local_max_mass, MPI.MAX)
             max_mass = np.log10(max_mass) + halo_bin size
             bins = 10**np.arange(min_mass, max_mass, halo_bin_size)
 
-            # Get number of halos to keep in each bin on each rank
+            # Determine how many halos each rank should keep
+            np.random.seed(0)
             n_halo_local, _ = np.histogram(mass, bins=bins)
             n_halo = np.array(comm_world.gather(n_halo_local))
             if comm_world.Get_rank() == 0:
-                # TODO:
+                n_keep = n_halo.copy()
                 n_halo_total = np.sum(n_halo, axis=0)
-                p_keep = np.maximum(n_halo / n_halo_total, 1)
-                n_keep = np.rint(p_keep * n_halo)
-
-            # Each rank determines which objects to keep
-            reduced_snapshot = np.zeros(order.shape[0], dtype=np.int32)
+                for i_bin in range(bins.shape[0]-1):
+                    # Keep all halos in this bin
+                    if n_halo_total[i_bin] <= halos_per_bin:
+                        continue
+                    # Add halos to a random rank until we have enough
+                    n_keep[:, i_bin] = 0
+                    p_keep = n_halo[:, i_bin] / n_halo_total[i_bin]
+                    while np.sum(n_keep[:, i_bin]) < halos_per_bin:
+                        i_rank = np.random.choice(comm_world.Get_size(), p=p_keep)
+                        if n_keep[i_rank, i_bin] < n_halo[i_rank, i_bin]:
+                            n_keep[i_rank, i_bin] += 1
             n_keep = comm_world.bcast(n_keep)[comm_world.Get_rank()]
-            np.random.seed(0)
+
+            # Each rank determines which halos to keep
+            reduced_snapshot = np.zeros(order.shape[0], dtype=np.int32)
             for i_bin in range(bins.shape[0]-1):
                 mask = (bins[i_bin] < mass) & (mass < bins[i_bin+1])
                 idx = np.where(mask)[0]
