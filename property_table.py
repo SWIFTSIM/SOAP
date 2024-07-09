@@ -3124,6 +3124,17 @@ class PropertyTable:
             True,
             [],
         ),
+        "IncludedInReducedSnapshot": (
+            "IncludedInReducedSnapshot",
+            1,
+            np.int32,
+            "dimensionless",
+            "Whether this halo is included in the reduced snapshot.",
+            "SOAP",
+            "None",
+            True,
+            [],
+        ),
     }
 
     # halo properties derived from other properties by SOAP

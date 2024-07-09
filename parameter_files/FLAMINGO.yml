@@ -484,3 +484,7 @@ defined_constants:
 calculations:
   recalculate_xrays: true
   xray_table_path: /snap8/scratch/dp004/dc-bras1/cloudy/X_Ray_table_metals_full.hdf5
+  reduced_snapshots:
+    min_halo_mass: 1e13
+    halo_bin_size_dex: .05
+    halos_per_bin: 200
