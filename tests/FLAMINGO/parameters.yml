@@ -483,10 +483,6 @@ filters:
     limit: 100
     properties:
       - BoundSubhalo/NumberOfStarParticles
-  SOgas:
-    limit: 100
-    properties:
-      - SO/200_crit/NumberOfGasParticles
 defined_constants:
   O_H_sun: 4.9e-4
   Fe_H_sun: 2.82e-5

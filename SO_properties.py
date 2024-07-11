@@ -2608,14 +2608,8 @@ class SOProperties(HaloProperty):
                 val = 0
             SO[name] = unyt.unyt_array(val, dtype=dtype, units=unit, registry=registry)
 
-        # Get do_calculation to determine whether to skip halo. We fetch it again
-        # later once we have determined SO/200_crit/NumberOfGasParticles
-        do_calculation = self.category_filter.get_do_calculation(
-            halo_result,
-            {
-                'SO/200_crit/NumberOfGasParticles': 0,
-            }
-        )
+        # Get do_calculation to determine whether to skip halo
+        do_calculation = self.category_filter.get_do_calculation(halo_result)
 
         # SOs only exist for central galaxies
         # Determine whether to skip this halo because of filter
@@ -2650,19 +2644,6 @@ class SOProperties(HaloProperty):
                 )
 
             if SO_exists:
-                if self.SO_name == '200_crit':
-                    # this is the halo type that we use for the filter particle numbers,
-                    # so we have to pass the numbers for the category filters manually
-                    # we can't do this earlier since the SO has to have been computed
-                    do_calculation = self.category_filter.get_do_calculation(
-                        halo_result,
-                        {
-                            'SO/200_crit/NumberOfGasParticles': part_props.Ngas,
-                        }
-                    )
-                else:
-                    do_calculation = self.category_filter.get_do_calculation(halo_result)
-
                 for prop in self.property_list:
                     outputname = prop[1]
                     # skip properties that are masked

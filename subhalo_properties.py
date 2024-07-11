@@ -1595,7 +1595,7 @@ class SubhaloProperties(HaloProperty):
         self.physical_radius_mpc = 0.0
 
         # Give this calculation a name so we can select it on the command line
-        # Also save name of group in the final output file, and mask metadata
+        # Save mask metadata and name of group in the final output file
         if bound_only:
             self.grnr = "GroupNr_bound"
             self.name = "bound_subhalo_properties"
@@ -1675,8 +1675,6 @@ class SubhaloProperties(HaloProperty):
                     'BoundSubhalo/NumberOfGasParticles': part_props.Ngas,
                     'BoundSubhalo/NumberOfStarParticles': part_props.Nstar,
                     'BoundSubhalo/NumberOfBlackHoleParticles': part_props.Nbh,
-                    # We should skip any properties which have the SOgas filter
-                    'SO/200_crit/NumberOfGasParticles': 0,
                 }
             )
         else:

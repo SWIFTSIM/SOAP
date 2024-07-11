@@ -574,12 +574,6 @@ class DummyHaloGenerator:
                      ],
                     'combine_properties': 'sum'
                  },
-            'SOgas': {
-                    'limit': filter_limits.get('SOgas', 100),
-                    'properties': [
-                        'SO/200_crit/NumberOfGasParticles',
-                     ],
-                 },
         }
 
     @staticmethod

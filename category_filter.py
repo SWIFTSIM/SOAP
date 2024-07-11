@@ -148,7 +148,7 @@ class CategoryFilter:
 
     def get_filter_metadata(self, category: str) -> Dict:
         """
-        Get the dictionary with category filter metadata for a particular property.
+        Return a dictionary with metadata for the input category filter.
 
         Parameters:
          - category: str

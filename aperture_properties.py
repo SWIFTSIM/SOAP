@@ -3064,7 +3064,6 @@ class ApertureProperties(HaloProperty):
                 val, dtype=dtype, units=unit, registry=registry
             )
 
-        # This function call requires that 200_crit properties have been calculated
         do_calculation = self.category_filter.get_do_calculation(halo_result)
 
         # Determine whether to skip this halo because of filter

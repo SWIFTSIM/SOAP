@@ -187,12 +187,6 @@ def compute_halo_properties():
                  ],
                 'combine_properties': 'sum'
              },
-        'SOgas': {
-                'limit': 100,
-                'properties': [
-                    'SO/200_crit/NumberOfGasParticles',
-                 ],
-             },
     }
     category_filter = CategoryFilter(
         parameter_file.get_filters(
@@ -207,7 +201,7 @@ def compute_halo_properties():
     # Similarly, things like SO 5xR500_crit can only be done after
     # SO 500_crit for obvious reasons
     halo_prop_list = []
-    # Make sure BoundSubhalo is always first, since it's used for most filters
+    # Make sure BoundSubhalo is always first, since it's used for filters
     subhalo_variations = parameter_file.get_halo_type_variations(
         "SubhaloProperties",
         {"Bound": {"bound_only": True}},
@@ -239,7 +233,6 @@ def compute_halo_properties():
                 )
             )
 
-    # Add SOproperties next, since we have a filter that depends on SOproperties
     SO_variations = parameter_file.get_halo_type_variations(
         "SOProperties",
         {
