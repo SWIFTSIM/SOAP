@@ -82,9 +82,10 @@ and can output this information in the form of a ".used_parameters" file,
 similar to the file produced by SWIFT.
 """
 
-import yaml
 from typing import Dict, Union, List, Tuple
+import yaml
 
+import property_table
 
 class ParameterFile:
     """
@@ -115,7 +116,10 @@ class ParameterFile:
         if file_name is not None:
             with open(file_name, "r") as handle:
                 self.parameters = yaml.safe_load(handle)
-                self.unregistered_parameters = set()
+                if self.calculate_missing_properties():
+                    self.unregistered_parameters = set()
+                else:
+                    self.unregistered_parameters = None
         else:
             self.unregistered_parameters = None
             if parameter_dictionary is not None:
@@ -173,18 +177,22 @@ class ParameterFile:
         for property in full_list:
             if property in self.parameters[halo_type]["properties"]:
                 mask[property] = self.parameters[halo_type]["properties"][property]
-            else:
+            elif self.calculate_missing_properties():
                 mask[property] = True
                 self.parameters[halo_type]["properties"][property] = True
                 if self.unregistered_parameters is not None:
                     self.unregistered_parameters.add((halo_type, property))
+            else:
+                mask[property] = False
         return mask
 
     def print_unregistered_properties(self) -> None:
         """
         Prints a list of any properties that will be calculated that are not present in the parameter file
         """
-        if (self.unregistered_parameters is not None) and (
+        if not self.calculate_missing_properties():
+            print("Properties not present in the parameter file will not be calculated")
+        elif (self.unregistered_parameters is not None) and (
             len(self.unregistered_parameters) != 0
         ):
             print(
@@ -192,6 +200,27 @@ class ParameterFile:
             )
             for halo_type, property in self.unregistered_parameters:
                 print(f"  {halo_type.ljust(30)}{property}")
+
+    def print_invalid_properties(self) -> None:
+        """
+        Print a list of any properties in the parameter file that are not present in
+        the property table. This doesn't check if the property is defined for a specific
+        halo type.
+        """
+        invalid_properties = []
+        full_property_list = property_table.PropertyTable.full_property_list
+        valid_properties = [prop[0] for prop in full_property_list.values()]
+        for key in self.parameters:
+            # Skip keys which aren't halo types
+            if 'properties' not in self.parameters[key]:
+                continue
+            for prop in self.parameters[key]['properties']:
+                if prop not in valid_properties:
+                    invalid_properties.append(prop)
+        if len(invalid_properties):
+            print('The following properties were found in the parameter file, but are invalid:')
+            for prop in invalid_properties:
+                print(f"  {prop}")
 
     def get_halo_type_variations(
         self, halo_type: str, default_variations: Dict
@@ -267,29 +296,30 @@ class ParameterFile:
         else:
             return dict()
 
-    def get_filter_values(self, default_filters: Dict) -> Dict:
+    def get_filters(self, default_filters: Dict) -> Dict:
         """
-        Get a dictionary with category filter threshold values.
+        Get a dictionary with filters to use for SOAP.
 
         Parameters:
          - default_filter: Dict
-           Dictionary with default threshold values, which are used
-           if no values are found in the parameter file or if a particular
+           Dictionary with default filters, which are used
+           if no filters are found in the parameter file or if a particular
            category is missing.
 
-        Returns a dictionary with a threshold value for each category present
-        in default_filters.
+        Returns a dictionary with a threshold value for each category present,
+        the properties to use for the filter, and how to combine the properties
+        if multiple are listed.
         """
-        filter_values = dict(default_filters)
+        filters = dict(default_filters)
         if "filters" in self.parameters:
             for category in default_filters:
                 if category in self.parameters["filters"]:
-                    filter_values[category] = self.parameters["filters"][category]
+                    filters[category] = self.parameters["filters"][category]
                 else:
-                    self.parameters["filters"][category] = filter_values[category]
+                    self.parameters["filters"][category] = filters[category]
         else:
             self.parameters["filters"] = dict(default_filters)
-        return filter_values
+        return filters
 
     def get_defined_constants(self) -> Dict:
         """
@@ -316,3 +346,11 @@ class ParameterFile:
         Defaults to "", which will cause code to crash.
         """
         return self.parameters.get("calculations", {}).get("xray_table_path", "")
+
+    def calculate_missing_properties(self) -> bool:
+        """
+        Returns a bool indicating if properties missing from parameter file
+        should be computed. Defaults to true.
+        """
+        calculations = self.parameters.get("calculations", {})
+        return calculations.get("calculate_missing_properties", True)

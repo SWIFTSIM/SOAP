@@ -17,27 +17,6 @@ import result_set
 time_start = time.time()
 
 
-def send_array(comm, arr, dest, tag):
-    """Send an ndarray or unyt_array over MPI"""
-    unyt_array = isinstance(arr, unyt.unyt_array)
-    if unyt_array:
-        units = arr.units
-    else:
-        units = None
-    comm.send((unyt_array, arr.dtype, arr.shape, units), dest=dest, tag=tag)
-    comm.Send(arr, dest=dest, tag=tag)
-
-
-def recv_array(comm, src, tag):
-    """Receive an ndarray or unyt_array over MPI"""
-    unyt_array, dtype, shape, units = comm.recv(source=src, tag=tag)
-    arr = np.ndarray(shape, dtype=dtype)
-    if unyt_array:
-        arr = unyt.unyt_array(arr, units=units)
-    comm.Recv(arr, source=src, tag=tag)
-    return arr
-
-
 def share_array(comm, arr):
     """
     Take the array on rank 0 of communicator comm and copy it into
@@ -69,83 +48,27 @@ def box_wrap(pos, ref_pos, boxsize):
     return (pos - shift) % boxsize + shift
 
 
-class ChunkTaskList:
-    """
-    Stores a list of ChunkTasks to be executed.
-    """
-
-    def __init__(self, cellgrid, so_cat, halo_prop_list):
-
-        # Assign the input halos to chunk tasks
-        task_id = so_cat.halo_arrays["task_id"]
-
-        # Sort the halos by task ID
-        idx = np.argsort(task_id)
-        sorted_halo_arrays = {}
-        for name in so_cat.halo_arrays:
-            sorted_halo_arrays[name] = so_cat.halo_arrays[name][idx, ...]
-        task_id = task_id[idx]
-
-        # Find groups of halos with the same task ID
-        unique_ids, offsets, counts = np.unique(
-            task_id, return_index=True, return_counts=True
-        )
-        nr_chunks = len(counts)
-
-        # Create the task list
-        tasks = []
-        for chunk_nr, (offset, count) in enumerate(zip(offsets, counts)):
-
-            # Make the halo catalogue for this chunk
-            task_halo_arrays = {}
-            for name in sorted_halo_arrays:
-                task_halo_arrays[name] = sorted_halo_arrays[name][
-                    offset : offset + count, ...
-                ]
-
-            # Add an array to flag halos which have been processed
-            task_halo_arrays["done"] = unyt.unyt_array(
-                np.zeros(count, dtype=np.int8), dtype=np.int8
-            )
-
-            # Create the task for this chunk
-            tasks.append(
-                ChunkTask(task_halo_arrays, halo_prop_list, chunk_nr, nr_chunks)
-            )
-
-            # Report the size of the task
-            print(f"Chunk {chunk_nr} has {count} halos")
-
-        # Use number of halos as a rough estimate of cost.
-        # Do tasks with the most halos first so we're not waiting for a few big jobs at the end.
-        tasks.sort(key=lambda x: -x.halo_arrays["cofp"].shape[0])
-        self.tasks = tasks
-
-
 class ChunkTask:
     """
     Each ChunkTask is a set of halos in a patch of the simulation volume
     for which we want to evaluate spherical overdensity properties.
 
     Each ChunkTask is called collectively on all of the MPI ranks in one
-    compute node.
-
-    centres contains the halo centres
-    indexes contains the index of each halo in the input catalogue
-    radius  is the radius around each centre which we need to read in
+    compute node. The task imports the halos to be processed, reads in
+    the required patch of the snapshot and computes halo properties.    
     """
 
-    def __init__(self, halo_arrays=None, halo_prop_list=None, chunk_nr=0, nr_chunks=1):
+    def __init__(self, halo_prop_list=None, chunk_nr=0, nr_chunks=1):
 
-        self.halo_arrays = halo_arrays
         self.halo_prop_list = halo_prop_list
-        self.shared = False
         self.chunk_nr = chunk_nr
         self.nr_chunks = nr_chunks
-
+        self.shared = False
+        
     def __call__(
         self,
         cellgrid,
+        so_cat,
         comm,
         inter_node_rank,
         timings,
@@ -154,17 +77,9 @@ class ChunkTask:
         xray_calculator,
     ):
 
+        # Get communicator size and rank within this compute node
         comm_rank = comm.Get_rank()
         comm_size = comm.Get_size()
-
-        # Create object to store the results for this chunk
-        nr_halos = len(self.halo_arrays["index"].full)
-        results = result_set.ResultSet(initial_size=max(1, nr_halos // comm_size))
-
-        # Unpack arrays we need
-        centre = self.halo_arrays["cofp"]
-        read_radius = self.halo_arrays["read_radius"]
-        done = self.halo_arrays["done"]
 
         def message(m):
             if inter_node_rank >= 0:
@@ -178,6 +93,44 @@ class ChunkTask:
                         m,
                     )
                 )
+        
+        # The first rank on this node imports the halos to be processed
+        comm.barrier()
+        t0_halos = time.time()
+        if comm_rank == 0:
+            # Receive arrays
+            self.halo_arrays = so_cat.request_chunk(self.chunk_nr)
+            # Add a done flag for each halo
+            nr_halos = len(self.halo_arrays["index"])
+            self.halo_arrays["done"] = unyt.unyt_array(
+                np.zeros(nr_halos, dtype=np.int8), dtype=np.int8
+            )
+            # Will need to broadcast names of the halo properties
+            names = list(self.halo_arrays.keys())
+        else:
+            names = None
+            self.halo_arrays = {}
+        names = comm.bcast(names)
+        
+        # Then we copy the halo arrays into shared memory
+        for name in names:
+            if comm_rank == 0:
+                arr = self.halo_arrays[name]
+            else:
+                arr = None
+            self.halo_arrays[name] = share_array(comm, arr)
+        t1_halos = time.time()
+        nr_halos = len(self.halo_arrays["index"].full)
+        self.shared = True # So we know to explicitly free the shared memory regions
+        message("receiving %d halos for chunk %d took %.2fs" % (nr_halos, self.chunk_nr, t1_halos-t0_halos))
+        
+        # Create object to store the results for this chunk
+        results = result_set.ResultSet(initial_size=max(1, nr_halos // comm_size))
+
+        # Unpack arrays we need
+        centre = self.halo_arrays["cofp"]
+        read_radius = self.halo_arrays["read_radius"]
+        done = self.halo_arrays["done"]
 
         # Repeat until all halos have been done
         task_time_all_iterations = 0.0
@@ -373,89 +326,3 @@ class ChunkTask:
         # Return the names, dimensions and units of the quantities we computed
         # so that we can check they're consistent between chunks
         return results.get_metadata(comm)
-
-    @classmethod
-    def bcast(cls, comm, instance):
-        """
-        Broadcast a class instance over communicator comm.
-        instance is only significant on rank 0. Other ranks
-        don't have an instance yet, so this is a class method.
-
-        Halo arrays are put in shared memory instead of copying
-        to every rank.
-        """
-
-        comm_rank = comm.Get_rank()
-
-        # Create a class instance on ranks which don't have one
-        if comm_rank == 0:
-            self = instance
-        else:
-            self = cls()
-
-        # Broadcast the halo array names
-        if comm_rank == 0:
-            names = list(self.halo_arrays.keys())
-        else:
-            names = None
-        names = comm.bcast(names)
-
-        # Copy the arrays to shared memory
-        halo_arrays = {}
-        for name in names:
-            if comm_rank == 0:
-                arr = self.halo_arrays[name]
-            else:
-                arr = None
-            halo_arrays[name] = share_array(comm, arr)
-        self.halo_arrays = halo_arrays
-
-        # Broadcast quantities to calculate
-        self.halo_prop_list = comm.bcast(self.halo_prop_list)
-        self.shared = True
-
-        self.chunk_nr = comm.bcast(self.chunk_nr)
-        self.nr_chunks = comm.bcast(self.nr_chunks)
-
-        return self
-
-    def send(self, comm, dest, tag):
-
-        # Send quantities to compute
-        comm.send(self.halo_prop_list, dest, tag)
-
-        # Send halo array names
-        names = list(self.halo_arrays.keys())
-        comm.send(names, dest, tag)
-
-        # Send halo arrays
-        for name in names:
-            send_array(comm, self.halo_arrays[name], dest, tag)
-
-        comm.send(self.chunk_nr, dest, tag)
-        comm.send(self.nr_chunks, dest, tag)
-
-    @classmethod
-    def recv(cls, comm, src, tag):
-
-        # Receive quantities to compute
-        halo_prop_list = comm.recv(source=src, tag=tag)
-
-        # We might receive None instead of a task if there are no more tasks.
-        # Just return None in that case.
-        if halo_prop_list is None:
-            return None
-
-        # Receive halo array names
-        names = comm.recv(source=src, tag=tag)
-
-        # Receive halo arrays
-        halo_arrays = {}
-        for name in names:
-            halo_arrays[name] = recv_array(comm, src, tag)
-
-        chunk_nr = comm.recv(source=src, tag=tag)
-        nr_chunks = comm.recv(source=src, tag=tag)
-
-        # Construct the class instance
-        return cls(halo_arrays, halo_prop_list, chunk_nr, nr_chunks)

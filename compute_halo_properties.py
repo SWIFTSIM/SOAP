@@ -150,9 +150,47 @@ def compute_halo_properties():
 
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
     cold_dense_gas_filter = ColdDenseGasFilter(10.0 ** 4.5 * unyt.K, 0.1 / unyt.cm ** 3)
+    default_filters = {
+        'general': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfDarkMatterParticles',
+                    'BoundSubhalo/NumberOfGasParticles',
+                    'BoundSubhalo/NumberOfStarParticles',
+                    'BoundSubhalo/NumberOfBlackHoleParticles',
+                 ],
+                'combine_properties': 'sum'
+             },
+        'dm': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfDarkMatterParticles',
+                 ],
+             },
+        'gas': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfGasParticles',
+                 ],
+             },
+        'star': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfStarParticles',
+                 ],
+             },
+        'baryon': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfGasParticles',
+                    'BoundSubhalo/NumberOfStarParticles',
+                 ],
+                'combine_properties': 'sum'
+             },
+    }
     category_filter = CategoryFilter(
-        parameter_file.get_filter_values(
-            {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        parameter_file.get_filters(
+            default_filters
         ),
         dmo=args.dmo,
     )
@@ -163,7 +201,7 @@ def compute_halo_properties():
     # Similarly, things like SO 5xR500_crit can only be done after
     # SO 500_crit for obvious reasons
     halo_prop_list = []
-    # Make sure BoundSubhalo is always first
+    # Make sure BoundSubhalo is always first, since it's used for filters
     subhalo_variations = parameter_file.get_halo_type_variations(
         "SubhaloProperties",
         {"Bound": {"bound_only": True}},
@@ -224,6 +262,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
+                    SO_variations[variation].get('filter', 'basic'),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["type"],
                     core_excision_fraction=SO_variations[variation][
@@ -238,6 +277,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
+                    SO_variations[variation].get('filter', 'basic'),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["type"],
                 )
@@ -254,6 +294,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
+                    SO_variations[variation].get('filter', 'basic'),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["radius_multiple"],
                     SO_variations[variation]["type"],
@@ -292,6 +333,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
+                    aperture_variations[variation].get('filter', 'basic')
                 )
             )
         else:
@@ -304,6 +346,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
+                    aperture_variations[variation].get('filter', 'basic')
                 )
             )
     projected_aperture_variations = parameter_file.get_halo_type_variations(
@@ -322,23 +365,12 @@ def compute_halo_properties():
                 parameter_file,
                 projected_aperture_variations[variation]["radius_in_kpc"],
                 category_filter,
+                projected_aperture_variations[variation].get('filter', 'basic')
             )
         )
 
     if comm_world_rank == 0 and args.output_parameters:
         parameter_file.write_parameters(args.output_parameters)
-
-    # Determine which calculations we're doing this time
-    if args.calculations is not None:
-
-        # Check we recognise all the names specified on the command line
-        all_names = [hp.name for hp in halo_prop_list]
-        for calc in args.calculations:
-            if calc not in all_names:
-                raise Exception("Don't recognise calculation name: %s" % calc)
-
-        # Filter out calculations which were not selected
-        halo_prop_list = [hp for hp in halo_prop_list if hp.name in args.calculations]
 
     if len(halo_prop_list) < 1:
         raise Exception("Must select at least one halo property calculation!")
@@ -353,6 +385,7 @@ def compute_halo_properties():
         else:
             print("for central and satellite halos")
         parameter_file.print_unregistered_properties()
+        parameter_file.print_invalid_properties()
         if parameter_file.recalculate_xrays():
             print(f"Recalculating xray properties using table: {parameter_file.get_xray_table_path()}")
         category_filter.print_filters()
@@ -417,19 +450,16 @@ def compute_halo_properties():
         args.halo_indices,
         halo_prop_list,
         args.chunks,
+        args.min_read_radius_cmpc,
     )
-
+    so_cat.start_request_thread()
+    
     # Generate the chunk task list
+    nr_chunks = so_cat.nr_chunks
     if comm_world_rank == 0:
-        task_list = chunk_tasks.ChunkTaskList(
-            cellgrid, so_cat, halo_prop_list=halo_prop_list
-        )
-        tasks = task_list.tasks
-        nr_chunks = len(tasks)
+        tasks = [chunk_tasks.ChunkTask(halo_prop_list, chunk_nr, nr_chunks) for chunk_nr in range(nr_chunks)]
     else:
         tasks = None
-        nr_chunks = None
-    nr_chunks = comm_world.bcast(nr_chunks)
 
     # Report initial set-up time
     comm_world.barrier()
@@ -439,9 +469,6 @@ def compute_halo_properties():
             "Reading %d input halos and setting up %d chunk(s) took %.1fs"
             % (so_cat.nr_halos, len(tasks), t1 - t0)
         )
-
-    # We no longer need the catalogue, since halo centres etc are stored in the chunk tasks
-    del so_cat
 
     # Make a format string to generate the name of the file each chunk task will write to
     scratch_file_format = (
@@ -467,6 +494,7 @@ def compute_halo_properties():
     timings = []
     task_args = (
         cellgrid,
+        so_cat,
         comm_intra_node,
         inter_node_rank,
         timings,
@@ -480,9 +508,11 @@ def compute_halo_properties():
         comm_all=comm_world,
         comm_master=comm_inter_node,
         comm_workers=comm_intra_node,
-        task_type=chunk_tasks.ChunkTask,
     )
 
+    # Can stop the halo request thread now that all chunk tasks have executed
+    so_cat.stop_request_thread()
+    
     # Check metadata for consistency between chunks. Sets ref_metadata on all ranks,
     # including those that processed no halos.
     ref_metadata = result_set.check_metadata(metadata, comm_inter_node, comm_world)

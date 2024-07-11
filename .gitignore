@@ -2,3 +2,12 @@ __pycache__
 *~
 logs
 venv/*
+
+documentation/SOAP.aux
+documentation/SOAP.log
+documentation/SOAP.pdf
+documentation/filters.tex
+documentation/footnotes.tex
+documentation/table.tex
+documentation/timestamp.tex
+documentation/variations_table.tex

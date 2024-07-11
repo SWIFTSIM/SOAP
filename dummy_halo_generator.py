@@ -525,6 +525,55 @@ class DummyHaloGenerator:
                 ),
                 "Dummy Nbh for filter",
             ),
+            f"SO/200_crit/{PropertyTable.full_property_list['Ngas'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType0"],
+                    dtype=PropertyTable.full_property_list["Ngas"][2],
+                    units="dimensionless",
+                ),
+                "Dummy SO Ngas for filter",
+            ),
+        }
+
+    @staticmethod
+    def get_filters(filter_limits):
+        return {
+            'general': {
+                    'limit': filter_limits.get('general', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfDarkMatterParticles',
+                        'BoundSubhalo/NumberOfGasParticles',
+                        'BoundSubhalo/NumberOfStarParticles',
+                        'BoundSubhalo/NumberOfBlackHoleParticles',
+                     ],
+                    'combine_properties': 'sum'
+                 },
+            'dm': {
+                    'limit': filter_limits.get('dm', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfDarkMatterParticles',
+                     ],
+                 },
+            'gas': {
+                    'limit': filter_limits.get('gas', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfGasParticles',
+                     ],
+                 },
+            'star': {
+                    'limit': filter_limits.get('star', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfStarParticles',
+                     ],
+                 },
+            'baryon': {
+                    'limit': filter_limits.get('baryon', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfGasParticles',
+                        'BoundSubhalo/NumberOfStarParticles',
+                     ],
+                    'combine_properties': 'sum'
+                 },
         }
 
     @staticmethod

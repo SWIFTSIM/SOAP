@@ -136,7 +136,7 @@ very messy and complex. But it is in fact quite neat and powerful.
 import numpy as np
 import unyt
 
-from halo_properties import HaloProperty
+from halo_properties import HaloProperty, ReadRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from kinematic_properties import (
@@ -2844,6 +2844,7 @@ class ApertureProperties(HaloProperty):
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
         inclusive: bool = False,
     ):
         """
@@ -2873,6 +2874,9 @@ class ApertureProperties(HaloProperty):
            Filter used to determine which properties can be calculated for this halo.
            This depends on the number of particles in the subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
          - inclusive: bool
            Should properties include particles that are not gravitationally bound to the
            subhalo?
@@ -2884,11 +2888,12 @@ class ApertureProperties(HaloProperty):
             "ApertureProperties", [prop[1] for prop in self.property_list]
         )
 
-        self.filter = recently_heated_gas_filter
+        self.recently_heated_gas_filter = recently_heated_gas_filter
         self.stellar_ages = stellar_age_calculator
         self.cold_dense_gas_filter = cold_dense_gas_filter
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
+        self.halo_filter = halo_filter
 
         # no density criterion for these properties
         self.mean_density_multiple = None
@@ -2901,8 +2906,11 @@ class ApertureProperties(HaloProperty):
 
         if self.inclusive:
             self.name = f"inclusive_sphere_{physical_radius_kpc:.0f}kpc"
+            self.group_name = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
         else:
             self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
+            self.group_name = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+        self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
         # Coordinates, Masses and Velocities are always required, as is
@@ -2958,29 +2966,13 @@ class ApertureProperties(HaloProperty):
         The halo_result dictionary is updated with the properties computed by this function.
         """
 
-        types_present = [type for type in self.particle_properties if type in data]
-
-        part_props = ApertureParticleData(
-            input_halo,
-            data,
-            types_present,
-            self.inclusive,
-            self.physical_radius_mpc * unyt.Mpc,
-            self.stellar_ages,
-            self.filter,
-            self.cold_dense_gas_filter,
-            self.snapshot_datasets,
-        )
-
-        do_calculation = self.category_filter.get_filters(halo_result)
-
         aperture_sphere = {}
         # declare all the variables we will compute
         # we set them to 0 in case a particular variable cannot be computed
         # all variables are defined with physical units and an appropriate dtype
         # we need to use the custom unit registry so that everything can be converted
         # back to snapshot units in the end
-        registry = part_props.mass.units.registry
+        registry = input_halo['cofp'].units.registry
         for prop in self.property_list:
             outputname = prop[1]
             # skip properties that are masked
@@ -2988,13 +2980,12 @@ class ApertureProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             shape = prop[2]
             dtype = prop[3]
             unit = prop[4]
-            category = prop[6]
             if shape > 1:
                 val = [0] * shape
             else:
@@ -3002,31 +2993,62 @@ class ApertureProperties(HaloProperty):
             aperture_sphere[name] = unyt.unyt_array(
                 val, dtype=dtype, units=unit, registry=registry
             )
-            if do_calculation[category]:
-                val = getattr(part_props, name)
-                if val is not None:
-                    assert (
-                        aperture_sphere[name].shape == val.shape
-                    ), f"Attempting to store {name} with wrong dimensions"
-                    if unit == "dimensionless":
-                        if hasattr(val, "units"):
-                            assert (
-                                val.units == unyt.dimensionless
-                            ), f'{name} is not dimensionless'
-                        aperture_sphere[name] = unyt.unyt_array(
-                            val.astype(dtype),
-                            dtype=dtype,
-                            units=unit,
-                            registry=registry,
-                        )
-                    else:
-                        aperture_sphere[name] += val
+
+        do_calculation = self.category_filter.get_do_calculation(halo_result)
+
+        # Determine whether to skip this halo because of filter
+        if do_calculation[self.halo_filter]:
+            if search_radius < self.physical_radius_mpc * unyt.Mpc:
+                raise ReadRadiusTooSmallError("Search radius is smaller than aperture")
+
+            types_present = [type for type in self.particle_properties if type in data]
+            part_props = ApertureParticleData(
+                input_halo,
+                data,
+                types_present,
+                self.inclusive,
+                self.physical_radius_mpc * unyt.Mpc,
+                self.stellar_ages,
+                self.recently_heated_gas_filter,
+                self.cold_dense_gas_filter,
+                self.snapshot_datasets,
+            )
+
+            for prop in self.property_list:
+                outputname = prop[1]
+                # skip properties that are masked
+                if not self.property_mask[outputname]:
+                    continue
+                # skip non-DMO properties in DMO run mode
+                is_dmo = prop[8]
+                if do_calculation["DMO"] and not is_dmo:
+                    continue
+                name = prop[0]
+                shape = prop[2]
+                dtype = prop[3]
+                unit = prop[4]
+                category = prop[6]
+                if do_calculation[category]:
+                    val = getattr(part_props, name)
+                    if val is not None:
+                        assert (
+                            aperture_sphere[name].shape == val.shape
+                        ), f"Attempting to store {name} with wrong dimensions"
+                        if unit == "dimensionless":
+                            if hasattr(val, "units"):
+                                assert (
+                                    val.units == unyt.dimensionless
+                                ), f'{name} is not dimensionless'
+                            aperture_sphere[name] = unyt.unyt_array(
+                                val.astype(dtype),
+                                dtype=dtype,
+                                units=unit,
+                                registry=registry,
+                            )
+                        else:
+                            aperture_sphere[name] += val
 
         # add the new properties to the halo_result dictionary
-        if self.inclusive:
-            prefix = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
-        else:
-            prefix = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
         for prop in self.property_list:
             outputname = prop[1]
             # skip properties that are masked
@@ -3034,12 +3056,12 @@ class ApertureProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             description = prop[5]
             halo_result.update(
-                {f"{prefix}/{outputname}": (aperture_sphere[name], description)}
+                {f"{self.group_name}/{outputname}": (aperture_sphere[name], description)}
             )
 
         return
@@ -3061,6 +3083,7 @@ class ExclusiveSphereProperties(ApertureProperties):
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
     ):
         """
         Construct an ExclusiveSphereProperties object with the given physical
@@ -3089,6 +3112,9 @@ class ExclusiveSphereProperties(ApertureProperties):
            Filter used to determine which properties can be calculated for this halo.
            This depends on the number of particles in the Bound subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
         """
         super().__init__(
             cellgrid,
@@ -3098,6 +3124,7 @@ class ExclusiveSphereProperties(ApertureProperties):
             stellar_age_calculator,
             cold_dense_gas_filter,
             category_filter,
+            halo_filter,
             False,
         )
 
@@ -3118,6 +3145,7 @@ class InclusiveSphereProperties(ApertureProperties):
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
     ):
         """
         Construct an InclusiveSphereProperties object with the given physical
@@ -3146,6 +3174,9 @@ class InclusiveSphereProperties(ApertureProperties):
            Filter used to determine which properties can be calculated for this halo.
            This depends on the number of particles in the Bound subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
         """
         super().__init__(
             cellgrid,
@@ -3155,6 +3186,7 @@ class InclusiveSphereProperties(ApertureProperties):
             stellar_age_calculator,
             cold_dense_gas_filter,
             category_filter,
+            halo_filter,
             True,
         )
 
@@ -3173,11 +3205,13 @@ def test_aperture_properties():
 
     # initialise the DummyHaloGenerator with a random seed
     dummy_halos = DummyHaloGenerator(3256)
-    filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    recently_heated_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())
     cold_dense_gas_filter = ColdDenseGasFilter()
     cat_filter = CategoryFilter(
-        {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
+        dummy_halos.get_filters(
+            {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
+        )
     )
     parameters = ParameterFile(
         parameter_dictionary={
@@ -3202,19 +3236,34 @@ def test_aperture_properties():
         dummy_halos.get_cell_grid(),
         parameters,
         50.0,
-        filter,
+        recently_heated_filter,
         stellar_age_calculator,
         cold_dense_gas_filter,
         cat_filter,
+        'basic',
     )
     pc_inclusive = InclusiveSphereProperties(
         dummy_halos.get_cell_grid(),
         parameters,
         50.0,
-        filter,
+        recently_heated_filter,
         stellar_age_calculator,
         cold_dense_gas_filter,
         cat_filter,
+        'basic',
+    )
+
+    # Create a filter that no halos will satisfy
+    fail_filter = CategoryFilter(dummy_halos.get_filters({"general": 10000000}))
+    pc_filter_test = ExclusiveSphereProperties(
+        dummy_halos.get_cell_grid(),
+        parameters,
+        50.0,
+        recently_heated_filter,
+        stellar_age_calculator,
+        cold_dense_gas_filter,
+        fail_filter,
+        'general',
     )
 
     # generate 100 random halos
@@ -3224,9 +3273,10 @@ def test_aperture_properties():
         )
         halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
 
-        for pc_type, pc_calc in [
-            ("ExclusiveSphere", pc_exclusive),
-            ("InclusiveSphere", pc_inclusive),
+        for pc_name, pc_type, pc_calc in [
+            ("ExclusiveSphere", "ExclusiveSphere", pc_exclusive),
+            ("InclusiveSphere", "InclusiveSphere", pc_inclusive),
+            ("filter_test", "ExclusiveSphere", pc_filter_test),
         ]:
             input_data = {}
             for ptype in pc_calc.particle_properties:
@@ -3236,8 +3286,22 @@ def test_aperture_properties():
                         input_data[ptype][dset] = data[ptype][dset]
             input_halo_copy = input_halo.copy()
             input_data_copy = input_data.copy()
+
+            # Check halo fails if search radius is too small
             halo_result = dict(halo_result_template)
-            pc_calc.calculate(input_halo, 0.0 * unyt.kpc, input_data, halo_result)
+            if pc_name != 'filter_test':
+                with pytest.raises(ReadRadiusTooSmallError):
+                    pc_calc.calculate(
+                        input_halo, 10 * unyt.kpc, input_data, halo_result
+                    )
+            # Skipped halos shouldn't ever require a larger search radius
+            else:
+                pc_calc.calculate(
+                    input_halo, 10 * unyt.kpc, input_data, halo_result
+                )
+
+            halo_result = dict(halo_result_template)
+            pc_calc.calculate(input_halo, 100 * unyt.kpc, input_data, halo_result)
             assert input_halo == input_halo_copy
             assert input_data == input_data_copy
 
@@ -3255,6 +3319,14 @@ def test_aperture_properties():
                 unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
 
+            # Check properties were not calculated for filtered halos
+            if pc_name == 'filter_test':
+                for prop in pc_calc.property_list:
+                    outputname = prop[1]
+                    size = prop[2]
+                    full_name = f"{pc_type}/50kpc/{outputname}"
+                    assert np.all(halo_result[full_name][0].value == np.zeros(size))
+
     # Now test the calculation for each property individually, to make sure that
     # all properties read all the datasets they require
     # we reuse the last random halo for this
@@ -3271,55 +3343,25 @@ def test_aperture_properties():
             dummy_halos.get_cell_grid(),
             single_parameters,
             50.0,
-            filter,
+            recently_heated_filter,
             stellar_age_calculator,
             cold_dense_gas_filter,
             cat_filter,
+            'basic',
         )
         pc_inclusive = InclusiveSphereProperties(
             dummy_halos.get_cell_grid(),
             single_parameters,
             50.0,
-            filter,
+            recently_heated_filter,
             stellar_age_calculator,
             cold_dense_gas_filter,
             cat_filter,
+            'basic',
         )
 
-        halo_result_template = {
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
+
         for pc_type, pc_calc in [
             ("ExclusiveSphere", pc_exclusive),
             ("InclusiveSphere", pc_inclusive),
@@ -3333,7 +3375,7 @@ def test_aperture_properties():
             input_halo_copy = input_halo.copy()
             input_data_copy = input_data.copy()
             halo_result = dict(halo_result_template)
-            pc_calc.calculate(input_halo, 0.0 * unyt.kpc, input_data, halo_result)
+            pc_calc.calculate(input_halo, 100 * unyt.kpc, input_data, halo_result)
             assert input_halo == input_halo_copy
             assert input_data == input_data_copy
 
@@ -3362,6 +3404,8 @@ if __name__ == "__main__":
 
     Note that this can also be achieved by running "pytest *.py" in the folder.
     """
+    import pytest
+
     print("Running test_aperture_properties()...")
     test_aperture_properties()
     print("Test passed.")
