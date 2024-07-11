@@ -1,0 +1,82 @@
+# Values in this section are substituted into the other sections
+# The simulation name (box size and resolution) and snapshot will be appended
+# to these to get the full name of the input/output files/directories
+Parameters:
+  sim_dir: /cosma8/data/dp004/flamingo/Runs
+  output_dir: /cosma8/data/dp004/dc-mcgi1/flamingo/Runs
+  scratch_dir: /snap8/scratch/dp004/dc-mcgi1/flamingo/Runs
+
+# Location of the Swift snapshots:
+Snapshots:
+  # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
+  filename: "{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
+
+# Which halo finder we're using, and base name for halo finder output files
+HaloFinder:
+  type: HBTplus
+  filename: "{sim_dir}/{sim_name}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
+
+GroupMembership:
+  # Where to write the group membership files
+  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+
+HaloProperties:
+  # Where to write the halo properties file
+  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/halo_properties_{snap_nr:04d}.hdf5"
+  # Where to write temporary chunk output
+  chunk_dir: "{scratch_dir}/{sim_name}/SOAP-tmp/{halo_finder}/"
+
+ApertureProperties:
+  properties:
+    {}
+  variations:
+    {}
+ProjectedApertureProperties:
+  properties:
+    {}
+  variations:
+    {}
+SOProperties:
+  properties:
+    CentreOfMass: true
+    CentreOfMassVelocity: true
+    Concentration: true
+    ConcentrationSoft: true
+    MassFractionSatellites: true
+    MassFractionExternal: true
+    NumberOfDarkMatterParticles: true
+    SORadius: true
+    SpinParameter: true
+    TotalMass: true
+  variations:
+    200_crit:
+      type: crit
+      value: 200.0
+    200_mean:
+      type: mean
+      value: 200.0
+    500_crit:
+      type: crit
+      value: 500.0
+SubhaloProperties:
+  properties:
+    CentreOfMass: true
+    CentreOfMassVelocity: true
+    NumberOfDarkMatterParticles: true
+    MaximumCircularVelocity: true
+    MaximumCircularVelocitySoft: true
+    MaximumCircularVelocityRadius: true
+    SpinParameter: true
+    TotalMass: true
+  variations:
+    Bound:
+      bound_only: true
+filters:
+  baryon: 100
+  dm: 100
+  gas: 100
+  general: 100
+  star: 100
+calculations:
+  recalculate_xrays: false
+  calculate_missing_properties: false

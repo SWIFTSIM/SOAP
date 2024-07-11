@@ -17,10 +17,10 @@ module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
 sim="L1000N1800/HYDRO_FIDUCIAL"
 
 # Snapshot number to do
-snapnum=0050
+snapnum=0057
 
-# Halo indices to do: all halos with x<10, y<10, and z<10Mpc in snap 50
-halo_indices="2208 3360 7167 12861 15349 33465 40199 41557 44559 73863 74544 77349 81088 87230 88604 99175 99725 111048 118709 118710"
+# Halo indices to do: all halos with x<10, y<10, and z<10Mpc in snap 57
+halo_indices="2358 2881 3633 9537 9732 14097 14639 18078 34414 38651 43121 43643 44887 45957 49461 51256 67007 68228 71121 72153 79479 80461 82525 83482 83955 89427 93408 96685 98640 117518 123068"
 
 # Run SOAP on eight cores processing the selected halos. Use 'python3 -m pdb' to start in the debugger.
 mpirun -np 8 python3 -u -m mpi4py ./compute_halo_properties.py \

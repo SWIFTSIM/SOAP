@@ -5,7 +5,7 @@ import virgo.util.peano as peano
 import virgo.mpi.parallel_sort as psort
 
 
-def peano_decomposition(boxsize, centres, nr_chunks, comm):
+def peano_decomposition(boxsize, local_halo, nr_chunks, comm):
     """
     Gadget style domain decomposition using Peano-Hilbert curve.
     Allows an arbitrary number of chunks and tries to put equal
@@ -14,7 +14,9 @@ def peano_decomposition(boxsize, centres, nr_chunks, comm):
     The array of halo centres is assumed to be distributed over
     communicator comm.
 
-    Returns chunk index for each input halo centre.
+    Sorts halos by chunk index and returns the number of halos
+    in each chunk. local_halo is a dict of distributed unyt
+    arrays with the halo properties.
     
     Will not work well for zoom simulations. Could use a grid
     which just covers the zoom region?
@@ -23,6 +25,7 @@ def peano_decomposition(boxsize, centres, nr_chunks, comm):
     comm_rank = comm.Get_rank()
 
     # Find size of grid to use to calculate PH keys
+    centres = local_halo["cofp"]
     bits_per_dimension = 10
     cells_per_dimension = 2 ** bits_per_dimension
     grid_size = boxsize / cells_per_dimension
@@ -45,25 +48,14 @@ def peano_decomposition(boxsize, centres, nr_chunks, comm):
     order = psort.parallel_sort(phkey, return_index=True, comm=comm)
     del phkey
 
-    # Find number of halos on previous ranks
-    nr_halos_previous = comm.scan(nr_halos) - nr_halos
+    # Reorder the halos
+    for name in local_halo:
+        local_halo[name] = psort.fetch_elements(local_halo[name], order, comm=comm)
 
-    # Find global indexes of halos on this rank
-    index = np.arange(nr_halos, dtype=int) + nr_halos_previous
-
-    # Reorder indexes so that they're sorted by PH key
-    index = psort.fetch_elements(index, order, comm=comm)
-
-    # Assign contiguous ranges of PH sorted halos to chunks
-    halos_per_chunk = max(1, total_nr_halos // nr_chunks)
-    sorted_index = np.arange(nr_halos, dtype=int) + nr_halos_previous
-    task_id = (sorted_index // halos_per_chunk).clip(min=0, max=nr_chunks - 1)
-
-    # Sort task_ids back into original order
-    order = psort.parallel_sort(index, return_index=True, comm=comm)
-    task_id = psort.fetch_elements(task_id, order, comm=comm)
-
-    assert np.all(task_id >= 0)
-    assert np.all(task_id < nr_chunks)
-
-    return task_id
+    # Decide how many halos to put in each chunk
+    chunk_size = np.zeros(nr_chunks, dtype=int)
+    chunk_size[:] = total_nr_halos // nr_chunks
+    chunk_size[:total_nr_halos % nr_chunks] += 1
+    assert np.sum(chunk_size) == total_nr_halos
+    
+    return chunk_size

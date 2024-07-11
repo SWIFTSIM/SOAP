@@ -336,7 +336,7 @@ class PropertyTable:
             "MostMassiveBlackHolePosition",
             3,
             np.float64,
-            "kpc",
+            "cMpc",
             "Position of most massive black hole.",
             "general",
             "DScale5",
@@ -3195,7 +3195,10 @@ class PropertyTable:
                 parameter_file_properties = self.parameters[base_halo_type][
                     "properties"
                 ]
-                if not parameter_file_properties.get(prop_outputname, True):
+                # Whether to include properties missing from parameter file
+                calculations = self.parameters.get("calculations", {})
+                default = calculations.get("calculate_missing_properties", True)
+                if not parameter_file_properties.get(prop_outputname, default):
                     continue
             except KeyError:
                 pass
