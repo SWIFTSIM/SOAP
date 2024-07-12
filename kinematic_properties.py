@@ -12,6 +12,7 @@ We put them in a separate file to facilitate unit testing.
 import numpy as np
 import unyt
 from typing import Union, Tuple
+from halo_properties import SearchRadiusTooSmallError
 
 
 def get_velocity_dispersion_matrix(
@@ -230,7 +231,7 @@ def get_vmax(
     return ordered_radius[imax], np.sqrt(v_over_G[imax] * G)
 
 
-def get_inertia_tensor(mass, position, radius, reduced=False, max_iterations=20):
+def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduced=False, max_iterations=20):
     '''
     Get the inertia tensor of the given particle distribution, computed as 
     I_{ij} = m*x_i*x_j / Mtot.
@@ -240,8 +241,12 @@ def get_inertia_tensor(mass, position, radius, reduced=False, max_iterations=20)
        Masses of the particles.
      - position: unyt.unyt_array
        Positions of the particles.
-     - radius: unyt.unyt_quantity
-       Exclude particles outside this radius for the inertia tensor calculation
+     - sphere_radius: unyt.unyt_quantity
+       Use all particles within a sphere of this size for the calculation
+     - search_radius: unyt.unyt_quantity
+       Radius of the region of the simulation for which we have particle data
+       This function throws a SearchRadiusTooSmallError if we need particles outside
+       of this region.
      - reduced: bool
        Whether to calculate the reduced inertia tensor
      - max_iterations: int
@@ -266,7 +271,7 @@ def get_inertia_tensor(mass, position, radius, reduced=False, max_iterations=20)
     q = 1000
 
     # Ensure we have consistent units
-    R = radius.to('kpc')
+    R = sphere_radius.to('kpc')
     position = position.to('kpc')
 
     # Start with a sphere
@@ -299,6 +304,11 @@ def get_inertia_tensor(mass, position, radius, reduced=False, max_iterations=20)
         weight = mass / np.sum(mass[r <= 1])
         weight[r > 1] = 0
 
+        # Check if we have exceeded the search radius. For subhalo_properties we
+        # have all the bound particles, and so the search radius doesn't matter
+        if (search_radius is not None) and (np.max(R) > search_radius):
+            raise SearchRadiusTooSmallError("Inertia tensor required more particles")
+
         # Calculate inertia tensor
         tensor = weight[:, None, None] * position[:, :, None] * position[:, None, :]
         if reduced:
@@ -313,6 +323,9 @@ def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, ma
     '''
     Takes in the particle distribution projected along a given axis, and calculates the inertia
     tensor using the projected values.
+
+    Unlike get_inertia_tensor, we don't need to check if we have exceeded the search radius. This
+    is because all the bound particles are passed to this function.
 
     Parameters:
      - mass: unyt.unyt_array

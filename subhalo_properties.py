@@ -26,7 +26,7 @@ performed. See aperture_properties.py for a fully documented example.
 import numpy as np
 import unyt
 
-from halo_properties import HaloProperty, ReadRadiusTooSmallError
+from halo_properties import HaloProperty, SearchRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from kinematic_properties import (
@@ -1835,7 +1835,7 @@ class SubhaloProperties(HaloProperty):
         if Ntot < Nexpected:
             # Try again with a larger search radius
             # print(f"Ntot = {Ntot}, Nexpected = {Nexpected}, search_radius = {search_radius}")
-            raise ReadRadiusTooSmallError(
+            raise SearchRadiusTooSmallError(
                 "Search radius does not contain expected number of particles!"
             )
         elif Ntot > Nexpected:

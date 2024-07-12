@@ -17,7 +17,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as pl
 
 from SO_properties import find_SO_radius_and_mass
-from halo_properties import ReadRadiusTooSmallError
+from halo_properties import SearchRadiusTooSmallError
 
 
 def test_SO_radius_calculation():
@@ -60,7 +60,7 @@ def test_SO_radius_calculation():
                 ordered_radius, density, cumulative_mass, reference_density
             )
             print(f"{i:03d}: SO_r: {SO_r}, SO_mass: {SO_mass}")
-        except ReadRadiusTooSmallError:
+        except SearchRadiusTooSmallError:
             print(f"{i:03d}: Radius too small!")
             SO_r = -1.0 * unyt.kpc
             SO_mass = -1.0 * unyt.Msun

@@ -6,7 +6,7 @@ import numpy as np
 import unyt
 
 from dataset_names import mass_dataset, ptypes_for_so_masses
-from halo_properties import ReadRadiusTooSmallError
+from halo_properties import SearchRadiusTooSmallError
 import shared_array
 from property_table import PropertyTable
 
@@ -262,7 +262,7 @@ def process_single_halo(
                     halo_prop.calculate(
                         input_halo, current_radius, particle_data, halo_result
                     )
-                except ReadRadiusTooSmallError:
+                except SearchRadiusTooSmallError:
                     # Search radius was too small, so will need to try again with a larger radius.
                     max_physical_radius_mpc = max(
                         max_physical_radius_mpc, halo_prop.physical_radius_mpc

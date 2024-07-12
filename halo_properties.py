@@ -2,7 +2,7 @@
 
 
 
-class ReadRadiusTooSmallError(Exception):
+class SearchRadiusTooSmallError(Exception):
     pass
 
 

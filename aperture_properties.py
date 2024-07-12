@@ -136,7 +136,7 @@ very messy and complex. But it is in fact quite neat and powerful.
 import numpy as np
 import unyt
 
-from halo_properties import HaloProperty, ReadRadiusTooSmallError
+from halo_properties import HaloProperty, SearchRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from kinematic_properties import (
@@ -2999,7 +2999,7 @@ class ApertureProperties(HaloProperty):
         # Determine whether to skip this halo because of filter
         if do_calculation[self.halo_filter]:
             if search_radius < self.physical_radius_mpc * unyt.Mpc:
-                raise ReadRadiusTooSmallError("Search radius is smaller than aperture")
+                raise SearchRadiusTooSmallError("Search radius is smaller than aperture")
 
             types_present = [type for type in self.particle_properties if type in data]
             part_props = ApertureParticleData(
@@ -3290,7 +3290,7 @@ def test_aperture_properties():
             # Check halo fails if search radius is too small
             halo_result = dict(halo_result_template)
             if pc_name != 'filter_test':
-                with pytest.raises(ReadRadiusTooSmallError):
+                with pytest.raises(SearchRadiusTooSmallError):
                     pc_calc.calculate(
                         input_halo, 10 * unyt.kpc, input_data, halo_result
                     )
