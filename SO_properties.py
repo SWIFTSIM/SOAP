@@ -2395,6 +2395,7 @@ class SOProperties(HaloProperty):
         parameters: ParameterFile,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
         SOval: float,
         type: str = "mean",
     ):
@@ -2415,6 +2416,9 @@ class SOProperties(HaloProperty):
            Filter used to determine which properties can be calculated for this halo.
            This depends on the number of particles in the subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
          - SOval: float
            SO threshold value. The precise meaning of this parameter depends on
            the selected SO type.
@@ -2439,6 +2443,7 @@ class SOProperties(HaloProperty):
         self.filter = recently_heated_gas_filter
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
+        self.halo_filter = halo_filter
 
         self.observer_position = cellgrid.observer_position
 
@@ -2518,6 +2523,10 @@ class SOProperties(HaloProperty):
             self.SO_name = "BN98"
             self.label = f"within which the density is {self.critical_density_multiple:.2f} times the critical value"
 
+        # Save name of group in the final output file
+        self.group_name = f"SO/{self.SO_name}"
+        self.mask_metadata = self.category_filter.get_filter_metadata(self.halo_filter)
+
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the
         # snapshot, that type will not be read in and will not have
@@ -2574,8 +2583,6 @@ class SOProperties(HaloProperty):
 
         registry = input_halo["cofp"].units.registry
 
-        do_calculation = self.category_filter.get_filters(halo_result)
-
         SO = {}
         # declare all the variables we will compute
         # we set them to 0 in case a particular variable cannot be computed
@@ -2589,7 +2596,7 @@ class SOProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             shape = prop[2]
@@ -2601,8 +2608,12 @@ class SOProperties(HaloProperty):
                 val = 0
             SO[name] = unyt.unyt_array(val, dtype=dtype, units=unit, registry=registry)
 
+        # Get do_calculation to determine whether to skip halo
+        do_calculation = self.category_filter.get_do_calculation(halo_result)
+
         # SOs only exist for central galaxies
-        if input_halo["is_central"]:
+        # Determine whether to skip this halo because of filter
+        if input_halo["is_central"] and do_calculation[self.halo_filter]:
             types_present = [type for type in self.particle_properties if type in data]
 
             part_props = SOParticleData(
@@ -2671,7 +2682,7 @@ class SOProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             description = prop[5]
@@ -2687,7 +2698,6 @@ class SOProperties(HaloProperty):
             )
 
         return
-
 
 class CoreExcisedSOProperties(SOProperties):
     # Add the extra core excised properties we want from the table
@@ -2719,6 +2729,7 @@ class CoreExcisedSOProperties(SOProperties):
         parameters: ParameterFile,
         recently_heated_gas_filter,
         category_filter,
+        halo_filter: str,
         SOval,
         type="mean",
         core_excision_fraction=None,
@@ -2732,6 +2743,7 @@ class CoreExcisedSOProperties(SOProperties):
             parameters,
             recently_heated_gas_filter,
             category_filter,
+            halo_filter,
             SOval,
             type,
         )
@@ -2757,6 +2769,7 @@ class RadiusMultipleSOProperties(SOProperties):
         parameters: ParameterFile,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
         SOval: float,
         multiple: float,
         type: str = "mean",
@@ -2778,6 +2791,9 @@ class RadiusMultipleSOProperties(SOProperties):
            Filter used to determine which properties can be calculated for this halo.
            This depends on the number of particles in the subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
          - SOval: float
            SO threshold value. The precise meaning of this parameter depends on
            the selected SO type. Note that this value determines the "parent"
@@ -2795,18 +2811,20 @@ class RadiusMultipleSOProperties(SOProperties):
                 "SOs with a radius that is a multiple of another SO radius are only allowed for type mean or crit!"
             )
 
-        # initialise the SOProperties object using a conservative physical radius estimate
+        # initialise the SOProperties object
         super().__init__(
             cellgrid,
             parameters,
             recently_heated_gas_filter,
             category_filter,
-            3000.0,
+            halo_filter,
+            0,
             "physical",
         )
 
         # overwrite the name, SO_name and label
         self.SO_name = f"{multiple:.0f}xR_{SOval:.0f}_{type}"
+        self.group_name = f"SO/{self.SO_name}"
         self.label = f"with a radius that is {self.SO_name}"
         self.name = f"SO_{self.SO_name}"
 
@@ -2872,10 +2890,8 @@ def test_SO_properties_random_halo():
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(4251)
-    filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
-    cat_filter = CategoryFilter(
-        {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
-    )
+    gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    cat_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
     parameters = ParameterFile(
         parameter_dictionary={
             "aliases": {
@@ -2901,20 +2917,27 @@ def test_SO_properties_random_halo():
     )
 
     property_calculator_50kpc = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 50.0, "physical"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 50.0, "physical"
     )
     property_calculator_2500mean = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, "mean"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 2500.0, "mean"
     )
     property_calculator_2500crit = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, "crit"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 2500.0, "crit"
     )
     property_calculator_BN98 = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 0.0, "BN98"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 0.0, "BN98"
     )
     property_calculator_5x2500mean = RadiusMultipleSOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, 5.0, "mean"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 2500.0, 5.0, "mean"
     )
+
+    # Create a filter that no halos will satisfy
+    fail_filter = CategoryFilter(dummy_halos.get_filters({"general": 10000000}))
+    property_calculator_filter_test = SOProperties(
+        dummy_halos.get_cell_grid(), parameters, gas_filter, fail_filter, 'general', 200.0, "crit"
+    )
+    property_calculator_filter_test.SO_name = 'filter_test'
 
     for i in range(100):
         (
@@ -2993,6 +3016,7 @@ def test_SO_properties_random_halo():
             ("2500_crit", property_calculator_2500crit),
             ("BN98", property_calculator_BN98),
             ("5xR_2500_mean", property_calculator_5x2500mean),
+            ("filter_test", property_calculator_filter_test),
         ]:
             halo_result = dict(halo_result_template)
             # make sure the radius multiple is found this time
@@ -3014,149 +3038,9 @@ def test_SO_properties_random_halo():
                 ]:
                     input_data["PartType0"][dset] = data["PartType0"][dset]
                     input_data["PartType0"][dset] = data["PartType0"][dset]
-            input_halo_copy = input_halo.copy()
-            input_data_copy = input_data.copy()
-            prop_calc.calculate(input_halo, rmax, input_data, halo_result)
-            # make sure the calculation does not change the input
-            assert input_halo_copy == input_halo
-            assert input_data_copy == input_data
-
-            for prop in prop_calc.property_list:
-                outputname = prop[1]
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
-                full_name = f"SO/{SO_name}/{outputname}"
-                assert full_name in halo_result
-                result = halo_result[full_name][0]
-                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
-                assert result.dtype == dtype
-                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
-                assert result.units.same_dimensions_as(unit.units)
-
-    # Now test the calculation for each property individually, to make sure that
-    # all properties read all the datasets they require
-    all_parameters = parameters.get_parameters()
-    for property in all_parameters["SOProperties"]["properties"]:
-        print(f"Testing only {property}...")
-        single_property = dict(all_parameters)
-        for other_property in all_parameters["SOProperties"]["properties"]:
-            single_property["SOProperties"]["properties"][other_property] = (
-                other_property == property
-            ) or other_property.startswith("NumberOf")
-        single_parameters = ParameterFile(parameter_dictionary=single_property)
-
-        property_calculator_50kpc = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            50.0,
-            "physical",
-        )
-        property_calculator_2500mean = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            2500.0,
-            "mean",
-        )
-        property_calculator_2500crit = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            2500.0,
-            "crit",
-        )
-        property_calculator_BN98 = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            0.0,
-            "BN98",
-        )
-        property_calculator_5x2500mean = RadiusMultipleSOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            2500.0,
-            5.0,
-            "mean",
-        )
-
-        halo_result_template = {
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
-        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
-
-        # force the SO radius to be within the search sphere
-        property_calculator_2500mean.reference_density = 2.0 * rho_ref
-        property_calculator_2500crit.reference_density = 2.0 * rho_ref
-        property_calculator_BN98.reference_density = 2.0 * rho_ref
-
-        for SO_name, prop_calc in [
-            ("50_kpc", property_calculator_50kpc),
-            ("2500_mean", property_calculator_2500mean),
-            ("2500_crit", property_calculator_2500crit),
-            ("BN98", property_calculator_BN98),
-            ("5xR_2500_mean", property_calculator_5x2500mean),
-        ]:
-
-            halo_result = dict(halo_result_template)
-            # make sure the radius multiple is found this time
-            if SO_name == "5xR_2500_mean":
                 halo_result[
                     f"SO/2500_mean/{property_calculator_5x2500mean.radius_name}"
                 ] = (0.1 * rmax, "Dummy value to force correct behaviour")
-            input_data = {}
-            for ptype in prop_calc.particle_properties:
-                if ptype in data:
-                    input_data[ptype] = {}
-                    for dset in prop_calc.particle_properties[ptype]:
-                        input_data[ptype][dset] = data[ptype][dset]
-            # Adding Restframe luminosties as they are calculated in halo_tasks
-            if "PartType0" in input_data:
-                for dset in [
-                    "XrayLuminositiesRestframe",
-                    "XrayPhotonLuminositiesRestframe",
-                ]:
-                    input_data["PartType0"][dset] = data["PartType0"][dset]
-                    input_data["PartType0"][dset] = data["PartType0"][dset]
             input_halo_copy = input_halo.copy()
             input_data_copy = input_data.copy()
             prop_calc.calculate(input_halo, rmax, input_data, halo_result)
@@ -3166,8 +3050,6 @@ def test_SO_properties_random_halo():
 
             for prop in prop_calc.property_list:
                 outputname = prop[1]
-                if not outputname == property:
-                    continue
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
@@ -3178,6 +3060,14 @@ def test_SO_properties_random_halo():
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
+
+            # Check properties were not calculated for filtered halos
+            if SO_name == 'filter_test':
+                for prop in prop_calc.property_list:
+                    outputname = prop[1]
+                    size = prop[2]
+                    full_name = f"SO/{SO_name}/{outputname}"
+                    assert np.all(halo_result[full_name][0].value == np.zeros(size))
 
     # Now test the calculation for each property individually, to make sure that
     # all properties read all the datasets they require
@@ -3194,79 +3084,51 @@ def test_SO_properties_random_halo():
         property_calculator_50kpc = SOProperties(
             dummy_halos.get_cell_grid(),
             single_parameters,
-            filter,
+            gas_filter,
             cat_filter,
+            'basic',
             50.0,
             "physical",
         )
         property_calculator_2500mean = SOProperties(
             dummy_halos.get_cell_grid(),
             single_parameters,
-            filter,
+            gas_filter,
             cat_filter,
+            'basic',
             2500.0,
             "mean",
         )
         property_calculator_2500crit = SOProperties(
             dummy_halos.get_cell_grid(),
             single_parameters,
-            filter,
+            gas_filter,
             cat_filter,
+            'basic',
             2500.0,
             "crit",
         )
         property_calculator_BN98 = SOProperties(
             dummy_halos.get_cell_grid(),
             single_parameters,
-            filter,
+            gas_filter,
             cat_filter,
+            'basic',
             0.0,
             "BN98",
         )
         property_calculator_5x2500mean = RadiusMultipleSOProperties(
             dummy_halos.get_cell_grid(),
             single_parameters,
-            filter,
+            gas_filter,
             cat_filter,
+            'basic',
             2500.0,
             5.0,
             "mean",
         )
 
-        halo_result_template = {
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
         rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
 
         # force the SO radius to be within the search sphere
@@ -3334,9 +3196,8 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(seed)
-    cat_filter = CategoryFilter(
-        {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
-    )
+    gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    cat_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
     parameters = ParameterFile(
         parameter_dictionary={
             "aliases": {
@@ -3362,7 +3223,7 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
     )
 
     property_calculator_200crit = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 200.0, "crit"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 200.0, "crit"
     )
 
     (input_halo, data, rmax, Mtot, Npart, particle_numbers) = dummy_halos.gen_nfw_halo(

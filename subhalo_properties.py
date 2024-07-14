@@ -620,12 +620,34 @@ class SubhaloParticleData:
         return self.vmax
 
     @lazy_property
-    def Vmax_soft(self):
+    def R_vmax_soft(self) -> unyt.unyt_quantity:
+        """
+        Radius at which the maximum circular velocity of the halo is reached.
+        Particles are set to have minimum radius equal to their softening length.
+
+        This includes contributions from all particle types.
+        """
         if self.Mtot == 0:
             return None
-        soft_r = np.maximum(self.softening, self.radius)
-        _, vmax = get_vmax(self.mass, soft_r)
-        return vmax
+        if not hasattr(self, "vmax_soft"):
+            soft_r = np.maximum(self.softening, self.radius)
+            self.r_vmax_soft, self.vmax_soft = get_vmax(self.mass, soft_r)
+        return self.r_vmax_soft
+
+    @lazy_property
+    def Vmax_soft(self):
+        """
+        Maximum circular velocity of the halo.
+        Particles are set to have minimum radius equal to their softening length.
+
+        This includes contributions from all particle types.
+        """
+        if self.Mtot == 0:
+            return None
+        if not hasattr(self, "vmax_soft"):
+            soft_r = np.maximum(self.softening, self.radius)
+            self.r_vmax_soft, self.vmax_soft = get_vmax(self.mass, soft_r)
+        return self.vmax_soft
 
     @lazy_property
     def spin_parameter(self) -> unyt.unyt_quantity:
@@ -640,8 +662,8 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        if self.R_vmax > 0 and self.Vmax > 0:
-            mask_r_vmax = self.radius <= self.R_vmax
+        if self.R_vmax_soft > 0 and self.Vmax_soft > 0:
+            mask_r_vmax = self.radius <= self.R_vmax_soft
             vrel = self.velocity[mask_r_vmax, :] - self.vcom[None, :]
             Ltot = np.linalg.norm(
                 (
@@ -1573,12 +1595,17 @@ class SubhaloProperties(HaloProperty):
         self.physical_radius_mpc = 0.0
 
         # Give this calculation a name so we can select it on the command line
+        # Save mask metadata and name of group in the final output file
         if bound_only:
             self.grnr = "GroupNr_bound"
             self.name = "bound_subhalo_properties"
+            self.group_name = "BoundSubhalo"
         else:
             self.grnr = "GroupNr_all"
             self.name = "fof_subhalo_properties"
+            self.group_name = "FOFSubhalo"
+        self.mask_metadata = {"Masked": False}
+        self.halo_filter = 'basic'
 
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the
@@ -1639,17 +1666,19 @@ class SubhaloProperties(HaloProperty):
         )
 
         if self.bound_only:
-            # this is the halo that we use for the filter particle numbers,
-            # so we have the get the numbers for the category filters manually
-            Ngas = part_props.Ngas
-            Ndm = part_props.Ndm
-            Nstar = part_props.Nstar
-            Nbh = part_props.Nbh
-            do_calculation = self.category_filter.get_filters_direct(
-                Ngas, Ndm, Nstar, Nbh
+            # this is the halo type that we use for the filter particle numbers,
+            # so we have to pass the numbers for the category filters manually
+            do_calculation = self.category_filter.get_do_calculation(
+                halo_result,
+                {
+                    'BoundSubhalo/NumberOfDarkMatterParticles': part_props.Ndm,
+                    'BoundSubhalo/NumberOfGasParticles': part_props.Ngas,
+                    'BoundSubhalo/NumberOfStarParticles': part_props.Nstar,
+                    'BoundSubhalo/NumberOfBlackHoleParticles': part_props.Nbh,
+                }
             )
         else:
-            do_calculation = self.category_filter.get_filters(halo_result)
+            do_calculation = self.category_filter.get_do_calculation(halo_result)
 
         subhalo = {}
         # declare all the variables we will compute
@@ -1713,10 +1742,6 @@ class SubhaloProperties(HaloProperty):
             raise RuntimeError("Found more particles than expected!")
 
         # Add these properties to the output
-        if self.bound_only:
-            prefix = "BoundSubhalo"
-        else:
-            prefix = "FOFSubhaloProperties"
         for prop in self.property_list:
             outputname = prop[1]
             # skip properties that are masked
@@ -1727,7 +1752,7 @@ class SubhaloProperties(HaloProperty):
                 continue
             name = prop[0]
             description = prop[5]
-            halo_result.update({f"{prefix}/{outputname}": (subhalo[name], description)})
+            halo_result.update({f"{self.group_name}/{outputname}": (subhalo[name], description)})
 
 
 def test_subhalo_properties():
@@ -1744,7 +1769,9 @@ def test_subhalo_properties():
     # initialise the DummyHaloGenerator with a random seed
     dummy_halos = DummyHaloGenerator(16902)
     cat_filter = CategoryFilter(
-        {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
+        dummy_halos.get_filters(
+            {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        )
     )
     parameters = ParameterFile(
         parameter_dictionary={
