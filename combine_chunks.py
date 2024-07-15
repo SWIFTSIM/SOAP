@@ -2,6 +2,7 @@
 
 import numpy as np
 import h5py
+from mpi4py import MPI
 
 import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
@@ -305,9 +306,9 @@ def combine_chunks(
             # Load parameters. We create mass bins with the lower limit of the smallest mass bin
             # given by "min_halo_mass". The size of the bins is set by "halo_bin_size_dex".
             # For each bin we keep at most "halos_per_bin" objects.
-            halos_per_bin = args.calculations['reduced_snapshots']['halos_per_bin']
-            halo_bin_size = args.calculations['reduced_snapshots']['halo_bin size_dex']
-            min_mass = np.log10(args.calculations['reduced_snapshots']['min_halo_mass'])
+            halos_per_bin = int(args.calculations['reduced_snapshots']['halos_per_bin'])
+            halo_bin_size = float(args.calculations['reduced_snapshots']['halo_bin_size_dex'])
+            min_mass = np.log10(float(args.calculations['reduced_snapshots']['min_halo_mass']))
 
             # Load masses and convert to Msun
             mass_metadata = [metadata for metadata in ref_metadata if metadata[0] == 'SO/200_crit/TotalMass']
@@ -317,7 +318,7 @@ def combine_chunks(
             # Determine mass bins
             local_max_mass = np.max(mass) if mass.shape[0] else 0
             max_mass = comm_world.allreduce(local_max_mass, MPI.MAX)
-            max_mass = np.log10(max_mass) + halo_bin size
+            max_mass = np.log10(max_mass) + halo_bin_size
             bins = 10**np.arange(min_mass, max_mass, halo_bin_size)
 
             # Determine how many halos each rank should keep
@@ -338,6 +339,8 @@ def combine_chunks(
                         i_rank = np.random.choice(comm_world.Get_size(), p=p_keep)
                         if n_keep[i_rank, i_bin] < n_halo[i_rank, i_bin]:
                             n_keep[i_rank, i_bin] += 1
+            else:
+                n_keep = None
             n_keep = comm_world.bcast(n_keep)[comm_world.Get_rank()]
 
             # Each rank determines which halos to keep
@@ -345,8 +348,8 @@ def combine_chunks(
             for i_bin in range(bins.shape[0]-1):
                 mask = (bins[i_bin] < mass) & (mass < bins[i_bin+1])
                 idx = np.where(mask)[0]
-                n_keep_bin = min(n_keep[i_bin], np.sum(mask))
-                keep_idx = np.random.choice(idx, size=n_keep_bin, replace=False)
+                assert n_keep[i_bin] <= np.sum(mask)
+                keep_idx = np.random.choice(idx, size=n_keep[i_bin], replace=False)
                 reduced_snapshot[keep_idx] = 1
     else:
         # Set default value
