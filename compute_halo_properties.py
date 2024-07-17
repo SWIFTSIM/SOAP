@@ -518,18 +518,17 @@ def compute_halo_properties():
     ref_metadata = result_set.check_metadata(metadata, comm_inter_node, comm_world)
 
     # Combine chunks into a single output file
-    with MPITimer("Sorting %d halo properties" % len(ref_metadata), comm_world):
-        combine_chunks(
-            args,
-            cellgrid,
-            halo_prop_list,
-            scratch_file_format,
-            ref_metadata,
-            nr_chunks,
-            comm_world,
-            category_filter,
-            recently_heated_gas_filter,
-        )
+    combine_chunks(
+        args,
+        cellgrid,
+        halo_prop_list,
+        scratch_file_format,
+        ref_metadata,
+        nr_chunks,
+        comm_world,
+        category_filter,
+        recently_heated_gas_filter,
+    )
 
     # Delete scratch files
     comm_world.barrier()

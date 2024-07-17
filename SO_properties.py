@@ -759,7 +759,7 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return gas_inertia_tensor()
+        return self.gas_inertia_tensor()
 
     @lazy_property
     def GasInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -770,7 +770,7 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return gas_inertia_tensor(reduced=True)
+        return self.gas_inertia_tensor(reduced=True)
 
     @lazy_property
     def GasInertiaTensorNoniterative(self) -> unyt.unyt_array:
@@ -780,7 +780,7 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return gas_inertia_tensor(max_iterations=1)
+        return self.gas_inertia_tensor(max_iterations=1)
 
     @lazy_property
     def GasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -790,7 +790,7 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return gas_inertia_tensor(reduced=True, max_iterations=1)
+        return self.gas_inertia_tensor(reduced=True, max_iterations=1)
 
     @lazy_property
     def dm_masses(self) -> unyt.unyt_array:
@@ -870,7 +870,7 @@ class SOParticleData:
         """
         if self.Mdm == 0:
             return None
-        return dm_inertia_tensor()
+        return self.dm_inertia_tensor()
 
     @lazy_property
     def DarkMatterInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -881,7 +881,7 @@ class SOParticleData:
         """
         if self.Mdm == 0:
             return None
-        return dm_inertia_tensor(reduced=True)
+        return self.dm_inertia_tensor(reduced=True)
 
     @lazy_property
     def DarkMatterInertiaTensorNoniterative(self) -> unyt.unyt_array:
@@ -891,7 +891,7 @@ class SOParticleData:
         """
         if self.Mdm == 0:
             return None
-        return dm_inertia_tensor(max_iterations=1)
+        return self.dm_inertia_tensor(max_iterations=1)
 
     @lazy_property
     def DarkMatterInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -901,7 +901,7 @@ class SOParticleData:
         """
         if self.Mdm == 0:
             return None
-        return dm_inertia_tensor(reduced=True, max_iterations=1)
+        return self.dm_inertia_tensor(reduced=True, max_iterations=1)
 
     @lazy_property
     def star_masses(self) -> unyt.unyt_array:
@@ -1025,7 +1025,7 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return stellar_inertia_tensor()
+        return self.stellar_inertia_tensor()
 
     @lazy_property
     def StellarInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -1036,7 +1036,7 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return stellar_inertia_tensor(reduced=True)
+        return self.stellar_inertia_tensor(reduced=True)
 
     @lazy_property
     def StellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
@@ -1046,7 +1046,7 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return stellar_inertia_tensor(max_iterations=1)
+        return self.stellar_inertia_tensor(max_iterations=1)
 
     @lazy_property
     def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -1056,7 +1056,7 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return stellar_inertia_tensor(reduced=True, max_iterations=1)
+        return self.stellar_inertia_tensor(reduced=True, max_iterations=1)
 
     @lazy_property
     def baryon_masses(self) -> unyt.unyt_array:

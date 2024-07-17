@@ -890,8 +890,6 @@ class PropertyTable:
             ["PartType0/Coordinates", "PartType0/Masses"],
             True,
             0,
-            True,
-            0,
         ),
         "HalfMassRadiusBaryon": (
             "HalfMassRadiusBaryons",

@@ -254,9 +254,6 @@ def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduce
 
     Returns the inertia tensor.
     '''
-    # Shouldn't calculate an inertia tensor for small numbers of particles
-    if position.shape[0] < 20:
-        return None
 
     # Remove particles at centre if calculating reduced tensor
     if reduced:
@@ -282,7 +279,7 @@ def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduce
         [0, 0, 1],
     ])
 
-    for _ in range(max_iterations):
+    for i_iter in range(max_iterations):
         # Calculate shape
         old_q = q
         q = np.sqrt(eig_val[1] / eig_val[2])
@@ -301,6 +298,11 @@ def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduce
         ])
         p = np.dot(position, eig_vec) / axis
         r = np.linalg.norm(p, axis=1)
+        # We want to skip the calculation if we only only have a small number of particles
+        # inside the initial sphere. We do the check here since this is the first time
+        # we calculate how many particles are within the sphere.
+        if (i_iter == 0) and (np.sum(mass[r <= 1]) < 20):
+            return None
         weight = mass / np.sum(mass[r <= 1])
         weight[r > 1] = 0
 
@@ -344,9 +346,6 @@ def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, ma
 
     Returns the inertia tensor.
     '''
-    # Shouldn't calculate an inertia tensor for small numbers of particles
-    if position.shape[0] < 20:
-        return None
 
     projected_position = unyt.unyt_array(
         np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
@@ -386,7 +385,7 @@ def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, ma
         [0, 1],
     ])
 
-    for _ in range(max_iterations):
+    for i_iter in range(max_iterations):
         # Calculate shape
         old_q = q
         q = np.sqrt(eig_val[0] / eig_val[1])
@@ -402,6 +401,11 @@ def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, ma
         ])
         p = np.dot(projected_position, eig_vec) / axis
         r = np.linalg.norm(p, axis=1)
+        # We want to skip the calculation if we only only have a small number of particles
+        # inside the initial circle. We do the check here since this is the first time
+        # we calculate how many particles are within the circle.
+        if (i_iter == 0) and (np.sum(mass[r <= 1]) < 20):
+            return None
         weight = mass / np.sum(mass[r <= 1])
         weight[r > 1] = 0
         
