@@ -67,6 +67,7 @@ def get_soap_args(comm):
     args.output_parameters = all_args["Parameters"]["output_parameters"]
     args.git_hash = all_args["git_hash"]
     args.min_read_radius_cmpc = all_args["calculations"]["min_read_radius_cmpc"]
+    args.calculations = all_args["calculations"]
 
     # Check we can write to the halo properties file
     if comm.Get_rank() == 0:

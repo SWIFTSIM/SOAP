@@ -1348,11 +1348,15 @@ class ProjectedApertureProperties(HaloProperty):
                 name = prop[0]
                 shape = prop[2]
                 dtype = prop[3]
-                unit = prop[4]
+                unit = unyt.Unit(prop[4], registry=registry)
+                physical = prop[10]
+                a_exponent = prop[11]
                 if shape > 1:
                     val = [0] * shape
                 else:
                     val = 0
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
                 projected_aperture[projname][name] = unyt.unyt_array(
                     val, dtype=dtype, units=unit, registry=registry
                 )
@@ -1387,15 +1391,19 @@ class ProjectedApertureProperties(HaloProperty):
                     name = prop[0]
                     shape = prop[2]
                     dtype = prop[3]
-                    unit = prop[4]
+                    unit = unyt.Unit(prop[4], registry=registry)
                     category = prop[6]
+                    physical = prop[10]
+                    a_exponent = prop[11]
+                    if not physical:
+                        unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
                     if do_calculation[category]:
                         val = getattr(proj_part_props, name)
                         if val is not None:
                             assert (
                                 projected_aperture[projname][name].shape == val.shape
                             ), f"Attempting to store {name} with wrong dimensions"
-                            if unit == "dimensionless":
+                            if unit == unyt.Unit("dimensionless"):
                                 if hasattr(val, "units"):
                                     assert (
                                         val.units == unyt.dimensionless
@@ -1407,6 +1415,9 @@ class ProjectedApertureProperties(HaloProperty):
                                     registry=registry,
                                 )
                             else:
+                                err = f'Overflow for halo {input_halo["index"]} when'
+                                err += f'calculating {name} in projected_properties'
+                                assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
                                 projected_aperture[projname][name] += val
 
         for projname in ["projx", "projy", "projz"]:
@@ -1425,8 +1436,10 @@ class ProjectedApertureProperties(HaloProperty):
                     continue
                 name = prop[0]
                 description = prop[5]
+                physical = prop[10]
+                a_exponent = prop[11]
                 halo_result.update(
-                    {f"{prefix}/{outputname}": (projected_aperture[projname][name], description)}
+                    {f"{prefix}/{outputname}": (projected_aperture[projname][name], description, physical, a_exponent)}
                 )
 
         return
@@ -1442,6 +1455,7 @@ def test_projected_aperture_properties():
     dtype and units.
     """
 
+    import pytest
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(127)
@@ -1563,13 +1577,17 @@ def test_projected_aperture_properties():
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
+                physical = prop[10]
+                a_exponent = prop[11]
                 full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
-                assert result.units.same_dimensions_as(unit.units)
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                assert result.units == unit.units
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
 
@@ -1582,7 +1600,6 @@ if __name__ == "__main__":
     python3 -m pytest *.py
     in the main folder.
     """
-    import pytest
 
     print("Calling test_projected_aperture_properties()...")
     test_projected_aperture_properties()

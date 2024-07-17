@@ -2744,11 +2744,15 @@ class SOProperties(HaloProperty):
             name = prop[0]
             shape = prop[2]
             dtype = prop[3]
-            unit = prop[4]
+            unit = unyt.Unit(prop[4], registry=registry)
+            physical = prop[10]
+            a_exponent = prop[11]
             if shape > 1:
                 val = [0] * shape
             else:
                 val = 0
+            if not physical:
+                unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
             SO[name] = unyt.unyt_array(val, dtype=dtype, units=unit, registry=registry)
 
         # Get do_calculation to determine whether to skip halo
@@ -2799,14 +2803,19 @@ class SOProperties(HaloProperty):
                     name = prop[0]
                     dtype = prop[3]
                     unit = prop[4]
+                    unit = unyt.Unit(prop[4], registry=registry)
                     category = prop[6]
+                    physical = prop[10]
+                    a_exponent = prop[11]
+                    if not physical:
+                        unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
                     if do_calculation[category]:
                         val = getattr(part_props, name)
                         if val is not None:
                             assert (
                                 SO[name].shape == val.shape
                             ), f"Attempting to store {name} with wrong dimensions"
-                            if unit == "dimensionless":
+                            if unit == unyt.Unit("dimensionless"):
                                 if hasattr(val, "units"):
                                     assert (
                                         val.units == unyt.dimensionless
@@ -2818,6 +2827,9 @@ class SOProperties(HaloProperty):
                                     registry=registry,
                                 )
                             else:
+                                err = f'Overflow for halo {input_halo["index"]} when'
+                                err += f'calculating {name} in SO_properties'
+                                assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
                                 SO[name] += val
 
         # Return value should be a dict containing unyt_arrays and descriptions.
@@ -2833,6 +2845,8 @@ class SOProperties(HaloProperty):
                 continue
             name = prop[0]
             description = prop[5]
+            physical = prop[10]
+            a_exponent = prop[11]
             halo_result.update(
                 {
                     f"SO/{self.SO_name}/{outputname}": (
@@ -2840,6 +2854,8 @@ class SOProperties(HaloProperty):
                         description.format(
                             label=self.label, core_excision=self.core_excision_string
                         ),
+                        physical,
+                        a_exponent,
                     )
                 }
             )
@@ -3325,13 +3341,17 @@ def test_SO_properties_random_halo():
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
+                physical = prop[10]
+                a_exponent = prop[11]
                 full_name = f"SO/{SO_name}/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
-                assert result.units.same_dimensions_as(unit.units)
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                assert result.units == unit.units
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
 

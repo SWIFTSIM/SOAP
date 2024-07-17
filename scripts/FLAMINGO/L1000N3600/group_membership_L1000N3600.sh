@@ -22,7 +22,8 @@
 #
 
 module purge
-module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
+module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
+source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 set -e
 
@@ -33,7 +34,7 @@ snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 sim="L1000N3600/${SLURM_JOB_NAME}"
 
 # Run the code
-mpirun python3 -u -m mpi4py ./group_membership.py \
+mpirun -- python3 -u -m mpi4py ./group_membership.py \
        --sim-name=${sim} --snap-nr=${snapnum} \
        parameter_files/FLAMINGO.yml
 

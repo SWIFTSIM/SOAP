@@ -13,7 +13,8 @@ with open(f"{script_folder}/filters.yml", "r") as ffile:
     filterdict = yaml.safe_load(ffile)
 
 with open(f"{script_folder}/wrong_compression.yml", "r") as cfile:
-    compression_fixes = yaml.safe_load(cfile)
+    # Load empty dictionary if wrong_compression.yml is empty
+    compression_fixes = yaml.safe_load(cfile) or {}
 
 chunksize = 1000
 compression_opts = {"compression": "gzip", "compression_opts": 4}

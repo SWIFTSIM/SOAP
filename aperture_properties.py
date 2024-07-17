@@ -2985,11 +2985,15 @@ class ApertureProperties(HaloProperty):
             name = prop[0]
             shape = prop[2]
             dtype = prop[3]
-            unit = prop[4]
+            unit = unyt.Unit(prop[4], registry=registry)
+            physical = prop[10]
+            a_exponent = prop[11]
             if shape > 1:
                 val = [0] * shape
             else:
                 val = 0
+            if not physical:
+                unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
             aperture_sphere[name] = unyt.unyt_array(
                 val, dtype=dtype, units=unit, registry=registry
             )
@@ -3026,15 +3030,19 @@ class ApertureProperties(HaloProperty):
                 name = prop[0]
                 shape = prop[2]
                 dtype = prop[3]
-                unit = prop[4]
+                unit = unyt.Unit(prop[4], registry=registry)
                 category = prop[6]
+                physical = prop[10]
+                a_exponent = prop[11]
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
                 if do_calculation[category]:
                     val = getattr(part_props, name)
                     if val is not None:
                         assert (
                             aperture_sphere[name].shape == val.shape
                         ), f"Attempting to store {name} with wrong dimensions"
-                        if unit == "dimensionless":
+                        if unit == unyt.Unit("dimensionless"):
                             if hasattr(val, "units"):
                                 assert (
                                     val.units == unyt.dimensionless
@@ -3046,6 +3054,9 @@ class ApertureProperties(HaloProperty):
                                 registry=registry,
                             )
                         else:
+                            err = f'Overflow for halo {input_halo["index"]} when'
+                            err += f'calculating {name} in aperture_properties'
+                            assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
                             aperture_sphere[name] += val
 
         # add the new properties to the halo_result dictionary
@@ -3060,8 +3071,10 @@ class ApertureProperties(HaloProperty):
                 continue
             name = prop[0]
             description = prop[5]
+            physical = prop[10]
+            a_exponent = prop[11]
             halo_result.update(
-                {f"{self.group_name}/{outputname}": (aperture_sphere[name], description)}
+                {f"{self.group_name}/{outputname}": (aperture_sphere[name], description, physical, a_exponent)}
             )
 
         return
@@ -3201,6 +3214,7 @@ def test_aperture_properties():
     are present, and have the right units, size and dtype
     """
 
+    import pytest
     from dummy_halo_generator import DummyHaloGenerator
 
     # initialise the DummyHaloGenerator with a random seed
@@ -3311,13 +3325,17 @@ def test_aperture_properties():
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
+                physical = prop[10]
+                a_exponent = prop[11]
                 full_name = f"{pc_type}/50kpc/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
-                assert result.units.same_dimensions_as(unit.units)
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                assert result.units == unit.units
 
             # Check properties were not calculated for filtered halos
             if pc_name == 'filter_test':
@@ -3404,7 +3422,6 @@ if __name__ == "__main__":
 
     Note that this can also be achieved by running "pytest *.py" in the folder.
     """
-    import pytest
 
     print("Running test_aperture_properties()...")
     test_aperture_properties()

@@ -20,7 +20,8 @@
 #
 
 module purge
-module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
+module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
+source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 set -e
 
@@ -36,7 +37,7 @@ if [[ $sim == *DMO_* ]] ; then
   dmo_flag="--dmo"
 fi
 
-mpirun python3 -u -m mpi4py ./compute_halo_properties.py \
+mpirun -- python3 -u -m mpi4py ./compute_halo_properties.py \
        --sim-name=${sim} --snap-nr=${snapnum} --reference-snapshot=77 \
        --chunks=4 ${dmo_flag} parameter_files/FLAMINGO.yml
 

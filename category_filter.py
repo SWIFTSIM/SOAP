@@ -121,9 +121,10 @@ class CategoryFilter:
             if prop[0] == base_output_name:
                 compression = prop[6]
         if compression is None:
-            return {"Lossy Compression Algorithm": "None", "Is Compressed": False}
+
+            return {"Lossy compression filter": "None", "Is Compressed": False}
         else:
-            return {"Lossy Compression Algorithm": compression, "Is Compressed": False}
+            return {"Lossy compression filter": compression, "Is Compressed": False}
 
     def get_filter_metadata_for_property(self, property_output_name: str) -> Dict:
         """

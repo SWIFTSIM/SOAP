@@ -11,7 +11,8 @@
 #
 
 module purge
-module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
+module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
+source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Which simulation to do
 sim="L1000N1800/HYDRO_FIDUCIAL"

@@ -544,7 +544,7 @@ def read_vr_group_sizes(basename, suffix, comm):
 
 
 @pytest.mark.mpi
-def test_read_vr(snap_nr=50):
+def test_read_vr(snap_nr=57):
 
     basename = f"/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
     # basename = f"/cosma8/data/dp004/flamingo/Runs/L1000N0900/HYDRO_FIDUCIAL/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"

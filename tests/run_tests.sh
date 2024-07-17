@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+module purge
+module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
+source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
+
 pytest -W error aperture_properties.py
 pytest -W error half_mass_radius.py
 pytest -W error projected_aperture_properties.py
