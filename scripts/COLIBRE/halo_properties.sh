@@ -28,6 +28,9 @@ source ./scripts/openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 # Which snapshot to do
 snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 
+# Which simulation to do
+sim="${SLURM_JOB_NAME}"
+
 # TODO: Set dmo_flag if needed
 dmo_flag=""
 
