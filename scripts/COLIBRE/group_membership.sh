@@ -8,7 +8,7 @@
 #
 # cd SOAP
 # mkdir logs
-# sbatch --array=0-3 ./scripts/COLIBRE/group_membership.sh
+# sbatch --array=0-3 -J SIM_NAME ./scripts/COLIBRE/group_membership.sh
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
@@ -26,6 +26,9 @@ source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Which snapshot to do
 snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
+
+# Which simulation to do
+sim="${SLURM_JOB_NAME}"
 
 # Run the code
 mpirun -- python3 -u -m mpi4py ./group_membership.py \
