@@ -31,6 +31,6 @@ mpirun=`which mpirun`
 ln -s "${mpirun}" "${venv_name}"/bin/mpirun
 
 # Install other modules
-pip install -r requirements.txt
+pip install -r ../requirements.txt
 git clone https://github.com/jchelly/VirgoDC.git "${venv_name}/VirgoDC"
 pip install "${venv_name}/VirgoDC/python"
