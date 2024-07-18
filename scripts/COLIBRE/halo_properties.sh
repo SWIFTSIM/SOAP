@@ -37,6 +37,6 @@ dmo_flag=""
 #TODO: Set nodes and chunks
 mpirun -- python3 -u -m mpi4py ./compute_halo_properties.py \
        parameter_files/COLIBRE.yml \
-       --snap-nr=${snapnum} --chunks=1 ${dmo_flag}
+       --sim-name=${sim} --snap-nr=${snapnum} --chunks=1 ${dmo_flag}
 
 echo "Job complete!"

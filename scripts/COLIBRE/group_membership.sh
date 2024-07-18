@@ -33,6 +33,6 @@ sim="${SLURM_JOB_NAME}"
 # Run the code
 mpirun -- python3 -u -m mpi4py ./group_membership.py \
        parameter_files/COLIBRE.yml \
-       --snap-nr=${snapnum}
+       --sim-name=${sim} --snap-nr=${snapnum}
 
 echo "Job complete!"
