@@ -6,6 +6,13 @@ match halos between simulations using the particle IDs.
 
 The code is written in python and uses mpi4py for parallelism.
 
+## Running on cosma
+
+The files in the `scripts` directory are made for running on cosma.
+All scripts should be run from the base SOAP directory. Before running
+SOAP you should first create a python environment with
+`./scripts/cosma_python_env.sh`
+
 ## Computing halo membership for particles in the snapshot
 
 The first program, `group_membership.py`, will compute bound 
