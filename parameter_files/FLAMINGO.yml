@@ -16,11 +16,11 @@ Snapshots:
 
 # Which halo finder we're using, and base name for halo finder output files
 HaloFinder:
-  type: VR
-  filename: "{sim_dir}/{sim_name}/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
-  #type: HBTplus
-  #filename: "{sim_dir}/{sim_name}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
-  #fof_filename: "{sim_dir}/{sim_name}/fof_catalog/fof_output_{snap_nr:04d}.hdf5"
+  #type: VR
+  #filename: "{sim_dir}/{sim_name}/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
+  type: HBTplus
+  filename: "{sim_dir}/{sim_name}/HBT/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
+  fof_filename: "/cosma8/data/dp004/jlvc76/FLAMINGO/FOF/{sim_name}/fof_catalog/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
   #type: Subfind
   #filename: "{sim_dir}/{sim_name}/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
   #type: Rockstar
@@ -28,7 +28,7 @@ HaloFinder:
 
 GroupMembership:
   # Where to write the group membership files
-  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+  filename: "{sim_dir}/{sim_name}/SOAP-HBT/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
 
 HaloProperties:
   # Where to write the halo properties file
@@ -230,18 +230,18 @@ ProjectedApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    ProjectedTotalInertiaTensor: true
-    ProjectedTotalInertiaTensorReduced: true
-    ProjectedTotalInertiaTensorNoniterative: false
-    ProjectedTotalInertiaTensorReducedNoniterative: false
-    ProjectedGasInertiaTensor: true
-    ProjectedGasInertiaTensorReduced: true
-    ProjectedGasInertiaTensorNoniterative: false
-    ProjectedGasInertiaTensorReducedNoniterative: false
-    ProjectedStellarInertiaTensor: true
-    ProjectedStellarInertiaTensorReduced: true
-    ProjectedStellarInertiaTensorNoniterative: false
-    ProjectedStellarInertiaTensorReducedNoniterative: false
+    ProjectedTotalInertiaTensor: false
+    ProjectedTotalInertiaTensorReduced: false
+    ProjectedTotalInertiaTensorNoniterative: true
+    ProjectedTotalInertiaTensorReducedNoniterative: true
+    ProjectedGasInertiaTensor: false
+    ProjectedGasInertiaTensorReduced: false
+    ProjectedGasInertiaTensorNoniterative: true
+    ProjectedGasInertiaTensorReducedNoniterative: true
+    ProjectedStellarInertiaTensor: false
+    ProjectedStellarInertiaTensorReduced: false
+    ProjectedStellarInertiaTensorNoniterative: true
+    ProjectedStellarInertiaTensorReducedNoniterative: true
     StarFormationRate: true
     StarFormingGasMassFractionInMetals: false
     StellarInitialMass: true
@@ -341,22 +341,22 @@ SOProperties:
     StellarMassFractionInMetals: true
     StellarMassFractionInOxygen: true
     StellarMassInMetals: false
-    TotalInertiaTensor: true
-    GasInertiaTensor: true
-    DarkMatterInertiaTensor: true
-    StellarInertiaTensor: true
-    TotalInertiaTensorReduced: true
-    GasInertiaTensorReduced: true
-    DarkMatterInertiaTensorReduced: true
-    StellarInertiaTensorReduced: true
-    TotalInertiaTensorNoniterative: false
-    GasInertiaTensorNoniterative: false
-    DarkMatterInertiaTensorNoniterative: false
-    StellarInertiaTensorNoniterative: false
-    TotalInertiaTensorReducedNoniterative: false
-    GasInertiaTensorReducedNoniterative: false
-    DarkMatterInertiaTensorReducedNoniterative: false
-    StellarInertiaTensorReducedNoniterative: false
+    TotalInertiaTensor: false
+    GasInertiaTensor: false
+    DarkMatterInertiaTensor: false
+    StellarInertiaTensor: false
+    TotalInertiaTensorReduced: false
+    GasInertiaTensorReduced: false
+    DarkMatterInertiaTensorReduced: false
+    StellarInertiaTensorReduced: false
+    TotalInertiaTensorNoniterative: true
+    GasInertiaTensorNoniterative: true
+    DarkMatterInertiaTensorNoniterative: true
+    StellarInertiaTensorNoniterative: true
+    TotalInertiaTensorReducedNoniterative: true
+    GasInertiaTensorReducedNoniterative: true
+    DarkMatterInertiaTensorReducedNoniterative: true
+    StellarInertiaTensorReducedNoniterative: true
     ThermalEnergyGas: true
     TotalMass: true
     XRayLuminosity: true
@@ -478,14 +478,14 @@ SubhaloProperties:
     GasInertiaTensorReduced: true
     DarkMatterInertiaTensorReduced: true
     StellarInertiaTensorReduced: true
-    TotalInertiaTensorNoniterative: false
-    GasInertiaTensorNoniterative: false
-    DarkMatterInertiaTensorNoniterative: false
-    StellarInertiaTensorNoniterative: false
-    TotalInertiaTensorReducedNoniterative: false
-    GasInertiaTensorReducedNoniterative: false
-    DarkMatterInertiaTensorReducedNoniterative: false
-    StellarInertiaTensorReducedNoniterative: false
+    TotalInertiaTensorNoniterative: true
+    GasInertiaTensorNoniterative: true
+    DarkMatterInertiaTensorNoniterative: true
+    StellarInertiaTensorNoniterative: true
+    TotalInertiaTensorReducedNoniterative: true
+    GasInertiaTensorReducedNoniterative: true
+    DarkMatterInertiaTensorReducedNoniterative: true
+    StellarInertiaTensorReducedNoniterative: true
     SpinParameter: true
     StarFormationRate: true
     StarFormingGasMass: true
