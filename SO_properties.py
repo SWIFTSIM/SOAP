@@ -243,7 +243,8 @@ class SOParticleData:
         snapshot_datasets: SnapshotDatasets,
         core_excision_fraction: float,
         softening_of_parttype: unyt.unyt_array,
-        skip_concentration: bool
+        skip_concentration: bool,
+        search_radius: unyt.unyt_quantity,
     ):
         """
         Constructor.
@@ -288,6 +289,7 @@ class SOParticleData:
         self.core_excision_fraction = core_excision_fraction
         self.softening_of_parttype = softening_of_parttype
         self.skip_concentration = skip_concentration
+        self.search_radius = search_radius
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -303,7 +305,6 @@ class SOParticleData:
         """
         self.centre = self.input_halo["cofp"]
         self.index = self.input_halo["index"]
-        self.search_radius = self.input_halo["search_radius"]
 
         # Make an array of particle masses, radii and positions
         mass = []
@@ -600,9 +601,7 @@ class SOParticleData:
         """
         if self.Mtotpart == 0:
             return None
-        mass = np.concatenate([self.mass, self.surrounding_mass], axis=0)
-        position = np.concatenate([self.position, self.surrounding_position], axis=0)
-        return get_inertia_tensor(mass, position, self.SO_r, search_radius=self.search_radius, max_iterations=1)
+        return get_inertia_tensor(self.mass, self.position, self.SO_r, max_iterations=1)
 
     @lazy_property
     def TotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -612,9 +611,7 @@ class SOParticleData:
         """
         if self.Mtotpart == 0:
             return None
-        mass = np.concatenate([self.mass, self.surrounding_mass], axis=0)
-        position = np.concatenate([self.position, self.surrounding_position], axis=0)
-        return get_inertia_tensor(mass, position, self.SO_r, search_radius=self.search_radius, reduced=True, max_iterations=1)
+        return get_inertia_tensor(self.mass, self.position, self.SO_r, reduced=True, max_iterations=1)
 
     @lazy_property
     def Mfrac_satellites(self) -> unyt.unyt_quantity:
@@ -780,7 +777,7 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return self.gas_inertia_tensor(max_iterations=1)
+        return get_inertia_tensor(self.gas_masses, self.gas_pos, self.SO_r, max_iterations=1)
 
     @lazy_property
     def GasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -790,7 +787,7 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return self.gas_inertia_tensor(reduced=True, max_iterations=1)
+        return get_inertia_tensor(self.gas_masses, self.gas_pos, self.SO_r, reduced=True, max_iterations=1)
 
     @lazy_property
     def dm_masses(self) -> unyt.unyt_array:
@@ -891,7 +888,7 @@ class SOParticleData:
         """
         if self.Mdm == 0:
             return None
-        return self.dm_inertia_tensor(max_iterations=1)
+        return get_inertia_tensor(self.dm_masses, self.dm_pos, self.SO_r, max_iterations=1)
 
     @lazy_property
     def DarkMatterInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -901,7 +898,7 @@ class SOParticleData:
         """
         if self.Mdm == 0:
             return None
-        return self.dm_inertia_tensor(reduced=True, max_iterations=1)
+        return get_inertia_tensor(self.dm_masses, self.dm_pos, self.SO_r, reduced=True, max_iterations=1)
 
     @lazy_property
     def star_masses(self) -> unyt.unyt_array:
@@ -1046,7 +1043,7 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return self.stellar_inertia_tensor(max_iterations=1)
+        return get_inertia_tensor(self.star_masses, self.star_pos, self.SO_r, max_iterations=1)
 
     @lazy_property
     def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -1056,7 +1053,7 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return self.stellar_inertia_tensor(reduced=True, max_iterations=1)
+        return get_inertia_tensor(self.star_masses, self.star_pos, self.SO_r, reduced=True, max_iterations=1)
 
     @lazy_property
     def baryon_masses(self) -> unyt.unyt_array:
@@ -2774,6 +2771,7 @@ class SOProperties(HaloProperty):
                 self.core_excision_fraction,
                 self.softening_of_parttype,
                 self.skip_concentration,
+                search_radius,
             )
 
             # we need to make sure the physical radius uses the correct unit
