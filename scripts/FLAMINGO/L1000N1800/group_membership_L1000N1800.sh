@@ -9,6 +9,7 @@
 #
 # cd SOAP
 # mkdir logs
+# ./scripts/cosma_python_env.sh
 # sbatch -J HYDRO_FIDUCIAL --array=0-77%4 ./scripts/FLAMINGO/L1000N1800/group_membership_L1000N1800.sh
 #
 #SBATCH --nodes=1

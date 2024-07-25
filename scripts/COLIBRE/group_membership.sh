@@ -8,6 +8,7 @@
 #
 # cd SOAP
 # mkdir logs
+# ./scripts/cosma_python_env.sh
 # sbatch --array=0-3 -J SIM_NAME ./scripts/COLIBRE/group_membership.sh
 #
 #SBATCH --nodes=1
