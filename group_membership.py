@@ -46,6 +46,12 @@ if __name__ == "__main__":
     fof_filename = pf.format(fof_filename, snap_nr=snap_nr, file_nr=None)
     halo_basename = pf.format(halo_basename, snap_nr=snap_nr, file_nr=None)
     output_file = pf.format(output_file, snap_nr=snap_nr, file_nr=None)
+
+    # Check both swift and output filenames are (not) chunk files
+    if 'file_nr' in swift_filename:
+        assert 'file_nr' in output_file, "Membership filenames require {file_nr}"
+    else:
+        assert 'file_nr' not in output_file, "Membership filenames shouldn't have {file_nr}"
     
     # Ensure output dir exists
     if comm_rank == 0:

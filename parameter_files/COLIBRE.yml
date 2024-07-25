@@ -7,13 +7,13 @@ Parameters:
 # Location of the Swift snapshots:
 Snapshots:
   # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
-  filename: "{sim_dir}/{sim_name}/snapshots/colibre_{snap_nr:04d}.hdf5"
+  filename: "{sim_dir}/{sim_name}/colibre_{snap_nr:04d}/colibre_{snap_nr:04d}.{file_nr}.hdf5"
 
 # Which halo finder we're using, and base name for halo finder output files
 HaloFinder:
   type: HBTplus
   filename: "{sim_dir}/{sim_name}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
-  fof_filename: "{sim_dir}/{sim_name}/fof/fof_output_{snap_nr:04d}.hdf5"
+  fof_filename: "{sim_dir}/{sim_name}/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
   #type: VR
   #filename: "{sim_dir}/halo_{snap_nr:04d}"
   #type: Subfind
@@ -21,7 +21,7 @@ HaloFinder:
 
 GroupMembership:
   # Where to write the group membership files
-  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}.hdf5"
+  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}.{file_nr}.hdf5"
 
 HaloProperties:
   # Where to write the halo properties file
@@ -174,18 +174,18 @@ ApertureProperties:
     exclusive_100_kpc:
       inclusive: false
       radius_in_kpc: 100.0
-    exclusive_300kpc:
-      inclusive: false
-      radius_in_kpc: 300.0
-      filter: general
-    exclusive_1000_kpc:
-      inclusive: false
-      radius_in_kpc: 1000.0
-      filter: general
-    exclusive_3000kpc:
-      inclusive: false
-      radius_in_kpc: 3000.0
-      filter: general
+    #exclusive_300kpc:
+      #inclusive: false
+      #radius_in_kpc: 300.0
+      #filter: general
+    #exclusive_1000_kpc:
+      #inclusive: false
+      #radius_in_kpc: 1000.0
+      #filter: general
+    #exclusive_3000kpc:
+      #inclusive: false
+      #radius_in_kpc: 3000.0
+      #filter: general
     inclusive_1_kpc:
       inclusive: true
       radius_in_kpc: 1.0
@@ -204,18 +204,18 @@ ApertureProperties:
     inclusive_100_kpc:
       inclusive: true
       radius_in_kpc: 100.0
-    inclusive_300kpc:
-      inclusive: true
-      radius_in_kpc: 300.0
-      filter: general
-    inclusive_1000_kpc:
-      inclusive: true
-      radius_in_kpc: 1000.0
-      filter: general
-    inclusive_3000kpc:
-      inclusive: true
-      radius_in_kpc: 3000.0
-      filter: general
+    #inclusive_300kpc:
+      #inclusive: true
+      #radius_in_kpc: 300.0
+      #filter: general
+    #inclusive_1000_kpc:
+      #inclusive: true
+      #radius_in_kpc: 1000.0
+      #filter: general
+    #inclusive_3000kpc:
+      #inclusive: true
+      #radius_in_kpc: 3000.0
+      #filter: general
 ProjectedApertureProperties:
   properties:
     AtomicHydrogenMass: true
@@ -369,17 +369,17 @@ SOProperties:
     XRayLuminosityCoreExcision: false
     XRayLuminosityWithoutRecentAGNHeating: true
     XRayLuminosityWithoutRecentAGNHeatingCoreExcision: false
-    XRayLuminosityInRestframe: true
+    XRayLuminosityInRestframe: false
     XRayLuminosityInRestframeCoreExcision: false
-    XRayLuminosityInRestframeWithoutRecentAGNHeating: true
+    XRayLuminosityInRestframeWithoutRecentAGNHeating: false
     XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: false
     XRayPhotonLuminosity: true
     XRayPhotonLuminosityCoreExcision: false
     XRayPhotonLuminosityWithoutRecentAGNHeating: true
     XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision: false
-    XRayPhotonLuminosityInRestframe: true
+    XRayPhotonLuminosityInRestframe: false
     XRayPhotonLuminosityInRestframeCoreExcision: false
-    XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
+    XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: false
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: false
     SpectroscopicLikeTemperature: true
     SpectroscopicLikeTemperatureCoreExcision: false
@@ -389,37 +389,37 @@ SOProperties:
     200_crit:
       type: crit
       value: 200.0
-    50_crit:
-      type: crit
-      value: 50.0
-      filter: general
-    100_crit:
-      type: crit
-      value: 100.0
-      filter: general
+    #50_crit:
+      #type: crit
+      #value: 50.0
+      #filter: general
+    #100_crit:
+      #type: crit
+      #value: 100.0
+      #filter: general
     200_mean:
       type: mean
       value: 200.0
     500_crit:
       type: crit
       value: 500.0
-    5xR500_crit:
-      type: crit
-      value: 500.0
-      radius_multiple: 5.0
-      filter: general
-    1000_crit:
-      type: crit
-      value: 1000.0
-      filter: general
-    2500_crit:
-      type: crit
-      value: 2500.0
-      filter: general
-    BN98:
-      type: BN98
-      value: 0.0
-      filter: general
+    #5xR500_crit:
+      #type: crit
+      #value: 500.0
+      #radius_multiple: 5.0
+      #filter: general
+    #1000_crit:
+      #type: crit
+      #value: 1000.0
+      #filter: general
+    #2500_crit:
+      #type: crit
+      #value: 2500.0
+      #filter: general
+    #BN98:
+      #type: BN98
+      #value: 0.0
+      #filter: general
 SubhaloProperties:
   properties:
     AngularMomentumBaryons: true
