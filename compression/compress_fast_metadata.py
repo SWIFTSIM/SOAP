@@ -102,7 +102,11 @@ def compress_dataset(arguments):
     input_name, output_name, dset = arguments
 
     with h5py.File(input_name, "r") as ifile, h5py.File(output_name, "w") as ofile:
-        filter = ifile[dset].attrs["Lossy Compression Algorithm"]
+        group_name = dset.split("/")[0]
+        if group_name == 'Cells':
+            filter = "None"
+        else:
+            filter = ifile[dset].attrs["Lossy compression filter"]
         dset_name = dset.split("/")[-1]
         if dset_name in compression_fixes:
             filter = compression_fixes[dset_name]
@@ -123,7 +127,7 @@ def compress_dataset(arguments):
             if attr == "Is Compressed":
                 ofile["data"].attrs[attr] = True
             else:
-                if attr == "Lossy Compression Algorithm":
+                if attr == "Lossy compression filter":
                     ofile["data"].attrs[attr] = filter
                 else:
                     ofile["data"].attrs[attr] = ifile[dset].attrs[attr]
