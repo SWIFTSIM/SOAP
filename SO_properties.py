@@ -245,6 +245,7 @@ class SOParticleData:
         softening_of_parttype: unyt.unyt_array,
         skip_concentration: bool,
         search_radius: unyt.unyt_quantity,
+        H: unyt.unyt_quantity,
     ):
         """
         Constructor.
@@ -277,6 +278,11 @@ class SOParticleData:
          - skip_concentration: bool
            Whether to skip the concentration calculation, since the method is only
            valid for certain SO variations
+         - search_radius: unyt.unyt_quantity
+           Current search radius. Particles are guaranteed to be included up to
+           this radius.
+         - H: unyt.unyt_quantity
+           Current value of the Hubble parameter
         """
         self.input_halo = input_halo
         self.data = data
@@ -290,6 +296,7 @@ class SOParticleData:
         self.softening_of_parttype = softening_of_parttype
         self.skip_concentration = skip_concentration
         self.search_radius = search_radius
+        self.H = H
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -2412,6 +2419,346 @@ class SOParticleData:
         )
         return self.calculate_concentration_dmo(soft_r)
 
+    def calculate_flux(self, flux_type, positions, masses, velocities, internal_energies=None) -> unyt.unyt_array:
+        '''
+        Calculate the flux through 3 spherical shells with radius 0.1R_SO, 0.3R_SO,
+        and 0.95R_SO. Three flux types can be calculated: mass, energy, or momentum.
+        We do not consider a spherical shells with R = R_SO, as this would
+        require particle information which may not be loaded. Inflow and outflow rates
+        are computed separately.
+        '''
+        # Calculate particle radii
+        radii = np.sqrt(np.sum(positions ** 2, axis=1))
+
+        fluxes = []
+        for R_frac in [0.1, 0.3, 0.95]:
+            # Cut on spherical shell
+            R = R_frac * self.SO_r
+            dR = 0.1 * R
+            r_mask = (R - (dR / 2) < radii) & (radii < R + (dR / 2))
+
+            # Calculate radial velocity by subtracting CoM velocity and
+            # taking dot product with r_hat
+            r_hat = positions[r_mask] / np.stack(3*[radii[r_mask]], axis=1)
+            v_r = np.sum((velocities[r_mask] - self.vcom) * r_hat, axis=1)
+            # Add Hubble flow term
+            v_r += radii[r_mask] * self.H
+
+            # Calculate different flux types
+            if flux_type == 'mass':
+                flux = masses[r_mask] * v_r
+            elif flux_type == 'energy':
+                kinetic = 0.5 * np.sqrt(np.sum((velocities[r_mask] - self.vcom)**2, axis=1)) ** 2
+                flux = masses[r_mask] * v_r * (kinetic + internal_energies[r_mask])
+            elif flux_type == 'momentum':
+                # Calculate sound speed squared assuming gamma = 5/3
+                gamma = 5. / 3.
+                sq_sound_speed = (gamma - 1) * gamma * internal_energies[r_mask]
+                # Calculate momentum flux, second term accounts for pressure
+                flux = masses[r_mask] * (v_r ** 2 + (sq_sound_speed / gamma))
+
+            # Determine total outflow/inflow rates
+            outflow = np.sum(flux[v_r > 0]) / dR
+            inflow = np.sum(flux[v_r < 0]) / dR
+            fluxes.append(outflow)
+            fluxes.append(inflow)
+
+        return unyt.unyt_array(fluxes)
+
+    @lazy_property
+    def DarkMatterMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of dark matter through 3 spherical shells
+        '''
+        if self.Ndm == 0:
+            return None
+        return self.calculate_flux('mass', self.dm_pos, self.dm_masses, self.dm_vel)
+
+    @lazy_property
+    def GasMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of all gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        return self.calculate_flux('mass', self.gas_pos, self.gas_masses, self.gas_vel)
+
+    @lazy_property
+    def ColdGasMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of cold gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = self.gas_temperatures < 1.0e3 * unyt.K
+        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+
+    @lazy_property
+    def CoolGasMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of cool gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
+        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+
+    @lazy_property
+    def WarmGasMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of warm gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
+        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+
+    @lazy_property
+    def HotGasMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of hot gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = 1.0e7 * unyt.K < self.gas_temperatures
+        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+
+    @lazy_property
+    def HIMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of HI through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        return self.calculate_flux('mass', self.gas_pos, self.gas_mass_HI, self.gas_vel)
+
+    @lazy_property
+    def H2MassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of H2 through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        return self.calculate_flux('mass', self.gas_pos, self.gas_mass_H2, self.gas_vel)
+
+    @lazy_property
+    def MetalMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of metals through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        return self.calculate_flux('mass', self.gas_pos, self.gas_metal_masses, self.gas_vel)
+
+    @lazy_property
+    def StellarMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of stars through 3 spherical shells
+        '''
+        if self.Nstar == 0:
+            return None
+        return self.calculate_flux('mass', self.star_pos, self.star_masses, self.star_vel)
+
+    @lazy_property
+    def ColdGasEnergyFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the energy flux of cold gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = self.gas_temperatures < 1.0e3 * unyt.K
+        return self.calculate_flux(
+            "energy",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+        )
+
+    @lazy_property
+    def CoolGasEnergyFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the energy flux of cool gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
+        return self.calculate_flux(
+            "energy",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+        )
+
+    @lazy_property
+    def WarmGasEnergyFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the energy flux of warm gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
+        return self.calculate_flux(
+            "energy",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+        )
+
+    @lazy_property
+    def HotGasEnergyFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the energy flux of hot gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = 1.0e7 * unyt.K < self.gas_temperatures
+        return self.calculate_flux(
+            "energy",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+        )
+
+    @lazy_property
+    def ColdGasMomentumFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the momentum flux of cold gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = self.gas_temperatures < 1.0e3 * unyt.K
+        return self.calculate_flux(
+            "momentum",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+        )
+
+    @lazy_property
+    def CoolGasMomentumFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the momentum flux of cool gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
+        return self.calculate_flux(
+            "momentum",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+        )
+
+    @lazy_property
+    def WarmGasMomentumFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the momentum flux of warm gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
+        return self.calculate_flux(
+            "momentum",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+        )
+
+    @lazy_property
+    def HotGasMomentumFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the momentum flux of hot gas through 3 spherical shells
+        '''
+        if self.Ngas == 0:
+            return None
+        mask = 1.0e7 * unyt.K < self.gas_temperatures
+        return self.calculate_flux(
+            "momentum",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+        )
+
+    @lazy_property
+    def gas_internal_energies(self) -> unyt.unyt_array:
+        """
+        Internal energies of gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/InternalEnergies")[self.gas_selection]
+
+    @lazy_property
+    def gas_species_fractions(self) -> unyt.unyt_array:
+        """
+        Ion/molecule fractions in gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/SpeciesFractions")[self.gas_selection]
+
+    @lazy_property
+    def gas_element_fractions(self) -> unyt.unyt_array:
+        """
+        Element fractions of the gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/ElementMassFractions")[self.gas_selection]
+
+    @lazy_property
+    def gas_mass_H(self) -> unyt.unyt_array:
+        """
+        Hydrogen mass in gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_element_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "ElementMassFractions", "Hydrogen"
+                ),
+            ]
+            * self.gas_masses
+        )
+
+    @lazy_property
+    def gas_mass_HI(self) -> unyt.unyt_array:
+        """
+        Atomic hydrogen mass in gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_mass_H
+            * self.gas_species_fractions[
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "HI")
+            ]
+        )
+
+    @lazy_property
+    def gas_mass_H2(self) -> unyt.unyt_array:
+        """
+        Molecular hydrogen mass in gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+            self.gas_mass_H
+            * self.gas_species_fractions[
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
+            ]
+            * 2.0
+        )
 
 class SOProperties(HaloProperty):
     """
@@ -2526,6 +2873,24 @@ class SOProperties(HaloProperty):
             "concentration_soft",
             "concentration_dmo",
             "concentration_dmo_soft",
+            "DarkMatterMassFlux",
+            "GasMassFlux",
+            "ColdGasMassFlux",
+            "CoolGasMassFlux",
+            "WarmGasMassFlux",
+            "HotGasMassFlux",
+            "HIMassFlux",
+            "H2MassFlux",
+            "MetalMassFlux",
+            "StellarMassFlux",
+            "ColdGasEnergyFlux",
+            "CoolGasEnergyFlux",
+            "WarmGasEnergyFlux",
+            "HotGasEnergyFlux",
+            "ColdGasMomentumFlux",
+            "CoolGasMomentumFlux",
+            "WarmGasMomentumFlux",
+            "HotGasMomentumFlux",
         ]
     ]
 
@@ -2602,6 +2967,9 @@ class SOProperties(HaloProperty):
             ** 2
             / cellgrid.a ** 3
         )
+
+        # We need the hubble parameter for inflow/outflow calculations
+        self.H = cellgrid.cosmology["H [internal units]"] / cellgrid.get_unit('code_time')
 
         # The concentration calculation method is not valid for all SO definitions
         self.skip_concentration = True
@@ -2772,6 +3140,7 @@ class SOProperties(HaloProperty):
                 self.softening_of_parttype,
                 self.skip_concentration,
                 search_radius,
+                self.H,
             )
 
             # we need to make sure the physical radius uses the correct unit
