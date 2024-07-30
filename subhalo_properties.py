@@ -596,7 +596,8 @@ class SubhaloParticleData:
     def R_vmax_unsoft(self) -> unyt.unyt_quantity:
         """
         Radius at which the maximum circular velocity of the halo is reached.
-        No softening is applied to the particle radii.
+        Particles are not constrained to be at least one softening length away 
+        from the centre.
 
         This includes contributions from all particle types.
         """
@@ -610,7 +611,8 @@ class SubhaloParticleData:
     def Vmax_unsoft(self) -> unyt.unyt_quantity:
         """
         Maximum circular velocity of the halo.
-        No softening is applied to the particle radii.
+        Particles are not constrained to be at least one softening length away 
+        from the centre.
 
         This includes contributions from all particle types.
         """
@@ -953,6 +955,7 @@ class SubhaloParticleData:
         """
         Radius for which the maximum circular velocity of dark matter particles
         is reached.
+        Particles are set to have minimum radius equal to their softening length.
         """
         if self.Ndm == 0:
             return None
