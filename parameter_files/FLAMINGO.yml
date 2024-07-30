@@ -280,10 +280,10 @@ SOProperties:
     ComptonY: true
     ComptonYWithoutRecentAGNHeating: true
     Concentration: true
-    ConcentrationSoft: true
+    ConcentrationUnsoftened: true
     DarkMatterMass: true
     DarkMatterConcentration: true
-    DarkMatterConcentrationSoft: true
+    DarkMatterConcentrationUnsoftened: true
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
     DopplerB: true
@@ -447,8 +447,8 @@ SubhaloProperties:
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
     MaximumCircularVelocity: true
-    MaximumCircularVelocityRadius: true
-    MaximumCircularVelocitySoft: true
+    MaximumCircularVelocityRadiusUnsoftened: true
+    MaximumCircularVelocityUnsoftened: true
     MaximumDarkMatterCircularVelocity: true
     MaximumDarkMatterCircularVelocityRadius: true
     MedianStellarBirthDensity: false

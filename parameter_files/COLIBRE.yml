@@ -294,6 +294,10 @@ SOProperties:
     CentreOfMassVelocity: true
     ComptonY: true
     ComptonYWithoutRecentAGNHeating: true
+    Concentration: true
+    ConcentrationUnsoftened: true
+    DarkMatterConcentration: true
+    DarkMatterConcentrationUnsoftened: true
     DarkMatterMass: true
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
@@ -321,6 +325,7 @@ SOProperties:
     KineticEnergyGas: true
     KineticEnergyStars: true
     MassFractionSatellites: true
+    MassFractionExternal: true
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
@@ -474,7 +479,8 @@ SubhaloProperties:
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
     MaximumCircularVelocity: true
-    MaximumCircularVelocityRadius: true
+    MaximumCircularVelocityRadiusUnsoftened: true
+    MaximumCircularVelocityUnsoftened: true
     MaximumDarkMatterCircularVelocity: true
     MaximumDarkMatterCircularVelocityRadius: true
     MedianStellarBirthDensity: true
@@ -531,6 +537,7 @@ aliases:
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/MetalMassFractionsDiffuse: PartType0/MetalMassFractions
 filters:
+  # TODO: The current plan is to set these all to 100 for the production runs, but I don't want to break the pipeline
   general:
     limit: 0
     properties:
