@@ -2708,7 +2708,7 @@ class PropertyTable:
             6,
             np.float32,
             "snap_mass / snap_time",
-            "Mass flux of gas particles through spherical shells weighted by H2 fraction. Contains 6 entries: outflow rate at 0.1R, inflow rate at 0.1R, outflow rate at 0.3R, inflow rate at 0.3R, outflow rate at 0.95R, inflow rate at 0.95R.",
+            "Mass flux of gas particles through spherical shells weighted by H2 fraction. Does not include Helium. Contains 6 entries: outflow rate at 0.1R, inflow rate at 0.1R, outflow rate at 0.3R, inflow rate at 0.3R, outflow rate at 0.95R, inflow rate at 0.95R.",
             "general",
             "FMantissa9",
             False,

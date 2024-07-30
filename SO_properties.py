@@ -243,7 +243,7 @@ class SOParticleData:
         snapshot_datasets: SnapshotDatasets,
         core_excision_fraction: float,
         softening_of_parttype: unyt.unyt_array,
-        skip_concentration: bool,
+        virial_definition: bool,
         search_radius: unyt.unyt_quantity,
         H: unyt.unyt_quantity,
     ):
@@ -275,9 +275,9 @@ class SOParticleData:
            when calculating CoreExcision properties
          - softening_of_parttype: unyt.unyt_array
            Softening length of each particle types
-         - skip_concentration: bool
-           Whether to skip the concentration calculation, since the method is only
-           valid for certain SO variations
+         - virial_definition: bool
+           Whether to calculate the properties that are only valid for virial SO
+           definitions
          - search_radius: unyt.unyt_quantity
            Current search radius. Particles are guaranteed to be included up to
            this radius.
@@ -294,7 +294,7 @@ class SOParticleData:
         self.snapshot_datasets = snapshot_datasets
         self.core_excision_fraction = core_excision_fraction
         self.softening_of_parttype = softening_of_parttype
-        self.skip_concentration = skip_concentration
+        self.virial_definition = virial_definition
         self.search_radius = search_radius
         self.H = H
         self.compute_basics()
@@ -2383,13 +2383,13 @@ class SOParticleData:
 
     @lazy_property
     def concentration(self):
-        if self.skip_concentration:
+        if not self.virial_definition:
             return None
         return self.calculate_concentration(self.radius)
 
     @lazy_property
     def concentration_soft(self):
-        if self.skip_concentration:
+        if not self.virial_definition:
             return None
         soft_r = np.maximum(self.softening, self.radius)
         return self.calculate_concentration(soft_r)
@@ -2404,14 +2404,14 @@ class SOParticleData:
 
     @lazy_property
     def concentration_dmo(self):
-        if self.skip_concentration:
+        if not self.virial_definition:
             return None
         r = self.radius[self.types == 1]
         return self.calculate_concentration_dmo(r)
 
     @lazy_property
     def concentration_dmo_soft(self):
-        if self.skip_concentration:
+        if not self.virial_definition:
             return None
         soft_r = np.maximum(
             self.softening[self.types == 1],
@@ -2419,37 +2419,63 @@ class SOParticleData:
         )
         return self.calculate_concentration_dmo(soft_r)
 
+    @lazy_property
+    def vcom_ten_percent(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of all particles within 0.1 R_SO.
+        """
+        mask = self.radius < 0.1 * self.SO_r
+        return (self.mass_fraction[mask, None] * self.velocity[mask]).sum(axis=0)
+
+    @lazy_property
+    def vcom_thirty_percent(self) -> unyt.unyt_array:
+        """
+        Centre of mass velocity of all particles within 0.3 R_SO.
+        """
+        mask = self.radius < 0.3 * self.SO_r
+        return (self.mass_fraction[mask, None] * self.velocity[mask]).sum(axis=0)
+
     def calculate_flux(self, flux_type, positions, masses, velocities, internal_energies=None) -> unyt.unyt_array:
         '''
         Calculate the flux through 3 spherical shells with radius 0.1R_SO, 0.3R_SO,
         and 0.95R_SO. Three flux types can be calculated: mass, energy, or momentum.
         We do not consider a spherical shells with R = R_SO, as this would
         require particle information which may not be loaded. Inflow and outflow rates
-        are computed separately.
+        are computed separately. We include the Hubble flow when calculating these fluxes.
         '''
         # Calculate particle radii
         radii = np.sqrt(np.sum(positions ** 2, axis=1))
 
         fluxes = []
         for R_frac in [0.1, 0.3, 0.95]:
-            # Cut on spherical shell
+            # Remove particles outside spherical shell
             R = R_frac * self.SO_r
             dR = 0.1 * R
             r_mask = (R - (dR / 2) < radii) & (radii < R + (dR / 2))
 
+            # Use CoM velocity of all particles with R_frac * self.SO_r
+            vcom = {
+                0.1: self.vcom_ten_percent,
+                0.3: self.vcom_thirty_percent,
+                0.95: self.vcom,
+            }[R_frac]
+
             # Calculate radial velocity by subtracting CoM velocity and
             # taking dot product with r_hat
             r_hat = positions[r_mask] / np.stack(3*[radii[r_mask]], axis=1)
-            v_r = np.sum((velocities[r_mask] - self.vcom) * r_hat, axis=1)
+            v_r = np.sum((velocities[r_mask] - vcom[None, :]) * r_hat, axis=1)
             # Add Hubble flow term
             v_r += radii[r_mask] * self.H
 
             # Calculate different flux types
+            # We want both the inflow and outflow rates to be positive values
             if flux_type == 'mass':
-                flux = masses[r_mask] * v_r
+                flux = masses[r_mask] * np.abs(v_r)
             elif flux_type == 'energy':
-                kinetic = 0.5 * np.sqrt(np.sum((velocities[r_mask] - self.vcom)**2, axis=1)) ** 2
-                flux = masses[r_mask] * v_r * (kinetic + internal_energies[r_mask])
+                # Subtract CoM velocity, then add Hubble flow
+                proper_vel = (velocities[r_mask] - vcom[None, :]) + r_hat * radii[r_mask] * self.H
+                kinetic = 0.5 * np.sqrt(np.sum(proper_vel**2, axis=1)) ** 2
+                flux = masses[r_mask] * np.abs(v_r) * (kinetic + internal_energies[r_mask])
             elif flux_type == 'momentum':
                 # Calculate sound speed squared assuming gamma = 5/3
                 gamma = 5. / 3.
@@ -2470,25 +2496,16 @@ class SOParticleData:
         '''
         Calculate the mass flux of dark matter through 3 spherical shells
         '''
-        if self.Ndm == 0:
+        if (self.Ndm == 0) or (not self.virial_definition):
             return None
         return self.calculate_flux('mass', self.dm_pos, self.dm_masses, self.dm_vel)
-
-    @lazy_property
-    def GasMassFlux(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flux of all gas through 3 spherical shells
-        '''
-        if self.Ngas == 0:
-            return None
-        return self.calculate_flux('mass', self.gas_pos, self.gas_masses, self.gas_vel)
 
     @lazy_property
     def ColdGasMassFlux(self) -> unyt.unyt_array:
         '''
         Calculate the mass flux of cold gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = self.gas_temperatures < 1.0e3 * unyt.K
         return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
@@ -2498,9 +2515,19 @@ class SOParticleData:
         '''
         Calculate the mass flux of cool gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
+        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+
+    @lazy_property
+    def ColdCoolGasMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of cold and cool gas through 3 spherical shells
+        '''
+        if (self.Ngas == 0) or (not self.virial_definition):
+            return None
+        mask = self.gas_temperatures < 1.0e5 * unyt.K
         return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
 
     @lazy_property
@@ -2508,7 +2535,7 @@ class SOParticleData:
         '''
         Calculate the mass flux of warm gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
         return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
@@ -2518,9 +2545,19 @@ class SOParticleData:
         '''
         Calculate the mass flux of hot gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = 1.0e7 * unyt.K < self.gas_temperatures
+        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+
+    @lazy_property
+    def WarmHotGasMassFlux(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flux of warm and hot gas through 3 spherical shells
+        '''
+        if (self.Ngas == 0) or (not self.virial_definition):
+            return None
+        mask = 1.0e5 * unyt.K < self.gas_temperatures
         return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
 
     @lazy_property
@@ -2528,7 +2565,7 @@ class SOParticleData:
         '''
         Calculate the mass flux of HI through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         return self.calculate_flux('mass', self.gas_pos, self.gas_mass_HI, self.gas_vel)
 
@@ -2537,7 +2574,7 @@ class SOParticleData:
         '''
         Calculate the mass flux of H2 through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         return self.calculate_flux('mass', self.gas_pos, self.gas_mass_H2, self.gas_vel)
 
@@ -2546,7 +2583,7 @@ class SOParticleData:
         '''
         Calculate the mass flux of metals through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         return self.calculate_flux('mass', self.gas_pos, self.gas_metal_masses, self.gas_vel)
 
@@ -2555,7 +2592,7 @@ class SOParticleData:
         '''
         Calculate the mass flux of stars through 3 spherical shells
         '''
-        if self.Nstar == 0:
+        if (self.Nstar == 0) or (not self.virial_definition):
             return None
         return self.calculate_flux('mass', self.star_pos, self.star_masses, self.star_vel)
 
@@ -2564,7 +2601,7 @@ class SOParticleData:
         '''
         Calculate the energy flux of cold gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = self.gas_temperatures < 1.0e3 * unyt.K
         return self.calculate_flux(
@@ -2580,7 +2617,7 @@ class SOParticleData:
         '''
         Calculate the energy flux of cool gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
         return self.calculate_flux(
@@ -2596,7 +2633,7 @@ class SOParticleData:
         '''
         Calculate the energy flux of warm gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
         return self.calculate_flux(
@@ -2612,7 +2649,7 @@ class SOParticleData:
         '''
         Calculate the energy flux of hot gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = 1.0e7 * unyt.K < self.gas_temperatures
         return self.calculate_flux(
@@ -2628,7 +2665,7 @@ class SOParticleData:
         '''
         Calculate the momentum flux of cold gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = self.gas_temperatures < 1.0e3 * unyt.K
         return self.calculate_flux(
@@ -2644,7 +2681,7 @@ class SOParticleData:
         '''
         Calculate the momentum flux of cool gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
         return self.calculate_flux(
@@ -2660,7 +2697,7 @@ class SOParticleData:
         '''
         Calculate the momentum flux of warm gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
         return self.calculate_flux(
@@ -2676,7 +2713,7 @@ class SOParticleData:
         '''
         Calculate the momentum flux of hot gas through 3 spherical shells
         '''
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = 1.0e7 * unyt.K < self.gas_temperatures
         return self.calculate_flux(
@@ -2874,7 +2911,6 @@ class SOProperties(HaloProperty):
             "concentration_dmo",
             "concentration_dmo_soft",
             "DarkMatterMassFlux",
-            "GasMassFlux",
             "ColdGasMassFlux",
             "CoolGasMassFlux",
             "WarmGasMassFlux",
@@ -2971,25 +3007,24 @@ class SOProperties(HaloProperty):
         # We need the hubble parameter for inflow/outflow calculations
         self.H = cellgrid.cosmology["H [internal units]"] / cellgrid.get_unit('code_time')
 
-        # The concentration calculation method is not valid for all SO definitions
-        self.skip_concentration = True
 
         # This specifies how large a sphere is read in:
         # we use default values that are sufficiently small/large to avoid reading in too many particles
         self.mean_density_multiple = 1000.0
         self.critical_density_multiple = 1000.0
         self.physical_radius_mpc = 0.0
+        self.virial_definition = False
         if type == "mean":
             self.mean_density_multiple = SOval
             if SOval == 200:
-                self.skip_concentration = False
+                self.virial_definition = True
         elif type == "crit":
             self.critical_density_multiple = SOval
             if SOval == 200:
-                self.skip_concentration = False
+                self.virial_definition = True
         elif type == "BN98":
             self.critical_density_multiple = cellgrid.virBN98
-            self.skip_concentration = False
+            self.virial_definition = True
         elif type == "physical":
             self.physical_radius_mpc = 0.001 * SOval
 
@@ -3138,7 +3173,7 @@ class SOProperties(HaloProperty):
                 self.snapshot_datasets,
                 self.core_excision_fraction,
                 self.softening_of_parttype,
-                self.skip_concentration,
+                self.virial_definition,
                 search_radius,
                 self.H,
             )
