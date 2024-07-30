@@ -892,12 +892,12 @@ class ApertureParticleData:
         soft_r = np.maximum(self.softening, self.radius)
         _, vmax_soft = get_vmax(self.mass, soft_r)
         if vmax_soft > 0:
-            return None
-        vrel = self.velocity - self.vcom[None, :]
-        Ltot = np.linalg.norm(
-            (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
-        )
-        return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax_soft)
+            vrel = self.velocity - self.vcom[None, :]
+            Ltot = np.linalg.norm(
+                (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
+            )
+            return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax_soft)
+        return None
 
     @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
