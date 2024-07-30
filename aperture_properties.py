@@ -194,6 +194,7 @@ class ApertureParticleData:
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         cold_dense_gas_filter: ColdDenseGasFilter,
         snapshot_datasets: SnapshotDatasets,
+        softening_of_parttype: unyt.unyt_array,
     ):
         """
         Constructor.
@@ -222,6 +223,8 @@ class ApertureParticleData:
          - snapshot_datasets: SnapshotDatasets
            Object containing metadata about the datasets in the snapshot, like
            appropriate aliases and column names.
+         - softening_of_parttype: unyt.unyt_array
+           Softening length of each particle types
         """
         self.input_halo = input_halo
         self.data = data
@@ -232,6 +235,7 @@ class ApertureParticleData:
         self.recently_heated_gas_filter = recently_heated_gas_filter
         self.cold_dense_gas_filter = cold_dense_gas_filter
         self.snapshot_datasets = snapshot_datasets
+        self.softening_of_parttype = softening_of_parttype
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -252,6 +256,7 @@ class ApertureParticleData:
         radius = []
         velocity = []
         types = []
+        softening = []
         for ptype in self.types_present:
             grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
             if self.inclusive:
@@ -269,12 +274,15 @@ class ApertureParticleData:
             velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
             typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
             types.append(typearr)
+            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
+            softening.append(s)
 
         self.mass = np.concatenate(mass)
         self.position = np.concatenate(position)
         self.radius = np.concatenate(radius)
         self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
+        self.softening = np.concatenate(softening)
 
         self.mask = self.radius <= self.aperture_radius
 
@@ -283,6 +291,7 @@ class ApertureParticleData:
         self.velocity = self.velocity[self.mask]
         self.radius = self.radius[self.mask]
         self.type = self.types[self.mask]
+        self.softening = self.softening[self.mask]
 
     @lazy_property
     def gas_mask_ap(self) -> NDArray[bool]:
@@ -880,14 +889,15 @@ class ApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        _, vmax = get_vmax(self.mass, self.radius)
-        if vmax == 0:
+        soft_r = np.maximum(self.softening, self.radius)
+        _, vmax_soft = get_vmax(self.mass, soft_r)
+        if vmax_soft > 0:
             return None
         vrel = self.velocity - self.vcom[None, :]
         Ltot = np.linalg.norm(
             (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
         )
-        return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax)
+        return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax_soft)
 
     @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
@@ -3016,6 +3026,7 @@ class ApertureProperties(HaloProperty):
                 self.recently_heated_gas_filter,
                 self.cold_dense_gas_filter,
                 self.snapshot_datasets,
+                self.softening_of_parttype,
             )
 
             for prop in self.property_list:

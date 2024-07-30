@@ -558,13 +558,14 @@ class SOParticleData:
         """
         if self.Mtotpart == 0:
             return None
-        _, vmax = get_vmax(self.mass, self.radius)
-        if vmax > 0:
+        soft_r = np.maximum(self.softening, self.radius)
+        _, vmax_soft = get_vmax(self.mass, soft_r)
+        if vmax_soft > 0:
             vrel = self.velocity - self.vcom[None, :]
             Ltot = np.linalg.norm(
                 (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
             )
-            return Ltot / (np.sqrt(2.0) * self.Mtotpart * self.SO_r * vmax)
+            return Ltot / (np.sqrt(2.0) * self.Mtotpart * self.SO_r * vmax_soft)
         return None
 
     @lazy_property
@@ -2375,7 +2376,7 @@ class SOParticleData:
         return self.concentration_from_R1(R1)
 
     @lazy_property
-    def concentration(self):
+    def concentration_unsoft(self):
         if self.skip_concentration:
             return None
         return self.calculate_concentration(self.radius)
@@ -2396,7 +2397,7 @@ class SOParticleData:
         return self.concentration_from_R1(R1)
 
     @lazy_property
-    def concentration_dmo(self):
+    def concentration_dmo_unsoft(self):
         if self.skip_concentration:
             return None
         r = self.radius[self.types == 1]
@@ -2522,9 +2523,9 @@ class SOProperties(HaloProperty):
             "starOfrac",
             "starFefrac",
             "gasmetalfrac_SF",
-            "concentration",
+            "concentration_unsoft",
             "concentration_soft",
-            "concentration_dmo",
+            "concentration_dmo_unsoft",
             "concentration_dmo_soft",
         ]
     ]

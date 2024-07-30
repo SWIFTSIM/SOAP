@@ -195,7 +195,7 @@ def get_angular_momentum_and_kappa_corot(
 
 
 def get_vmax(
-    mass: unyt.unyt_array, radius: unyt.unyt_array
+    mass: unyt.unyt_array, radius: unyt.unyt_array, nskip: int=0
 ) -> Tuple[unyt.unyt_quantity, unyt.unyt_quantity]:
     """
     Get the maximum circular velocity of a particle distribution.
@@ -209,6 +209,8 @@ def get_vmax(
        Mass of the particles.
      - radius: unyt.unyt_array
        Radius of the particles.
+     - nskip: int
+       Number of particles to skip
 
     Returns:
      - Radius at which the maximum circular velocity is reached.
@@ -221,7 +223,7 @@ def get_vmax(
     isort = np.argsort(radius)
     ordered_radius = radius[isort]
     cumulative_mass = mass[isort].cumsum()
-    nskip = np.argmin(np.isclose(ordered_radius, 0.0 * ordered_radius.units))
+    nskip = max(nskip, np.argmin(np.isclose(ordered_radius, 0.0 * ordered_radius.units)))
     ordered_radius = ordered_radius[nskip:]
     if len(ordered_radius) == 0 or ordered_radius[0] == 0:
         return 0.0 * radius.units, np.sqrt(0.0 * G * mass.units / radius.units)

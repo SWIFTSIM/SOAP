@@ -130,7 +130,7 @@ class PropertyTable:
             "Tgas_no_cool_no_agn",
         ],
         "footnote_lum.tex": ["StellarLuminosity"],
-        "footnote_circvel.tex": ["R_vmax", "Vmax", "Vmax_soft"],
+        "footnote_circvel.tex": ["R_vmax_unsoft", "Vmax_unsoft", "Vmax_soft"],
         "footnote_spin.tex": ["spin_parameter"],
         "footnote_veldisp_matrix.tex": [
             "veldisp_matrix_gas",
@@ -429,7 +429,7 @@ class PropertyTable:
             True,
             0,
         ),
-        "DM_R_vmax": (
+        "DM_R_vmax_soft": (
             "MaximumDarkMatterCircularVelocityRadius",
             1,
             np.float32,
@@ -442,7 +442,7 @@ class PropertyTable:
             False,
             1,
         ),
-        "DM_Vmax": (
+        "DM_Vmax_soft": (
             "MaximumDarkMatterCircularVelocity",
             1,
             np.float32,
@@ -1710,12 +1710,12 @@ class PropertyTable:
             True,
             0,
         ),
-        "R_vmax": (
-            "MaximumCircularVelocityRadius",
+        "R_vmax_unsoft": (
+            "MaximumCircularVelocityRadiusUnsoftened",
             1,
             np.float32,
             "snap_length",
-            "Radius at which Vmax is reached.",
+            "Radius at which the unsoftened Vmax is reached.",
             "basic",
             "FMantissa9",
             True,
@@ -2090,12 +2090,12 @@ class PropertyTable:
             True,
             None,
         ),
-        "Vmax": (
-            "MaximumCircularVelocity",
+        "Vmax_unsoft": (
+            "MaximumCircularVelocityUnsoftened",
             1,
             np.float32,
             "snap_length/snap_time",
-            "Maximum circular velocity.",
+            "Maximum circular velocity when not accounting for softening length.",
             "basic",
             "FMantissa9",
             True,
@@ -2113,7 +2113,7 @@ class PropertyTable:
             0,
         ),
         "Vmax_soft": (
-            "MaximumCircularVelocitySoft",
+            "MaximumCircularVelocity",
             1,
             np.float32,
             "snap_length/snap_time",
@@ -2499,12 +2499,12 @@ class PropertyTable:
             True,
             0,
         ),
-        "concentration": (
-            "Concentration",
+        "concentration_unsoft": (
+            "ConcentrationUnsoftened",
             1,
             np.float32,
             "dimensionless",
-            "Halo concentration assuming an NFW profile.",
+            "Halo concentration assuming an NFW profile. No particle softening.",
             "basic",
             "FMantissa9",
             True,
@@ -2522,7 +2522,7 @@ class PropertyTable:
             0,
         ),
         "concentration_soft": (
-            "ConcentrationSoft",
+            "Concentration",
             1,
             np.float32,
             "dimensionless",
@@ -2543,12 +2543,12 @@ class PropertyTable:
             True,
             0,
         ),
-        "concentration_dmo": (
-            "DarkMatterConcentration",
+        "concentration_dmo_unsoft": (
+            "DarkMatterConcentrationUnsoftened",
             1,
             np.float32,
             "dimensionless",
-            "Concentration of dark matter particles assuming an NFW profile.",
+            "Concentration of dark matter particles assuming an NFW profile. No particle softening",
             "basic",
             "FMantissa9",
             False,
@@ -2560,7 +2560,7 @@ class PropertyTable:
             0,
         ),
         "concentration_dmo_soft": (
-            "DarkMatterConcentrationSoft",
+            "DarkMatterConcentration",
             1,
             np.float32,
             "dimensionless",

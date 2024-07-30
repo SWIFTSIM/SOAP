@@ -593,30 +593,32 @@ class SubhaloParticleData:
         return (self.total_mass_fraction[:, None] * self.velocity).sum(axis=0)
 
     @lazy_property
-    def R_vmax(self) -> unyt.unyt_quantity:
+    def R_vmax_unsoft(self) -> unyt.unyt_quantity:
         """
         Radius at which the maximum circular velocity of the halo is reached.
+        No softening is applied to the particle radii.
 
         This includes contributions from all particle types.
         """
         if self.Mtot == 0:
             return None
-        if not hasattr(self, "r_vmax"):
-            self.r_vmax, self.vmax = get_vmax(self.mass, self.radius)
-        return self.r_vmax
+        if not hasattr(self, "r_vmax_unsoft"):
+            self.r_vmax_unsoft, self.vmax_unsoft = get_vmax(self.mass, self.radius, nskip=1)
+        return self.r_vmax_unsoft
 
     @lazy_property
-    def Vmax(self) -> unyt.unyt_quantity:
+    def Vmax_unsoft(self) -> unyt.unyt_quantity:
         """
         Maximum circular velocity of the halo.
+        No softening is applied to the particle radii.
 
         This includes contributions from all particle types.
         """
         if self.Mtot == 0:
             return None
-        if not hasattr(self, "vmax"):
-            self.r_vmax, self.vmax = get_vmax(self.mass, self.radius)
-        return self.vmax
+        if not hasattr(self, "vmax_unsoft"):
+            self.r_vmax_unsoft, self.vmax_unsoft = get_vmax(self.mass, self.radius, nskip=1)
+        return self.vmax_unsoft
 
     @lazy_property
     def R_vmax_soft(self) -> unyt.unyt_quantity:
@@ -672,7 +674,7 @@ class SubhaloParticleData:
             )
             M_r_vmax = self.mass[mask_r_vmax].sum()
             if M_r_vmax > 0:
-                return Ltot / (np.sqrt(2.0) * M_r_vmax * self.Vmax * self.R_vmax)
+                return Ltot / (np.sqrt(2.0) * M_r_vmax * self.Vmax_soft * self.R_vmax_soft)
         return None
 
     @lazy_property
@@ -932,31 +934,34 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def DM_Vmax(self) -> unyt.unyt_quantity:
+    def DM_Vmax_soft(self) -> unyt.unyt_quantity:
         """
         Maximum circular velocity of the dark matter particles in the subhalo.
+        Particles are set to have minimum radius equal to their softening length.
         """
         if self.Ndm == 0:
             return None
-        if not hasattr(self, "DM_r_vmax"):
-            self.DM_r_vmax, self.DM_vmax = get_vmax(
-                self.mass_dm, self.radius[self.dm_mask_sh]
+        if not hasattr(self, "DM_r_vmax_soft"):
+            soft_r = np.maximum(self.softening[self.dm_mask_sh], self.radius[self.dm_mask_sh])
+            self.DM_r_vmax_soft, self.DM_vmax_soft = get_vmax(
+                self.mass_dm, soft_r
             )
-        return self.DM_vmax
+        return self.DM_vmax_soft
 
     @lazy_property
-    def DM_R_vmax(self) -> unyt.unyt_quantity:
+    def DM_R_vmax_soft(self) -> unyt.unyt_quantity:
         """
         Radius for which the maximum circular velocity of dark matter particles
         is reached.
         """
         if self.Ndm == 0:
             return None
-        if not hasattr(self, "DM_r_vmax"):
-            self.DM_r_vmax, self.DM_vmax = get_vmax(
-                self.mass_dm, self.radius[self.dm_mask_sh]
+        if not hasattr(self, "DM_r_vmax_soft"):
+            soft_r = np.maximum(self.softening[self.dm_mask_sh], self.radius[self.dm_mask_sh])
+            self.DM_r_vmax_soft, self.DM_vmax_soft = get_vmax(
+                self.mass_dm, soft_r
             )
-        return self.DM_r_vmax
+        return self.DM_r_vmax_soft
 
     @lazy_property
     def star_mass_fraction(self) -> unyt.unyt_array:
@@ -1588,11 +1593,11 @@ class SubhaloProperties(HaloProperty):
             "SFR",
             "StellarLuminosity",
             "starmetalfrac",
-            "Vmax",
+            "Vmax_unsoft",
             "Vmax_soft",
-            "R_vmax",
-            "DM_Vmax",
-            "DM_R_vmax",
+            "R_vmax_unsoft",
+            "DM_Vmax_soft",
+            "DM_R_vmax_soft",
             "spin_parameter",
             "HalfMassRadiusTot",
             "HalfMassRadiusGas",
