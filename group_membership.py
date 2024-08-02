@@ -239,6 +239,7 @@ if __name__ == "__main__":
 
     # Read in FOF file information if a separate file has been passed
     fof_ptypes = []
+    fof_file = None
     if fof_filename != '':
         # Determine particle types which exist in the FOF file
         if comm_rank == 0:
