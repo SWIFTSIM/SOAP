@@ -229,7 +229,7 @@ def combine_chunks(
                 # Remove property name from full hdf5 path
                 group_name = '/'.join(metadata[0].split('/')[:-1])
                 subhalo_types.add(group_name)
-            header.attrs['SubhaloTypes'] = list(subhalo_types)
+            header.attrs['SubhaloTypes'] = sorted(subhalo_types)
 
             # Save masks for each halo variation
             for halo_prop in halo_prop_list:
