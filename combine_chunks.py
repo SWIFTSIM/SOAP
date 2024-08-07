@@ -199,7 +199,7 @@ def combine_chunks(
             cells_metadata = cells.create_group("Meta-data")
             cells_metadata.attrs['dimension'] = cellgrid.dimension
             cells_metadata.attrs['nr_cells'] = cellgrid.nr_cells
-            cell_size = cellgrid.cell_size.to('snap_length').value
+            cell_size = cellgrid.cell_size.to('a*snap_length').value
             cells_metadata.attrs['size'] = cell_size
             cells.create_dataset('Centres', data=cellgrid.cell_centres)
             cells.create_dataset('Counts/Subhalos', data=cell_counts)
