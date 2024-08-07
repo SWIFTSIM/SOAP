@@ -145,8 +145,8 @@ def compute_halo_properties():
         assert cellgrid.AGN_delta_T.value != 0, "Invalid value for AGN_delta_T"
     recently_heated_gas_filter = RecentlyHeatedGasFilter(
         cellgrid,
-        recently_heated_params['delta_time_myr']*unyt.Myr,
-        recently_heated_params['use_AGN_delta_T'],
+        float(recently_heated_params['delta_time_myr']) * unyt.Myr,
+        float(recently_heated_params['use_AGN_delta_T']),
         delta_logT_min=-1.0,
         delta_logT_max=0.3,
     )
@@ -159,8 +159,8 @@ def compute_halo_properties():
     try:
         cold_dense_params = args.calculations["cold_dense_gas_filter"]
         cold_dense_gas_filter = ColdDenseGasFilter(
-            cold_dense_params['maximum_temperature_K'] * unyt.K,
-            cold_dense_params['minimum_hydrogen_number_density_cm3'] / unyt.cm ** 3,
+            float(cold_dense_params['maximum_temperature_K']) * unyt.K,
+            float(cold_dense_params['minimum_hydrogen_number_density_cm3']) / unyt.cm ** 3,
             True,
         )
     except KeyError:
