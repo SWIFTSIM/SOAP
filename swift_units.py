@@ -172,7 +172,7 @@ def attributes_from_units(units):
     attrs["Conversion factor to CGS (not including cosmological corrections)"] = [
         float(cgs_factor / (a_val ** a_exponent) / (h_val ** h_exponent))
     ]
-    attrs["Conversion factor to CGS (including cosmological corrections)"] = [
+    attrs["Conversion factor to physical CGS (including cosmological corrections)"] = [
         float(cgs_factor)
     ]
     attrs["U_I exponent"] = [float(powers[unyt.dimensions.current_mks])]

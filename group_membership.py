@@ -202,7 +202,7 @@ if __name__ == "__main__":
         # Set up dataset attributes
         unit_attrs = {
             "Conversion factor to CGS (not including cosmological corrections)": [1.0],
-            "Conversion factor to CGS (including cosmological corrections)": [1.0],
+            "Conversion factor to physical CGS (including cosmological corrections)": [1.0],
             "U_I exponent": [0.0],
             "U_L exponent": [0.0],
             "U_M exponent": [0.0],
