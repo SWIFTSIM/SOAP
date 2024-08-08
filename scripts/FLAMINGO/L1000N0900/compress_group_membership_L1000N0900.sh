@@ -88,11 +88,8 @@ echo Compressing ${nr_files} group membership files
 echo Source     : ${input_filename}
 echo Destination: ${output_filename}
 
-seq 0 ${nr_files_minus_one} | parallel -j 32 \
-  h5repack \
-    -i "${input_filename}.{}.hdf5" \
-    -o "${output_filename}.{}.hdf5" \
-    -l CHUNK=10000 -f GZIP=9
+seq 0 ${nr_files_minus_one} | xargs -I {} -P 32 bash -c \
+  "h5repack -i ${input_filename}.{}.hdf5 -o ${output_filename}.{}.hdf5 -l CHUNK=10000 -f GZIP=4"
 
 echo Done.
 
