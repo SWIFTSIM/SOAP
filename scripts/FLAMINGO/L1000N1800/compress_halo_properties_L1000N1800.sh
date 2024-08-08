@@ -83,4 +83,6 @@ scratch_dir="${scratch_dir}/${sim}/SOAP_compression_tmp/"
 # run the script using all available threads on the node
 python3 ${script} --nproc 128 ${input_filename} ${output_filename} ${scratch_dir}
 
+chmod a=r ${output_filename}
+
 echo "Job complete!"
