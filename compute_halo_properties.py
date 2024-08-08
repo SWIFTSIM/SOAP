@@ -140,16 +140,36 @@ def compute_halo_properties():
         parameter_file.get_defined_constants()
     )
 
+    recently_heated_params = args.calculations["recently_heated_gas_filter"]
+    if (not args.dmo) and (recently_heated_params['use_AGN_delta_T']):
+        assert cellgrid.AGN_delta_T.value != 0, "Invalid value for AGN_delta_T"
     recently_heated_gas_filter = RecentlyHeatedGasFilter(
         cellgrid,
-        delta_time=15.0 * unyt.Myr,
+        float(recently_heated_params['delta_time_myr']) * unyt.Myr,
+        float(recently_heated_params['use_AGN_delta_T']),
         delta_logT_min=-1.0,
         delta_logT_max=0.3,
-        AGN_delta_T=8.80144197177e7 * unyt.K,
     )
 
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
-    cold_dense_gas_filter = ColdDenseGasFilter(10.0 ** 4.5 * unyt.K, 0.1 / unyt.cm ** 3)
+
+    # Try to load parameters for ColdDenseGasFilter. If a property that uses the
+    # filter is calculated when the parameters could not be found, the code will
+    # crash.
+    try:
+        cold_dense_params = args.calculations["cold_dense_gas_filter"]
+        cold_dense_gas_filter = ColdDenseGasFilter(
+            float(cold_dense_params['maximum_temperature_K']) * unyt.K,
+            float(cold_dense_params['minimum_hydrogen_number_density_cm3']) / unyt.cm ** 3,
+            True,
+        )
+    except KeyError:
+        cold_dense_gas_filter = ColdDenseGasFilter(
+            0 * unyt.K,
+            0 / unyt.cm ** 3,
+            False,
+        )
+
     default_filters = {
         'general': {
                 'limit': 100,

@@ -232,6 +232,12 @@ class SWIFTCellGrid:
                 float(self.parameters.get("Gravity:max_physical_nu_softening", 0)),
             ) * self.get_unit("code_length")
 
+            # Try to read in AGN_delta_T. We assert we have a valid value when we
+            # create the recently_heated_gas_filter
+            self.AGN_delta_T = float(
+                self.parameters.get("EAGLEAGN:AGN_delta_T_K", 0)
+            ) * self.get_unit('K')
+
             # Compute mean density at the redshift of the snapshot:
             # Here we compute the mean density in internal units at z=0 using
             # constants from the snapshot. The comoving mean density is

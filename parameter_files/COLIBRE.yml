@@ -555,3 +555,9 @@ calculations:
   recalculate_xrays: false
   min_read_radius_cmpc: 0.5
   calculate_missing_properties: true
+  recently_heated_gas_filter:
+    delta_time_myr: 15
+    use_AGN_delta_T: false
+  cold_dense_gas_filter:
+    maximum_temperature_K: 3.16e4
+    minimum_hydrogen_number_density_cm3: 0.1

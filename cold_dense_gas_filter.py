@@ -25,15 +25,11 @@ class ColdDenseGasFilter:
     "cold and dense".
     """
 
-    # maximum temperature to be considered cold
-    maximum_temperature: unyt.unyt_quantity
-    # minimum hydrogen number density to be considered dense
-    minimum_hydrogen_number_density: unyt.unyt_quantity
-
     def __init__(
         self,
-        maximum_temperature: unyt.unyt_quantity = 10.0 ** 4.5 * unyt.K,
-        minimum_hydrogen_number_density: unyt.unyt_quantity = 0.1 / unyt.cm ** 3,
+        maximum_temperature: unyt.unyt_quantity,
+        minimum_hydrogen_number_density: unyt.unyt_quantity,
+        initialised: bool,
     ):
         """
         Construct the filter.
@@ -44,9 +40,13 @@ class ColdDenseGasFilter:
          - minimum_hydrogen_number_density: unyt.unyt_quantity
            Minimum hydrogen number density above which gas is considered to
            be dense.
+         - initialised: bool
+           If the parameters required for the filter where found in the parameter
+           file. If this is false and the filter is called, it will throw an error.
         """
         self.maximum_temperature = maximum_temperature
         self.minimum_hydrogen_number_density = minimum_hydrogen_number_density
+        self.initialised = initialised
 
     def is_cold_and_dense(
         self, temperature: unyt.unyt_array, mass_density: unyt.unyt_array
@@ -62,6 +62,8 @@ class ColdDenseGasFilter:
 
         Returns a mask array that can be used to index other particle arrays.
         """
+        if not self.initialised:
+            raise RuntimeError('ColdDenseGasFilter was not initialised')
         hydrogen_number_density = mass_density / unyt.mh
         return (temperature < self.maximum_temperature.to(temperature.units)) & (
             hydrogen_number_density
