@@ -95,7 +95,7 @@ def process_particle_type(ptype, snap_file, ids_bound, grnr_bound, rank_bound,
     # Set up dataset attributes
     unit_attrs = {
         "Conversion factor to CGS (not including cosmological corrections)": [1.0],
-        "Conversion factor to CGS (including cosmological corrections)": [1.0],
+        "Conversion factor to physical CGS (including cosmological corrections)": [1.0],
         "U_I exponent": [0.0],
         "U_L exponent": [0.0],
         "U_M exponent": [0.0],
