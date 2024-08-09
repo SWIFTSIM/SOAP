@@ -197,6 +197,16 @@ class SOCatalogue:
             else:
                 self.local_chunk_size[chunk_nr] = 0
                 self.local_chunk_offset[chunk_nr] = 0
+        # TODO: For debugging, remove
+        if not np.all(comm.allreduce(self.local_chunk_size) == chunk_size):
+            import time
+            time.sleep(comm_rank)
+            print(comm_rank, 'nr_local_halos', self.nr_local_halos)
+            print(comm_rank, 'local_halo_offset', self.local_halo_offset)
+            print(comm_rank, 'chunk_size', self.chunk_size)
+            print(comm_rank, 'local_chunk_size', self.local_chunk_size)
+            print(comm_rank, 'local_chunk_offset', self.local_chunk_offset)
+        comm.barrier()
         assert np.all(comm.allreduce(self.local_chunk_size) == chunk_size)
 
         # Now, for each chunk we need to know which MPI ranks have halos from that chunk.
