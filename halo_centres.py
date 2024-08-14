@@ -145,6 +145,10 @@ class SOCatalogue:
         self.nr_local_halos = len(local_halo["index"])
         self.nr_halos = comm.allreduce(self.nr_local_halos, op=MPI.SUM)
 
+        if (self.nr_halos == 0) and (comm_rank == 0:
+            print('No halos found, aborting run')
+            exit(1)
+
         # Reduce the number of chunks if necessary so that all chunks have at least one halo
         nr_chunks = min(nr_chunks, self.nr_halos)
         self.nr_chunks = nr_chunks
