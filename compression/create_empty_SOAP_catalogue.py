@@ -149,6 +149,8 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     snapnum = get_snapshot_index(args.snapshot)
+    ofile_snapnum = get_snapshot_index(args.outputSOAP)
+    assert snapnum == ofile_snapnum
 
     with h5py.File(args.referenceSOAP, "r") as ifile, h5py.File(
         args.snapshot, "r"
