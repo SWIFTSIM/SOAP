@@ -145,7 +145,7 @@ class SOCatalogue:
         self.nr_local_halos = len(local_halo["index"])
         self.nr_halos = comm.allreduce(self.nr_local_halos, op=MPI.SUM)
 
-        if (self.nr_halos == 0) and (comm_rank == 0:
+        if (self.nr_halos == 0) and (comm_rank == 0):
             print('No halos found, aborting run')
             exit(1)
 
