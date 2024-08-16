@@ -2580,7 +2580,7 @@ class PropertyTable:
         ),
         "DarkMatterMassFlowRate": (
             "DarkMatterMassFlowRate",
-            6,
+            12,
             np.float32,
             "snap_mass / snap_time",
             "Mass flow rate of dark matter particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2597,7 +2597,7 @@ class PropertyTable:
         ),
         "ColdGasMassFlowRate": (
             "ColdGasMassFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass / snap_time",
             "Mass flow rate of cold gas particles (log T < 3) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2615,7 +2615,7 @@ class PropertyTable:
         ),
         "CoolGasMassFlowRate": (
             "CoolGasMassFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass / snap_time",
             "Mass flow rate of cool gas particles (3 < log T < 5) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2633,7 +2633,7 @@ class PropertyTable:
         ),
         "WarmGasMassFlowRate": (
             "WarmGasMassFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass / snap_time",
             "Mass flow rate of warm gas particles (5 < log T < 7) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2651,7 +2651,7 @@ class PropertyTable:
         ),
         "HotGasMassFlowRate": (
             "HotGasMassFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass / snap_time",
             "Mass flow rate of hot gas particles (7 < log T) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2669,7 +2669,7 @@ class PropertyTable:
         ),
         "HIMassFlowRate": (
             "HIMassFlowRate",
-            6,
+            12,
             np.float32,
             "snap_mass / snap_time",
             "Mass flow rate of gas particles through spherical shells weighted by HI fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2688,7 +2688,7 @@ class PropertyTable:
         ),
         "H2MassFlowRate": (
             "H2MassFlowRate",
-            6,
+            12,
             np.float32,
             "snap_mass / snap_time",
             "Mass flow rate of gas particles through spherical shells weighted by H2 fraction. Does not include Helium. Contains 6 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2707,7 +2707,7 @@ class PropertyTable:
         ),
         "MetalMassFlowRate": (
             "MetalMassFlowRate",
-            6,
+            12,
             np.float32,
             "snap_mass / snap_time",
             "Mass flow rate of gas particles through spherical shells weighted by metal fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2725,7 +2725,7 @@ class PropertyTable:
         ),
         "StellarMassFlowRate": (
             "StellarMassFlowRate",
-            6,
+            12,
             np.float32,
             "snap_mass / snap_time",
             "Mass flow rate of star particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2742,7 +2742,7 @@ class PropertyTable:
         ),
         "ColdGasEnergyFlowRate": (
             "ColdGasEnergyFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass*snap_length**2/snap_time**3",
             "Energy flow rate of cold gas particles (log T < 3) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2760,7 +2760,7 @@ class PropertyTable:
         ),
         "CoolGasEnergyFlowRate": (
             "CoolGasEnergyFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass*snap_length**2/snap_time**3",
             "Energy flow rate of cool gas particles (3 < log T < 5) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2778,7 +2778,7 @@ class PropertyTable:
         ),
         "WarmGasEnergyFlowRate": (
             "WarmGasEnergyFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass*snap_length**2/snap_time**3",
             "Energy flow rate of warm gas particles (5 < log T < 7) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2796,7 +2796,7 @@ class PropertyTable:
         ),
         "HotGasEnergyFlowRate": (
             "HotGasEnergyFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass*snap_length**2/snap_time**3",
             "Energy flow rate of hot gas particles (7 < log T) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2814,7 +2814,7 @@ class PropertyTable:
         ),
         "ColdGasMomentumFlowRate": (
             "ColdGasMomentumFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass*snap_length/snap_time**2",
             "Momentum flow rate of cold gas particles (log T < 3) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2832,7 +2832,7 @@ class PropertyTable:
         ),
         "CoolGasMomentumFlowRate": (
             "CoolGasMomentumFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass*snap_length/snap_time**2",
             "Momentum flow rate of cool gas particles (3 < log T < 5) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2850,7 +2850,7 @@ class PropertyTable:
         ),
         "WarmGasMomentumFlowRate": (
             "WarmGasMomentumFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass*snap_length/snap_time**2",
             "Momentum flow rate of warm gas particles (5 < log T < 7) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",
@@ -2868,7 +2868,7 @@ class PropertyTable:
         ),
         "HotGasMomentumFlowRate": (
             "HotGasMomentumFlowRate",
-            9,
+            18,
             np.float32,
             "snap_mass*snap_length/snap_time**2",
             "Momentum flow rate of hot gas particles (7 < log T) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, 0.95R, outflow rate at 0.1R, 0.3R, 0.95R, fast outflow rate at 0.1R, 0.3R, 0.95R.",

@@ -2445,6 +2445,11 @@ class SOParticleData:
         return (self.mass_fraction[mask, None] * self.velocity[mask]).sum(axis=0)
 
     def calculate_flow_rate(self, flow_type, positions, masses, velocities, internal_energies=None, fast_outflows=False) -> unyt.unyt_array:
+        no_pseudo = self._calculate_flow_rate(flow_type, positions, masses, velocities, internal_energies=internal_energies, fast_outflows=fast_outflows, pseudo_evolve=False)
+        pseudo = self._calculate_flow_rate(flow_type, positions, masses, velocities, internal_energies=internal_energies, fast_outflows=fast_outflows, pseudo_evolve=True)
+        return np.concatenate([no_pseudo, pseudo])
+
+    def _calculate_flow_rate(self, flow_type, positions, masses, velocities, internal_energies=None, fast_outflows=False, pseudo_evolve=False) -> unyt.unyt_array:
         '''
         Calculate the flowrate through 3 spherical shells with radius 0.1R_SO, 0.3R_SO,
         and 0.95R_SO. Three flow types can be calculated: mass, energy, or momentum.
@@ -2484,6 +2489,12 @@ class SOParticleData:
             v_r = np.sum((velocities[r_mask] - vcom[None, :]) * r_hat, axis=1)
             # Adding Hubble flow term
             v_r += radii[r_mask] * self.cosmology['H']
+            if pseudo_evolve:
+                G = unyt.Unit("newton_G", registry=masses.units.registry)
+                R_dot = (2/3) * (G * self.SO_mass * self.cosmology['H'] / 100) ** (1/3)
+                R_dot *= 2 * self.cosmology['Omega_g'] + (3/2) * self.cosmology['Omega_m']
+                R_dot *= R_frac
+                v_r -= R_dot
 
             # Calculate different flow types
             # We want both the inflow and outflow rates to be positive values
