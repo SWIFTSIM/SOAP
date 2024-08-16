@@ -152,6 +152,8 @@ if __name__ == "__main__":
     ofile_snapnum = get_snapshot_index(args.outputSOAP)
     assert snapnum == ofile_snapnum
 
+    assert not os.path.exists(args.outputSOAP)
+
     with h5py.File(args.referenceSOAP, "r") as ifile, h5py.File(
         args.snapshot, "r"
     ) as snapfile, h5py.File(args.outputSOAP, "w") as ofile:
