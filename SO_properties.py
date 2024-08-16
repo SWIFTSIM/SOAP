@@ -2460,8 +2460,7 @@ class SOParticleData:
         Inflow and outflow rates are computed separately. If fast_outflows=True then
         fast outflows rates are also computed.
 
-        Internal energies are required if the flow_type is 'energy' or 'momentum', or
-        if fast outflows are being computed.
+        Internal energies are required if the flow_type is 'energy' or 'momentum'.
         '''
         # Calculate particle radii
         radii = np.sqrt(np.sum(positions ** 2, axis=1))
@@ -2515,11 +2514,7 @@ class SOParticleData:
 
             # Save fast outflow rates
             if fast_outflows:
-                # Calculate sound speed squared assuming gamma = 5/3
-                gamma = 5. / 3.
-                sq_sound_speed = (gamma - 1) * gamma * internal_energies[r_mask]
-                fast_mask = np.sqrt(sq_sound_speed + v_r**2) > 0.25 * self.Vmax_soft
-                fast_mask &= (v_r > 0)
+                fast_mask = v_r > 0.25 * self.Vmax_soft
                 fast_outflow = np.sum(flow_rate[fast_mask]) / dR
                 flow_rates[i_R+6] = fast_outflow
 
@@ -2547,7 +2542,6 @@ class SOParticleData:
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
             fast_outflows=True,
         )
 
@@ -2564,7 +2558,6 @@ class SOParticleData:
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
             fast_outflows=True,
         )
 
@@ -2581,7 +2574,6 @@ class SOParticleData:
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
             fast_outflows=True,
         )
 
@@ -2598,7 +2590,6 @@ class SOParticleData:
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
             fast_outflows=True,
         )
 

@@ -26,5 +26,4 @@ relative to the center of mass velocity. For momentum flow rates the sum is
     \frac{1}{dR} \sum_{i} m_i \left(v_{r,i}^2 + \frac{c_s^2}{\gamma}\right),
 \end{equation}
  
-where $c_s$ is the sound speed and $\gamma$ = 5/3 (the second term accounts for pressure). For the gas phases we also calculate "fast outflow" rates. These are calculated by using the equations above, but only for particles that satisfy both 
-$v_r > 0$ and also $\sqrt{v_r^2 + c_s^2} > V_{max} / 4$. The flow rates are always positive, so to compute the net rate you must subtract the inflow rate from the outflow rate.
+where $c_s$ is the sound speed and $\gamma$ = 5/3 (the second term accounts for pressure). For the gas phases we also calculate "fast outflow" rates. These are calculated by using the equations above, but only for particles that satisfy $v_r > V_{max} / 4$. The flow rates are always positive, so to compute the net rate you must subtract the inflow rate from the outflow rate.
