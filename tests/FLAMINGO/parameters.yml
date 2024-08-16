@@ -359,24 +359,24 @@ SOProperties:
     XRayPhotonLuminosityInRestframeCoreExcision: true
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: true
-    DarkMatterMassFlux: true
-    GasMassFlux: true
-    ColdGasMassFlux: false
-    CoolGasMassFlux: false
-    WarmGasMassFlux: false
-    HotGasMassFlux: false
-    HIMassFlux: false
-    H2MassFlux: false
-    MetalMassFlux: false
-    StellarMassFlux: true
-    ColdGasEnergyFlux: false
-    CoolGasEnergyFlux: false
-    WarmGasEnergyFlux: false
-    HotGasEnergyFlux: false
-    ColdGasMomentumFlux: false
-    CoolGasMomentumFlux: false
-    WarmGasMomentumFlux: false
-    HotGasMomentumFlux: false
+    # TODO: Decide which we want on for FLAMINGO
+    DarkMatterMassFlowRate: true
+    ColdGasMassFlowRate: false
+    CoolGasMassFlowRate: false
+    WarmGasMassFlowRate: false
+    HotGasMassFlowRate: false
+    HIMassFlowRate: false
+    H2MassFlowRate: false
+    MetalMassFlowRate: false
+    StellarMassFlowRate: false
+    ColdGasEnergyFlowRate: false
+    CoolGasEnergyFlowRate: false
+    WarmGasEnergyFlowRate: false
+    HotGasEnergyFlowRate: false
+    ColdGasMomentumFlowRate: false
+    CoolGasMomentumFlowRate: false
+    WarmGasMomentumFlowRate: false
+    HotGasMomentumFlowRate: false
   variations:
     200_crit:
       type: crit

@@ -556,6 +556,21 @@ class SOParticleData:
         return (self.mass_fraction[:, None] * self.velocity).sum(axis=0)
 
     @lazy_property
+    def Vmax_soft(self):
+        """
+        Maximum circular velocity of the halo.
+        Particles are set to have minimum radius equal to their softening length.
+
+        This includes contributions from all particle types.
+        """
+        if self.Mtotpart == 0:
+            return None
+        if not hasattr(self, "vmax_soft"):
+            soft_r = np.maximum(self.softening, self.radius)
+            self.r_vmax_soft, self.vmax_soft = get_vmax(self.mass, soft_r)
+        return self.vmax_soft
+
+    @lazy_property
     def spin_parameter(self) -> unyt.unyt_quantity:
         """
         Spin parameter of all particles in the spherical overdensity.
@@ -565,14 +580,12 @@ class SOParticleData:
         """
         if self.Mtotpart == 0:
             return None
-        soft_r = np.maximum(self.softening, self.radius)
-        _, vmax_soft = get_vmax(self.mass, soft_r)
-        if vmax_soft > 0:
+        if self.Vmax_soft > 0:
             vrel = self.velocity - self.vcom[None, :]
             Ltot = np.linalg.norm(
                 (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
             )
-            return Ltot / (np.sqrt(2.0) * self.Mtotpart * self.SO_r * vmax_soft)
+            return Ltot / (np.sqrt(2.0) * self.Mtotpart * self.SO_r * self.Vmax_soft)
         return None
 
     @lazy_property
@@ -2436,19 +2449,29 @@ class SOParticleData:
         mask = self.radius < 0.3 * self.SO_r
         return (self.mass_fraction[mask, None] * self.velocity[mask]).sum(axis=0)
 
-    def calculate_flux(self, flux_type, positions, masses, velocities, internal_energies=None) -> unyt.unyt_array:
+    def calculate_flow_rate(self, flow_type, positions, masses, velocities, internal_energies=None, fast_outflows=False) -> unyt.unyt_array:
         '''
-        Calculate the flux through 3 spherical shells with radius 0.1R_SO, 0.3R_SO,
-        and 0.95R_SO. Three flux types can be calculated: mass, energy, or momentum.
+        Calculate the flowrate through 3 spherical shells with radius 0.1R_SO, 0.3R_SO,
+        and 0.95R_SO. Three flow types can be calculated: mass, energy, or momentum.
         We do not consider a spherical shells with R = R_SO, as this would
-        require particle information which may not be loaded. Inflow and outflow rates
-        are computed separately. We include the Hubble flow when calculating these fluxes.
+        require particle information which may not be loaded. We include the Hubble flow
+        when calculating the flow rates.
+
+        Inflow and outflow rates are computed separately. If fast_outflows=True then
+        fast outflows rates are also computed.
+
+        Internal energies are required if the flow_type is 'energy' or 'momentum', or
+        if fast outflows are being computed.
         '''
         # Calculate particle radii
         radii = np.sqrt(np.sum(positions ** 2, axis=1))
 
-        fluxes = []
-        for R_frac in [0.1, 0.3, 0.95]:
+        # Initialise a list for saving the results since the units will depend on flow_type
+        flow_rates = 6 * [0]
+        if fast_outflows:
+            flow_rates += 3 * [0]
+
+        for i_R, R_frac in enumerate([0.1, 0.3, 0.95]):
             # Remove particles outside spherical shell
             R = R_frac * self.SO_r
             dR = 0.1 * R
@@ -2465,264 +2488,290 @@ class SOParticleData:
             # taking dot product with r_hat
             r_hat = positions[r_mask] / np.stack(3*[radii[r_mask]], axis=1)
             v_r = np.sum((velocities[r_mask] - vcom[None, :]) * r_hat, axis=1)
-            # Add Hubble flow term
+            # Adding Hubble flow term
             v_r += radii[r_mask] * self.H
 
-            # Calculate different flux types
+            # Calculate different flow types
             # We want both the inflow and outflow rates to be positive values
-            if flux_type == 'mass':
-                flux = masses[r_mask] * np.abs(v_r)
-            elif flux_type == 'energy':
+            if flow_type == 'mass':
+                flow_rate = masses[r_mask] * np.abs(v_r)
+            elif flow_type == 'energy':
                 # Subtract CoM velocity, then add Hubble flow
-                proper_vel = (velocities[r_mask] - vcom[None, :]) + r_hat * radii[r_mask] * self.H
+                proper_vel = (velocities[r_mask] - vcom[None, :]) + positions[r_mask] * self.H
                 kinetic = 0.5 * np.sqrt(np.sum(proper_vel**2, axis=1)) ** 2
-                flux = masses[r_mask] * np.abs(v_r) * (kinetic + internal_energies[r_mask])
-            elif flux_type == 'momentum':
+                flow_rate = masses[r_mask] * np.abs(v_r) * (kinetic + internal_energies[r_mask])
+            elif flow_type == 'momentum':
                 # Calculate sound speed squared assuming gamma = 5/3
                 gamma = 5. / 3.
                 sq_sound_speed = (gamma - 1) * gamma * internal_energies[r_mask]
                 # Calculate momentum flux, second term accounts for pressure
-                flux = masses[r_mask] * (v_r ** 2 + (sq_sound_speed / gamma))
+                flow_rate = masses[r_mask] * (v_r ** 2 + (sq_sound_speed / gamma))
 
             # Determine total outflow/inflow rates
-            outflow = np.sum(flux[v_r > 0]) / dR
-            inflow = np.sum(flux[v_r < 0]) / dR
-            fluxes.append(outflow)
-            fluxes.append(inflow)
+            inflow = np.sum(flow_rate[v_r < 0]) / dR
+            outflow = np.sum(flow_rate[v_r > 0]) / dR
+            flow_rates[i_R] = inflow
+            flow_rates[i_R+3] = outflow
 
-        return unyt.unyt_array(fluxes)
+            # Save fast outflow rates
+            if fast_outflows:
+                # Calculate sound speed squared assuming gamma = 5/3
+                gamma = 5. / 3.
+                sq_sound_speed = (gamma - 1) * gamma * internal_energies[r_mask]
+                fast_mask = np.sqrt(sq_sound_speed + v_r**2) > 0.25 * self.Vmax_soft
+                fast_mask &= (v_r > 0)
+                fast_outflow = np.sum(flow_rate[fast_mask]) / dR
+                flow_rates[i_R+6] = fast_outflow
+
+        return unyt.unyt_array(flow_rates)
 
     @lazy_property
-    def DarkMatterMassFlux(self) -> unyt.unyt_array:
+    def DarkMatterMassFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the mass flux of dark matter through 3 spherical shells
+        Calculate the mass flow rate of dark matter through 3 spherical shells
         '''
         if (self.Ndm == 0) or (not self.virial_definition):
             return None
-        return self.calculate_flux('mass', self.dm_pos, self.dm_masses, self.dm_vel)
+        return self.calculate_flow_rate('mass', self.dm_pos, self.dm_masses, self.dm_vel)
 
     @lazy_property
-    def ColdGasMassFlux(self) -> unyt.unyt_array:
+    def ColdGasMassFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the mass flux of cold gas through 3 spherical shells
+        Calculate the mass flow rate of cold gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = self.gas_temperatures < 1.0e3 * unyt.K
-        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+        return self.calculate_flow_rate(
+            "mass",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
+        )
 
     @lazy_property
-    def CoolGasMassFlux(self) -> unyt.unyt_array:
+    def CoolGasMassFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the mass flux of cool gas through 3 spherical shells
+        Calculate the mass flow rate of cool gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
-        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+        return self.calculate_flow_rate(
+            "mass",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
+        )
 
     @lazy_property
-    def ColdCoolGasMassFlux(self) -> unyt.unyt_array:
+    def WarmGasMassFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the mass flux of cold and cool gas through 3 spherical shells
-        '''
-        if (self.Ngas == 0) or (not self.virial_definition):
-            return None
-        mask = self.gas_temperatures < 1.0e5 * unyt.K
-        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
-
-    @lazy_property
-    def WarmGasMassFlux(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flux of warm gas through 3 spherical shells
+        Calculate the mass flow rate of warm gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
-        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+        return self.calculate_flow_rate(
+            "mass",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
+        )
 
     @lazy_property
-    def HotGasMassFlux(self) -> unyt.unyt_array:
+    def HotGasMassFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the mass flux of hot gas through 3 spherical shells
+        Calculate the mass flow rate of hot gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = 1.0e7 * unyt.K < self.gas_temperatures
-        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+        return self.calculate_flow_rate(
+            "mass",
+            self.gas_pos[mask],
+            self.gas_masses[mask],
+            self.gas_vel[mask],
+            internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
+        )
 
     @lazy_property
-    def WarmHotGasMassFlux(self) -> unyt.unyt_array:
+    def HIMassFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the mass flux of warm and hot gas through 3 spherical shells
+        Calculate the mass flow rate of HI through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        mask = 1.0e5 * unyt.K < self.gas_temperatures
-        return self.calculate_flux('mass', self.gas_pos[mask], self.gas_masses[mask], self.gas_vel[mask])
+        return self.calculate_flow_rate('mass', self.gas_pos, self.gas_mass_HI, self.gas_vel)
 
     @lazy_property
-    def HIMassFlux(self) -> unyt.unyt_array:
+    def H2MassFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the mass flux of HI through 3 spherical shells
+        Calculate the mass flow rate of H2 through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        return self.calculate_flux('mass', self.gas_pos, self.gas_mass_HI, self.gas_vel)
+        return self.calculate_flow_rate('mass', self.gas_pos, self.gas_mass_H2, self.gas_vel)
 
     @lazy_property
-    def H2MassFlux(self) -> unyt.unyt_array:
+    def MetalMassFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the mass flux of H2 through 3 spherical shells
+        Calculate the mass flow rate of metals through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        return self.calculate_flux('mass', self.gas_pos, self.gas_mass_H2, self.gas_vel)
+        return self.calculate_flow_rate('mass', self.gas_pos, self.gas_metal_masses, self.gas_vel)
 
     @lazy_property
-    def MetalMassFlux(self) -> unyt.unyt_array:
+    def StellarMassFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the mass flux of metals through 3 spherical shells
-        '''
-        if (self.Ngas == 0) or (not self.virial_definition):
-            return None
-        return self.calculate_flux('mass', self.gas_pos, self.gas_metal_masses, self.gas_vel)
-
-    @lazy_property
-    def StellarMassFlux(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flux of stars through 3 spherical shells
+        Calculate the mass flow rate of stars through 3 spherical shells
         '''
         if (self.Nstar == 0) or (not self.virial_definition):
             return None
-        return self.calculate_flux('mass', self.star_pos, self.star_masses, self.star_vel)
+        return self.calculate_flow_rate('mass', self.star_pos, self.star_masses, self.star_vel)
 
     @lazy_property
-    def ColdGasEnergyFlux(self) -> unyt.unyt_array:
+    def ColdGasEnergyFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the energy flux of cold gas through 3 spherical shells
+        Calculate the energy flow rate of cold gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = self.gas_temperatures < 1.0e3 * unyt.K
-        return self.calculate_flux(
+        return self.calculate_flow_rate(
             "energy",
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
             internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
         )
 
     @lazy_property
-    def CoolGasEnergyFlux(self) -> unyt.unyt_array:
+    def CoolGasEnergyFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the energy flux of cool gas through 3 spherical shells
+        Calculate the energy flow rate of cool gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
-        return self.calculate_flux(
+        return self.calculate_flow_rate(
             "energy",
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
             internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
         )
 
     @lazy_property
-    def WarmGasEnergyFlux(self) -> unyt.unyt_array:
+    def WarmGasEnergyFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the energy flux of warm gas through 3 spherical shells
+        Calculate the energy flow rate of warm gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
-        return self.calculate_flux(
+        return self.calculate_flow_rate(
             "energy",
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
             internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
         )
 
     @lazy_property
-    def HotGasEnergyFlux(self) -> unyt.unyt_array:
+    def HotGasEnergyFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the energy flux of hot gas through 3 spherical shells
+        Calculate the energy flow rate of hot gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = 1.0e7 * unyt.K < self.gas_temperatures
-        return self.calculate_flux(
+        return self.calculate_flow_rate(
             "energy",
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
             internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
         )
 
     @lazy_property
-    def ColdGasMomentumFlux(self) -> unyt.unyt_array:
+    def ColdGasMomentumFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the momentum flux of cold gas through 3 spherical shells
+        Calculate the momentum flow rate of cold gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = self.gas_temperatures < 1.0e3 * unyt.K
-        return self.calculate_flux(
+        return self.calculate_flow_rate(
             "momentum",
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
             internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
         )
 
     @lazy_property
-    def CoolGasMomentumFlux(self) -> unyt.unyt_array:
+    def CoolGasMomentumFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the momentum flux of cool gas through 3 spherical shells
+        Calculate the momentum flow rate of cool gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
-        return self.calculate_flux(
+        return self.calculate_flow_rate(
             "momentum",
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
             internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
         )
 
     @lazy_property
-    def WarmGasMomentumFlux(self) -> unyt.unyt_array:
+    def WarmGasMomentumFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the momentum flux of warm gas through 3 spherical shells
+        Calculate the momentum flow rate of warm gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
-        return self.calculate_flux(
+        return self.calculate_flow_rate(
             "momentum",
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
             internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
         )
 
     @lazy_property
-    def HotGasMomentumFlux(self) -> unyt.unyt_array:
+    def HotGasMomentumFlowRate(self) -> unyt.unyt_array:
         '''
-        Calculate the momentum flux of hot gas through 3 spherical shells
+        Calculate the momentum flow rate of hot gas through 3 spherical shells
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
         mask = 1.0e7 * unyt.K < self.gas_temperatures
-        return self.calculate_flux(
+        return self.calculate_flow_rate(
             "momentum",
             self.gas_pos[mask],
             self.gas_masses[mask],
             self.gas_vel[mask],
             internal_energies=self.gas_internal_energies[mask],
+            fast_outflows=True,
         )
 
     @lazy_property
@@ -2844,6 +2893,7 @@ class SOProperties(HaloProperty):
             "TotalInertiaTensorReducedNoniterative",
             "com",
             "vcom",
+            "Vmax_soft",
             "Mfrac_satellites",
             "Mfrac_external",
             "Mgas",
@@ -2911,23 +2961,23 @@ class SOProperties(HaloProperty):
             "concentration_soft",
             "concentration_dmo_unsoft",
             "concentration_dmo_soft",
-            "DarkMatterMassFlux",
-            "ColdGasMassFlux",
-            "CoolGasMassFlux",
-            "WarmGasMassFlux",
-            "HotGasMassFlux",
-            "HIMassFlux",
-            "H2MassFlux",
-            "MetalMassFlux",
-            "StellarMassFlux",
-            "ColdGasEnergyFlux",
-            "CoolGasEnergyFlux",
-            "WarmGasEnergyFlux",
-            "HotGasEnergyFlux",
-            "ColdGasMomentumFlux",
-            "CoolGasMomentumFlux",
-            "WarmGasMomentumFlux",
-            "HotGasMomentumFlux",
+            "DarkMatterMassFlowRate",
+            "ColdGasMassFlowRate",
+            "CoolGasMassFlowRate",
+            "WarmGasMassFlowRate",
+            "HotGasMassFlowRate",
+            "HIMassFlowRate",
+            "H2MassFlowRate",
+            "MetalMassFlowRate",
+            "StellarMassFlowRate",
+            "ColdGasEnergyFlowRate",
+            "CoolGasEnergyFlowRate",
+            "WarmGasEnergyFlowRate",
+            "HotGasEnergyFlowRate",
+            "ColdGasMomentumFlowRate",
+            "CoolGasMomentumFlowRate",
+            "WarmGasMomentumFlowRate",
+            "HotGasMomentumFlowRate",
         ]
     ]
 

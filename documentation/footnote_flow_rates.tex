@@ -1,0 +1,30 @@
+
+% # TODO: UPDATE THIS WHEN FINALISED
+
+\paragraph{$^{$FOOTNOTE_NUMBER$}$The flow rates} are computed for three spherical
+shells: $R$ = $0.1R_{SO}$, $0.3R_{SO}$, and $0.95R_{SO}$. In all cases the width of the
+spherical shell is given by $dR = 0.1 R$. To calculate the mass inflow (outflow) rate
+we compute the following sum over particles within the spherical shell which satisfy
+$v_r < 0$ ($v_r > 0$),
+
+\begin{equation}
+    \frac{1}{dR} \sum_{i} m_i v_{r, i},
+\end{equation}
+
+where $m_i$ is the mass of particle $i$, and $v_r$ is the radial component of the 
+velocity w.r.t. to the centre of mass velocity. The centre of mass velocity is computed using all particles within $R$, and so will have a different value for
+each spherical shell. $v_r$ also includes the Hubble flow relative to the halo centre. For energy flow rates the sum is
+
+\begin{equation}
+    \frac{1}{dR} \sum_{i} m_i v_{r, i} \left(\frac{v_i^2}{2} + u_i\right),
+\end{equation}
+
+where $u_i$ is the internal energy per unit mass and $v_i$ is the total 3D velocity 
+relative to the center of mass velocity. For momentum flow rates the sum is
+
+\begin{equation}
+    \frac{1}{dR} \sum_{i} m_i \left(v_{r,i}^2 + \frac{c_s^2}{\gamma}\right),
+\end{equation}
+ 
+where $c_s$ is the sound speed and $\gamma$ = 5/3 (the second term accounts for pressure). For the gas phases we also calculate "fast outflow" rates. These are calculated by using the equations above, but only for particles that satisfy both 
+$v_r > 0$ and also $\sqrt{v_r^2 + c_s^2} > V_{max} / 4$. The flow rates are always positive, so to compute the net rate you must subtract the inflow rate from the outflow rate.
