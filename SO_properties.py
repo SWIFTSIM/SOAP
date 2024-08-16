@@ -238,14 +238,13 @@ class SOParticleData:
         data: Dict,
         types_present: List[str],
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
-        nu_density: unyt.unyt_quantity,
         observer_position: unyt.unyt_array,
         snapshot_datasets: SnapshotDatasets,
         core_excision_fraction: float,
         softening_of_parttype: unyt.unyt_array,
         virial_definition: bool,
         search_radius: unyt.unyt_quantity,
-        H: unyt.unyt_quantity,
+        cosmology: dict,
     ):
         """
         Constructor.
@@ -261,9 +260,6 @@ class SOParticleData:
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
-         - nu_density: unyt.unyt_quantity
-           Background neutrino density of the Universe. Used to account for the
-           mean neutrino mass contribution.
          - observer_position: unyt.unyt_array
            Position of an observer, used to determine the observer direction for
            Doppler B calculations.
@@ -281,22 +277,21 @@ class SOParticleData:
          - search_radius: unyt.unyt_quantity
            Current search radius. Particles are guaranteed to be included up to
            this radius.
-         - H: unyt.unyt_quantity
-           Current value of the Hubble parameter
+         - cosmology: dict
+           Cosmological parameters required for SO calculation
         """
         self.input_halo = input_halo
         self.data = data
         self.has_neutrinos = "PartType6" in data
         self.types_present = types_present
         self.recently_heated_gas_filter = recently_heated_gas_filter
-        self.nu_density = nu_density
         self.observer_position = observer_position
         self.snapshot_datasets = snapshot_datasets
         self.core_excision_fraction = core_excision_fraction
         self.softening_of_parttype = softening_of_parttype
         self.virial_definition = virial_definition
         self.search_radius = search_radius
-        self.H = H
+        self.cosmology = cosmology
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -396,7 +391,7 @@ class SOParticleData:
             self.mass.dtype
         )
         # add mean neutrino mass
-        cumulative_mass += self.nu_density * 4.0 / 3.0 * np.pi * ordered_radius ** 3
+        cumulative_mass += self.cosmology['nu_density'] * 4.0 / 3.0 * np.pi * ordered_radius ** 3
         # Determine FOF ID of object using the central non-neutrino particle
         non_neutrino_order = order[order<self.radius.shape[0]]
         fofid = self.fofid[non_neutrino_order[0]]
@@ -2363,7 +2358,7 @@ class SOParticleData:
         return (
             self.get_dataset("PartType6/Masses")[self.nu_selection]
             * self.get_dataset("PartType6/Weights")[self.nu_selection]
-        ).sum() + self.nu_density * self.SO_volume
+        ).sum() + self.cosmology['nu_density'] * self.SO_volume
 
     @staticmethod
     def concentration_from_R1(R1):
@@ -2388,8 +2383,8 @@ class SOParticleData:
             R1 += np.sum(self.nu_mass * self.nu_radius)
             missed_mass -= np.sum(self.nu_mass)
         # Neutrino background
-        R1 += np.pi * self.nu_density * self.r ** 4
-        missed_mass -= self.nu_density * 4.0 / 3.0 * np.pi * self.r ** 3
+        R1 += np.pi * self.cosmology['nu_density'] * self.r ** 4
+        missed_mass -= self.cosmology['nu_density'] * 4.0 / 3.0 * np.pi * self.r ** 3
         R1 += missed_mass * self.r
         # Normalize
         R1 /= self.r * self.Mtot
@@ -2488,7 +2483,7 @@ class SOParticleData:
             r_hat = positions[r_mask] / np.stack(3*[radii[r_mask]], axis=1)
             v_r = np.sum((velocities[r_mask] - vcom[None, :]) * r_hat, axis=1)
             # Adding Hubble flow term
-            v_r += radii[r_mask] * self.H
+            v_r += radii[r_mask] * self.cosmology['H']
 
             # Calculate different flow types
             # We want both the inflow and outflow rates to be positive values
@@ -2496,7 +2491,7 @@ class SOParticleData:
                 flow_rate = masses[r_mask] * np.abs(v_r)
             elif flow_type == 'energy':
                 # Subtract CoM velocity, then add Hubble flow
-                proper_vel = (velocities[r_mask] - vcom[None, :]) + positions[r_mask] * self.H
+                proper_vel = (velocities[r_mask] - vcom[None, :]) + positions[r_mask] * self.cosmology['H']
                 kinetic = 0.5 * np.sqrt(np.sum(proper_vel**2, axis=1)) ** 2
                 flow_rate = masses[r_mask] * np.abs(v_r) * (kinetic + internal_energies[r_mask])
             elif flow_type == 'momentum':
@@ -3027,15 +3022,15 @@ class SOProperties(HaloProperty):
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
         self.halo_filter = halo_filter
-
         self.observer_position = cellgrid.observer_position
 
+        self.cosmology = {}
         # in the neutrino model, the mean neutrino density is implicitly
         # assumed to be based on Omega_nu_0 and critical_density_0
         # here, critical_density_0 = critical_density * (H0/H)**2
         # however, we need to scale this to the appropriate redshift,
         # hence an additional factor 1/a**3
-        self.nu_density = (
+        self.cosmology['nu_density'] = (
             cellgrid.cosmology["Omega_nu_0"]
             * cellgrid.critical_density
             * (
@@ -3045,10 +3040,10 @@ class SOProperties(HaloProperty):
             ** 2
             / cellgrid.a ** 3
         )
-
-        # We need the hubble parameter for inflow/outflow calculations
-        self.H = cellgrid.cosmology["H [internal units]"] / cellgrid.get_unit('code_time')
-
+        # We need the following for inflow/outflow calculations
+        self.cosmology['H'] = cellgrid.cosmology["H [internal units]"] / cellgrid.get_unit('code_time')
+        self.cosmology['Omega_g'] = cellgrid.cosmology["Omega_g"]
+        self.cosmology['Omega_m'] = cellgrid.cosmology["Omega_m"]
 
         # This specifies how large a sphere is read in:
         # we use default values that are sufficiently small/large to avoid reading in too many particles
@@ -3210,14 +3205,13 @@ class SOProperties(HaloProperty):
                 data,
                 types_present,
                 self.filter,
-                self.nu_density,
                 self.observer_position,
                 self.snapshot_datasets,
                 self.core_excision_fraction,
                 self.softening_of_parttype,
                 self.virial_definition,
                 search_radius,
-                self.H,
+                self.cosmology,
             )
 
             # we need to make sure the physical radius uses the correct unit
@@ -3843,7 +3837,7 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
 
     halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
 
-    property_calculator_200crit.nu_density *= 0
+    property_calculator_200crit.cosmology['nu_density'] *= 0
     property_calculator_200crit.calculate(input_halo, rmax, data, halo_result_template)
 
     return halo_result_template
