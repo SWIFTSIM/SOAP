@@ -55,16 +55,21 @@ def combine_chunks(
     # Sort halos based on what cell their centre is in
     with MPITimer("Establishing ordering of halos based on SWIFT cell structure", comm_world):
         halo_cofp = scratch_file.read('InputHalos/HaloCentre') * cofp_units
+        halo_index = scratch_file.read('InputHalos/HaloCatalogueIndex')
         cell_indices = (halo_cofp // cellgrid.cell_size).value.astype('int64')
         assert cellgrid.dimension[0] >= cellgrid.dimension[1] >= cellgrid.dimension[2]
-        sort_hash = cell_indices[:, 0] * cellgrid.dimension[0] ** 2
-        sort_hash += cell_indices[:, 1] * cellgrid.dimension[1]
-        sort_hash += cell_indices[:, 2]
+        # Sort first based on position, then on catalogue index
+        sort_hash_dtype = [('cell_index', np.int64), ('catalogue_index', np.int64)]
+        sort_hash = np.zeros(cell_indices.shape[0], dtype=sort_hash_dtype)
+        sort_hash['cell_index'] += cell_indices[:, 0] * cellgrid.dimension[0] ** 2
+        sort_hash['cell_index'] += cell_indices[:, 1] * cellgrid.dimension[1]
+        sort_hash['cell_index'] += cell_indices[:, 2]
+        sort_hash['catalogue_index'] = halo_index
         order = psort.parallel_sort(sort_hash, return_index=True, comm=comm_world)
         del halo_cofp
 
         # Calculate local count of halos in each cell, and combine on rank 0
-        local_cell_counts = np.bincount(sort_hash, minlength=cellgrid.nr_cells[0]).astype('int64')
+        local_cell_counts = np.bincount(sort_hash['cell_index'], minlength=cellgrid.nr_cells[0]).astype('int64')
         assert local_cell_counts.shape[0] == np.prod(cellgrid.dimension)
         cell_counts = comm_world.reduce(local_cell_counts)
 
@@ -194,7 +199,7 @@ def combine_chunks(
             cells_metadata = cells.create_group("Meta-data")
             cells_metadata.attrs['dimension'] = cellgrid.dimension
             cells_metadata.attrs['nr_cells'] = cellgrid.nr_cells
-            cell_size = cellgrid.cell_size.to('snap_length').value
+            cell_size = cellgrid.cell_size.to('a*snap_length').value
             cells_metadata.attrs['size'] = cell_size
             cells.create_dataset('Centres', data=cellgrid.cell_centres)
             cells.create_dataset('Counts/Subhalos', data=cell_counts)
@@ -229,7 +234,7 @@ def combine_chunks(
                 # Remove property name from full hdf5 path
                 group_name = '/'.join(metadata[0].split('/')[:-1])
                 subhalo_types.add(group_name)
-            header.attrs['SubhaloTypes'] = list(subhalo_types)
+            header.attrs['SubhaloTypes'] = sorted(subhalo_types)
 
             # Save masks for each halo variation
             for halo_prop in halo_prop_list:

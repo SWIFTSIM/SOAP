@@ -7,3 +7,4 @@ scipy
 pandas
 pytest-mpi
 matplotlib
+psutil

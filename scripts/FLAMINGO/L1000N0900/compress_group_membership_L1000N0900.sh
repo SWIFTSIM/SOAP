@@ -24,6 +24,8 @@
 #SBATCH -t 02:00:00
 #
 
+set -e
+
 module purge
 module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
 source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
@@ -88,11 +90,10 @@ echo Compressing ${nr_files} group membership files
 echo Source     : ${input_filename}
 echo Destination: ${output_filename}
 
-seq 0 ${nr_files_minus_one} | parallel -j 32 \
-  h5repack \
-    -i "${input_filename}.{}.hdf5" \
-    -o "${output_filename}.{}.hdf5" \
-    -l CHUNK=10000 -f GZIP=9
+seq 0 ${nr_files_minus_one} | xargs -I {} -P 32 bash -c \
+  "h5repack -i ${input_filename}.{}.hdf5 -o ${output_filename}.{}.hdf5 -l CHUNK=10000 -f GZIP=4"
 
-echo Done.
+chmod a=r "${output_filename}*"
+
+echo "Job complete!"
 

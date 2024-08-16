@@ -12,11 +12,12 @@ def make_virtual_snapshot(snapshot, membership, output_file):
     """
 
     # Check which datasets exist in the membership files
-    filename = membership % {"file_nr": 0}
+    filename = membership.format(file_nr=0)
     with h5py.File(filename, "r") as infile:
         have_grnr_bound = "GroupNr_bound" in infile["PartType1"]
         have_grnr_all = "GroupNr_all" in infile["PartType1"]
         have_rank_bound = "Rank_bound" in infile["PartType1"]
+        have_fof_id = "FOFGroupIDs" in infile["PartType1"]
 
     # Copy the input virtual snapshot to the output
     shutil.copyfile(snapshot, output_file)
@@ -30,7 +31,7 @@ def make_virtual_snapshot(snapshot, membership, output_file):
     shapes = []
     dtype = None
     while True:
-        filename = membership % {"file_nr": file_nr}
+        filename = membership.format(file_nr=file_nr)
         if os.path.exists(filename):
             filenames.append(filename)
             with h5py.File(filename, "r") as infile:
@@ -61,6 +62,9 @@ def make_virtual_snapshot(snapshot, membership, output_file):
                 layout_grnr_bound = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
             if have_rank_bound:
                 layout_rank_bound = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
+            # PartType6 (neutrinos) are not assigned a FOF group
+            if have_fof_id and (ptype != 6):
+                layout_fof_id = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
             # Loop over input files
             offset = 0
             for (filename, shape) in zip(filenames, shapes):
@@ -77,6 +81,10 @@ def make_virtual_snapshot(snapshot, membership, output_file):
                     layout_rank_bound[offset : offset + count] = h5py.VirtualSource(
                         filename, f"PartType{ptype}/Rank_bound", shape=shape[ptype]
                     )
+                if have_fof_id and (ptype != 6):
+                    layout_fof_id[offset : offset + count] = h5py.VirtualSource(
+                        filename, f"PartType{ptype}/FOFGroupIDs", shape=shape[ptype]
+                    )
                 offset += count
             # Create the virtual datasets
             if have_grnr_all:
@@ -91,10 +99,16 @@ def make_virtual_snapshot(snapshot, membership, output_file):
                 outfile.create_virtual_dataset(
                     f"PartType{ptype}/Rank_bound", layout_rank_bound, fillvalue=-999
                 )
+            if have_fof_id and (ptype != 6):
+                outfile.move(
+                    f"PartType{ptype}/FOFGroupIDs", f"PartType{ptype}/FOFGroupIDs_old"
+                )
+                outfile.create_virtual_dataset(
+                    f"PartType{ptype}/FOFGroupIDs", layout_fof_id, fillvalue=-999
+                )
 
     # Done
     outfile.close()
-
 
 if __name__ == "__main__":
 
@@ -103,20 +117,20 @@ if __name__ == "__main__":
 
     snapshot = sys.argv[
         1
-    ]  # format string for snapshots, e.g. snapshot_0077.%(file_nr).hdf5
+    ]  # format string for snapshots, e.g. snapshot_0077.{file_nr}.hdf5
     membership = sys.argv[
         2
-    ]  # format string for membership files, e.g. membership_0077.%(file_nr).hdf5
+    ]  # format string for membership files, e.g. membership_0077.{file_nr}.hdf5
     output_file = sys.argv[3]  # Name of the virtual snapshot to create
 
     # Find input virtual snap file
-    virtual_snapshot = (snapshot % {"file_nr": 0})[:-7] + ".hdf5"
+    virtual_snapshot = (snapshot.format(file_nr=0))[:-7] + ".hdf5"
 
     # Make a new virtual snapshot with group info
     make_virtual_snapshot(virtual_snapshot, membership, output_file)
 
     # Ensure all paths in the virtual file are absolute to avoid VDS prefix issues
     # (we probably need to pick up datasets from two different directories)
-    snapshot_dir = os.path.abspath(os.path.dirname(snapshot % {"file_nr": 0}))
-    membership_dir = os.path.abspath(os.path.dirname(membership % {"file_nr": 0}))
+    snapshot_dir = os.path.abspath(os.path.dirname(snapshot.format(file_nr=0)))
+    membership_dir = os.path.abspath(os.path.dirname(membership.format(file_nr=0)))
     update_virtual_snapshot_paths(output_file, snapshot_dir, membership_dir)

@@ -52,10 +52,10 @@ class RecentlyHeatedGasFilter:
     def __init__(
         self,
         cellgrid: SWIFTCellGrid,
-        delta_time: unyt.unyt_quantity = 15.0 * unyt.Myr,
+        delta_time: unyt.unyt_quantity,
+        use_AGN_delta_T: bool,
         delta_logT_min: float = -1.0,
         delta_logT_max: float = 0.3,
-        AGN_delta_T: unyt.unyt_quantity = 8.80144197177e7 * unyt.K,
     ):
         """
         Constructor.
@@ -69,14 +69,15 @@ class RecentlyHeatedGasFilter:
            like the cosmology.
          - delta_time: unyt.unyt_quantity
            Time interval considered to be "recent".
+         - use_AGN_delta_T: bool
+           Whether to filter particles based on their temperature. If used then
+           the value of AGN_delta_T is read from the snapshot.
          - delta_logT_min: float
            Lower limit on the temperature (dex below AGN_delta_T) below which
            gas is no longer considered to be "heated".
          - delta_logT_max: float
            Upper limit on the temperature (dex above AGN_delta_T) above which
            gas is too hot to be considered "heated by AGN".
-         - AGN_delta_T: unyt.unyt_quantity
-           Temperature difference for AGN feedback.
         """
         H0 = unyt.unyt_quantity(
             cellgrid.cosmology["H0 [internal units]"],
@@ -127,19 +128,23 @@ class RecentlyHeatedGasFilter:
             z_limit = z_limit.value
 
         self.a_limit = 1.0 / (1.0 + z_limit) * unyt.dimensionless
-
-        self.Tmin = AGN_delta_T * 10.0 ** delta_logT_min
-        self.Tmax = AGN_delta_T * 10.0 ** delta_logT_max
-
         self.metadata = {
             "delta_time_in_Myr": delta_time.to("Myr").value,
-            "delta_logT_min": delta_logT_min,
-            "delta_logT_max": delta_logT_max,
-            "AGN_delta_T_in_K": AGN_delta_T.to("K").value,
             "a_limit": self.a_limit.value,
-            "Tmin_in_K": self.Tmin.to("K").value,
-            "Tmax_in_K": self.Tmax.to("K").value,
+            "use_AGN_delta_T": use_AGN_delta_T
         }
+
+        self.use_AGN_delta_T = use_AGN_delta_T
+        if use_AGN_delta_T:
+            AGN_delta_T = cellgrid.AGN_delta_T
+            self.Tmin = AGN_delta_T * 10.0 ** delta_logT_min
+            self.Tmax = AGN_delta_T * 10.0 ** delta_logT_max
+            self.metadata["AGN_delta_T_in_K"] = AGN_delta_T.to("K").value,
+            self.metadata["delta_logT_min"] = delta_logT_min,
+            self.metadata["delta_logT_max"] = delta_logT_max,
+            self.metadata["Tmin_in_K"] = self.Tmin.to("K").value,
+            self.metadata["Tmax_in_K"] = self.Tmax.to("K").value,
+
 
     def is_recently_heated(
         self, lastAGNfeedback: unyt.unyt_array, temperature: unyt.unyt_array
@@ -156,11 +161,10 @@ class RecentlyHeatedGasFilter:
 
         Returns a mask that can be used to index particle arrays.
         """
-        return (
-            (lastAGNfeedback >= self.a_limit)
-            & (temperature >= self.Tmin)
-            & (temperature <= self.Tmax)
-        )
+        mask = lastAGNfeedback >= self.a_limit
+        if self.use_AGN_delta_T:
+            mask = mask & (temperature >= self.Tmin) & (temperature <= self.Tmax)
+        return mask
 
     def get_metadata(self):
         return self.metadata

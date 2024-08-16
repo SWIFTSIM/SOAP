@@ -4366,9 +4366,11 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                 ofile.write(f'\\newcommand{{\\{name.lower()}filter}}{{{value}}}\n')
 
         # Create table of variations of each halo type, always add BoundSubhalo
-        tablestr = """\\begin{longtable}{llcl}
- & Name & Inclusive? & Filter \\\\
- \\hline{}SH & \\verb+BoundSubhalo+ & \\ding{53} & - \\\\*\n"""
+        tablestr = """\\pagebreak
+\\begin{adjustbox}{tabular=llcl,center}
+Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
+\\hline
+\\verb+BoundSubhalo+ & \\verb+bound_subhalo+ & \\ding{53} & - \\\\*\n"""
         # Add SO apertures to table
         apertures = parameters.get('SOProperties', {})
         for _, variation in apertures.get('variations', {}).items():
@@ -4381,7 +4383,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                 name += f'{variation["value"]:.0f}_{variation["type"]}'
             filter = variation.get('filter', 'basic')
             filter = '-' if filter == 'basic' else filter
-            tablestr += f'SO & \\verb+SO/{name}+ & \\ding{{51}} & {filter} \\\\*\n'
+            tablestr += f'\\verb+SO/{name}+ & \\verb+spherical_overdensity_{name.lower()}+& \\ding{{51}} & {filter} \\\\*\n'
         # Determine which ExclusiveSphere and InclusiveSphere apertures are present
         variations_ES, variations_IS = {}, {}
         apertures = parameters.get('ApertureProperties', {})
@@ -4393,11 +4395,11 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
         # Add ExclusiveSphere apertures to table in sorted order
         for radius in sorted(variations_ES.keys()):
             filter = '-' if variations_ES[radius] == 'basic' else variations_ES[radius]
-            tablestr += f'ES & \\verb+ExclusiveSphere/{radius}kpc+ & \\ding{{53}} & {filter} \\\\*\n'
+            tablestr += f'\\verb+ExclusiveSphere/{radius}kpc+ & \\verb+exclusive_sphere_{radius}kpc+ & \\ding{{53}} & {filter} \\\\*\n'
         # Add InclusiveSphere apertures to table in sorted order
         for radius in sorted(variations_IS.keys()):
             filter = '-' if variations_IS[radius] == 'basic' else variations_IS[radius]
-            tablestr += f'IS & \\verb+InclusiveSphere/{radius}kpc+ & \\ding{{51}} & {filter} \\\\*\n'
+            tablestr += f'\\verb+InclusiveSphere/{radius}kpc+ & \\verb+inclusive_sphere_{radius}kpc+ & \\ding{{51}} & {filter} \\\\*\n'
         # Determine which projected apertures are present
         variations_proj = {}
         apertures = parameters.get('ProjectedApertureProperties', {})
@@ -4406,9 +4408,16 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
         # Add ProjectedApertures to table in sorted order
         for radius in sorted(variations_proj.keys()):
             filter = '-' if variations_proj[radius] == 'basic' else variations_proj[radius]
-            tablestr += f'EP & \\verb+ProjectedAperture/{radius}kpc/projP+ & \\ding{{53}} & {filter} \\\\*\n'
+            tablestr += f'\\verb+ProjectedAperture/{radius}kpc/projP+ & \\verb+projected_aperture_{radius}kpc_projP+ & \\ding{{53}} & {filter} \\\\*\n'
+        # Add others groups
+        tablestr += f'\\verb+SOAP+ & \\verb+soap+ & - & - \\\\*\n'
+        tablestr += f'\\verb+InputHalos+ & \\verb+input_halos+ & - & - \\\\*\n'
+        halo_finder = parameters['HaloFinder']['type']
+        tablestr += f'\\verb+InputHalos/{halo_finder}+ & \\verb+input_halos_{halo_finder.lower()}+ & - & - \\\\*\n'
+        if halo_finder == 'HBTplus':
+            tablestr += f'\\verb+InputHalos/FOF+ & \\verb+input_halos_fof+ & - & - \\\\*\n'
         # Finish table and output to file
-        tablestr += '\\end{longtable}'
+        tablestr += '\\end{adjustbox}\n\\newpage'
         with open(f"{output_dir}/variations_table.tex", "w") as ofile:
             ofile.write(tablestr)
 

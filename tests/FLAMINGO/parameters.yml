@@ -545,3 +545,6 @@ calculations:
     min_halo_mass: 1e13
     halo_bin_size_dex: .05
     halos_per_bin: 200
+  recently_heated_gas_filter:
+    delta_time_myr: 15
+    use_AGN_delta_T: true
