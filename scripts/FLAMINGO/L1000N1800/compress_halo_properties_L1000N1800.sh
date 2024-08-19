@@ -27,8 +27,7 @@
 set -e
 
 module purge
-module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
-source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
+module load python/3.12.4
 
 # Get location for temporary output
 if [[ "${FLAMINGO_SCRATCH_DIR}" ]] ; then
@@ -67,7 +66,7 @@ script="./compression/compress_fast_metadata.py"
 inbase="${scratch_dir}/${sim}/SOAP_uncompressed/${halo_finder}/"
 
 # Location of the compressed output
-outbase="${output_dir}/${sim}/SOAP/${halo_finder}/"
+outbase="${output_dir}/${sim}/SOAP-HBT/"
 mkdir -p $outbase
 
 # Name of the input SOAP catalogue

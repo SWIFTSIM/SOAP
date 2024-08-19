@@ -101,7 +101,12 @@ def create_lossy_dataset(file, name, shape, filter):
 def compress_dataset(arguments):
     input_name, output_name, dset = arguments
 
-    with h5py.File(input_name, "r") as ifile, h5py.File(output_name, "w") as ofile:
+    # Setting hdf5 version of file
+    fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
+    fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
+    fid = h5py.h5f.create(output_name.encode('utf-8'), flags=h5py.h5f.ACC_TRUNC, fapl=fapl)
+
+    with h5py.File(input_name, "r") as ifile, h5py.File(output_name, "r+") as ofile:
         group_name = dset.split("/")[0]
         if group_name == 'Cells':
             filter = "None"
@@ -110,6 +115,9 @@ def compress_dataset(arguments):
         dset_name = dset.split("/")[-1]
         if dset_name in compression_fixes:
             filter = compression_fixes[dset_name]
+        # TODO: Remove after removing DMantissa21 from property table
+        if filter == 'DMantissa21':
+            filter = 'DMantissa9'
         data = ifile[dset][:]
         if filter == "None":
             if len(data.shape) == 1:
@@ -131,7 +139,7 @@ def compress_dataset(arguments):
                 if attr == "Lossy compression filter":
                     ofile["data"].attrs[attr] = filter
                 # TODO: Remove, this was only the case for a small number of catalogues
-                if attr == "Conversion factor to CGS (including cosmological corrections)":
+                elif attr == "Conversion factor to CGS (including cosmological corrections)":
                     ofile["data"].attrs["Conversion factor to physical CGS (including cosmological corrections)"] = filter
                 else:
                     ofile["data"].attrs[attr] = ifile[dset].attrs[attr]
@@ -154,10 +162,16 @@ if __name__ == "__main__":
     argparser.add_argument("--nproc", "-n", type=int, default=1)
     args = argparser.parse_args()
 
+    # Setting hdf5 version of file
+    fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
+    fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
+    # Creation will fail if file already exists
+    fid = h5py.h5f.create(args.output.encode('utf-8'), flags=h5py.h5f.ACC_TRUNC, fapl=fapl)
+
     print(f"Copying over groups to {args.output} and listing datasets...")
     tic = time.time()
     mastertic = tic
-    with h5py.File(args.input, "r") as ifile, h5py.File(args.output, "w") as ofile:
+    with h5py.File(args.input, "r") as ifile, h5py.File(args.output, "r+") as ofile:
         h5copy = H5copier(ifile, ofile)
         ifile.visititems(h5copy)
         original_size = h5copy.get_total_size()
