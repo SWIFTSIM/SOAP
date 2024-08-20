@@ -165,7 +165,6 @@ if __name__ == "__main__":
     # Setting hdf5 version of file
     fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
     fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
-    # Creation will fail if file already exists
     fid = h5py.h5f.create(args.output.encode('utf-8'), flags=h5py.h5f.ACC_TRUNC, fapl=fapl)
 
     print(f"Copying over groups to {args.output} and listing datasets...")
