@@ -2447,9 +2447,10 @@ class SOParticleData:
     def calculate_flow_rate(self, flow_type, positions, masses, velocities, internal_energies=None, fast_outflows=False) -> unyt.unyt_array:
         no_pseudo = self._calculate_flow_rate(flow_type, positions, masses, velocities, internal_energies=internal_energies, fast_outflows=fast_outflows, pseudo_evolve=False)
         pseudo = self._calculate_flow_rate(flow_type, positions, masses, velocities, internal_energies=internal_energies, fast_outflows=fast_outflows, pseudo_evolve=True)
-        return np.concatenate([no_pseudo, pseudo])
+        pseudo_no_hubble = self._calculate_flow_rate(flow_type, positions, masses, velocities, internal_energies=internal_energies, fast_outflows=fast_outflows, pseudo_evolve=True, hubble=False)
+        return np.concatenate([no_pseudo, pseudo, pseudo_no_hubble])
 
-    def _calculate_flow_rate(self, flow_type, positions, masses, velocities, internal_energies=None, fast_outflows=False, pseudo_evolve=False) -> unyt.unyt_array:
+    def _calculate_flow_rate(self, flow_type, positions, masses, velocities, internal_energies=None, fast_outflows=False, pseudo_evolve=False, hubble=True) -> unyt.unyt_array:
         '''
         Calculate the flowrate through 3 spherical shells with radius 0.1R_SO, 0.3R_SO,
         and 0.95R_SO. Three flow types can be calculated: mass, energy, or momentum.
@@ -2488,7 +2489,8 @@ class SOParticleData:
             r_hat = positions[r_mask] / np.stack(3*[radii[r_mask]], axis=1)
             v_r = np.sum((velocities[r_mask] - vcom[None, :]) * r_hat, axis=1)
             # Adding Hubble flow term
-            v_r += radii[r_mask] * self.cosmology['H']
+            if hubble:
+                v_r += radii[r_mask] * self.cosmology['H']
             if pseudo_evolve:
                 G = unyt.Unit("newton_G", registry=masses.units.registry)
                 R_dot = (2/3) * (G * self.SO_mass * self.cosmology['H'] / 100) ** (1/3)
@@ -2501,6 +2503,7 @@ class SOParticleData:
             if flow_type == 'mass':
                 flow_rate = masses[r_mask] * np.abs(v_r)
             elif flow_type == 'energy':
+                # TODO: Do we want hubble flow here?
                 # Subtract CoM velocity, then add Hubble flow
                 proper_vel = (velocities[r_mask] - vcom[None, :]) + positions[r_mask] * self.cosmology['H']
                 kinetic = 0.5 * np.sqrt(np.sum(proper_vel**2, axis=1)) ** 2
