@@ -47,6 +47,10 @@ class ColdDenseGasFilter:
         self.maximum_temperature = maximum_temperature
         self.minimum_hydrogen_number_density = minimum_hydrogen_number_density
         self.initialised = initialised
+        self.metadata = {
+            'maximum_temperature_in_K': maximum_temperature.to('K').value,
+            'minimum_hydrogen_number_density_in_cm-3': minimum_hydrogen_number_density.to('1/cm**3').value,
+        }
 
     def is_cold_and_dense(
         self, temperature: unyt.unyt_array, mass_density: unyt.unyt_array
@@ -69,3 +73,6 @@ class ColdDenseGasFilter:
             hydrogen_number_density
             > self.minimum_hydrogen_number_density.to(hydrogen_number_density.units)
         )
+
+    def get_metadata(self):
+        return self.metadata

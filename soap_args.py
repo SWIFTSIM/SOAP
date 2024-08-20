@@ -12,7 +12,11 @@ import combine_args
 
 
 def get_git_hash() -> str:
-    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+    except subprocess.CalledProcessError:
+        print('Could not determine git hash')
+        return ''
 
 def get_soap_args(comm):
     """

@@ -548,6 +548,7 @@ def compute_halo_properties():
         comm_world,
         category_filter,
         recently_heated_gas_filter,
+        cold_dense_gas_filter,
     )
 
     # Delete scratch files

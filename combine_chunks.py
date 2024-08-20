@@ -37,6 +37,7 @@ def combine_chunks(
     comm_world,
     category_filter,
     recently_heated_gas_filter,
+    cold_dense_gas_filter,
 ):
     """
     Combine the per-chunk output files into a single, sorted output
@@ -143,6 +144,10 @@ def combine_chunks(
             recently_heated_gas_params = params.create_group("RecentlyHeatedGasFilter")
             for at, val in recently_heated_gas_metadata.items():
                 recently_heated_gas_params.attrs[at] = val
+            if cold_dense_gas_filter.initialised:
+                cold_dense_gas_params = params.create_group("ColdDenseGasFilter")
+                for at, val in cold_dense_gas_filter.get_metadata().items():
+                    cold_dense_gas_params.attrs[at] = val
 
             # Write code information
             code = outfile.create_group('Code')

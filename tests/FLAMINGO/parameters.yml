@@ -7,16 +7,17 @@ Snapshots:
   filename: "{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
 
 HaloFinder:
-  type: VR
-  filename: "{sim_dir}/{sim_name}/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
+  type: HBTplus
+  filename: "{sim_dir}/{sim_name}/HBT/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
+  fof_filename: "/cosma8/data/dp004/jlvc76/FLAMINGO/FOF/{sim_name}/fof_catalog/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
 
 GroupMembership:
   # Use the pre-existing membership files
-  filename: "{sim_dir}/{sim_name}/SOAP/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+  filename: "{sim_dir}/{sim_name}/SOAP-HBT/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
 
 HaloProperties:
   # Where to write the halo properties file
-  filename: "{output_dir}/{halo_finder}/halo_properties_{snap_nr:04d}.hdf5"
+  filename: "{output_dir}/halo_properties_{snap_nr:04d}.hdf5"
   # Where to write temporary chunk output
   chunk_dir: "{scratch_dir}/SOAP-tmp/{halo_finder}"
 
