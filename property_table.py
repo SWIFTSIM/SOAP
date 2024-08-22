@@ -229,7 +229,7 @@ class PropertyTable:
     compression_description = {
         "FMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
         "DMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
-        "DScale6": "5 pc accurate",
+        "DScale6": "1 pc accurate",
         "DScale5": "10 pc accurate",
         "DScale1": "0.1 km/s accurate",
         "Nbit40": "Store less bits",
