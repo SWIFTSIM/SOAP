@@ -12,6 +12,7 @@ import swift_units
 import task_queue
 import shared_array
 from snapshot_datasets import SnapshotDatasets
+import property_table
 
 # HDF5 chunk cache parameters:
 # SWIFT writes datasets with large chunks so the default 1Mb may be too small
@@ -363,6 +364,26 @@ class SWIFTCellGrid:
                         self.snap_unit_registry,
                     )
 
+
+    def check_datasets_exist(self, required_datasets):
+        # Check we have all the fields needed for each property
+        # Doing it at this point rather than in masked cells since we want
+        # to output a list of properties that require the missing fields
+        for ptype in set(self.ptypes).intersection(set(required_datasets.keys())):
+            for name in required_datasets[ptype]:
+                in_extra = (self.extra_filename is not None) and (name in self.extra_metadata[ptype])
+                in_snap = (name in self.snap_metadata[ptype])
+                if not (in_extra or in_snap):
+                    dataset = f'{ptype}/{name}'
+                    print(f"The following properties require {dataset}:")
+                    full_property_list = property_table.PropertyTable.full_property_list
+                    for k, v in full_property_list.items():
+                        if dataset in v[8]:
+                            print(f'  {v[0]}')
+                    raise Exception(
+                        f"Can't find required dataset {dataset} in input file(s)!"
+                    )
+
     def prepare_read(self, ptype, mask):
         """
         Determine which ranges of particles we need to read from each file
@@ -555,6 +576,7 @@ class SWIFTCellGrid:
                     elif name in self.snap_metadata[ptype]:
                         units, dtype, shape = self.snap_metadata[ptype][name]
                     else:
+                        # This shouldn't ever be hit because of check_datasets_exist
                         raise Exception(
                             "Can't find required dataset %s in input file(s)!" % name
                         )
