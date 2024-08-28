@@ -781,6 +781,17 @@ class ApertureParticleData:
         return np.max(self.agn_eventa)
 
     @lazy_property
+    def BlackHolesTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total energy injected into gas particles by all BH particles.
+        """
+        if self.Nbh == 0:
+            return None
+        return np.sum(self.get_dataset("PartType5/AGNTotalInjectedEnergies")[
+            self.bh_mask_all
+        ][self.bh_mask_ap])
+
+    @lazy_property
     def iBHmax(self) -> int:
         """
         Index of the most massive BH particle (largest sub-grid mass).
@@ -841,6 +852,29 @@ class ApertureParticleData:
         return self.get_dataset("PartType5/AccretionRates")[self.bh_mask_all][
             self.bh_mask_ap
         ][self.iBHmax]
+
+    @lazy_property
+    def MostMassiveBlackHoleAveragedAccretionRate(self) -> unyt.unyt_quantity:
+        """
+        Averaged accretion rate of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AveragedAccretionRates")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
+
+    @lazy_property
+    def MostMassiveBlackHoleTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total energy injected into gas particles by the most massive
+        BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AGNTotalInjectedEnergies")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def BHmaxlasteventa(self) -> unyt.unyt_quantity:
@@ -2755,6 +2789,9 @@ class ApertureProperties(HaloProperty):
             "BHmaxvel",
             "BHmaxAR",
             "BHmaxlasteventa",
+            "BlackHolesTotalInjectedEnergy",
+            "MostMassiveBlackHoleAveragedAccretionRate",
+            "MostMassiveBlackHoleTotalInjectedEnergy",
             "com",
             "com_star",
             "vcom",
@@ -3230,9 +3267,9 @@ def test_aperture_properties():
 
     # initialise the DummyHaloGenerator with a random seed
     dummy_halos = DummyHaloGenerator(3256)
-    recently_heated_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    recently_heated_filter = dummy_halos.get_recently_heated_gas_filter()
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())
-    cold_dense_gas_filter = ColdDenseGasFilter()
+    cold_dense_gas_filter = dummy_halos.get_cold_dense_gas_filter()
     cat_filter = CategoryFilter(
         dummy_halos.get_filters(
             {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}

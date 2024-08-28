@@ -2245,6 +2245,17 @@ class SOParticleData:
         return np.max(self.agn_eventa)
 
     @lazy_property
+    def BlackHolesTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total energy injected into gas particles by all BH particles.
+        """
+        if self.Nbh == 0:
+            return None
+        return np.sum(self.get_dataset("PartType5/AGNTotalInjectedEnergies")[
+            self.bh_selection
+        ])
+
+    @lazy_property
     def iBHmax(self) -> int:
         """
         Index of the most massive BH particle (largest sub-grid mass).
@@ -2297,6 +2308,29 @@ class SOParticleData:
         if self.Nbh == 0:
             return None
         return self.get_dataset("PartType5/AccretionRates")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleAveragedAccretionRate(self) -> unyt.unyt_quantity:
+        """
+        Averaged accretion rate of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AveragedAccretionRates")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total energy injected into gas particles by the most massive
+        BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AGNTotalInjectedEnergies")[self.bh_selection][
             self.iBHmax
         ]
 
@@ -2511,6 +2545,9 @@ class SOProperties(HaloProperty):
             "BHmaxvel",
             "BHmaxAR",
             "BHmaxlasteventa",
+            "BlackHolesTotalInjectedEnergy",
+            "MostMassiveBlackHoleAveragedAccretionRate",
+            "MostMassiveBlackHoleTotalInjectedEnergy",
             "MnuNS",
             "Mnu",
             "spin_parameter",
@@ -3052,7 +3089,7 @@ def test_SO_properties_random_halo():
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(4251)
-    gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    gas_filter = dummy_halos.get_recently_heated_gas_filter()
     cat_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
     parameters = ParameterFile(
         parameter_dictionary={
@@ -3362,7 +3399,7 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(seed)
-    gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    gas_filter = dummy_halos.get_recently_heated_gas_filter()
     cat_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
     parameters = ParameterFile(
         parameter_dictionary={

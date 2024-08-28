@@ -39,6 +39,7 @@ ApertureProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
+    BlackHolesTotalInjectedEnergy: true
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
@@ -109,11 +110,13 @@ ApertureProperties:
     MassWeightedMeanStellarAge: true
     MolecularHydrogenMass: true
     MostMassiveBlackHoleAccretionRate: true
+    MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
+    MostMassiveBlackHoleTotalInjectedEnergy: true
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
@@ -222,6 +225,7 @@ ProjectedApertureProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
+    BlackHolesTotalInjectedEnergy: true
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
@@ -236,11 +240,14 @@ ProjectedApertureProperties:
     HeliumMass: true
     HydrogenMass: true
     MolecularHydrogenMass: true
+    MostMassiveBlackHoleAccretionRate: true
+    MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
+    MostMassiveBlackHoleTotalInjectedEnergy: true
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
@@ -290,6 +297,7 @@ SOProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
+    BlackHolesTotalInjectedEnergy: true
     CentreOfMass: true
     CentreOfMassVelocity: true
     ComptonY: true
@@ -327,11 +335,13 @@ SOProperties:
     MassFractionSatellites: true
     MassFractionExternal: true
     MostMassiveBlackHoleAccretionRate: true
+    MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
+    MostMassiveBlackHoleTotalInjectedEnergy: true
     NoiseSuppressedNeutrinoMass: false
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
@@ -434,6 +444,7 @@ SubhaloProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
+    BlackHolesTotalInjectedEnergy: true
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
@@ -475,11 +486,13 @@ SubhaloProperties:
     MinimumStellarBirthPressure: true
     MaximumStellarBirthPressure: true
     MostMassiveBlackHoleAccretionRate: true
+    MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
+    MostMassiveBlackHoleTotalInjectedEnergy: true
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true

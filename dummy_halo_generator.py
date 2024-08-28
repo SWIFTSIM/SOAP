@@ -21,6 +21,8 @@ from swift_units import unit_registry_from_snapshot
 from snapshot_datasets import SnapshotDatasets
 from typing import Dict, Union, List, Tuple
 from property_table import PropertyTable
+from recently_heated_gas_filter import RecentlyHeatedGasFilter
+from cold_dense_gas_filter import ColdDenseGasFilter
 
 
 class DummySnapshot:
@@ -206,6 +208,8 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "LastAGNFeedbackScaleFactors",
                 "ParticleIDs",
                 "AccretionRates",
+                "AveragedAccretionRates",
+                "AGNTotalInjectedEnergies",
             ],
             "PartType6": ["Coordinates", "Masses", "Weights"],
         }
@@ -486,6 +490,23 @@ class DummyHaloGenerator:
         that are generated.
         """
         return self.dummy_cellgrid
+
+    def get_recently_heated_gas_filter(self):
+        return RecentlyHeatedGasFilter(
+             self.dummy_cellgrid,
+             0 * unyt.Myr,
+             False,
+             delta_logT_min=-1.0,
+             delta_logT_max=0.3,
+         )
+
+    @staticmethod
+    def get_cold_dense_gas_filter():
+        return ColdDenseGasFilter(
+            3.16e4 * unyt.K,
+            0.1 / unyt.cm ** 3,
+            True,
+        )
 
     @staticmethod
     def get_halo_result_template(particle_numbers):
@@ -1143,6 +1164,18 @@ class DummyHaloGenerator:
                 0.1 * np.random.random(Nbh),
                 dtype=np.float32,
                 units="snap_mass/snap_time",
+                registry=reg,
+            )
+            data["PartType5"]["AveragedAccretionRates"] = unyt.unyt_array(
+                0.1 * np.random.random((Nbh, 2)),
+                dtype=np.float32,
+                units="snap_mass/snap_time",
+                registry=reg,
+            )
+            data["PartType5"]["AGNTotalInjectedEnergies"] = unyt.unyt_array(
+                1e5 * np.random.random(Nbh),
+                dtype=np.float32,
+                units="snap_mass*snap_length**2/snap_time**2",
                 registry=reg,
             )
             data["PartType5"]["Coordinates"] = coords[bh_mask]

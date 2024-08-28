@@ -465,6 +465,17 @@ class SingleProjectionProjectedApertureParticleData:
         return np.max(self.agn_eventa)
 
     @lazy_property
+    def BlackHolesTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total energy injected into gas particles by all BH particles.
+        """
+        if self.Nbh == 0:
+            return None
+        return np.sum(self.part_props.get_dataset("PartType5/AGNTotalInjectedEnergies")[
+            self.bh_mask_all
+        ][self.bh_mask_ap])
+
+    @lazy_property
     def iBHmax(self) -> int:
         """
         Index of the most massive BH particle (largest sub-grid mass).
@@ -523,6 +534,29 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Nbh == 0:
             return None
         return self.part_props.get_dataset("PartType5/AccretionRates")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
+
+    @lazy_property
+    def MostMassiveBlackHoleAveragedAccretionRate(self) -> unyt.unyt_quantity:
+        """
+        Averaged accretion rate of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.part_props.get_dataset("PartType5/AveragedAccretionRates")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
+
+    @lazy_property
+    def MostMassiveBlackHoleTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total energy injected into gas particles by the most massive
+        BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.part_props.get_dataset("PartType5/AGNTotalInjectedEnergies")[
             self.bh_mask_all
         ][self.bh_mask_ap][self.iBHmax]
 
@@ -1188,12 +1222,16 @@ class ProjectedApertureProperties(HaloProperty):
             "proj_veldisp_gas",
             "proj_veldisp_dm",
             "proj_veldisp_star",
+            "BHmaxAR",
             "BHmaxM",
             "BHmaxID",
             "BHmaxpos",
             "BHmaxvel",
             "BHlasteventa",
             "BHmaxlasteventa",
+            "BlackHolesTotalInjectedEnergy",
+            "MostMassiveBlackHoleAveragedAccretionRate",
+            "MostMassiveBlackHoleTotalInjectedEnergy",
             "ProjectedTotalInertiaTensor",
             "ProjectedGasInertiaTensor",
             "ProjectedStellarInertiaTensor",

@@ -490,6 +490,17 @@ class SubhaloParticleData:
         return self.get_dataset("PartType5/SubgridMasses")[self.bh_mask_all]
 
     @lazy_property
+    def BlackHolesTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total energy injected into gas particles by all BH particles.
+        """
+        if self.Nbh == 0:
+            return None
+        return np.sum(self.get_dataset("PartType5/AGNTotalInjectedEnergies")[
+            self.bh_mask_all
+        ])
+
+    @lazy_property
     def iBHmax(self) -> int:
         """
         Index of the most massive BH particle (largest sub-grid mass).
@@ -542,6 +553,29 @@ class SubhaloParticleData:
         if self.Nbh == 0:
             return None
         return self.get_dataset("PartType5/AccretionRates")[self.bh_mask_all][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleAveragedAccretionRate(self) -> unyt.unyt_quantity:
+        """
+        Averaged accretion rate of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AveragedAccretionRates")[self.bh_mask_all][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total energy injected into gas particles by the most massive
+        BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AGNTotalInjectedEnergies")[self.bh_mask_all][
             self.iBHmax
         ]
 
@@ -1579,6 +1613,9 @@ class SubhaloProperties(HaloProperty):
             "BHmaxvel",
             "BHmaxAR",
             "BHmaxlasteventa",
+            "BlackHolesTotalInjectedEnergy",
+            "MostMassiveBlackHoleAveragedAccretionRate",
+            "MostMassiveBlackHoleTotalInjectedEnergy",
             "com",
             "vcom",
             "Lgas",
@@ -1907,7 +1944,7 @@ def test_subhalo_properties():
         {"FOF": {"bound_only": False}, "Bound": {"bound_only": True}},
     )
 
-    recently_heated_gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    recently_heated_gas_filter = dummy_halos.get_recently_heated_gas_filter()
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())
 
     property_calculator_bound = SubhaloProperties(
