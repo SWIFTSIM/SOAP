@@ -3829,7 +3829,15 @@ class PropertyTable:
         Add all the properties calculated for a particular halo type to the
         internal dictionary.
         """
+        # Get the property_mask dict, which says whether a property should be included
         props = halo_property.property_list
+        base_halo_type = halo_type
+        if halo_type in ['ExclusiveSphereProperties', 'InclusiveSphereProperties']:
+            base_halo_type = 'ApertureProperties'
+        property_mask = self.parameters.get_property_mask(base_halo_type, [prop[1] for prop in props])
+
+        # Loop through all possible properties for this halo type and add them to the
+        # table, skipping those that we shouldn't calculate according to the parameter file
         for (
             i,
             (
@@ -3847,22 +3855,8 @@ class PropertyTable:
                 prop_a_exponent,
             ),
         ) in enumerate(props):
-            # Don't include property if it's set to false in parameter file
-            # Do include property if it isn't defined in parameter file
-            try:
-                base_halo_type = halo_type
-                if halo_type in ['ExclusiveSphereProperties', 'InclusiveSphereProperties']:
-                    base_halo_type = 'ApertureProperties'
-                parameter_file_properties = self.parameters[base_halo_type][
-                    "properties"
-                ]
-                # Whether to include properties missing from parameter file
-                calculations = self.parameters.get("calculations", {})
-                default = calculations.get("calculate_missing_properties", True)
-                if not parameter_file_properties.get(prop_outputname, default):
-                    continue
-            except KeyError:
-                pass
+            if not property_mask[prop_outputname]:
+                continue
 
             units = unyt.unyt_quantity(1, units=prop_units)
             if not prop_physical:
@@ -4073,7 +4067,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
 
         # Particle limits for each filter
         with open(f"{output_dir}/filters.tex", "w") as ofile:
-            for name, filter_info in parameters['filters'].items():
+            for name, filter_info in self.parameters.parameters['filters'].items():
                 value = filter_info['limit']
                 ofile.write(f'\\newcommand{{\\{name.lower()}filter}}{{{value}}}\n')
 
@@ -4084,7 +4078,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
 \\hline
 \\verb+BoundSubhalo+ & \\verb+bound_subhalo+ & \\ding{53} & - \\\\*\n"""
         # Add SO apertures to table
-        apertures = parameters.get('SOProperties', {})
+        apertures = self.parameters.parameters.get('SOProperties', {})
         for _, variation in apertures.get('variations', {}).items():
             name = ''
             if 'radius_multiple' in variation:
@@ -4098,7 +4092,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             tablestr += f'\\verb+SO/{name}+ & \\verb+spherical_overdensity_{name.lower()}+& \\ding{{51}} & {filter} \\\\*\n'
         # Determine which ExclusiveSphere and InclusiveSphere apertures are present
         variations_ES, variations_IS = {}, {}
-        apertures = parameters.get('ApertureProperties', {})
+        apertures = self.parameters.parameters.get('ApertureProperties', {})
         for _, variation in apertures.get('variations', {}).items():
             if variation['inclusive']:
                 variations_IS[int(variation['radius_in_kpc'])] = variation.get('filter', 'basic')
@@ -4114,7 +4108,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             tablestr += f'\\verb+InclusiveSphere/{radius}kpc+ & \\verb+inclusive_sphere_{radius}kpc+ & \\ding{{51}} & {filter} \\\\*\n'
         # Determine which projected apertures are present
         variations_proj = {}
-        apertures = parameters.get('ProjectedApertureProperties', {})
+        apertures = self.parameters.parameters.get('ProjectedApertureProperties', {})
         for _, variation in apertures.get('variations', {}).items():
             variations_proj[int(variation['radius_in_kpc'])] = variation.get('filter', 'basic')
         # Add ProjectedApertures to table in sorted order
@@ -4124,7 +4118,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         # Add others groups
         tablestr += f'\\verb+SOAP+ & \\verb+soap+ & - & - \\\\*\n'
         tablestr += f'\\verb+InputHalos+ & \\verb+input_halos+ & - & - \\\\*\n'
-        halo_finder = parameters['HaloFinder']['type']
+        halo_finder = self.parameters.parameters['HaloFinder']['type']
         tablestr += f'\\verb+InputHalos/{halo_finder}+ & \\verb+input_halos_{halo_finder.lower()}+ & - & - \\\\*\n'
         if halo_finder == 'HBTplus':
             tablestr += f'\\verb+InputHalos/FOF+ & \\verb+input_halos_fof+ & - & - \\\\*\n'
@@ -4175,9 +4169,9 @@ if __name__ == "__main__":
 
     # Parse parameter file
     try:
-        parameters = ParameterFile(sys.argv[1]).parameters
+        parameters = ParameterFile(file_name=sys.argv[1])
     except IndexError:
-        print("No parameter file passed.")
+        print("A valid parameter file was not passed.")
         exit()
 
     # Parse snapshot file to extract base units
@@ -4220,14 +4214,14 @@ if __name__ == "__main__":
     table.add_properties(InclusiveSphereProperties, "InclusiveSphereProperties")
     table.add_properties(ProjectedApertureProperties, "ProjectedApertureProperties")
     # Decide whether to add core excised properties
-    for _, variation in parameters['SOProperties']['variations'].items():
+    for _, variation in parameters.parameters['SOProperties']['variations'].items():
         if variation.get('core_excision_fraction', 0):
             table.add_properties(CoreExcisedSOProperties, "SOProperties")
             break
     else:
         table.add_properties(SOProperties, "SOProperties")
     # Add InputHalos and SOAP properties
-    table.add_properties(DummyProperties(parameters['HaloFinder']['type']), "")
+    table.add_properties(DummyProperties(parameters.parameters['HaloFinder']['type']), "")
 
     table.generate_tex_files("documentation")
 

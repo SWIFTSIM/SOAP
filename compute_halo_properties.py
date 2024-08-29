@@ -131,7 +131,7 @@ def compute_halo_properties():
 
     # Process parameter file
     if comm_world_rank == 0:
-        parameter_file = ParameterFile(args.config_filename)
+        parameter_file = ParameterFile(file_name=args.config_filename, snipshot=args.snipshot)
     else:
         parameter_file = None
     parameter_file = comm_world.bcast(parameter_file)
@@ -404,6 +404,8 @@ def compute_halo_properties():
             print("for central halos only")
         else:
             print("for central and satellite halos")
+        if args.snipshot:
+            print('Running in snipshot mode')
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties()
         if parameter_file.recalculate_xrays():
