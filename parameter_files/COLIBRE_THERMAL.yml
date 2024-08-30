@@ -199,6 +199,19 @@ ApertureProperties:
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
     MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: false
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: false
+    MostMassiveBlackHoleLastJetEventScalefactor: false
+    MostMassiveBlackHoleNumberOfAGNJetEvents: false
+    MostMassiveBlackHoleNumberOfMergers: false
+    MostMassiveBlackHoleRadiatedEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMassesByMode: false
+    MostMassiveBlackHoleWindEnergyByMode: false
+    MostMassiveBlackHoleSpin: false
+    MostMassiveBlackHoleTotalAccretedMass: true
+    MostMassiveBlackHoleFormationScalefactor: true
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
@@ -340,9 +353,7 @@ ProjectedApertureProperties:
     MolecularHydrogenMass:
       snapshot: true
       snipshot: false
-    MostMassiveBlackHoleAccretionRate:
-      snapshot: true
-      snipshot: false
+    MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
@@ -350,6 +361,19 @@ ProjectedApertureProperties:
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
     MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: false
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: false
+    MostMassiveBlackHoleLastJetEventScalefactor: false
+    MostMassiveBlackHoleNumberOfAGNJetEvents: false
+    MostMassiveBlackHoleNumberOfMergers: false
+    MostMassiveBlackHoleRadiatedEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMassesByMode: false
+    MostMassiveBlackHoleWindEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMass: true
+    MostMassiveBlackHoleFormationScalefactor: true
+    MostMassiveBlackHoleSpin: false
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
@@ -452,6 +476,19 @@ SOProperties:
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
     MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: false
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: false
+    MostMassiveBlackHoleLastJetEventScalefactor: false
+    MostMassiveBlackHoleNumberOfAGNJetEvents: false
+    MostMassiveBlackHoleNumberOfMergers: false
+    MostMassiveBlackHoleRadiatedEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMassesByMode: false
+    MostMassiveBlackHoleWindEnergyByMode: false
+    MostMassiveBlackHoleSpin: false
+    MostMassiveBlackHoleTotalAccretedMass: true
+    MostMassiveBlackHoleFormationScalefactor: true
     NoiseSuppressedNeutrinoMass: false
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
@@ -613,6 +650,19 @@ SubhaloProperties:
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
     MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: false
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: false
+    MostMassiveBlackHoleLastJetEventScalefactor: false
+    MostMassiveBlackHoleNumberOfAGNJetEvents: false
+    MostMassiveBlackHoleNumberOfMergers: false
+    MostMassiveBlackHoleRadiatedEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMassesByMode: false
+    MostMassiveBlackHoleWindEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMass: true
+    MostMassiveBlackHoleFormationScalefactor: true
+    MostMassiveBlackHoleSpin: false
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true

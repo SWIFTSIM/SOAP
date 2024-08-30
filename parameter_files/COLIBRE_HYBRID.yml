@@ -199,6 +199,19 @@ ApertureProperties:
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
     MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: true
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: true
+    MostMassiveBlackHoleLastJetEventScalefactor: true
+    MostMassiveBlackHoleNumberOfAGNJetEvents: true
+    MostMassiveBlackHoleNumberOfMergers: true
+    MostMassiveBlackHoleRadiatedEnergyByMode: true
+    MostMassiveBlackHoleTotalAccretedMassesByMode: true
+    MostMassiveBlackHoleWindEnergyByMode: true
+    MostMassiveBlackHoleTotalAccretedMass: false
+    MostMassiveBlackHoleFormationScalefactor: true
+    MostMassiveBlackHoleSpin: true
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
@@ -340,9 +353,7 @@ ProjectedApertureProperties:
     MolecularHydrogenMass:
       snapshot: true
       snipshot: false
-    MostMassiveBlackHoleAccretionRate:
-      snapshot: true
-      snipshot: false
+    MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
@@ -350,6 +361,19 @@ ProjectedApertureProperties:
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
     MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: true
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: true
+    MostMassiveBlackHoleLastJetEventScalefactor: true
+    MostMassiveBlackHoleNumberOfAGNJetEvents: true
+    MostMassiveBlackHoleNumberOfMergers: true
+    MostMassiveBlackHoleRadiatedEnergyByMode: true
+    MostMassiveBlackHoleTotalAccretedMassesByMode: true
+    MostMassiveBlackHoleWindEnergyByMode: true
+    MostMassiveBlackHoleTotalAccretedMass: false
+    MostMassiveBlackHoleFormationScalefactor: true
+    MostMassiveBlackHoleSpin: true
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
@@ -452,6 +476,19 @@ SOProperties:
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
     MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: true
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: true
+    MostMassiveBlackHoleLastJetEventScalefactor: true
+    MostMassiveBlackHoleNumberOfAGNJetEvents: true
+    MostMassiveBlackHoleNumberOfMergers: true
+    MostMassiveBlackHoleRadiatedEnergyByMode: true
+    MostMassiveBlackHoleTotalAccretedMassesByMode: true
+    MostMassiveBlackHoleWindEnergyByMode: true
+    MostMassiveBlackHoleTotalAccretedMass: false
+    MostMassiveBlackHoleFormationScalefactor: true
+    MostMassiveBlackHoleSpin: true
     NoiseSuppressedNeutrinoMass: false
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
@@ -613,6 +650,19 @@ SubhaloProperties:
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
     MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: true
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: true
+    MostMassiveBlackHoleLastJetEventScalefactor: true
+    MostMassiveBlackHoleNumberOfAGNJetEvents: true
+    MostMassiveBlackHoleNumberOfMergers: true
+    MostMassiveBlackHoleRadiatedEnergyByMode: true
+    MostMassiveBlackHoleTotalAccretedMassesByMode: true
+    MostMassiveBlackHoleWindEnergyByMode: true
+    MostMassiveBlackHoleTotalAccretedMass: false
+    MostMassiveBlackHoleFormationScalefactor: true
+    MostMassiveBlackHoleSpin: true
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true

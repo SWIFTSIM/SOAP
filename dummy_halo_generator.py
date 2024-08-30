@@ -210,6 +210,19 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "AccretionRates",
                 "AveragedAccretionRates",
                 "AGNTotalInjectedEnergies",
+                "AccretionModes",
+                "GWMassLosses",
+                "InjectedJetEnergiesByMode",
+                "LastAGNJetScaleFactors",
+                "FormationScaleFactors",
+                "NumberOfAGNEvents",
+                "NumberOfAGNJetEvents",
+                "NumberOfMergers",
+                "RadiatedEnergiesByMode",
+                "TotalAccretedMassesByMode",
+                "TotalAccretedMasses",
+                "Spins",
+                "WindEnergiesByMode",
             ],
             "PartType6": ["Coordinates", "Masses", "Weights"],
         }
@@ -1178,12 +1191,90 @@ class DummyHaloGenerator:
                 units="snap_mass*snap_length**2/snap_time**2",
                 registry=reg,
             )
+            data["PartType5"]["InjectedJetEnergiesByMode"] = unyt.unyt_array(
+                1e5 * np.random.random(size=(Nbh, 3)),
+                dtype=np.float32,
+                units="snap_mass*snap_length**2/snap_time**2",
+                registry=reg,
+            )
+            data["PartType5"]["RadiatedEnergiesByMode"] = unyt.unyt_array(
+                1e5 * np.random.random(size=(Nbh, 3)),
+                dtype=np.float32,
+                units="snap_mass*snap_length**2/snap_time**2",
+                registry=reg,
+            )
+            data["PartType5"]["WindEnergiesByMode"] = unyt.unyt_array(
+                1e5 * np.random.random(size=(Nbh, 3)),
+                dtype=np.float32,
+                units="snap_mass*snap_length**2/snap_time**2",
+                registry=reg,
+            )
+            data["PartType5"]["GWMassLosses"] = unyt.unyt_array(
+                1 * np.random.random(Nbh),
+                dtype=np.float32,
+                units="snap_mass",
+                registry=reg,
+            )
+            data["PartType5"]["TotalAccretedMasses"] = unyt.unyt_array(
+                1 * np.random.random(Nbh),
+                dtype=np.float32,
+                units="snap_mass",
+                registry=reg,
+            )
+            data["PartType5"]["TotalAccretedMassesByMode"] = unyt.unyt_array(
+                1 * np.random.random(size=(Nbh, 3)),
+                dtype=np.float32,
+                units="snap_mass",
+                registry=reg,
+            )
+            data["PartType5"]["NumberOfAGNEvents"] = unyt.unyt_array(
+                np.random.randint(100, size=Nbh),
+                dtype=np.float32,
+                units="dimensionless",
+                registry=reg,
+            )
+            data["PartType5"]["NumberOfAGNJetEvents"] = unyt.unyt_array(
+                np.random.randint(100, size=Nbh),
+                dtype=np.float32,
+                units="dimensionless",
+                registry=reg,
+            )
+            data["PartType5"]["NumberOfMergers"] = unyt.unyt_array(
+                np.random.randint(100, size=Nbh),
+                dtype=np.float32,
+                units="dimensionless",
+                registry=reg,
+            )
+            data["PartType5"]["Spins"] = unyt.unyt_array(
+                np.random.random(Nbh),
+                dtype=np.float32,
+                units="dimensionless",
+                registry=reg,
+            )
+            data["PartType5"]["AccretionModes"] = unyt.unyt_array(
+                np.random.randint(3, size=Nbh),
+                dtype=np.float32,
+                units="dimensionless",
+                registry=reg,
+            )
             data["PartType5"]["Coordinates"] = coords[bh_mask]
             data["PartType5"]["DynamicalMasses"] = mass[bh_mask]
             Mtot += data["PartType5"]["DynamicalMasses"].sum()
             data["PartType5"]["GroupNr_all"] = groupnr_all[bh_mask]
             data["PartType5"]["GroupNr_bound"] = groupnr_bound[bh_mask]
             data["PartType5"]["FOFGroupIDs"] = fof_group_ids[bh_mask]
+            data["PartType5"]["FormationScaleFactors"] = unyt.unyt_array(
+                1.0 / 1.1 + 0.01 * np.random.random(Nbh),
+                dtype=np.float32,
+                units=unyt.dimensionless,
+                registry=reg,
+            )
+            data["PartType5"]["LastAGNJetScaleFactors"] = unyt.unyt_array(
+                1.0 / 1.1 + 0.01 * np.random.random(Nbh),
+                dtype=np.float32,
+                units=unyt.dimensionless,
+                registry=reg,
+            )
             data["PartType5"]["LastAGNFeedbackScaleFactors"] = unyt.unyt_array(
                 1.0 / 1.1 + 0.01 * np.random.random(Nbh),
                 dtype=np.float32,
