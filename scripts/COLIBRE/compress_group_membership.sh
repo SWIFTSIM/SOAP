@@ -4,43 +4,44 @@
 #
 # Output locations are specified by enviroment variables. E.g.
 #
-# export FLAMINGO_SCRATCH_DIR=/snap8/scratch/dp004/${USER}/FLAMINGO/ScienceRuns/
-# export FLAMINGO_OUTPUT_DIR=/cosma8/data/dp004/${USER}/FLAMINGO/ScienceRuns/
+# export COLIBRE_SCRATCH_DIR=/snap8/scratch/dp004/${USER}/COLIBRE/ScienceRuns/
+# export COLIBRE_OUTPUT_DIR=/cosma8/data/dp004/${USER}/COLIBRE/ScienceRuns/
 #
 # To run:
 #
 # cd SOAP
 # mkdir logs
-# sbatch -J HYDRO_FIDUCIAL --array=0-78%4 ./scripts/FLAMINGO/L2800N5040/compress_group_membership_L2800N5040.sh
+# sbatch -J L0025N0376/Thermal_fiducial --array=0-127%4 ./scripts/COLIBRE/compress_group_membership.sh
 #
 #SBATCH --ntasks=128
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/compress_membership_L2800N5040_%x.%a.out
+#SBATCH -o ./logs/compress_membership.%a.%j.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
 #SBATCH --no-requeue
-#SBATCH -t 12:00:00
+#SBATCH -t 00:30:00
 #
 
+set -e
+
 module purge
-module load intel_comp/2018
-module load hdf5
-module load gnu-parallel
+module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
+source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Get location for temporary output
-if [[ "${FLAMINGO_SCRATCH_DIR}" ]] ; then
-  scratch_dir="${FLAMINGO_SCRATCH_DIR}"
+if [[ "${COLIBRE_SCRATCH_DIR}" ]] ; then
+  scratch_dir="${COLIBRE_SCRATCH_DIR}"
 else
-  echo Please set FLAMINGO_SCRATCH_DIR
+  echo Please set COLIBRE_SCRATCH_DIR
   exit 1
 fi
 
 # Get location for final output
-if [[ "${FLAMINGO_OUTPUT_DIR}" ]] ; then
-  output_dir="${FLAMINGO_OUTPUT_DIR}"
+if [[ "${COLIBRE_OUTPUT_DIR}" ]] ; then
+  output_dir="${COLIBRE_OUTPUT_DIR}"
 else
-  echo Please set FLAMINGO_OUTPUT_DIR
+  echo Please set COLIBRE_OUTPUT_DIR
   exit 1
 fi
 
@@ -48,10 +49,10 @@ fi
 snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 
 # Which simulation to do
-sim="L2800N5040/${SLURM_JOB_NAME}"
+sim="${SLURM_JOB_NAME}"
 
 # Location of the input to compress
-inbase="${scratch_dir}/${sim}/SOAP_uncompressed/"
+inbase="${scratch_dir}/${sim}/SOAP/SOAP_uncompressed/"
 
 # Location of the compressed output
 outbase="${output_dir}/${sim}/SOAP/"
@@ -80,11 +81,17 @@ echo Compressing ${nr_files} group membership files
 echo Source     : ${input_filename}
 echo Destination: ${output_filename}
 
-seq 0 ${nr_files_minus_one} | parallel -j 32 \
-  h5repack \
-    -i "${input_filename}.{}.hdf5" \
-    -o "${output_filename}.{}.hdf5" \
-    -l CHUNK=10000 -f GZIP=9
+seq 0 ${nr_files_minus_one} | xargs -I {} -P 32 bash -c \
+  "h5repack -i ${input_filename}.{}.hdf5 -o ${output_filename}.{}.hdf5 -l CHUNK=10000 -f GZIP=4"
 
-echo Done.
+echo "Setting files to be read-only"
+chmod a=r "${output_filename}"*
+
+echo "Creating virtual snapshot"
+snapshot="${output_dir}/${sim}/colibre_${snapnum}/colibre_${snapnum}.hdf5"
+membership="${output_filename}.{file_nr}.hdf5"
+virtual="${outbase}/membership_${snapnum}/colibre_${snapnum}.hdf5"
+python make_virtual_snapshot.py $snapshot $membership $virtual
+
+echo "Job complete!"
 

@@ -12,24 +12,17 @@ comm_world_size = comm_world.Get_size()
 
 import os
 import os.path
-import sys
-import traceback
 import time
 import numpy as np
-import h5py
 import unyt
 
-import virgo.mpi.parallel_hdf5 as phdf5
-import virgo.mpi.parallel_sort as psort
 
 import halo_centres
 import swift_cells
 import chunk_tasks
-import swift_units
-import halo_properties
 import task_queue
 import lustre
-import command_line_args
+import soap_args
 import SO_properties
 import subhalo_properties
 import aperture_properties
@@ -74,12 +67,11 @@ def get_rank_and_size(comm):
 def compute_halo_properties():
 
     # Read command line parameters
-    args = command_line_args.get_halo_props_args(comm_world)
+    args = soap_args.get_soap_args(comm_world)
 
     # Enable profiling, if requested
     if args.profile == 2 or (args.profile == 1 and comm_world_rank == 0):
         import cProfile, pstats, io
-
         pr = cProfile.Profile()
         pr.enable()
 
@@ -105,7 +97,11 @@ def compute_halo_properties():
             "Number of MPI ranks per node reading snapshots: %d"
             % args.max_ranks_reading
         )
-
+        print("Halo format is %s" % args.halo_format)
+        print("Halo basename is %s" % args.halo_basename)
+        print("Output file is %s" % args.output_file)
+        print("Snapshot number is %d" % args.snapshot_nr)
+        
     # Open the snapshot and read SWIFT cell structure, units etc
     if comm_world_rank == 0:
         swift_filename = sub_snapnum(args.swift_filename, args.snapshot_nr)
@@ -135,7 +131,7 @@ def compute_halo_properties():
 
     # Process parameter file
     if comm_world_rank == 0:
-        parameter_file = ParameterFile(args.parameters)
+        parameter_file = ParameterFile(args.config_filename)
     else:
         parameter_file = None
     parameter_file = comm_world.bcast(parameter_file)
@@ -144,36 +140,94 @@ def compute_halo_properties():
         parameter_file.get_defined_constants()
     )
 
+    recently_heated_params = args.calculations["recently_heated_gas_filter"]
+    if (not args.dmo) and (recently_heated_params['use_AGN_delta_T']):
+        assert cellgrid.AGN_delta_T.value != 0, "Invalid value for AGN_delta_T"
     recently_heated_gas_filter = RecentlyHeatedGasFilter(
         cellgrid,
-        delta_time=15.0 * unyt.Myr,
+        float(recently_heated_params['delta_time_myr']) * unyt.Myr,
+        float(recently_heated_params['use_AGN_delta_T']),
         delta_logT_min=-1.0,
         delta_logT_max=0.3,
-        AGN_delta_T=8.80144197177e7 * unyt.K,
     )
 
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
-    cold_dense_gas_filter = ColdDenseGasFilter(10.0 ** 4.5 * unyt.K, 0.1 / unyt.cm ** 3)
+
+    # Try to load parameters for ColdDenseGasFilter. If a property that uses the
+    # filter is calculated when the parameters could not be found, the code will
+    # crash.
+    try:
+        cold_dense_params = args.calculations["cold_dense_gas_filter"]
+        cold_dense_gas_filter = ColdDenseGasFilter(
+            float(cold_dense_params['maximum_temperature_K']) * unyt.K,
+            float(cold_dense_params['minimum_hydrogen_number_density_cm3']) / unyt.cm ** 3,
+            True,
+        )
+    except KeyError:
+        cold_dense_gas_filter = ColdDenseGasFilter(
+            0 * unyt.K,
+            0 / unyt.cm ** 3,
+            False,
+        )
+
+    default_filters = {
+        'general': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfDarkMatterParticles',
+                    'BoundSubhalo/NumberOfGasParticles',
+                    'BoundSubhalo/NumberOfStarParticles',
+                    'BoundSubhalo/NumberOfBlackHoleParticles',
+                 ],
+                'combine_properties': 'sum'
+             },
+        'dm': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfDarkMatterParticles',
+                 ],
+             },
+        'gas': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfGasParticles',
+                 ],
+             },
+        'star': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfStarParticles',
+                 ],
+             },
+        'baryon': {
+                'limit': 100,
+                'properties': [
+                    'BoundSubhalo/NumberOfGasParticles',
+                    'BoundSubhalo/NumberOfStarParticles',
+                 ],
+                'combine_properties': 'sum'
+             },
+    }
     category_filter = CategoryFilter(
-        parameter_file.get_filter_values(
-            {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
+        parameter_file.get_filters(
+            default_filters
         ),
         dmo=args.dmo,
     )
 
     # Get the full list of property calculations we can do
-    # Note that the order matters: we need to do the FOFSubhaloProperties first,
+    # Note that the order matters: we need to do the BoundSubhalo first,
     # since quantities are filtered based on the particle numbers in there
     # Similarly, things like SO 5xR500_crit can only be done after
     # SO 500_crit for obvious reasons
     halo_prop_list = []
+    # Make sure BoundSubhalo is always first, since it's used for filters
     subhalo_variations = parameter_file.get_halo_type_variations(
         "SubhaloProperties",
-        {"FOF": {"bound_only": False}, "Bound": {"bound_only": True}},
+        {"Bound": {"bound_only": True}},
     )
-    # make sure FOFSubhaloProperties is always first and is present
     for variation in subhalo_variations:
-        if not subhalo_variations[variation]["bound_only"]:
+        if subhalo_variations[variation]["bound_only"]:
             halo_prop_list.append(
                 subhalo_properties.SubhaloProperties(
                     cellgrid,
@@ -184,9 +238,10 @@ def compute_halo_properties():
                     bound_only=subhalo_variations[variation]["bound_only"],
                 )
             )
-    assert len(halo_prop_list) > 0
+    assert len(halo_prop_list) > 0, 'BoundSubhalo must be calculated'
+    # Adding FOFSubhaloProperties if present
     for variation in subhalo_variations:
-        if subhalo_variations[variation]["bound_only"]:
+        if not subhalo_variations[variation]["bound_only"]:
             halo_prop_list.append(
                 subhalo_properties.SubhaloProperties(
                     cellgrid,
@@ -227,6 +282,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
+                    SO_variations[variation].get('filter', 'basic'),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["type"],
                     core_excision_fraction=SO_variations[variation][
@@ -241,6 +297,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
+                    SO_variations[variation].get('filter', 'basic'),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["type"],
                 )
@@ -257,6 +314,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
+                    SO_variations[variation].get('filter', 'basic'),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["radius_multiple"],
                     SO_variations[variation]["type"],
@@ -295,6 +353,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
+                    aperture_variations[variation].get('filter', 'basic')
                 )
             )
         else:
@@ -307,6 +366,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
+                    aperture_variations[variation].get('filter', 'basic')
                 )
             )
     projected_aperture_variations = parameter_file.get_halo_type_variations(
@@ -325,23 +385,12 @@ def compute_halo_properties():
                 parameter_file,
                 projected_aperture_variations[variation]["radius_in_kpc"],
                 category_filter,
+                projected_aperture_variations[variation].get('filter', 'basic')
             )
         )
 
     if comm_world_rank == 0 and args.output_parameters:
         parameter_file.write_parameters(args.output_parameters)
-
-    # Determine which calculations we're doing this time
-    if args.calculations is not None:
-
-        # Check we recognise all the names specified on the command line
-        all_names = [hp.name for hp in halo_prop_list]
-        for calc in args.calculations:
-            if calc not in all_names:
-                raise Exception("Don't recognise calculation name: %s" % calc)
-
-        # Filter out calculations which were not selected
-        halo_prop_list = [hp for hp in halo_prop_list if hp.name in args.calculations]
 
     if len(halo_prop_list) < 1:
         raise Exception("Must select at least one halo property calculation!")
@@ -356,8 +405,10 @@ def compute_halo_properties():
         else:
             print("for central and satellite halos")
         parameter_file.print_unregistered_properties()
+        parameter_file.print_invalid_properties()
         if parameter_file.recalculate_xrays():
-            print("Recalculating xray properties")
+            print(f"Recalculating xray properties using table: {parameter_file.get_xray_table_path()}")
+        category_filter.print_filters()
 
     # Ensure output dir exists
     if comm_world_rank == 0:
@@ -365,7 +416,6 @@ def compute_halo_properties():
     comm_world.barrier()
 
     if comm_world_rank == 0:
-        table_path = "/cosma8/data/dp004/flamingo/Tables/Xray/X_Ray_table_new_redshift_restframe.hdf5"
         xray_bands = [
             "erosita-low",
             "erosita-high",
@@ -396,7 +446,7 @@ def compute_halo_properties():
         ]
         xray_calculator = XrayCalculator(
             cellgrid.z,
-            table_path,
+            parameter_file.get_xray_table_path(),
             xray_bands,
             observing_types,
             parameter_file.recalculate_xrays(),
@@ -407,43 +457,38 @@ def compute_halo_properties():
 
     # Read in the halo catalogue:
     # All ranks read the file(s) in then gather to rank 0. Also computes search radius for each halo.
-    vr_basename = sub_snapnum(args.vr_basename, args.snapshot_nr)
+    halo_basename = sub_snapnum(args.halo_basename, args.snapshot_nr)
     so_cat = halo_centres.SOCatalogue(
         comm_world,
-        vr_basename,
+        halo_basename,
+        args.halo_format,
         cellgrid.a_unit,
         cellgrid.snap_unit_registry,
         cellgrid.boxsize,
-        args.max_halos[0],
+        args.max_halos,
         args.centrals_only,
-        args.halo_ids,
+        args.halo_indices,
         halo_prop_list,
         args.chunks,
+        args.min_read_radius_cmpc,
     )
-
+    so_cat.start_request_thread()
+    
     # Generate the chunk task list
+    nr_chunks = so_cat.nr_chunks
     if comm_world_rank == 0:
-        task_list = chunk_tasks.ChunkTaskList(
-            cellgrid, so_cat, halo_prop_list=halo_prop_list
-        )
-        tasks = task_list.tasks
-        nr_chunks = len(tasks)
+        tasks = [chunk_tasks.ChunkTask(halo_prop_list, chunk_nr, nr_chunks) for chunk_nr in range(nr_chunks)]
     else:
         tasks = None
-        nr_chunks = None
-    nr_chunks = comm_world.bcast(nr_chunks)
 
     # Report initial set-up time
     comm_world.barrier()
     t1 = time.time()
     if comm_world_rank == 0:
         print(
-            "Reading %d VR halos and setting up %d chunk(s) took %.1fs"
+            "Reading %d input halos and setting up %d chunk(s) took %.1fs"
             % (so_cat.nr_halos, len(tasks), t1 - t0)
         )
-
-    # We no longer need the VR catalogue, since halo centres etc are stored in the chunk tasks
-    del so_cat
 
     # Make a format string to generate the name of the file each chunk task will write to
     scratch_file_format = (
@@ -469,6 +514,7 @@ def compute_halo_properties():
     timings = []
     task_args = (
         cellgrid,
+        so_cat,
         comm_intra_node,
         inter_node_rank,
         timings,
@@ -482,26 +528,28 @@ def compute_halo_properties():
         comm_all=comm_world,
         comm_master=comm_inter_node,
         comm_workers=comm_intra_node,
-        task_type=chunk_tasks.ChunkTask,
     )
 
+    # Can stop the halo request thread now that all chunk tasks have executed
+    so_cat.stop_request_thread()
+    
     # Check metadata for consistency between chunks. Sets ref_metadata on all ranks,
     # including those that processed no halos.
     ref_metadata = result_set.check_metadata(metadata, comm_inter_node, comm_world)
 
     # Combine chunks into a single output file
-    with MPITimer("Sorting %d halo properties" % len(ref_metadata), comm_world):
-        combine_chunks(
-            args,
-            cellgrid,
-            halo_prop_list,
-            scratch_file_format,
-            ref_metadata,
-            nr_chunks,
-            comm_world,
-            category_filter,
-            recently_heated_gas_filter,
-        )
+    combine_chunks(
+        args,
+        cellgrid,
+        halo_prop_list,
+        scratch_file_format,
+        ref_metadata,
+        nr_chunks,
+        comm_world,
+        category_filter,
+        recently_heated_gas_filter,
+        cold_dense_gas_filter,
+    )
 
     # Delete scratch files
     comm_world.barrier()
@@ -547,24 +595,4 @@ def compute_halo_properties():
 
 if __name__ == "__main__":
 
-    try:
-        compute_halo_properties()
-    except SystemExit as e:
-        # Handle sys.exit()
-        comm_world.Abort(e.code)
-    except KeyboardInterrupt:
-        # Handle kill signal (e.g. ctrl-c if interactive)
-        comm_world.Abort()
-    except Exception as e:
-        # Uncaught exception. Print stack trace and exit.
-        sys.stderr.write(
-            "\n\n*** EXCEPTION ***\n"
-            + str(e)
-            + " on rank "
-            + str(comm_world_rank)
-            + "\n\n"
-        )
-        traceback.print_exc(file=sys.stderr)
-        sys.stderr.write("\n\n")
-        sys.stderr.flush()
-        comm_world.Abort()
+    compute_halo_properties()

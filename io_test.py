@@ -12,15 +12,16 @@ comm_size = comm.Get_size()
 
 import swift_cells
 import shared_mesh
+import pytest
 
-
-def io_test():
+@pytest.mark.mpi
+def test_io():
 
     comm.barrier()
     t0 = time.time()
 
     # Open the snapshot
-    fname = "/cosma8/data/dp004/flamingo/Runs/L1000N0900/HYDRO_FIDUCIAL/snapshots/flamingo_0037/flamingo_0037.%(file_nr)d.hdf5"
+    fname = "/cosma8/data/dp004/flamingo/Runs/L1000N0900/HYDRO_FIDUCIAL/snapshots/flamingo_0037/flamingo_0037.{file_nr}.hdf5"
     try:
         cellgrid = swift_cells.SWIFTCellGrid(fname)
     except FileNotFoundError:
@@ -77,7 +78,7 @@ def io_test():
         # Try selecting a sphere
         centre = np.asarray((30, 30, 30)) * cellgrid.get_unit("snap_length")
         radius = 10 * cellgrid.get_unit("snap_length")
-        idx = mesh.query_radius_periodic(centre, radius, pos, boxsize)
+        idx = mesh.query_radius_periodic(centre, radius, pos, cellgrid.boxsize)
         plt.plot(pos.full[idx, 0], pos.full[idx, 1], "g,")
 
         plt.xlim(0, 150)
@@ -93,4 +94,4 @@ def io_test():
 
 
 if __name__ == "__main__":
-    io_test()
+    test_io()

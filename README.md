@@ -6,17 +6,24 @@ match halos between simulations using the particle IDs.
 
 The code is written in python and uses mpi4py for parallelism.
 
+## Running on cosma
+
+The files in the `scripts` directory are made for running on cosma.
+All scripts should be run from the base SOAP directory. Before running
+SOAP you should first create a python environment with
+`./scripts/cosma_python_env.sh`
+
 ## Computing halo membership for particles in the snapshot
 
-The first program, vr_group_membership.py, can compute bound and unbound 
-VELOCIraptor halo indexes for all particles in a snapshot. The output
+The first program, `group_membership.py`, will compute bound 
+halo indexes for all particles in a snapshot. The output
 consists of the same number of files as the snapshot with particle halo
 indexes written out in the same order as the snapshot.
 
 ## Computing halo properties
 
-The second program, compute_halo_properties.py, reads the simulation
-snapshot and the output from vr_group_membership.py and uses it to
+The second program, `compute_halo_properties.py`, reads the simulation
+snapshot and the output from `group_membership.py` and uses it to
 calculate halo properties. It works as follows:
 
 The simulation volume is split into chunks. Each compute node reads
@@ -30,6 +37,24 @@ around the halo, and calculates the required properties. When all halos
 in the chunk have been done the compute node will move on to the next
 chunk.
 
+## Parameter files
+
+To run either of the programs a parameters file must be passed. This
+contains information including the input and output directories,
+the halo finder to use, which halo definitions to use, and
+which properties to calculate for each halo definition. Example
+parameter files can be found in the `parameters_files` directory.
+
+## Compression
+
+Two types of compression are useful for reducting the size of SOAP output.
+The first is lossless compression via GZIP, the second is lossy compression.
+For the group membership files we only apply lossless compression. However,
+each property in the final SOAP catalogue has a lossy compression filter
+associated with it, which are set in `property_table.py`. The script 
+`compression/compress_fast_metadata.py` will apply both lossy and
+lossless compression to SOAP catalogues.
+
 ## Usage on COSMA
 
 ### Required modules
@@ -41,20 +66,16 @@ module load python/3.10.1 gnu_comp/11.1.0 openmpi/4.1.1
 
 ### Calculating particle group membership
 
-The group membership program needs the location of the snapshot file(s),
-the location of the VELOCIraptor catalogue and the name of the output file(s)
-to generate. For example:
+To run the group membership program needs the name of the simulation,
+the snapshot number, and a parameter file. For example:
 ```
 snapnum=0077
-swift_filename="./snapshots/flamingo_${snapnum}/flamingo_${snapnum}.%(file_nr)d.hdf5"
-vr_basename="./VR/catalogue_${snapnum}/vr_catalogue_${snapnum}"
-outfile="./group_membership/vr_membership_${snapnum}.%(file_nr)d.hdf5"
-
-mpirun python3 -u -m mpi4py \
-    ./vr_group_membership.py ${swift_filename} ${vr_basename} ${outfile}
+sim=L1000N0900/DMO_FIDUCIAL
+mpirun python3 -u -m mpi4py ./group_membership.py \
+    --sim-name=${sim} --snap-nr${snapnum} parameter_files/FLAMINGO.yml
 ```
 
-See scripts/FLAMINGO/L1000N1800/group_membership_L1000N1800.sh for an example
+See `scripts/FLAMINGO/L1000N1800/group_membership_L1000N1800.sh` for an example
 batch script.
 
 The code can optionally also write group membership to a single file
@@ -68,28 +89,20 @@ membership from several different VR runs to a single file.
 
 ### Calculating halo properties
 
-To calculate halo properties:
+To calculate halo properties you must pass the same information as for
+group membership. If the run is dark matter only the flag `--dmo` should
+be passed. For example:
 
 ```
-swift_filename="./snapshots/flamingo_${snapnum}/flamingo_%(snap_nr)04d.%(file_nr)d.hdf5"
-extra_filename="./group_membership/vr_membership_%(snap_nr)04d.%(file_nr)d.hdf5"
-vr_basename="./VR/catalogue_${snapnum}/vr_catalogue_%(snap_nr)04d"
-outfile="./halo_properties/halo_properties_%(snap_nr)04d.hdf5"
-nr_chunks=4
-snapnum=77
-
+snapnum=0077
+sim=L1000N0900/DMO_FIDUCIAL
 mpirun python3 -u -m mpi4py ./compute_halo_properties.py \
-    ${swift_filename} ${vr_basename} ${outfile} ${snapnum} \
-    --chunks=${nr_chunks} \
-    --extra-input=${extra_filename} \
-    --calculations so_masses centre_of_mass \
-    --max-ranks-reading=16
+       --sim-name=${sim} --snap-nr=${snapnum} --chunks=1 ${dmo_flag} \
+       parameter_files/FLAMINGO.yml
 ```
 
 Here, `--chunks` determines how many chunks the simulation box is
 split into. Ideally it should be set such that one chunk fills a compute node.
-The `--calculations` flag specifies which calculations should be carried out.
-The possible calculation names are defined in halo_properties.py.
 
 The `--max-ranks-reading` flag determines how many MPI ranks per node read the
 snapshot. This can be used to avoid overloading the file system. The default
@@ -105,65 +118,6 @@ In order to reduce duplication only one script is provided per simulation
 box size and resolution. The simulation to process is specified by setting
 the job name with the slurm sbatch -J flag.
 
-Output locations are specified using the environment variables
-FLAMINGO_SCRATCH_DIR and FLAMINGO_OUTPUT_DIR. To write scratch files
-on /snap8 and compressed output to /cosma8:
-```
-export FLAMINGO_OUTPUT_DIR=/cosma8/data/dp004/${USER}/FLAMINGO/ScienceRuns/
-export FLAMINGO_SCRATCH_DIR=/snap8/scratch/dp004/${USER}/FLAMINGO/ScienceRuns/
-```
-Then to run the group membership code on all snapshots of the 
-L1000N1800/HYDRO_FIDUCIAL simulation:
-```
-cd SOAP
-mkdir logs
-sbatch --array=0-77%4 -J HYDRO_FIDUCIAL ./scripts/FLAMINGO/L1000N1800/group_membership_L1000N1800.sh
-```
-
-And to run the halo properties code:
-```
-cd SOAP
-mkdir logs
-sbatch --array=0-77%4 -J HYDRO_FIDUCIAL ./scripts/FLAMINGO/L1000N1800/halo_properties_L1000N1800.sh
-```
-
-### Script for submitting multiple batch jobs
-
-There is also a script which can run the group membership code and the
-halo properties code and them compress the output from both. To use it
-on Cosma-8, starting from a fresh SOAP checkout:
-```
-git clone git@github.com:SWIFTSIM/SOAP.git
-cd SOAP/scripts/FLAMINGO
-./submit_jobs.sh --run=L1000N1800/HYDRO_FIDUCIAL --snapshots=0-77%4
-```
-This will submit jobs with dependencies set so that they're run in the
-right order (e.g. the group membership files must be created before
-SOAP can run).
-
-Snapshots are specified using the syntax of the sbatch `--array` flag.
-To do one snapshot you could do `--snapshots=77` or to do a range and
-limit how many run at once you could use  `--snapshots=0-77%4`.
-
-The output locations are set using environment variables. The defaults are
-```
-export FLAMINGO_OUTPUT_DIR=/cosma8/data/dp004/${USER}/FLAMINGO/SOAP-Output/
-export FLAMINGO_SCRATCH_DIR=/snap8/scratch/dp004/${USER}/FLAMINGO/SOAP-Output/
-```
-Uncompressed output is all written to the scratch directory and the
-final, compressed files are written to the output directory.
-
-By default the script runs the group membership program, runs SOAP,
-compresses the group membership output and compresses the SOAP
-output. If some parts of the calculation have already been done you
-can specify which parts to run with the following flags:
-```
---membership: run the group membership calculation
---soap: run SOAP
---compress-membership: compress the group membership output
---compress-soap: compress the SOAP output
-```
-
 ## Adding quantities
 
 The property calculations are defined in these files:
@@ -173,11 +127,12 @@ The property calculations are defined in these files:
   * Properties of particles in projected apertures `projected_aperture_properties.py`
   * Properties of particles in spheres of a specified overdensity `SO_properties.py`
 
-Adding new quantities to already defined SOAP apertures is a relatively easy business. There are four steps.
+Adding new quantities to already defined SOAP apertures is a relatively easy business. There are five steps.
 
   * Start by adding an entry to the property table (https://github.com/SWIFTSIM/SOAP/blob/master/property_table.py). Here we store all the properties of the quantities (name, type, unit etc.) All entries in this table are checked with unit tests and added to the documentation. Adding your quantity here will make sure the code and the documentation are in line with each other.
   * Next you have to add the quantity to the type of aperture you want it to be calculated for (aperture_properties.py, SO_properties.py, subhalo_properties.py or projected_aperture_properties.py). In all these files there is a class named `property_list` which defines the subset of all properties that are calculated for this specific aperture.
   * To calculate your quantity you have to define a `@lazy_property` with the same name in the `XXParticleData` class in the same file. There should be a lot of examples of different quantities that are already calculated. An important thing to note is that fields that are used for multiple calculations should have their own `@lazy_property` to avoid loading things multiple times, so check if the things that you need are already there.
+  * Add the property to the parameter file, though if a property is missing from the parameter file then SOAP will calculate it by default.
   * At this point everything should now work. To test the newly added quantities you can run a unit test using `python3 -W error -m pytest NAME_OF_FILE`. This checks whether the code crashes, and whether there are problems with units and overflows. This should make sure that SOAP never crashes while calculating the new properties.
 
 If SOAP does crash while evaluating your new property it will try to
@@ -196,6 +151,14 @@ property calculations and used to write the unit attributes in the output.
 Comoving quantities are handled by defining a dimensionless unit corresponding
 to the expansion factor a.
 
+## Tests
+
+The command `./tests/run_tests.sh` will run the unit tests for SOAP. Some tests
+rely on data stored on cosma, and therefore cannot be run from other systems.
+
+The scripts in `tests/FLAMINGO` for showing how to
+run SOAP on a few halos from the FLAMINGO simulations.
+
 ## Debugging
 
 For debugging it might be helpful to run on one MPI rank in the python debugger
@@ -210,14 +173,11 @@ mpirun.
 The `-Werror` flag is useful for making pdb stop on warnings. E.g. division by
 zero in the halo property calculations will be caught.
 
-It is also possible to select individual halos to process with the `--halo-ids`
-flag. This specifies the VELOCIraptor IDs of the required halos. E.g.
+It is also possible to select individual halos to process with the `--halo-indices`
+flag. This specifies the index of the required halos in the halo catalogue. E.g.
 ```
-python3 -Werror -m pdb ./compute_halo_properties.py --halo-ids 1 2 3 ...
+python3 -Werror -m pdb ./compute_halo_properties.py --halo-indices 1 2 3 ...
 ```
-
-See the scripts in `scripts/FLAMINGO/small_test` for examples showing how to
-run SOAP on a few halos from the FLAMINGO simulations.
 
 ## Profiling
 
@@ -299,6 +259,12 @@ The output is a HDF5 file with the following datasets:
 There are corresponding datasets with `1` and `2` reversed with information about matching in the opposite direction.
 
 ## Documentation
+
+### PDF document
+
+A pdf describing the SOAP output can be generated. First run `property_table.py` passing the parameter file used to run SOAP, e.g. `python property_table.py parameter_files/FLAMINGO.yml`. This will generate a table containing all the properties which are enabled in the parameter file. To create the pdf run `pdflatex documentation/SOAP.tex`.
+
+### API reference
 
 Most of the files containing halo property calculations have been extensively documented
 using docstrings. To generate documentation, you can for example use

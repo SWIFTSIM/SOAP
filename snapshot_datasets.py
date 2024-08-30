@@ -16,8 +16,10 @@ guarantee that column indices match the correct column name.
 import unyt
 import h5py
 
-from typing import Dict, List
+from typing import Dict
 from numpy.typing import NDArray
+
+import property_table
 
 
 class SnapshotDatasets:
@@ -167,9 +169,11 @@ class SnapshotDatasets:
             ptype, dset = self.dataset_map[name]
         except KeyError as e:
             print(f'Dataset "{name}" not found!')
-            print("Available datasets:")
-            for key in self.dataset_map:
-                print(f"  {key}")
+            print("The following properties require this dataset:")
+            full_property_list = property_table.PropertyTable.full_property_list
+            for k, v in full_property_list.items():
+                if name in v[8]:
+                    print(k)
             raise e
         return data_dict[ptype][dset]
 

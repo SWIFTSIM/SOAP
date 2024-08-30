@@ -97,7 +97,7 @@ class ResultSet:
         """
 
         # Loop over quantities to store
-        for result_name, (result_data, result_description) in results.items():
+        for result_name, (result_data, result_description, result_physical, result_a_exponent) in results.items():
 
             # Create a new array to store this property if necessary
             if result_name not in self.result_arrays:
@@ -108,10 +108,10 @@ class ResultSet:
                     unyt.unyt_array(result_data, registry=result_data.units.registry),
                     shape=shape,
                 )
-                self.result_arrays[result_name] = [arr, result_description]
+                self.result_arrays[result_name] = [arr, result_description, result_physical, result_a_exponent]
 
             # Find the array to store this result
-            result_array, result_description = self.result_arrays[result_name]
+            result_array, result_description, result_physical, result_a_exponent = self.result_arrays[result_name]
 
             # Consistency check: data type, units and shape should match the existing array
             if result_data.units != result_array.units:
@@ -137,7 +137,7 @@ class ResultSet:
                 )
                 new_result_array[0 : result_array.shape[0], ...] = result_array[...]
                 result_array = new_result_array
-                self.result_arrays[result_name] = [result_array, result_description]
+                self.result_arrays[result_name] = [result_array, result_description, result_physical, result_a_exponent]
 
             # Store this property for this halo to the output array
             result_array[self.nr_halos, ...] = result_data
@@ -224,12 +224,12 @@ class ResultSet:
         for name in names:
 
             # Write this array
-            data, description = self.result_arrays[name]
+            data, description, physical, a_exponent = self.result_arrays[name]
             phdf5.collective_write(outfile, name, data, comm)
 
             # Attach units metadata and description
             if hasattr(data, "units"):
-                attrs = swift_units.attributes_from_units(data.units)
+                attrs = swift_units.attributes_from_units(data.units, physical, a_exponent)
                 for attr_name, attr_value in attrs.items():
                     outfile[name].attrs[attr_name] = attr_value
             outfile[name].attrs["Description"] = description
@@ -253,7 +253,9 @@ class ResultSet:
             units = [self.result_arrays[n][0].units for n in names]
             dtype = [self.result_arrays[n][0].dtype for n in names]
             descr = [self.result_arrays[n][1] for n in names]
-            my_metadata = list(zip(names, sizes, units, dtype, descr))
+            physical = [self.result_arrays[n][2] for n in names]
+            a_exponent = [self.result_arrays[n][3] for n in names]
+            my_metadata = list(zip(names, sizes, units, dtype, descr, physical, a_exponent))
         else:
             # This rank processed zero halos
             my_metadata = None

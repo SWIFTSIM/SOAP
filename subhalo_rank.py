@@ -2,12 +2,13 @@
 
 import numpy as np
 import h5py
+import pytest
 
 import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5
 
 
-def compute_subhalo_rank(host_id, subhalo_id, subhalo_mass, comm):
+def compute_subhalo_rank(host_id, subhalo_mass, comm):
     """
     Given a subhalo catalogue distributed over MPI communicator
     comm, compute the ranking by mass of subhalos within their
@@ -17,17 +18,10 @@ def compute_subhalo_rank(host_id, subhalo_id, subhalo_mass, comm):
     This has the same number of elements and distribution over
     MPI ranks as the input arrays.
 
-    host_id      - subhalo_id of the host (field) halo
-    subhalo_id   - identifier for each subhalo
+    host_id      - id of the host  halo
     subhalo_mass - mass to use for ranking
     comm         - MPI communicator to use
     """
-
-    # Set field halos to be their own host (VR sets hostid=-1 in this case)
-    field = host_id < 0
-    host_id = host_id.copy()  # avoid modifying input
-    host_id[field] = subhalo_id[field]
-    del subhalo_id
 
     # Record global array indexes of the subhalos so we can restore the ordering later
     nr_local_subhalos = len(host_id)
@@ -91,10 +85,9 @@ def compute_subhalo_rank(host_id, subhalo_id, subhalo_mass, comm):
 
     return subhalo_rank
 
+@pytest.mark.mpi
+def test_subhalo_rank():
 
-if __name__ == "__main__":
-
-    # Run test with "mpirun -np 8 python3 -m mpi4py ./subhalo_rank.py"
     from mpi4py import MPI
 
     comm = MPI.COMM_WORLD
@@ -109,14 +102,17 @@ if __name__ == "__main__":
     if comm_rank == 0:
         print("Read subhalos")
 
+    field = host_id < 0
+    host_id[field] = subhalo_id[field]
+
     # Compute ranking of subhalos
-    subhalo_rank = compute_subhalo_rank(host_id, subhalo_id, subhalo_mass, comm)
+    subhalo_rank = compute_subhalo_rank(host_id, subhalo_mass, comm)
     if comm_rank == 0:
         print("Computed ranks")
 
     # Find fraction of VR 'field' halos with rank=0
-    nr_field_halos = comm.allreduce(np.sum(host_id < 0))
-    nr_field_rank_nonzero = comm.allreduce(np.sum((host_id < 0) & (subhalo_rank > 0)))
+    nr_field_halos = comm.allreduce(np.sum(field))
+    nr_field_rank_nonzero = comm.allreduce(np.sum((field) & (subhalo_rank > 0)))
     fraction = nr_field_rank_nonzero / nr_field_halos
     if comm_rank == 0:
         print(f"Fraction of field halos (hostHaloID<0) with rank>0 is {fraction:.3e}")
@@ -134,10 +130,6 @@ if __name__ == "__main__":
         rank0_hosts = all_host_ids[rank0]
         assert len(rank0_hosts) == len(np.unique(all_host_ids))
 
-    # Write out the results
-    with h5py.File(
-        "/snap8/scratch/dp004/jch/subhalo_rank.hdf5", "w", driver="mpio", comm=comm
-    ) as outfile:
-        phdf5.collective_write(outfile, "subhalo_rank", subhalo_rank, comm=comm)
-    if comm_rank == 0:
-        print("Done.")
+if __name__ == '__main__':
+    # Run test with "mpirun -np 8 python3 -m mpi4py ./subhalo_rank.py"
+    test_subhalo_rank()

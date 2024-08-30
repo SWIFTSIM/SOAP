@@ -17,22 +17,20 @@ contains the spherical overdensity radius calculation, which is
 somewhat more involved than simply using a fixed aperture.
 
 Contrary to the other halo types, spherical overdensities are only
-calculated for central halos (VR/StructureType == 10). SO properties
-are also only calculated if an SO radius could be determined.
+calculated for central halos. SO properties are also only calculated if 
+an SO radius could be determined.
 """
 
 import numpy as np
 import unyt
 from scipy.optimize import brentq
 
-from halo_properties import HaloProperty, ReadRadiusTooSmallError
+from halo_properties import HaloProperty, SearchRadiusTooSmallError
 from kinematic_properties import (
-    get_velocity_dispersion_matrix,
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
     get_vmax,
     get_inertia_tensor,
-    get_reduced_inertia_tensor,
 )
 from recently_heated_gas_filter import RecentlyHeatedGasFilter
 from property_table import PropertyTable
@@ -128,7 +126,7 @@ def find_SO_radius_and_mass(
     Returns the radius, mass and volume of the sphere where the density
     reaches the target value.
 
-    Throws a ReadRadiusTooSmallError if the intersection point is outside
+    Throws a SearchRadiusTooSmallError if the intersection point is outside
     the range of the particles that were passed on.
 
     Throws a RuntimeError if the intersection point is outside the range and
@@ -151,7 +149,7 @@ def find_SO_radius_and_mass(
                 raise RuntimeError(
                     "Cannot find SO radius, but search radius is already larger than 20 Mpc!"
                 )
-            raise ReadRadiusTooSmallError("SO radius multiple estimate was too small!")
+            raise SearchRadiusTooSmallError("SO radius multiple estimate was too small!")
     else:
         # all non-zero radius particles are below the threshold
         # we linearly interpolate the mass from 0 to the particle radius
@@ -189,7 +187,7 @@ def find_SO_radius_and_mass(
                 raise RuntimeError(
                     "Cannot find SO radius, but search radius is already larger than 20 Mpc!"
                 )
-            raise ReadRadiusTooSmallError("SO radius multiple estimate was too small!")
+            raise SearchRadiusTooSmallError("SO radius multiple estimate was too small!")
         # take the next interval
         r1 = r2
         r2 = ordered_radius[i]
@@ -244,6 +242,9 @@ class SOParticleData:
         observer_position: unyt.unyt_array,
         snapshot_datasets: SnapshotDatasets,
         core_excision_fraction: float,
+        softening_of_parttype: unyt.unyt_array,
+        skip_concentration: bool,
+        search_radius: unyt.unyt_quantity,
     ):
         """
         Constructor.
@@ -271,6 +272,11 @@ class SOParticleData:
          - core_excision_fraction: float
            Ignore particles within a sphere of core_excision_fraction * SORadius
            when calculating CoreExcision properties
+         - softening_of_parttype: unyt.unyt_array
+           Softening length of each particle types
+         - skip_concentration: bool
+           Whether to skip the concentration calculation, since the method is only
+           valid for certain SO variations
         """
         self.input_halo = input_halo
         self.data = data
@@ -281,6 +287,9 @@ class SOParticleData:
         self.observer_position = observer_position
         self.snapshot_datasets = snapshot_datasets
         self.core_excision_fraction = core_excision_fraction
+        self.softening_of_parttype = softening_of_parttype
+        self.skip_concentration = skip_concentration
+        self.search_radius = search_radius
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -304,6 +313,8 @@ class SOParticleData:
         velocity = []
         types = []
         groupnr = []
+        fofid = []
+        softening = []
         for ptype in self.types_present:
             if ptype == "PartType6":
                 # add neutrinos separately, since we need to treat them
@@ -315,20 +326,20 @@ class SOParticleData:
             r = np.sqrt(np.sum(pos ** 2, axis=1))
             radius.append(r)
             velocity.append(self.get_dataset(f"{ptype}/Velocities"))
-            typearr = np.zeros(r.shape, dtype="U9")
-            typearr[:] = ptype
+            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
             types.append(typearr)
             groupnr.append(self.get_dataset(f"{ptype}/GroupNr_bound"))
+            fofid.append(self.get_dataset(f"{ptype}/FOFGroupIDs"))
+            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
+            softening.append(s)
         self.mass = np.concatenate(mass)
         self.radius = np.concatenate(radius)
         self.position = np.concatenate(position)
         self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
         self.groupnr = np.concatenate(groupnr)
-
-        # figure out which particles in the list are bound to a halo that is not the
-        # central halo
-        self.is_bound_to_satellite = (self.groupnr >= 0) & (self.groupnr != self.index)
+        self.fofid = np.concatenate(fofid)
+        self.softening = np.concatenate(softening)
 
     def compute_SO_radius_and_mass(
         self, reference_density: unyt.unyt_quantity, physical_radius: unyt.unyt_quantity
@@ -351,7 +362,7 @@ class SOParticleData:
         Returns True if an SO radius was found, i.e. when both SO_radius and
         SO_mass are non-zero.
 
-        Rethrows any ReadRadiusTooSmallError thrown by find_SO_radius_and_mass().
+        Rethrows any SearchRadiusTooSmallError thrown by find_SO_radius_and_mass().
         """
         # add neutrinos
         if self.has_neutrinos:
@@ -360,6 +371,11 @@ class SOParticleData:
             )
             pos = self.get_dataset("PartType6/Coordinates") - self.centre[None, :]
             nur = np.sqrt(np.sum(pos ** 2, axis=1))
+            self.nu_mass = numass
+            self.nu_radius = nur
+            self.nu_softening = (
+                np.ones_like(nur) * self.softening_of_parttype["PartType6"]
+            )
             all_mass = np.concatenate([self.mass, numass / unyt.dimensionless])
             all_r = np.concatenate([self.radius, nur])
         else:
@@ -374,6 +390,9 @@ class SOParticleData:
         )
         # add mean neutrino mass
         cumulative_mass += self.nu_density * 4.0 / 3.0 * np.pi * ordered_radius ** 3
+        # Determine FOF ID of object using the central non-neutrino particle
+        non_neutrino_order = order[order<self.radius.shape[0]]
+        fofid = self.fofid[non_neutrino_order[0]]
 
         # Compute density within radius of each particle.
         # Will need to skip any at zero radius.
@@ -393,8 +412,8 @@ class SOParticleData:
                     self.SO_r, self.SO_mass, self.SO_volume = find_SO_radius_and_mass(
                         ordered_radius, density, cumulative_mass, reference_density
                     )
-                except ReadRadiusTooSmallError:
-                    raise ReadRadiusTooSmallError("SO radius multiple was too small!")
+                except SearchRadiusTooSmallError:
+                    raise SearchRadiusTooSmallError("SO radius multiple was too small!")
             else:
                 self.SO_volume = 0 * ordered_radius.units ** 3
         elif physical_radius > 0:
@@ -423,19 +442,53 @@ class SOParticleData:
         # the radius is set to a physical size but we have no mass nonetheless)
         SO_exists = self.SO_r > 0 and self.SO_mass > 0
 
-        if SO_exists:
-            self.gas_selection = self.radius[self.types == "PartType0"] < self.SO_r
-            self.dm_selection = self.radius[self.types == "PartType1"] < self.SO_r
-            self.star_selection = self.radius[self.types == "PartType4"] < self.SO_r
-            self.bh_selection = self.radius[self.types == "PartType5"] < self.SO_r
+        # figure out which particles in the list are bound to a halo that is not the
+        # central halo
+        self.is_bound_to_satellite = (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid == fofid)
+        self.is_bound_to_external = (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid != fofid)
 
+        if SO_exists:
+            # Calculate DMO mass fraction found at SO_r
+            # This is used when computing concentration_dmo
+            dm_r = self.radius[self.types == 1]
+            dm_m = self.mass[self.types == 1]
+            order = np.argsort(dm_r)
+            ordered_dm_r = dm_r[order]
+            outside_radius = ordered_dm_r > self.SO_r
+            self.dm_missed_mass = 0 * self.mass.units
+            if np.any(outside_radius):
+                i = np.argmax(outside_radius)
+                if i != 0:  # We have DM particles inside the SO radius
+                    r1 = ordered_dm_r[i - 1]
+                    r2 = ordered_dm_r[i]
+                    self.dm_missed_mass = (self.SO_r - r1) / (r2 - r1) * dm_m[order][i]
+
+            # Removing particles outside SO radius
             self.all_selection = self.radius < self.SO_r
+            self.gas_selection = self.radius[self.types == 0] < self.SO_r
+            self.dm_selection = self.radius[self.types == 1] < self.SO_r
+            self.star_selection = self.radius[self.types == 4] < self.SO_r
+            self.bh_selection = self.radius[self.types == 5] < self.SO_r
+
+            # Save particles outside SO radius for inertia tensor calculations
+            self.surrounding_mass = self.mass[np.logical_not(self.all_selection)]
+            self.surrounding_position = self.position[np.logical_not(self.all_selection)]
+            self.surrounding_types = self.types[np.logical_not(self.all_selection)]
+
             self.mass = self.mass[self.all_selection]
             self.radius = self.radius[self.all_selection]
             self.position = self.position[self.all_selection]
             self.velocity = self.velocity[self.all_selection]
             self.types = self.types[self.all_selection]
             self.is_bound_to_satellite = self.is_bound_to_satellite[self.all_selection]
+            self.is_bound_to_external = self.is_bound_to_external[self.all_selection]
+            self.softening = self.softening[self.all_selection]
+
+            if self.has_neutrinos:
+                self.nu_selection = self.nu_radius < self.SO_r
+                self.nu_mass = self.nu_mass[self.nu_selection]
+                self.nu_radius = self.nu_radius[self.nu_selection]
+                self.nu_softening = self.nu_softening[self.nu_selection]
 
         return SO_exists
 
@@ -505,35 +558,68 @@ class SOParticleData:
         """
         if self.Mtotpart == 0:
             return None
-        _, vmax = get_vmax(self.mass, self.radius)
-        if vmax > 0:
+        soft_r = np.maximum(self.softening, self.radius)
+        _, vmax_soft = get_vmax(self.mass, soft_r)
+        if vmax_soft > 0:
             vrel = self.velocity - self.vcom[None, :]
             Ltot = np.linalg.norm(
                 (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
             )
-            return Ltot / (np.sqrt(2.0) * self.Mtotpart * self.SO_r * vmax)
+            return Ltot / (np.sqrt(2.0) * self.Mtotpart * self.SO_r * vmax_soft)
         return None
 
     @lazy_property
     def TotalInertiaTensor(self) -> unyt.unyt_array:
         """
         Inertia tensor of the total mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius.
         """
         if self.Mtotpart == 0:
             return None
-        return get_inertia_tensor(self.mass, self.position)
+        mass = np.concatenate([self.mass, self.surrounding_mass], axis=0)
+        position = np.concatenate([self.position, self.surrounding_position], axis=0)
+        return get_inertia_tensor(mass, position, self.SO_r, search_radius=self.search_radius)
 
     @lazy_property
-    def ReducedTotalInertiaTensor(self):
+    def TotalInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius.
+        """
         if self.Mtotpart == 0:
             return None
-        return get_reduced_inertia_tensor(self.mass, self.position)
+        mass = np.concatenate([self.mass, self.surrounding_mass], axis=0)
+        position = np.concatenate([self.position, self.surrounding_position], axis=0)
+        return get_inertia_tensor(mass, position, self.SO_r, search_radius=self.search_radius, reduced=True)
+
+    @lazy_property
+    def TotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution.
+        Computed using all particles within the SORadius.
+        """
+        if self.Mtotpart == 0:
+            return None
+        return get_inertia_tensor(self.mass, self.position, self.SO_r, max_iterations=1)
+
+    @lazy_property
+    def TotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution.
+        Computed using all particles within the SORadius.
+        """
+        if self.Mtotpart == 0:
+            return None
+        return get_inertia_tensor(self.mass, self.position, self.SO_r, reduced=True, max_iterations=1)
 
     @lazy_property
     def Mfrac_satellites(self) -> unyt.unyt_quantity:
         """
-        Mass fraction contributed by particles that are bound to subhalos that
-        are not the main subhalo.
+        Mass fraction contributed by particles that are bound to subhalos other
+        than the main subhalo. Excludes particles from hostless subhalos and
+        from subhalos in other FOF groups.
 
         Note that this function is only called when we are guaranteed to have
         an SO, so we do not need to check SO_mass > 0.
@@ -541,25 +627,33 @@ class SOParticleData:
         return self.mass[self.is_bound_to_satellite].sum() / self.SO_mass
 
     @lazy_property
+    def Mfrac_external(self) -> unyt.unyt_quantity:
+        """
+        Mass fraction contributed by particles that are bound to subhalos, but
+        are outside this FOF group. Includes particles from hostless subhalos.
+        """
+        return self.mass[self.is_bound_to_external].sum() / self.SO_mass
+
+    @lazy_property
     def gas_masses(self) -> unyt.unyt_array:
         """
         Masses of gas particles.
         """
-        return self.mass[self.types == "PartType0"]
+        return self.mass[self.types == 0]
 
     @lazy_property
     def gas_pos(self) -> unyt.unyt_array:
         """
         Positions of gas particles.
         """
-        return self.position[self.types == "PartType0"]
+        return self.position[self.types == 0]
 
     @lazy_property
     def gas_vel(self) -> unyt.unyt_array:
         """
         Velocities of gas particles.
         """
-        return self.velocity[self.types == "PartType0"]
+        return self.velocity[self.types == 0]
 
     @lazy_property
     def Mgas(self) -> unyt.unyt_quantity:
@@ -644,41 +738,78 @@ class SOParticleData:
             self.compute_Lgas_props()
         return 1.0 - 2.0 * self.internal_Mcountrot_gas / self.Mgas
 
+    def gas_inertia_tensor(self, **kwargs) -> unyt.unyt_array:
+        """
+        Helper function for calculating gas inertia tensors
+        """
+        surrounding_mass = self.surrounding_mass[self.surrounding_types == 0]
+        surrounding_position = self.surrounding_position[self.surrounding_types == 0]
+        mass = np.concatenate([self.gas_masses, surrounding_mass], axis=0)
+        position = np.concatenate([self.gas_pos, surrounding_position], axis=0)
+        return get_inertia_tensor(mass, position, self.SO_r, search_radius=self.search_radius, **kwargs)
+
     @lazy_property
     def GasInertiaTensor(self) -> unyt.unyt_array:
         """
-        Inertia tensor of the gas particles.
+        Inertia tensor of the gas mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius.
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(self.gas_masses, self.gas_pos)
+        return self.gas_inertia_tensor()
 
     @lazy_property
-    def ReducedGasInertiaTensor(self):
+    def GasInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the gas mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius.
+        """
         if self.Mgas == 0:
             return None
-        return get_reduced_inertia_tensor(self.gas_masses, self.gas_pos)
+        return self.gas_inertia_tensor(reduced=True)
+
+    @lazy_property
+    def GasInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas mass distribution.
+        Computed using all particles within the SORadius.
+        """
+        if self.Mgas == 0:
+            return None
+        return get_inertia_tensor(self.gas_masses, self.gas_pos, self.SO_r, max_iterations=1)
+
+    @lazy_property
+    def GasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the gas mass distribution.
+        Computed using all particles within the SORadius.
+        """
+        if self.Mgas == 0:
+            return None
+        return get_inertia_tensor(self.gas_masses, self.gas_pos, self.SO_r, reduced=True, max_iterations=1)
 
     @lazy_property
     def dm_masses(self) -> unyt.unyt_array:
         """
         Masses of dark matter particles.
         """
-        return self.mass[self.types == "PartType1"]
+        return self.mass[self.types == 1]
 
     @lazy_property
     def dm_pos(self) -> unyt.unyt_array:
         """
         Positions of dark matter particles.
         """
-        return self.position[self.types == "PartType1"]
+        return self.position[self.types == 1]
 
     @lazy_property
     def dm_vel(self) -> unyt.unyt_array:
         """
         Velocities of dark matter particles.
         """
-        return self.velocity[self.types == "PartType1"]
+        return self.velocity[self.types == 1]
 
     @lazy_property
     def Mdm(self) -> unyt.unyt_quantity:
@@ -718,41 +849,78 @@ class SOParticleData:
             self.dm_masses, self.dm_pos, self.dm_vel, ref_velocity=self.vcom_dm
         )
 
-    @lazy_property
-    def DMInertiaTensor(self) -> unyt.unyt_array:
+    def dm_inertia_tensor(self, **kwargs) -> unyt.unyt_array:
         """
-        Inertia tensor of the dark matter particle distribution.
+        Helper function for calculating dm inertia tensors
         """
-        if self.Mdm == 0:
-            return None
-        return get_inertia_tensor(self.dm_masses, self.dm_pos)
+        surrounding_mass = self.surrounding_mass[self.surrounding_types == 1]
+        surrounding_position = self.surrounding_position[self.surrounding_types == 1]
+        mass = np.concatenate([self.dm_masses, surrounding_mass], axis=0)
+        position = np.concatenate([self.dm_pos, surrounding_position], axis=0)
+        return get_inertia_tensor(mass, position, self.SO_r, search_radius=self.search_radius, **kwargs)
 
     @lazy_property
-    def ReducedDMInertiaTensor(self):
+    def DarkMatterInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the dark matter mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius.
+        """
         if self.Mdm == 0:
             return None
-        return get_reduced_inertia_tensor(self.dm_masses, self.dm_pos)
+        return self.dm_inertia_tensor()
+
+    @lazy_property
+    def DarkMatterInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the dark matter mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius.
+        """
+        if self.Mdm == 0:
+            return None
+        return self.dm_inertia_tensor(reduced=True)
+
+    @lazy_property
+    def DarkMatterInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the dark matter mass distribution.
+        Computed using all particles within the SORadius.
+        """
+        if self.Mdm == 0:
+            return None
+        return get_inertia_tensor(self.dm_masses, self.dm_pos, self.SO_r, max_iterations=1)
+
+    @lazy_property
+    def DarkMatterInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the dark matter mass distribution.
+        Computed using all particles within the SORadius.
+        """
+        if self.Mdm == 0:
+            return None
+        return get_inertia_tensor(self.dm_masses, self.dm_pos, self.SO_r, reduced=True, max_iterations=1)
 
     @lazy_property
     def star_masses(self) -> unyt.unyt_array:
         """
         Masses of star particles.
         """
-        return self.mass[self.types == "PartType4"]
+        return self.mass[self.types == 4]
 
     @lazy_property
     def star_pos(self) -> unyt.unyt_array:
         """
         Positions of star particles.
         """
-        return self.position[self.types == "PartType4"]
+        return self.position[self.types == 4]
 
     @lazy_property
     def star_vel(self) -> unyt.unyt_array:
         """
         Velocities of star particles.
         """
-        return self.velocity[self.types == "PartType4"]
+        return self.velocity[self.types == 4]
 
     @lazy_property
     def Mstar(self) -> unyt.unyt_quantity:
@@ -836,41 +1004,78 @@ class SOParticleData:
             self.compute_Lstar_props()
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
+    def stellar_inertia_tensor(self, **kwargs) -> unyt.unyt_array:
+        """
+        Helper function for calculating stellar inertia tensors
+        """
+        surrounding_mass = self.surrounding_mass[self.surrounding_types == 4]
+        surrounding_position = self.surrounding_position[self.surrounding_types == 4]
+        mass = np.concatenate([self.star_masses, surrounding_mass], axis=0)
+        position = np.concatenate([self.star_pos, surrounding_position], axis=0)
+        return get_inertia_tensor(mass, position, self.SO_r, search_radius=self.search_radius, **kwargs)
+
     @lazy_property
     def StellarInertiaTensor(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius.
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(self.star_masses, self.star_pos)
+        return self.stellar_inertia_tensor()
 
     @lazy_property
-    def ReducedStellarInertiaTensor(self):
+    def StellarInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius SORadius.
+        """
         if self.Mstar == 0:
             return None
-        return get_reduced_inertia_tensor(self.star_masses, self.star_pos)
+        return self.stellar_inertia_tensor(reduced=True)
+
+    @lazy_property
+    def StellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar mass distribution.
+        Computed using all particles within the SORadius.
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor(self.star_masses, self.star_pos, self.SO_r, max_iterations=1)
+
+    @lazy_property
+    def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution.
+        Computed using all particles within the SORadius.
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor(self.star_masses, self.star_pos, self.SO_r, reduced=True, max_iterations=1)
 
     @lazy_property
     def baryon_masses(self) -> unyt.unyt_array:
         """
         Masses of baryon (gas + star) particles.
         """
-        return self.mass[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.mass[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def baryon_pos(self) -> unyt.unyt_array:
         """
         Positions of baryon (gas + star) particles.
         """
-        return self.position[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.position[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def baryon_vel(self) -> unyt.unyt_array:
         """
         Velocities of baryon (gas + star) particles.
         """
-        return self.velocity[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.velocity[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def Mbaryons(self) -> unyt.unyt_quantity:
@@ -912,26 +1117,11 @@ class SOParticleData:
         ).sum(axis=0)
 
     @lazy_property
-    def BaryonInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the baryon (gas + star) particle distribution.
-        """
-        if self.Mbaryons == 0:
-            return None
-        return get_inertia_tensor(self.baryon_masses, self.baryon_pos)
-
-    @lazy_property
-    def ReducedBaryonInertiaTensor(self):
-        if self.Mbaryons == 0:
-            return None
-        return get_reduced_inertia_tensor(self.baryon_masses, self.baryon_pos)
-
-    @lazy_property
     def Mbh_dynamical(self) -> unyt.unyt_quantity:
         """
         Total dynamical mass of black hole particles in the spherical overdensity.
         """
-        return self.mass[self.types == "PartType5"].sum()
+        return self.mass[self.types == 5].sum()
 
     @lazy_property
     def Ngas(self) -> int:
@@ -1249,7 +1439,7 @@ class SOParticleData:
     @lazy_property
     def gas_selection_core_excision(self):
         return (
-            self.radius[self.types == "PartType0"]
+            self.radius[self.types == 0]
             > self.core_excision_fraction * self.SO_r
         )
 
@@ -1901,7 +2091,7 @@ class SOParticleData:
         fac = unyt.sigma_thompson / unyt.c
         volumes = self.gas_masses / self.gas_densities
         area = np.pi * self.SO_r ** 2
-        return (fac * ne * vr * (volumes / area)).sum()
+        return (fac * ne * vr * (volumes / area)).sum().to('dimensionless')
 
     @lazy_property
     def Ndm(self) -> int:
@@ -2125,9 +2315,6 @@ class SOParticleData:
         Number of neutrino particles in the spherical overdensity.
         """
         if self.has_neutrinos:
-            pos = self.get_dataset("PartType6/Coordinates") - self.centre[None, :]
-            nur = np.sqrt(np.sum(pos ** 2, axis=1))
-            self.nu_selection = nur < self.SO_r
             return self.nu_selection.sum()
         else:
             return unyt.unyt_array(0, dtype=np.uint32, units="dimensionless")
@@ -2158,6 +2345,74 @@ class SOParticleData:
             * self.get_dataset("PartType6/Weights")[self.nu_selection]
         ).sum() + self.nu_density * self.SO_volume
 
+    @staticmethod
+    def concentration_from_R1(R1):
+        # This is a higher degree polynomial fit than was used in Wang+23
+        # Obtained by fitting R1-concentration radius for 1<c<1000
+        polynomial = [-79.71, -222.46, -250.14, -140.17, -43.59, -5.07]
+        c = 0
+        for i, b in enumerate(polynomial[::-1]):
+            # Ensure scale factors have been removed
+            c += b * np.log10(R1.to("dimensionless")) ** i
+        # Cap concentration values, as polynomial is only valid for 1<c<1000
+        c = max(min(c, 3), 0)
+        return unyt.unyt_quantity(10 ** c, dtype=np.float32, units="dimensionless")
+
+    def calculate_concentration(self, r):
+        if r.shape[0] < 10:
+            return None
+        R1 = np.sum(self.mass * r)
+        missed_mass = self.Mtot - np.sum(self.mass)
+        if self.Nnu != 0:
+            # Neutrino particles within self.r
+            R1 += np.sum(self.nu_mass * self.nu_radius)
+            missed_mass -= np.sum(self.nu_mass)
+        # Neutrino background
+        R1 += np.pi * self.nu_density * self.r ** 4
+        missed_mass -= self.nu_density * 4.0 / 3.0 * np.pi * self.r ** 3
+        R1 += missed_mass * self.r
+        # Normalize
+        R1 /= self.r * self.Mtot
+        return self.concentration_from_R1(R1)
+
+    @lazy_property
+    def concentration_unsoft(self):
+        if self.skip_concentration:
+            return None
+        return self.calculate_concentration(self.radius)
+
+    @lazy_property
+    def concentration_soft(self):
+        if self.skip_concentration:
+            return None
+        soft_r = np.maximum(self.softening, self.radius)
+        return self.calculate_concentration(soft_r)
+
+    def calculate_concentration_dmo(self, r):
+        if r.shape[0] < 10:
+            return None
+        R1 = np.sum(self.mass[self.types == 1] * r)
+        R1 += self.dm_missed_mass * self.r
+        R1 /= self.r * (self.Mdm + self.dm_missed_mass)
+        return self.concentration_from_R1(R1)
+
+    @lazy_property
+    def concentration_dmo_unsoft(self):
+        if self.skip_concentration:
+            return None
+        r = self.radius[self.types == 1]
+        return self.calculate_concentration_dmo(r)
+
+    @lazy_property
+    def concentration_dmo_soft(self):
+        if self.skip_concentration:
+            return None
+        soft_r = np.maximum(
+            self.softening[self.types == 1],
+            self.radius[self.types == 1],
+        )
+        return self.calculate_concentration_dmo(soft_r)
+
 
 class SOProperties(HaloProperty):
     """
@@ -2186,9 +2441,27 @@ class SOProperties(HaloProperty):
             "Nstar",
             "Nbh",
             "Nnu",
+            # Calculate inertia tensors first as they can throw SearchRadiusTooSmallError
+            "GasInertiaTensor",
+            "DarkMatterInertiaTensor",
+            "StellarInertiaTensor",
+            "TotalInertiaTensor",
+            "GasInertiaTensorReduced",
+            "DarkMatterInertiaTensorReduced",
+            "StellarInertiaTensorReduced",
+            "TotalInertiaTensorReduced",
+            "GasInertiaTensorNoniterative",
+            "DarkMatterInertiaTensorNoniterative",
+            "StellarInertiaTensorNoniterative",
+            "TotalInertiaTensorNoniterative",
+            "GasInertiaTensorReducedNoniterative",
+            "DarkMatterInertiaTensorReducedNoniterative",
+            "StellarInertiaTensorReducedNoniterative",
+            "TotalInertiaTensorReducedNoniterative",
             "com",
             "vcom",
             "Mfrac_satellites",
+            "Mfrac_external",
             "Mgas",
             "Lgas",
             "com_gas",
@@ -2242,16 +2515,6 @@ class SOProperties(HaloProperty):
             "Mnu",
             "spin_parameter",
             "SFR",
-            "TotalInertiaTensor",
-            "GasInertiaTensor",
-            "DMInertiaTensor",
-            "StellarInertiaTensor",
-            "BaryonInertiaTensor",
-            "ReducedTotalInertiaTensor",
-            "ReducedGasInertiaTensor",
-            "ReducedDMInertiaTensor",
-            "ReducedStellarInertiaTensor",
-            "ReducedBaryonInertiaTensor",
             "DopplerB",
             "gasOfrac",
             "gasFefrac",
@@ -2260,6 +2523,10 @@ class SOProperties(HaloProperty):
             "starOfrac",
             "starFefrac",
             "gasmetalfrac_SF",
+            "concentration_unsoft",
+            "concentration_soft",
+            "concentration_dmo_unsoft",
+            "concentration_dmo_soft",
         ]
     ]
 
@@ -2269,6 +2536,7 @@ class SOProperties(HaloProperty):
         parameters: ParameterFile,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
         SOval: float,
         type: str = "mean",
     ):
@@ -2287,8 +2555,11 @@ class SOProperties(HaloProperty):
            AGN feedback.
          - category_filter: CategoryFilter
            Filter used to determine which properties can be calculated for this halo.
-           This depends on the number of particles in the FOF subhalo and the category
+           This depends on the number of particles in the subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
          - SOval: float
            SO threshold value. The precise meaning of this parameter depends on
            the selected SO type.
@@ -2313,6 +2584,7 @@ class SOProperties(HaloProperty):
         self.filter = recently_heated_gas_filter
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
+        self.halo_filter = halo_filter
 
         self.observer_position = cellgrid.observer_position
 
@@ -2332,6 +2604,9 @@ class SOProperties(HaloProperty):
             / cellgrid.a ** 3
         )
 
+        # The concentration calculation method is not valid for all SO definitions
+        self.skip_concentration = True
+
         # This specifies how large a sphere is read in:
         # we use default values that are sufficiently small/large to avoid reading in too many particles
         self.mean_density_multiple = 1000.0
@@ -2339,10 +2614,15 @@ class SOProperties(HaloProperty):
         self.physical_radius_mpc = 0.0
         if type == "mean":
             self.mean_density_multiple = SOval
+            if SOval == 200:
+                self.skip_concentration = False
         elif type == "crit":
             self.critical_density_multiple = SOval
+            if SOval == 200:
+                self.skip_concentration = False
         elif type == "BN98":
             self.critical_density_multiple = cellgrid.virBN98
+            self.skip_concentration = False
         elif type == "physical":
             self.physical_radius_mpc = 0.001 * SOval
 
@@ -2384,18 +2664,23 @@ class SOProperties(HaloProperty):
             self.SO_name = "BN98"
             self.label = f"within which the density is {self.critical_density_multiple:.2f} times the critical value"
 
+        # Save name of group in the final output file
+        self.group_name = f"SO/{self.SO_name}"
+        self.mask_metadata = self.category_filter.get_filter_metadata(self.halo_filter)
+
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the
         # snapshot, that type will not be read in and will not have
         # an entry in the data argument to calculate(), below.
         # (E.g. gas, star or BH particles in DMO runs)
         self.particle_properties = {
-            "PartType0": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
-            "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
-            "PartType4": ["Coordinates", "GroupNr_bound", "Masses", "Velocities"],
+            "PartType0": ["Coordinates", "FOFGroupIDs", "GroupNr_bound", "Masses", "Velocities"],
+            "PartType1": ["Coordinates", "FOFGroupIDs", "GroupNr_bound", "Masses", "Velocities"],
+            "PartType4": ["Coordinates", "FOFGroupIDs", "GroupNr_bound", "Masses", "Velocities"],
             "PartType5": [
                 "Coordinates",
                 "DynamicalMasses",
+                "FOFGroupIDs",
                 "GroupNr_bound",
                 "Velocities",
             ],
@@ -2439,8 +2724,6 @@ class SOProperties(HaloProperty):
 
         registry = input_halo["cofp"].units.registry
 
-        do_calculation = self.category_filter.get_filters(halo_result)
-
         SO = {}
         # declare all the variables we will compute
         # we set them to 0 in case a particular variable cannot be computed
@@ -2454,20 +2737,28 @@ class SOProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             shape = prop[2]
             dtype = prop[3]
-            unit = prop[4]
+            unit = unyt.Unit(prop[4], registry=registry)
+            physical = prop[10]
+            a_exponent = prop[11]
             if shape > 1:
                 val = [0] * shape
             else:
                 val = 0
+            if not physical:
+                unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
             SO[name] = unyt.unyt_array(val, dtype=dtype, units=unit, registry=registry)
 
+        # Get do_calculation to determine whether to skip halo
+        do_calculation = self.category_filter.get_do_calculation(halo_result)
+
         # SOs only exist for central galaxies
-        if input_halo["Structuretype"] == 10:
+        # Determine whether to skip this halo because of filter
+        if input_halo["is_central"] and do_calculation[self.halo_filter]:
             types_present = [type for type in self.particle_properties if type in data]
 
             part_props = SOParticleData(
@@ -2479,6 +2770,9 @@ class SOProperties(HaloProperty):
                 self.observer_position,
                 self.snapshot_datasets,
                 self.core_excision_fraction,
+                self.softening_of_parttype,
+                self.skip_concentration,
+                search_radius,
             )
 
             # we need to make sure the physical radius uses the correct unit
@@ -2490,8 +2784,8 @@ class SOProperties(HaloProperty):
                 SO_exists = part_props.compute_SO_radius_and_mass(
                     self.reference_density, physical_radius
                 )
-            except ReadRadiusTooSmallError:
-                raise ReadRadiusTooSmallError(
+            except SearchRadiusTooSmallError:
+                raise SearchRadiusTooSmallError(
                     f"Need more particles to determine SO radius and mass!"
                 )
 
@@ -2508,14 +2802,23 @@ class SOProperties(HaloProperty):
                     name = prop[0]
                     dtype = prop[3]
                     unit = prop[4]
+                    unit = unyt.Unit(prop[4], registry=registry)
                     category = prop[6]
+                    physical = prop[10]
+                    a_exponent = prop[11]
+                    if not physical:
+                        unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
                     if do_calculation[category]:
                         val = getattr(part_props, name)
                         if val is not None:
                             assert (
                                 SO[name].shape == val.shape
                             ), f"Attempting to store {name} with wrong dimensions"
-                            if unit == "dimensionless":
+                            if unit == unyt.Unit("dimensionless"):
+                                if hasattr(val, "units"):
+                                    assert (
+                                        val.units == unyt.dimensionless
+                                    ), f'{name} is not dimensionless'
                                 SO[name] = unyt.unyt_array(
                                     val.astype(dtype),
                                     dtype=dtype,
@@ -2523,6 +2826,9 @@ class SOProperties(HaloProperty):
                                     registry=registry,
                                 )
                             else:
+                                err = f'Overflow for halo {input_halo["index"]} when'
+                                err += f'calculating {name} in SO_properties'
+                                assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
                                 SO[name] += val
 
         # Return value should be a dict containing unyt_arrays and descriptions.
@@ -2534,10 +2840,12 @@ class SOProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             description = prop[5]
+            physical = prop[10]
+            a_exponent = prop[11]
             halo_result.update(
                 {
                     f"SO/{self.SO_name}/{outputname}": (
@@ -2545,12 +2853,13 @@ class SOProperties(HaloProperty):
                         description.format(
                             label=self.label, core_excision=self.core_excision_string
                         ),
+                        physical,
+                        a_exponent,
                     )
                 }
             )
 
         return
-
 
 class CoreExcisedSOProperties(SOProperties):
     # Add the extra core excised properties we want from the table
@@ -2582,6 +2891,7 @@ class CoreExcisedSOProperties(SOProperties):
         parameters: ParameterFile,
         recently_heated_gas_filter,
         category_filter,
+        halo_filter: str,
         SOval,
         type="mean",
         core_excision_fraction=None,
@@ -2595,6 +2905,7 @@ class CoreExcisedSOProperties(SOProperties):
             parameters,
             recently_heated_gas_filter,
             category_filter,
+            halo_filter,
             SOval,
             type,
         )
@@ -2620,6 +2931,7 @@ class RadiusMultipleSOProperties(SOProperties):
         parameters: ParameterFile,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
         SOval: float,
         multiple: float,
         type: str = "mean",
@@ -2639,8 +2951,11 @@ class RadiusMultipleSOProperties(SOProperties):
            AGN feedback.
          - category_filter: CategoryFilter
            Filter used to determine which properties can be calculated for this halo.
-           This depends on the number of particles in the FOF subhalo and the category
+           This depends on the number of particles in the subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
          - SOval: float
            SO threshold value. The precise meaning of this parameter depends on
            the selected SO type. Note that this value determines the "parent"
@@ -2658,18 +2973,20 @@ class RadiusMultipleSOProperties(SOProperties):
                 "SOs with a radius that is a multiple of another SO radius are only allowed for type mean or crit!"
             )
 
-        # initialise the SOProperties object using a conservative physical radius estimate
+        # initialise the SOProperties object
         super().__init__(
             cellgrid,
             parameters,
             recently_heated_gas_filter,
             category_filter,
-            3000.0,
+            halo_filter,
+            0,
             "physical",
         )
 
         # overwrite the name, SO_name and label
         self.SO_name = f"{multiple:.0f}xR_{SOval:.0f}_{type}"
+        self.group_name = f"SO/{self.SO_name}"
         self.label = f"with a radius that is {self.SO_name}"
         self.name = f"SO_{self.SO_name}"
 
@@ -2704,7 +3021,7 @@ class RadiusMultipleSOProperties(SOProperties):
         Throws a RuntimeError if the "parent" SO radius cannot be obtained from
         halo_result.
 
-        Throws a ReadRadiusTooSmallError if the current search radius was too small
+        Throws a SearchRadiusTooSmallError if the current search radius was too small
         to guarantee a correct result.
         """
 
@@ -2718,13 +3035,13 @@ class RadiusMultipleSOProperties(SOProperties):
 
         # Check that we read in a large enough radius
         if self.multiple * halo_result[key][0] > search_radius:
-            raise ReadRadiusTooSmallError("SO radius multiple estimate was too small!")
+            raise SearchRadiusTooSmallError("SO radius multiple estimate was too small!")
 
         super().calculate(input_halo, search_radius, data, halo_result)
         return
 
 
-def test_SO_properties():
+def test_SO_properties_random_halo():
     """
     Unit test for the SO property calculation.
 
@@ -2732,14 +3049,11 @@ def test_SO_properties():
     calculations return the expected results and do not lead to any
     errors.
     """
-
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(4251)
-    filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
-    cat_filter = CategoryFilter(
-        {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
-    )
+    gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    cat_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
     parameters = ParameterFile(
         parameter_dictionary={
             "aliases": {
@@ -2765,22 +3079,27 @@ def test_SO_properties():
     )
 
     property_calculator_50kpc = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 50.0, "physical"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 50.0, "physical"
     )
     property_calculator_2500mean = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, "mean"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 2500.0, "mean"
     )
     property_calculator_2500crit = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, "crit"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 2500.0, "crit"
     )
     property_calculator_BN98 = SOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 0.0, "BN98"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 0.0, "BN98"
     )
     property_calculator_5x2500mean = RadiusMultipleSOProperties(
-        dummy_halos.get_cell_grid(), parameters, filter, cat_filter, 2500.0, 5.0, "mean"
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 2500.0, 5.0, "mean"
     )
 
-    parameters.write_parameters("SO.used_parameters.yml")
+    # Create a filter that no halos will satisfy
+    fail_filter = CategoryFilter(dummy_halos.get_filters({"general": 10000000}))
+    property_calculator_filter_test = SOProperties(
+        dummy_halos.get_cell_grid(), parameters, gas_filter, fail_filter, 'general', 200.0, "crit"
+    )
+    property_calculator_filter_test.SO_name = 'filter_test'
 
     for i in range(100):
         (
@@ -2791,44 +3110,11 @@ def test_SO_properties():
             Npart,
             particle_numbers,
         ) = dummy_halos.get_random_halo([2, 10, 100, 1000, 10000], has_neutrinos=True)
-        halo_result_template = {
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
         rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
 
         # force the SO radius to be outside the search sphere and check that
-        # we get a ReadRadiusTooSmallError
+        # we get a SearchRadiusTooSmallError
         property_calculator_2500mean.reference_density = 0.01 * rho_ref
         property_calculator_2500crit.reference_density = 0.01 * rho_ref
         property_calculator_BN98.reference_density = 0.01 * rho_ref
@@ -2841,14 +3127,14 @@ def test_SO_properties():
             try:
                 halo_result = dict(halo_result_template)
                 prop_calc.calculate(input_halo, rmax, data, halo_result)
-            except ReadRadiusTooSmallError:
+            except SearchRadiusTooSmallError:
                 fail = True
             # 1 particle halos don't fail, since we always assume that the first
             # particle is at the centre of potential (which means we exclude it
             # in the SO calculation)
             # non-centrals don't fail, since we do not calculate any SO
             # properties and simply return zeros in this case
-            assert (Npart == 1) or input_halo["Structuretype"] != 10 or fail
+            assert (Npart == 1) or input_halo["is_central"] == 0 or fail
 
         # force the radius multiple to trip over not having computed the
         # required radius
@@ -2877,7 +3163,7 @@ def test_SO_properties():
             property_calculator_5x2500mean.calculate(
                 input_halo, 0.2 * rmax, data, halo_result
             )
-        except ReadRadiusTooSmallError:
+        except SearchRadiusTooSmallError:
             fail = True
         assert fail
 
@@ -2892,7 +3178,134 @@ def test_SO_properties():
             ("2500_crit", property_calculator_2500crit),
             ("BN98", property_calculator_BN98),
             ("5xR_2500_mean", property_calculator_5x2500mean),
+            ("filter_test", property_calculator_filter_test),
         ]:
+            halo_result = dict(halo_result_template)
+            # make sure the radius multiple is found this time
+            if SO_name == "5xR_2500_mean":
+                halo_result[
+                    f"SO/2500_mean/{property_calculator_5x2500mean.radius_name}"
+                ] = (0.1 * rmax, "Dummy value to force correct behaviour")
+            input_data = {}
+            for ptype in prop_calc.particle_properties:
+                if ptype in data:
+                    input_data[ptype] = {}
+                    for dset in prop_calc.particle_properties[ptype]:
+                        input_data[ptype][dset] = data[ptype][dset]
+            # Adding Restframe luminosties as they are calculated in halo_tasks
+            if "PartType0" in input_data:
+                for dset in [
+                    "XrayLuminositiesRestframe",
+                    "XrayPhotonLuminositiesRestframe",
+                ]:
+                    input_data["PartType0"][dset] = data["PartType0"][dset]
+                    input_data["PartType0"][dset] = data["PartType0"][dset]
+                halo_result[
+                    f"SO/2500_mean/{property_calculator_5x2500mean.radius_name}"
+                ] = (0.1 * rmax, "Dummy value to force correct behaviour")
+            input_halo_copy = input_halo.copy()
+            input_data_copy = input_data.copy()
+            prop_calc.calculate(input_halo, rmax, input_data, halo_result)
+            # make sure the calculation does not change the input
+            assert input_halo_copy == input_halo
+            assert input_data_copy == input_data
+
+            for prop in prop_calc.property_list:
+                outputname = prop[1]
+                size = prop[2]
+                dtype = prop[3]
+                unit_string = prop[4]
+                full_name = f"SO/{SO_name}/{outputname}"
+                assert full_name in halo_result
+                result = halo_result[full_name][0]
+                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
+                assert result.dtype == dtype
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
+                assert result.units.same_dimensions_as(unit.units)
+
+            # Check properties were not calculated for filtered halos
+            if SO_name == 'filter_test':
+                for prop in prop_calc.property_list:
+                    outputname = prop[1]
+                    size = prop[2]
+                    full_name = f"SO/{SO_name}/{outputname}"
+                    assert np.all(halo_result[full_name][0].value == np.zeros(size))
+
+    # Now test the calculation for each property individually, to make sure that
+    # all properties read all the datasets they require
+    all_parameters = parameters.get_parameters()
+    for property in all_parameters["SOProperties"]["properties"]:
+        print(f"Testing only {property}...")
+        single_property = dict(all_parameters)
+        for other_property in all_parameters["SOProperties"]["properties"]:
+            single_property["SOProperties"]["properties"][other_property] = (
+                other_property == property
+            ) or other_property.startswith("NumberOf")
+        single_parameters = ParameterFile(parameter_dictionary=single_property)
+
+        property_calculator_50kpc = SOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            gas_filter,
+            cat_filter,
+            'basic',
+            50.0,
+            "physical",
+        )
+        property_calculator_2500mean = SOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            gas_filter,
+            cat_filter,
+            'basic',
+            2500.0,
+            "mean",
+        )
+        property_calculator_2500crit = SOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            gas_filter,
+            cat_filter,
+            'basic',
+            2500.0,
+            "crit",
+        )
+        property_calculator_BN98 = SOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            gas_filter,
+            cat_filter,
+            'basic',
+            0.0,
+            "BN98",
+        )
+        property_calculator_5x2500mean = RadiusMultipleSOProperties(
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            gas_filter,
+            cat_filter,
+            'basic',
+            2500.0,
+            5.0,
+            "mean",
+        )
+
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
+        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
+
+        # force the SO radius to be within the search sphere
+        property_calculator_2500mean.reference_density = 2.0 * rho_ref
+        property_calculator_2500crit.reference_density = 2.0 * rho_ref
+        property_calculator_BN98.reference_density = 2.0 * rho_ref
+
+        for SO_name, prop_calc in [
+            ("50_kpc", property_calculator_50kpc),
+            ("2500_mean", property_calculator_2500mean),
+            ("2500_crit", property_calculator_2500crit),
+            ("BN98", property_calculator_BN98),
+            ("5xR_2500_mean", property_calculator_5x2500mean),
+        ]:
+
             halo_result = dict(halo_result_template)
             # make sure the radius multiple is found this time
             if SO_name == "5xR_2500_mean":
@@ -2922,298 +3335,96 @@ def test_SO_properties():
 
             for prop in prop_calc.property_list:
                 outputname = prop[1]
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
-                full_name = f"SO/{SO_name}/{outputname}"
-                assert full_name in halo_result
-                result = halo_result[full_name][0]
-                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
-                assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
-                assert result.units.same_dimensions_as(unit.units)
-
-    # Now test the calculation for each property individually, to make sure that
-    # all properties read all the datasets they require
-    all_parameters = parameters.get_parameters()
-    for property in all_parameters["SOProperties"]["properties"]:
-        print(f"Testing only {property}...")
-        single_property = dict(all_parameters)
-        for other_property in all_parameters["SOProperties"]["properties"]:
-            single_property["SOProperties"]["properties"][other_property] = (
-                other_property == property
-            ) or other_property.startswith("NumberOf")
-        single_parameters = ParameterFile(parameter_dictionary=single_property)
-
-        property_calculator_50kpc = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            50.0,
-            "physical",
-        )
-        property_calculator_2500mean = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            2500.0,
-            "mean",
-        )
-        property_calculator_2500crit = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            2500.0,
-            "crit",
-        )
-        property_calculator_BN98 = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            0.0,
-            "BN98",
-        )
-        property_calculator_5x2500mean = RadiusMultipleSOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            2500.0,
-            5.0,
-            "mean",
-        )
-
-        halo_result_template = {
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
-        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
-
-        # force the SO radius to be within the search sphere
-        property_calculator_2500mean.reference_density = 2.0 * rho_ref
-        property_calculator_2500crit.reference_density = 2.0 * rho_ref
-        property_calculator_BN98.reference_density = 2.0 * rho_ref
-
-        for SO_name, prop_calc in [
-            ("50_kpc", property_calculator_50kpc),
-            ("2500_mean", property_calculator_2500mean),
-            ("2500_crit", property_calculator_2500crit),
-            ("BN98", property_calculator_BN98),
-            ("5xR_2500_mean", property_calculator_5x2500mean),
-        ]:
-
-            halo_result = dict(halo_result_template)
-            # make sure the radius multiple is found this time
-            if SO_name == "5xR_2500_mean":
-                halo_result[
-                    f"SO/2500_mean/{property_calculator_5x2500mean.radius_name}"
-                ] = (0.1 * rmax, "Dummy value to force correct behaviour")
-            input_data = {}
-            for ptype in prop_calc.particle_properties:
-                if ptype in data:
-                    input_data[ptype] = {}
-                    for dset in prop_calc.particle_properties[ptype]:
-                        input_data[ptype][dset] = data[ptype][dset]
-            input_halo_copy = input_halo.copy()
-            input_data_copy = input_data.copy()
-            prop_calc.calculate(input_halo, rmax, input_data, halo_result)
-            # make sure the calculation does not change the input
-            assert input_halo_copy == input_halo
-            assert input_data_copy == input_data
-
-            for prop in prop_calc.property_list:
-                outputname = prop[1]
                 if not outputname == property:
                     continue
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
+                physical = prop[10]
+                a_exponent = prop[11]
                 full_name = f"SO/{SO_name}/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
-                assert result.units.same_dimensions_as(unit.units)
-
-    # Now test the calculation for each property individually, to make sure that
-    # all properties read all the datasets they require
-    all_parameters = parameters.get_parameters()
-    for property in all_parameters["SOProperties"]["properties"]:
-        print(f"Testing only {property}...")
-        single_property = dict(all_parameters)
-        for other_property in all_parameters["SOProperties"]["properties"]:
-            single_property["SOProperties"]["properties"][other_property] = (
-                other_property == property
-            ) or other_property.startswith("NumberOf")
-        single_parameters = ParameterFile(parameter_dictionary=single_property)
-
-        property_calculator_50kpc = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            50.0,
-            "physical",
-        )
-        property_calculator_2500mean = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            2500.0,
-            "mean",
-        )
-        property_calculator_2500crit = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            2500.0,
-            "crit",
-        )
-        property_calculator_BN98 = SOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            0.0,
-            "BN98",
-        )
-        property_calculator_5x2500mean = RadiusMultipleSOProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            filter,
-            cat_filter,
-            2500.0,
-            5.0,
-            "mean",
-        )
-
-        halo_result_template = {
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
-        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
-
-        # force the SO radius to be within the search sphere
-        property_calculator_2500mean.reference_density = 2.0 * rho_ref
-        property_calculator_2500crit.reference_density = 2.0 * rho_ref
-        property_calculator_BN98.reference_density = 2.0 * rho_ref
-
-        for SO_name, prop_calc in [
-            ("50_kpc", property_calculator_50kpc),
-            ("2500_mean", property_calculator_2500mean),
-            ("2500_crit", property_calculator_2500crit),
-            ("BN98", property_calculator_BN98),
-            ("5xR_2500_mean", property_calculator_5x2500mean),
-        ]:
-
-            halo_result = dict(halo_result_template)
-            # make sure the radius multiple is found this time
-            if SO_name == "5xR_2500_mean":
-                halo_result[
-                    f"SO/2500_mean/{property_calculator_5x2500mean.radius_name}"
-                ] = (0.1 * rmax, "Dummy value to force correct behaviour")
-            input_data = {}
-            for ptype in prop_calc.particle_properties:
-                if ptype in data:
-                    input_data[ptype] = {}
-                    for dset in prop_calc.particle_properties[ptype]:
-                        input_data[ptype][dset] = data[ptype][dset]
-            input_halo_copy = input_halo.copy()
-            input_data_copy = input_data.copy()
-            prop_calc.calculate(input_halo, rmax, input_data, halo_result)
-            # make sure the calculation does not change the input
-            assert input_halo_copy == input_halo
-            assert input_data_copy == input_data
-
-            for prop in prop_calc.property_list:
-                outputname = prop[1]
-                if not outputname == property:
-                    continue
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
-                full_name = f"SO/{SO_name}/{outputname}"
-                assert full_name in halo_result
-                result = halo_result[full_name][0]
-                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
-                assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
-                assert result.units.same_dimensions_as(unit.units)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                assert result.units == unit.units
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
 
 
+def calculate_SO_properties_nfw_halo(seed, num_part, c):
+    """
+    Generates a halo with an NFW profile, and calculates SO properties for it
+    """
+    from dummy_halo_generator import DummyHaloGenerator
+
+    dummy_halos = DummyHaloGenerator(seed)
+    gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    cat_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
+    parameters = ParameterFile(
+        parameter_dictionary={
+            "aliases": {
+                "PartType0/ElementMassFractions": "PartType0/SmoothedElementMassFractions",
+                "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
+                "PartType0/XrayLuminositiesRestframe": "PartType0/XrayLuminositiesRestframe",
+                "PartType0/XrayPhotonLuminositiesRestframe": "PartType0/XrayPhotonLuminositiesRestframe",
+            }
+        }
+    )
+    dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
+        parameters.get_aliases()
+    )
+    parameters.get_halo_type_variations(
+        "SOProperties",
+        {
+            "50_kpc": {"value": 50.0, "type": "physical"},
+            "2500_mean": {"value": 2500.0, "type": "mean"},
+            "2500_crit": {"value": 2500.0, "type": "crit"},
+            "BN98": {"value": 0.0, "type": "BN98"},
+            "5xR2500_mean": {"value": 2500.0, "type": "mean", "radius_multiple": 5.0},
+        },
+    )
+
+    property_calculator_200crit = SOProperties(
+        dummy_halos.get_cell_grid(), parameters, gas_filter, cat_filter, 'basic', 200.0, "crit"
+    )
+
+    (input_halo, data, rmax, Mtot, Npart, particle_numbers) = dummy_halos.gen_nfw_halo(
+        100, c, num_part
+    )
+
+    halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
+
+    property_calculator_200crit.nu_density *= 0
+    property_calculator_200crit.calculate(input_halo, rmax, data, halo_result_template)
+
+    return halo_result_template
+
+
+def test_concentration_nfw_halo():
+    """
+    Test if the calculated concentration is close to the input value.
+    Only tests halos with for 10000 particles.
+    Fails due to noise for small particle numbers.
+    """
+    n_part = 10000
+    for seed in range(10):
+        for concentration in [5, 10]:
+            halo_result = calculate_SO_properties_nfw_halo(seed, n_part, concentration)
+            calculated = halo_result["SO/200_crit/Concentration"][0]
+            delta = np.abs(calculated - concentration) / concentration
+            assert delta < 0.1
+
+
 if __name__ == "__main__":
     """
-    Standalone mode. Just run test_SO_properties().
+    Standalone mode for running tests.
     """
-    print("Calling test_SO_properties()...")
-    test_SO_properties()
-    print("Test passed.")
+    print("Calling test_SO_properties_random_halo()...")
+    test_SO_properties_random_halo()
+    print("Calling test_concentration_nfw_halo()...")
+    test_concentration_nfw_halo()
+    print("Tests passed.")

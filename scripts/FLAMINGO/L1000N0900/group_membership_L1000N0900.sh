@@ -1,10 +1,6 @@
 #!/bin/bash -l
 #
-# Compute VR group membership for each particle in a snapshot.
-# Output locations are specified by enviroment variables. E.g.
-#
-# export FLAMINGO_SCRATCH_DIR=/snap8/scratch/dp004/${USER}/FLAMINGO/ScienceRuns/
-# export FLAMINGO_OUTPUT_DIR=/cosma8/data/dp004/${USER}/FLAMINGO/ScienceRuns/
+# Compute group membership for each particle in a snapshot.
 #
 # Job name determines which of the L1000N0900 runs we process.
 # Array job index is the snapshot number to do.
@@ -13,11 +9,13 @@
 #
 # cd SOAP
 # mkdir logs
+# ./scripts/cosma_python_env.sh
 # sbatch -J HYDRO_FIDUCIAL --array=0-77%4 ./scripts/FLAMINGO/L1000N0900/group_membership_L1000N0900.sh
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/group_membership_L1000N1800_%x.%a.out
+#SBATCH --tasks-per-node=128
+#SBATCH -o ./logs/group_membership_L1000N0900_%x.%a.%A.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
@@ -25,23 +23,10 @@
 #
 
 module purge
-module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
+module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
+source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
-# Get location for temporary output
-if [[ "${FLAMINGO_SCRATCH_DIR}" ]] ; then
-  scratch_dir="${FLAMINGO_SCRATCH_DIR}"
-else
-  echo Please set FLAMINGO_SCRATCH_DIR
-  exit 1
-fi
-
-# Get location for final output
-if [[ "${FLAMINGO_OUTPUT_DIR}" ]] ; then
-  output_dir="${FLAMINGO_OUTPUT_DIR}"
-else
-  echo Please set FLAMINGO_OUTPUT_DIR
-  exit 1
-fi
+set -e
 
 # Which snapshot to do
 snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
@@ -49,22 +34,9 @@ snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 # Which simulation to do
 sim="L1000N0900/${SLURM_JOB_NAME}"
 
-# Input simulation location
-basedir="/cosma8/data/dp004/flamingo/Runs/${sim}/"
-
-# Where to write the output
-outbase="${scratch_dir}/${sim}/SOAP_uncompressed/"
-
-# Generate input and output file names
-swift_filename="${basedir}/snapshots/flamingo_${snapnum}/flamingo_${snapnum}.%(file_nr)d.hdf5"
-vr_basename="${basedir}/VR/catalogue_${snapnum}/vr_catalogue_${snapnum}"
-outfile="${outbase}/membership_${snapnum}/membership_${snapnum}.%(file_nr)d.hdf5"
-
-# Create output directory
-outdir=`dirname "${outfile}"`
-mkdir -p "${outdir}"
-lfs setstripe --stripe-count=-1 --stripe-size=32M ${outdir}
-
 # Run the code
-mpirun python3 -u -m mpi4py \
-    ./vr_group_membership.py ${swift_filename} ${vr_basename} ${outfile}
+mpirun -- python3 -u -m mpi4py ./group_membership.py \
+       --sim-name=${sim} --snap-nr=${snapnum} \
+       parameter_files/FLAMINGO.yml
+
+echo "Job complete!"

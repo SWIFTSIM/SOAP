@@ -1,3 +1,14 @@
 __pycache__
 *~
 logs
+openmpi-5.0.3-hdf5-1.12.3-env
+
+documentation/SOAP.aux
+documentation/SOAP.log
+documentation/SOAP.pdf
+documentation/filters.tex
+documentation/footnotes.tex
+documentation/table.tex
+documentation/timestamp.tex
+documentation/variations_table.tex
+documentation/units.tex

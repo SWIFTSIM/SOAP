@@ -13,10 +13,11 @@ with open(f"{script_folder}/filters.yml", "r") as ffile:
     filterdict = yaml.safe_load(ffile)
 
 with open(f"{script_folder}/wrong_compression.yml", "r") as cfile:
-    compression_fixes = yaml.safe_load(cfile)
+    # Load empty dictionary if wrong_compression.yml is empty
+    compression_fixes = yaml.safe_load(cfile) or {}
 
 chunksize = 1000
-compression_opts = {"compression": "gzip", "compression_opts": 9}
+compression_opts = {"compression": "gzip", "compression_opts": 4}
 
 
 class H5visiter:
@@ -92,7 +93,7 @@ def create_lossy_dataset(file, name, shape, filter):
     new_plist.set_chunk(chunk)
     for f in fprops["filters"]:
         new_plist.set_filter(f[0], f[1], tuple(f[2]))
-    new_plist.set_deflate(9)
+    new_plist.set_deflate(compression_opts["compression_opts"])
     space = h5py.h5s.create_simple(shape, shape)
     h5py.h5d.create(file.id, name.encode("utf-8"), type, space, new_plist, None).close()
 
@@ -100,11 +101,23 @@ def create_lossy_dataset(file, name, shape, filter):
 def compress_dataset(arguments):
     input_name, output_name, dset = arguments
 
-    with h5py.File(input_name, "r") as ifile, h5py.File(output_name, "w") as ofile:
-        filter = ifile[dset].attrs["Lossy Compression Algorithm"]
+    # Setting hdf5 version of file
+    fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
+    fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
+    fid = h5py.h5f.create(output_name.encode('utf-8'), flags=h5py.h5f.ACC_TRUNC, fapl=fapl)
+
+    with h5py.File(input_name, "r") as ifile, h5py.File(output_name, "r+") as ofile:
+        group_name = dset.split("/")[0]
+        if group_name == 'Cells':
+            filter = "None"
+        else:
+            filter = ifile[dset].attrs["Lossy compression filter"]
         dset_name = dset.split("/")[-1]
         if dset_name in compression_fixes:
             filter = compression_fixes[dset_name]
+        # TODO: Remove after removing DMantissa21 from property table
+        if filter == 'DMantissa21':
+            filter = 'DMantissa9'
         data = ifile[dset][:]
         if filter == "None":
             if len(data.shape) == 1:
@@ -122,8 +135,12 @@ def compress_dataset(arguments):
             if attr == "Is Compressed":
                 ofile["data"].attrs[attr] = True
             else:
-                if attr == "Lossy Compression Algorithm":
+                # This is needed if we have used the compression_fixes dictionary
+                if attr == "Lossy compression filter":
                     ofile["data"].attrs[attr] = filter
+                # TODO: Remove, this was only the case for a small number of catalogues
+                elif attr == "Conversion factor to CGS (including cosmological corrections)":
+                    ofile["data"].attrs["Conversion factor to physical CGS (including cosmological corrections)"] = filter
                 else:
                     ofile["data"].attrs[attr] = ifile[dset].attrs[attr]
 
@@ -145,10 +162,15 @@ if __name__ == "__main__":
     argparser.add_argument("--nproc", "-n", type=int, default=1)
     args = argparser.parse_args()
 
+    # Setting hdf5 version of file
+    fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
+    fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
+    fid = h5py.h5f.create(args.output.encode('utf-8'), flags=h5py.h5f.ACC_TRUNC, fapl=fapl)
+
     print(f"Copying over groups to {args.output} and listing datasets...")
     tic = time.time()
     mastertic = tic
-    with h5py.File(args.input, "r") as ifile, h5py.File(args.output, "w") as ofile:
+    with h5py.File(args.input, "r") as ifile, h5py.File(args.output, "r+") as ofile:
         h5copy = H5copier(ifile, ofile)
         ifile.visititems(h5copy)
         original_size = h5copy.get_total_size()

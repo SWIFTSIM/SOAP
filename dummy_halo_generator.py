@@ -12,13 +12,15 @@ We make sure all the particle data has the appropriate type, units and
 a representative range of values.
 """
 
+import h5py
 import numpy as np
+import scipy
 import unyt
 import types
 from swift_units import unit_registry_from_snapshot
 from snapshot_datasets import SnapshotDatasets
 from typing import Dict, Union, List, Tuple
-import h5py
+from property_table import PropertyTable
 
 
 class DummySnapshot:
@@ -110,6 +112,14 @@ class DummySnapshot:
                 "Unit temperature in cgs (U_T)": np.array([1.0]),
                 "Unit time in cgs (U_t)": np.array([3.08567758e19]),
             },
+            "Parameters": {
+                "Gravity:comoving_DM_softening": b"0.0446",
+                "Gravity:comoving_baryon_softening": b"0.0446",
+                "Gravity:comoving_nu_softening": b"0.0446",
+                "Gravity:max_physical_DM_softening": b"0.0114",
+                "Gravity:max_physical_baryon_softening": b"0.0114",
+                "Gravity:max_physical_nu_softening": b"0.0114",
+            },
         }
 
     def __getitem__(self, name: str) -> types.SimpleNamespace:
@@ -153,6 +163,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Coordinates",
                 "Masses",
                 "Velocities",
+                "FOFGroupIDs",
                 "MetalMassFractions",
                 "Temperatures",
                 "LastAGNFeedbackScaleFactors",
@@ -170,11 +181,12 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "ElementMassFractionsDiffuse",
                 "SmoothedElementMassFractions",
             ],
-            "PartType1": ["Coordinates", "Masses", "Velocities"],
+            "PartType1": ["Coordinates", "Masses", "Velocities", "FOFGroupIDs"],
             "PartType4": [
                 "Coordinates",
                 "Masses",
                 "Velocities",
+                "FOFGroupIDs",
                 "InitialMasses",
                 "Luminosities",
                 "MetalMassFractions",
@@ -189,6 +201,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Coordinates",
                 "DynamicalMasses",
                 "Velocities",
+                "FOFGroupIDs",
                 "SubgridMasses",
                 "LastAGNFeedbackScaleFactors",
                 "ParticleIDs",
@@ -425,6 +438,23 @@ class DummyCellGrid:
 
         self.snapshot_datasets = DummySnapshotDatasets()
 
+        # Read in the softening lengths, determine whether to use comoving
+        self.parameters = {}
+        for name in snap["Parameters"].attrs:
+            self.parameters[name] = snap["Parameters"].attrs[name]
+        self.dark_matter_softening = min(
+            float(self.parameters.get("Gravity:comoving_DM_softening", 0)) * self.a,
+            float(self.parameters.get("Gravity:max_physical_DM_softening", 0)),
+        ) * self.get_unit("code_length", reg)
+        self.baryon_softening = min(
+            float(self.parameters.get("Gravity:comoving_baryon_softening", 0)) * self.a,
+            float(self.parameters.get("Gravity:max_physical_baryon_softening", 0)),
+        ) * self.get_unit("code_length", reg)
+        self.nu_softening = min(
+            float(self.parameters.get("Gravity:comoving_nu_softening", 0)) * self.a,
+            float(self.parameters.get("Gravity:max_physical_nu_softening", 0)),
+        ) * self.get_unit("code_length", reg)
+
 
 class DummyHaloGenerator:
     """
@@ -456,6 +486,212 @@ class DummyHaloGenerator:
         that are generated.
         """
         return self.dummy_cellgrid
+
+    @staticmethod
+    def get_halo_result_template(particle_numbers):
+        """
+        Return a halo_result object which only contains the number of each particle type.
+        """
+        return {
+            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType0"],
+                    dtype=PropertyTable.full_property_list["Ngas"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Ngas for filter",
+            ),
+            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType1"],
+                    dtype=PropertyTable.full_property_list["Ndm"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Ndm for filter",
+            ),
+            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType4"],
+                    dtype=PropertyTable.full_property_list["Nstar"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Nstar for filter",
+            ),
+            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType5"],
+                    dtype=PropertyTable.full_property_list["Nbh"][2],
+                    units="dimensionless",
+                ),
+                "Dummy Nbh for filter",
+            ),
+            f"SO/200_crit/{PropertyTable.full_property_list['Ngas'][0]}": (
+                unyt.unyt_array(
+                    particle_numbers["PartType0"],
+                    dtype=PropertyTable.full_property_list["Ngas"][2],
+                    units="dimensionless",
+                ),
+                "Dummy SO Ngas for filter",
+            ),
+        }
+
+    @staticmethod
+    def get_filters(filter_limits):
+        return {
+            'general': {
+                    'limit': filter_limits.get('general', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfDarkMatterParticles',
+                        'BoundSubhalo/NumberOfGasParticles',
+                        'BoundSubhalo/NumberOfStarParticles',
+                        'BoundSubhalo/NumberOfBlackHoleParticles',
+                     ],
+                    'combine_properties': 'sum'
+                 },
+            'dm': {
+                    'limit': filter_limits.get('dm', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfDarkMatterParticles',
+                     ],
+                 },
+            'gas': {
+                    'limit': filter_limits.get('gas', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfGasParticles',
+                     ],
+                 },
+            'star': {
+                    'limit': filter_limits.get('star', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfStarParticles',
+                     ],
+                 },
+            'baryon': {
+                    'limit': filter_limits.get('baryon', 100),
+                    'properties': [
+                        'BoundSubhalo/NumberOfGasParticles',
+                        'BoundSubhalo/NumberOfStarParticles',
+                     ],
+                    'combine_properties': 'sum'
+                 },
+        }
+
+    @staticmethod
+    def rnfw(n, con):
+        """
+        Return radius values from n particles from an NFW profile with the input concentration.
+        Derived from https://github.com/CullanHowlett/NFWdist
+        """
+        p = np.random.rand(int(n))
+        p *= np.log(1.0 + con) - con / (1.0 + con)
+        return (-(1.0 / np.real(scipy.special.lambertw(-np.exp(-p - 1)))) - 1) / con
+
+    def gen_nfw_halo(self, m_200, concentration, npart):
+        """
+        Generate a random halo with an NFW profile.
+        """
+
+        reg = self.unit_registry
+        # the random halo always gets GroupNr 1
+        groupnr_halo = 1
+        # structure type: central
+        structuretype = 10
+
+        # Generate NFW particle radii
+        crit_density = self.get_cell_grid().critical_density
+        m_200 = unyt.unyt_quantity(m_200, units="snap_mass", registry=reg)
+        r_200 = (m_200 / (crit_density * 200 * (4 / 3) * np.pi)) ** (1 / 3)
+        radius = r_200.value * self.rnfw(npart, concentration)
+
+        radius = np.sort(radius)
+        # Force a particle to be outside r_200
+        if radius[-1] < r_200.value:
+            radius[-1] = r_200 * 1.01
+        # Force the first particle to be at the centre
+        radius[0] = 0.0
+
+        # generate a random direction to convert the radius into an actual
+        # coordinate
+        phi = 2.0 * np.pi * np.random.random(npart)
+        sintheta = 2.0 * np.random.random(npart) - 1.0
+        costheta = np.sqrt((1.0 - sintheta) * (1.0 + sintheta))
+        cosphi = np.cos(phi)
+        sinphi = np.sin(phi)
+        coords = np.zeros((npart, 3))
+        coords[:, 0] = radius * cosphi * sintheta
+        coords[:, 1] = radius * sinphi * sintheta
+        coords[:, 2] = radius * costheta
+        coords = unyt.unyt_array(
+            coords, dtype=np.float64, units="snap_length", registry=reg
+        )
+        rmax = np.sqrt(coords[:, 0] ** 2 + coords[:, 1] ** 2 + coords[:, 2] ** 2).max()
+        rmax *= 2
+
+        # Add a (random) halo centre
+        centre = unyt.unyt_array(
+            100.0 * np.random.random(3),
+            dtype=np.float64,
+            units="snap_length",
+            registry=reg,
+        )
+        coords += centre
+        mass = unyt.unyt_array(
+            np.ones(npart) * m_200.value / npart,
+            dtype=np.float32,
+            units="snap_mass",
+            registry=reg,
+        )
+        vs = unyt.unyt_array(
+            1000.0 * (np.random.random((npart, 3)) - 0.5),
+            dtype=np.float32,
+            units="snap_length/snap_time",
+            registry=reg,
+        )
+
+        types = np.ones(npart)
+        Ngas, Nstar, Nbh = 0, 0, 0
+
+        groupnr_all = unyt.unyt_array(
+            groupnr_halo * np.ones(npart),
+            dtype=np.int32,
+            units=unyt.dimensionless,
+            registry=reg,
+        )
+        groupnr_bound = groupnr_all.copy()
+        fof_group_ids = groupnr_all.copy()
+
+        Mtot = 0.0
+        data = {}
+
+        # DM properties
+        dm_mask = types == 1
+        Ndm = int(dm_mask.sum())
+        if Ndm > 0:
+            data["PartType1"] = {}
+            data["PartType1"]["Coordinates"] = coords[dm_mask]
+            data["PartType1"]["GroupNr_all"] = groupnr_all[dm_mask]
+            data["PartType1"]["GroupNr_bound"] = groupnr_bound[dm_mask]
+            data["PartType1"]["FOFGroupIDs"] = fof_group_ids[dm_mask]
+            data["PartType1"]["Masses"] = mass[dm_mask]
+            Mtot += data["PartType1"]["Masses"].sum()
+            data["PartType1"]["Velocities"] = vs[dm_mask]
+
+        particle_numbers = {
+            "PartType0": Ngas,
+            "PartType1": Ndm,
+            "PartType4": Nstar,
+            "PartType5": Nbh,
+        }
+
+        # set the required halo properties
+        input_halo = {}
+        input_halo["cofp"] = centre
+        input_halo["index"] = groupnr_halo
+        input_halo["is_central"] = np.ones_like(groupnr_halo)
+        input_halo["Structuretype"] = structuretype
+
+        return input_halo, data, rmax, Mtot, npart, particle_numbers
+
 
     def get_random_halo(
         self, npart: Union[int, List], has_neutrinos: bool = False
@@ -585,7 +821,7 @@ class DummyHaloGenerator:
         # the random halo always gets GroupNr 1
         groupnr_halo = 1
         # structure type: mostly centrals, but some satellites
-        structuretype = np.random.choice([10, 20], p=[0.99, 0.01])
+        is_central = np.random.choice([1, 0], p=[0.99, 0.01])
 
         # Generate a random radius from an exponential distribution.
         # The chosen beta parameter should ensure that ~90% of the values is
@@ -650,6 +886,8 @@ class DummyHaloGenerator:
         index = np.random.choice(groupnr_all.shape[0], npart // 10, replace=False)
         groupnr_bound = groupnr_all.copy()
         groupnr_bound[index] = -1
+        # Set all particles as part of 3D FOF
+        fof_group_ids = groupnr_all.copy()
 
         Mtot = 0.0
         data = {}
@@ -691,6 +929,7 @@ class DummyHaloGenerator:
             data["PartType0"]["ElectronNumberDensities"][idx0] = 0.0
             data["PartType0"]["GroupNr_all"] = groupnr_all[gas_mask]
             data["PartType0"]["GroupNr_bound"] = groupnr_bound[gas_mask]
+            data["PartType0"]["FOFGroupIDs"] = fof_group_ids[gas_mask]
             # we assume a fixed "snapshot" redshift of 0.1, so we make sure
             # the random values span a range of scale factors that is lower
             data["PartType0"]["LastAGNFeedbackScaleFactors"] = unyt.unyt_array(
@@ -815,6 +1054,7 @@ class DummyHaloGenerator:
             data["PartType1"]["Coordinates"] = coords[dm_mask]
             data["PartType1"]["GroupNr_all"] = groupnr_all[dm_mask]
             data["PartType1"]["GroupNr_bound"] = groupnr_bound[dm_mask]
+            data["PartType1"]["FOFGroupIDs"] = fof_group_ids[dm_mask]
             data["PartType1"]["Masses"] = mass[dm_mask]
             Mtot += data["PartType1"]["Masses"].sum()
             data["PartType1"]["Velocities"] = vs[dm_mask]
@@ -845,6 +1085,7 @@ class DummyHaloGenerator:
             data["PartType4"]["Coordinates"] = coords[star_mask]
             data["PartType4"]["GroupNr_all"] = groupnr_all[star_mask]
             data["PartType4"]["GroupNr_bound"] = groupnr_bound[star_mask]
+            data["PartType4"]["FOFGroupIDs"] = fof_group_ids[star_mask]
             # initial masses are always larger than the actual mass
             data["PartType4"]["InitialMasses"] = unyt.unyt_array(
                 mass[star_mask].value * (1.0 + np.random.random(Nstar)),
@@ -909,6 +1150,7 @@ class DummyHaloGenerator:
             Mtot += data["PartType5"]["DynamicalMasses"].sum()
             data["PartType5"]["GroupNr_all"] = groupnr_all[bh_mask]
             data["PartType5"]["GroupNr_bound"] = groupnr_bound[bh_mask]
+            data["PartType5"]["FOFGroupIDs"] = fof_group_ids[bh_mask]
             data["PartType5"]["LastAGNFeedbackScaleFactors"] = unyt.unyt_array(
                 1.0 / 1.1 + 0.01 * np.random.random(Nbh),
                 dtype=np.float32,
@@ -957,7 +1199,9 @@ class DummyHaloGenerator:
         input_halo = {}
         input_halo["cofp"] = centre
         input_halo["index"] = groupnr_halo
-        input_halo["Structuretype"] = structuretype
+        input_halo["is_central"] = is_central
+        input_halo["nr_bound_part"] = np.sum(groupnr_bound == groupnr_halo)
+        input_halo["nr_unbound_part"] = np.sum(groupnr_all == groupnr_halo)
 
         nu_density = (
             self.dummy_cellgrid.cosmology["Omega_nu_0"]

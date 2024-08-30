@@ -4,7 +4,6 @@ import collections
 
 import numpy as np
 import h5py
-import time
 from mpi4py import MPI
 import unyt
 import scipy.spatial
@@ -13,6 +12,7 @@ import swift_units
 import task_queue
 import shared_array
 from snapshot_datasets import SnapshotDatasets
+import property_table
 
 # HDF5 chunk cache parameters:
 # SWIFT writes datasets with large chunks so the default 1Mb may be too small
@@ -112,7 +112,7 @@ def identify_datasets(filename, nr_files, ptypes, registry):
 
     # Scan snapshot files to find shape, type and units for each quantity
     for file_nr in range(nr_files):
-        infile = h5py.File(filename % {"file_nr": file_nr}, "r")
+        infile = h5py.File(filename.format(file_nr=file_nr), "r")
         nr_left = 0
         for ptype in ptypes:
             if to_find[ptype]:
@@ -155,12 +155,12 @@ class SWIFTCellGrid:
         self.extra_filename = extra_filename
 
         # Open the input file
-        with h5py.File(snap_filename % {"file_nr": 0}, "r") as infile:
+        with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
 
             if snap_filename_ref is None:
                 self.snapshot_datasets = SnapshotDatasets(infile)
             else:
-                with h5py.File(snap_filename_ref % {"file_nr": 0}, "r") as ref_file:
+                with h5py.File(snap_filename_ref.format(file_nr=0), "r") as ref_file:
                     self.snapshot_datasets = SnapshotDatasets(ref_file)
 
             # Get the snapshot unit system
@@ -175,6 +175,11 @@ class SWIFTCellGrid:
             self.cosmology = {}
             for name in infile["Cosmology"].attrs:
                 self.cosmology[name] = infile["Cosmology"].attrs[name][0]
+
+            # Read parameters
+            self.parameters = {}
+            for name in infile["Parameters"].attrs:
+                self.parameters[name] = infile["Parameters"].attrs[name]
 
             # Read constants
             self.constants = {}
@@ -212,6 +217,27 @@ class SWIFTCellGrid:
             self.critical_density = unyt.unyt_quantity(
                 critical_density, units=internal_density_unit
             )
+
+            # Read in the softening lengths, determine whether to use comoving or physical
+            self.dark_matter_softening = min(
+                float(self.parameters["Gravity:comoving_DM_softening"]) * self.a,
+                float(self.parameters["Gravity:max_physical_DM_softening"]),
+            ) * self.get_unit("code_length")
+            self.baryon_softening = min(
+                float(self.parameters.get("Gravity:comoving_baryon_softening", 0))
+                * self.a,
+                float(self.parameters.get("Gravity:max_physical_baryon_softening", 0)),
+            ) * self.get_unit("code_length")
+            self.nu_softening = min(
+                float(self.parameters.get("Gravity:comoving_nu_softening", 0)) * self.a,
+                float(self.parameters.get("Gravity:max_physical_nu_softening", 0)),
+            ) * self.get_unit("code_length")
+
+            # Try to read in AGN_delta_T. We assert we have a valid value when we
+            # create the recently_heated_gas_filter
+            self.AGN_delta_T = float(
+                self.parameters.get("EAGLEAGN:AGN_delta_T_K", 0)
+            ) * self.get_unit('K')
 
             # Compute mean density at the redshift of the snapshot:
             # Here we compute the mean density in internal units at z=0 using
@@ -275,6 +301,7 @@ class SWIFTCellGrid:
             self.cell_size = unyt.unyt_array(
                 infile["Cells/Meta-data"].attrs["size"], units=comoving_length_unit
             )
+            self.cell_centres = infile["Cells/Centres"][...]
             for name in infile["Cells/Counts"]:
                 self.ptypes.append(name)
 
@@ -310,12 +337,14 @@ class SWIFTCellGrid:
             self.extra_metadata = identify_datasets(
                 extra_filename, self.nr_files, self.ptypes, self.snap_unit_registry
             )
+            if "FOFGroupIDs" in self.extra_metadata['PartType1']:
+                print('Using FOFGroupIDs from group membership files')
 
         # Scan reference snapshot for missing particle types (e.g. stars or black holes at high z)
         self.ptypes_ref = []
         if snap_filename_ref is not None:
             # Determine any particle types present in the reference snapshot but not in the current snapshot
-            with h5py.File(snap_filename_ref % {"file_nr": 0}, "r") as infile:
+            with h5py.File(snap_filename_ref.format(file_nr=0), "r") as infile:
                 for name in infile["Cells/Counts"]:
                     if name not in self.ptypes:
                         self.ptypes_ref.append(name)
@@ -333,6 +362,26 @@ class SWIFTCellGrid:
                         self.nr_files,
                         self.ptypes_ref,
                         self.snap_unit_registry,
+                    )
+
+
+    def check_datasets_exist(self, required_datasets):
+        # Check we have all the fields needed for each property
+        # Doing it at this point rather than in masked cells since we want
+        # to output a list of properties that require the missing fields
+        for ptype in set(self.ptypes).intersection(set(required_datasets.keys())):
+            for name in required_datasets[ptype]:
+                in_extra = (self.extra_filename is not None) and (name in self.extra_metadata[ptype])
+                in_snap = (name in self.snap_metadata[ptype])
+                if not (in_extra or in_snap):
+                    dataset = f'{ptype}/{name}'
+                    print(f"The following properties require {dataset}:")
+                    full_property_list = property_table.PropertyTable.full_property_list
+                    for k, v in full_property_list.items():
+                        if dataset in v[8]:
+                            print(f'  {v[0]}')
+                    raise Exception(
+                        f"Can't find required dataset {dataset} in input file(s)!"
                     )
 
     def prepare_read(self, ptype, mask):
@@ -446,13 +495,18 @@ class SWIFTCellGrid:
                         nr_parts[ptype] += count
 
         # Create read tasks in the required order:
-        # By file, then by particle type, then by dataset, then by offset in the file
+        # By file, then by particle type, then by dataset, then by offset in the file.
+        # Skip datasets which exist in the extra files because we should not read them
+        # from the snapshot.
         all_tasks = collections.deque()
         for file_nr in all_file_nrs:
-            filename = self.snap_filename % {"file_nr": file_nr}
+            filename = self.snap_filename.format(file_nr=file_nr)
             for ptype in reads_for_type:
+                extra_metadata = {}
+                if self.extra_filename is not None:
+                    extra_metadata.update(self.extra_metadata[ptype])
                 for dataset in property_names[ptype]:
-                    if dataset in self.snap_metadata[ptype]:
+                    if dataset in self.snap_metadata[ptype] and dataset not in extra_metadata:
                         if file_nr in reads_for_type[ptype]:
                             for (file_offset, mem_offset, count) in reads_for_type[
                                 ptype
@@ -471,7 +525,7 @@ class SWIFTCellGrid:
         # Create additional read tasks for the extra data files
         if self.extra_filename is not None:
             for file_nr in all_file_nrs:
-                filename = self.extra_filename % {"file_nr": file_nr}
+                filename = self.extra_filename.format(file_nr=file_nr)
                 for ptype in reads_for_type:
                     for dataset in property_names[ptype]:
                         if dataset in self.extra_metadata[ptype]:
@@ -514,14 +568,15 @@ class SWIFTCellGrid:
                 for name in property_names[ptype]:
 
                     # Get metadata for array to allocate in memory
-                    if name in self.snap_metadata[ptype]:
-                        units, dtype, shape = self.snap_metadata[ptype][name]
-                    elif (
-                        self.extra_metadata is not None
+                    if (
+                        self.extra_filename is not None
                         and name in self.extra_metadata[ptype]
                     ):
                         units, dtype, shape = self.extra_metadata[ptype][name]
+                    elif name in self.snap_metadata[ptype]:
+                        units, dtype, shape = self.snap_metadata[ptype][name]
                     else:
+                        # This shouldn't ever be hit because of check_datasets_exist
                         raise Exception(
                             "Can't find required dataset %s in input file(s)!" % name
                         )
@@ -584,34 +639,22 @@ class SWIFTCellGrid:
 
         return data
 
-    def write_metadata(self, group):
+    def copy_swift_metadata(self, outfile):
         """
         Write simulation information etc to the specified HDF5 group
         """
 
-        # Write cosmology
-        cosmo = group.create_group("Cosmology")
-        for name, value in self.cosmology.items():
-            cosmo.attrs[name] = [value]
-
-        # Write physical constants
-        const = group.create_group("PhysicalConstants")
-        const = const.create_group("CGS")
-        for name, value in self.constants.items():
-            const.attrs[name] = [value]
-
-        # Write units
-        units = group.create_group("Units")
-        for name, value in self.swift_units_group.items():
-            units.attrs[name] = [value]
-        units = group.create_group("InternalCodeUnits")
-        for name, value in self.swift_internal_units_group.items():
-            units.attrs[name] = [value]
+        group = outfile.create_group("SWIFT")
 
         # Write header
         header = group.create_group("Header")
         for name, value in self.swift_header_group.items():
             header.attrs[name] = value
+
+        # Write parameters
+        params = group.create_group("Parameters")
+        for name, value in self.parameters.items():
+            params.attrs[name] = value
 
     def complete_radius_from_mask(self, mask):
         """

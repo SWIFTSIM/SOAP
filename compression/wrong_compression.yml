@@ -1,10 +1,2 @@
-MostMassiveBlackHolePosition: DScale5
-KineticEnergyGas: DMantissa9
-KineticEnergyStars: DMantissa9
-ThermalEnergyGas: DMantissa9
-XRayLuminosity: DMantissa9
-XRayLuminosityWithoutRecentAGNHeating: DMantissa9
-XRayPhotonLuminosity: DMantissa9
-XRayPhotonLuminosityWithoutRecentAGNHeating: DMantissa9
-ComptonY: DMantissa9
-ComptonYWithoutRecentAGNHeating: DMantissa9
+# Add entry as "PropertyName": "FilterName"
+# e.g. MostMassiveBlackHolePosition: DScale5

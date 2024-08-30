@@ -23,12 +23,11 @@ import numpy as np
 import unyt
 
 from swift_cells import SWIFTCellGrid
-from halo_properties import HaloProperty
+from halo_properties import HaloProperty, SearchRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from property_table import PropertyTable
 from kinematic_properties import get_projected_inertia_tensor
-from kinematic_properties import get_reduced_projected_inertia_tensor
 from lazy_properties import lazy_property
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
@@ -116,8 +115,7 @@ class ProjectedApertureParticleData:
             rprojz = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2)
             radius_projz.append(rprojz)
             velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
-            typearr = np.zeros(rprojx.shape, dtype="U9")
-            typearr[:] = ptype
+            typearr = int(ptype[-1]) * np.ones(rprojx.shape, dtype=np.int32)
             types.append(typearr)
 
         self.mass = np.concatenate(mass)
@@ -176,6 +174,7 @@ class SingleProjectionProjectedApertureParticleData:
         self.index = part_props.index
         self.centre = part_props.centre
         self.types = part_props.types
+        self.aperture_radius = part_props.aperture_radius
 
         self.iproj = {"projx": 0, "projy": 1, "projz": 2}[projection]
         self.projmask = getattr(part_props, f"mask_{projection}")
@@ -196,7 +195,7 @@ class SingleProjectionProjectedApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.projmask[self.types == "PartType0"]
+        return self.projmask[self.types == 0]
 
     @lazy_property
     def dm_mask_ap(self) -> NDArray[bool]:
@@ -207,7 +206,7 @@ class SingleProjectionProjectedApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.projmask[self.types == "PartType1"]
+        return self.projmask[self.types == 1]
 
     @lazy_property
     def star_mask_ap(self) -> NDArray[bool]:
@@ -218,7 +217,7 @@ class SingleProjectionProjectedApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.projmask[self.types == "PartType4"]
+        return self.projmask[self.types == 4]
 
     @lazy_property
     def bh_mask_ap(self) -> NDArray[bool]:
@@ -229,7 +228,7 @@ class SingleProjectionProjectedApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.projmask[self.types == "PartType5"]
+        return self.projmask[self.types == 5]
 
     @lazy_property
     def baryon_mask_ap(self) -> NDArray[bool]:
@@ -239,7 +238,7 @@ class SingleProjectionProjectedApertureParticleData:
         in the calculation. Note that baryons are gas and star particles,
         so "PartType0" and "PartType4".
         """
-        return self.projmask[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.projmask[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def Ngas(self) -> int:
@@ -274,21 +273,21 @@ class SingleProjectionProjectedApertureParticleData:
         """
         Mass of the gas particles.
         """
-        return self.proj_mass[self.proj_type == "PartType0"]
+        return self.proj_mass[self.proj_type == 0]
 
     @lazy_property
     def proj_mass_dm(self) -> unyt.unyt_array:
         """
         Mass of the DM particles.
         """
-        return self.proj_mass[self.proj_type == "PartType1"]
+        return self.proj_mass[self.proj_type == 1]
 
     @lazy_property
     def proj_mass_star(self) -> unyt.unyt_array:
         """
         Mass of the star particles.
         """
-        return self.proj_mass[self.proj_type == "PartType4"]
+        return self.proj_mass[self.proj_type == 4]
 
     @lazy_property
     def proj_mass_baryons(self) -> unyt.unyt_array:
@@ -296,7 +295,7 @@ class SingleProjectionProjectedApertureParticleData:
         Mass of the baryon particles (gas + stars).
         """
         return self.proj_mass[
-            (self.proj_type == "PartType0") | (self.proj_type == "PartType4")
+            (self.proj_type == 0) | (self.proj_type == 4)
         ]
 
     @lazy_property
@@ -304,21 +303,21 @@ class SingleProjectionProjectedApertureParticleData:
         """
         Projected position of the gas particles.
         """
-        return self.proj_position[self.proj_type == "PartType0"]
+        return self.proj_position[self.proj_type == 0]
 
     @lazy_property
     def proj_pos_dm(self) -> unyt.unyt_array:
         """
         Projected position of the DM particles.
         """
-        return self.proj_position[self.proj_type == "PartType1"]
+        return self.proj_position[self.proj_type == 1]
 
     @lazy_property
     def proj_pos_star(self) -> unyt.unyt_array:
         """
         Projected position of the star particles.
         """
-        return self.proj_position[self.proj_type == "PartType4"]
+        return self.proj_position[self.proj_type == 4]
 
     @lazy_property
     def proj_pos_baryons(self) -> unyt.unyt_array:
@@ -326,7 +325,7 @@ class SingleProjectionProjectedApertureParticleData:
         Projected position of the baryon (gas + stars) particles.
         """
         return self.proj_position[
-            (self.proj_type == "PartType0") | (self.proj_type == "PartType4")
+            (self.proj_type == 0) | (self.proj_type == 4)
         ]
 
     @lazy_property
@@ -362,7 +361,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         Total dynamical mass of BH particles.
         """
-        return self.proj_mass[self.proj_type == "PartType5"].sum()
+        return self.proj_mass[self.proj_type == 5].sum()
 
     @lazy_property
     def Mbaryons(self) -> unyt.unyt_quantity:
@@ -575,6 +574,48 @@ class SingleProjectionProjectedApertureParticleData:
         return (self.mass_fraction[:, None] * self.proj_velocity).sum(axis=0)
 
     @lazy_property
+    def ProjectedTotalInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.part_props.mass, self.part_props.position, self.iproj, self.aperture_radius)
+
+    @lazy_property
+    def ProjectedTotalInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.part_props.mass, self.part_props.position, self.iproj, self.aperture_radius, reduced=True)
+
+    @lazy_property
+    def ProjectedTotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the total mass distribution in projection.
+        Computed using all bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, max_iterations=1)
+
+    @lazy_property
+    def ProjectedTotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the total mass distribution in projection.
+        Computed using all bound particles within the projected aperture.
+        """
+        if self.Mtot == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
+
+    @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
         """
         Fractional mass of gas particles. See the documentation of mass_fraction
@@ -593,28 +634,59 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        proj_vgas = self.proj_velocity[self.proj_type == "PartType0", self.iproj]
+        proj_vgas = self.proj_velocity[self.proj_type == 0, self.iproj]
         vcom_gas = (self.gas_mass_fraction * proj_vgas).sum()
         return np.sqrt((self.gas_mass_fraction * (proj_vgas - vcom_gas) ** 2).sum())
+
+    def gas_inertia_tensor(self, **kwargs) -> unyt.unyt_array:
+        """
+        Helper function for calculating projected gas inertia tensors
+        """
+        mass = self.part_props.mass[self.part_props.types == 0]
+        position = self.part_props.position[self.part_props.types == 0]
+        return get_projected_inertia_tensor(mass, position, self.iproj, self.aperture_radius, **kwargs)
 
     @lazy_property
     def ProjectedGasInertiaTensor(self) -> unyt.unyt_array:
         """
-        Inertia tensor of the gas in projection.
+        Inertia tensor of the gas mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
         """
         if self.Mgas == 0:
             return None
-        return get_projected_inertia_tensor(
-            self.proj_mass_gas, self.proj_pos_gas, self.iproj
-        )
+        return self.gas_inertia_tensor()
 
     @lazy_property
-    def ReducedProjectedGasInertiaTensor(self):
+    def ProjectedGasInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the gas mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
         if self.Mgas == 0:
             return None
-        return get_reduced_projected_inertia_tensor(
-            self.proj_mass_gas, self.proj_pos_gas, self.iproj
-        )
+        return self.gas_inertia_tensor(reduced=True)
+
+    @lazy_property
+    def ProjectedGasInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the gas mass distribution in projection.
+        Computed using all bound gas particles within the projected aperture.
+        """
+        if self.Mgas == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, max_iterations=1)
+
+    @lazy_property
+    def ProjectedGasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the gas mass distribution in projection.
+        Computed using all bound gas particles within the projected aperture.
+        """
+        if self.Mgas == 0:
+            return None
+        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
 
     @lazy_property
     def dm_mass_fraction(self) -> unyt.unyt_array:
@@ -635,7 +707,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mdm == 0:
             return None
-        proj_vdm = self.proj_velocity[self.proj_type == "PartType1", self.iproj]
+        proj_vdm = self.proj_velocity[self.proj_type == 1, self.iproj]
         vcom_dm = (self.dm_mass_fraction * proj_vdm).sum()
         return np.sqrt((self.dm_mass_fraction * (proj_vdm - vcom_dm) ** 2).sum())
 
@@ -658,47 +730,59 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        proj_vstar = self.proj_velocity[self.proj_type == "PartType4", self.iproj]
+        proj_vstar = self.proj_velocity[self.proj_type == 4, self.iproj]
         vcom_star = (self.star_mass_fraction * proj_vstar).sum()
         return np.sqrt((self.star_mass_fraction * (proj_vstar - vcom_star) ** 2).sum())
+
+    def stellar_inertia_tensor(self, **kwargs) -> unyt.unyt_array:
+        """
+        Helper function for calculating projected stellar inertia tensors
+        """
+        mass = self.part_props.mass[self.part_props.types == 4]
+        position = self.part_props.position[self.part_props.types == 4]
+        return get_projected_inertia_tensor(mass, position, self.iproj, self.aperture_radius, **kwargs)
 
     @lazy_property
     def ProjectedStellarInertiaTensor(self) -> unyt.unyt_array:
         """
-        Inertia tensor of the stars in projection.
+        Inertia tensor of the stellar mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
-            self.proj_mass_star, self.proj_pos_star, self.iproj
-        )
+        return self.stellar_inertia_tensor()
 
     @lazy_property
-    def ReducedProjectedStellarInertiaTensor(self):
+    def ProjectedStellarInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
         if self.Mstar == 0:
             return None
-        return get_reduced_projected_inertia_tensor(
-            self.proj_mass_star, self.proj_pos_star, self.iproj
-        )
+        return self.stellar_inertia_tensor(reduced=True)
 
     @lazy_property
-    def ProjectedBaryonInertiaTensor(self) -> unyt.unyt_array:
+    def ProjectedStellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
-        Inertia tensor of the baryons (gas + stars) in projection.
+        Inertia tensor of the stellar mass distribution in projection.
+        Computed using all bound star particles within the projected aperture.
         """
-        if self.Mbaryons == 0:
+        if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
-            self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, max_iterations=1)
 
     @lazy_property
-    def ReducedProjectedBaryonInertiaTensor(self):
-        if self.Mbaryons == 0:
+    def ProjectedStellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution in projection.
+        Computed using all bound star particles within the projected aperture.
+        """
+        if self.Mstar == 0:
             return None
-        return get_reduced_projected_inertia_tensor(
-            self.proj_mass_baryons, self.proj_pos_baryons, self.iproj
-        )
+        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
 
     @lazy_property
     def gas_mask_all(self) -> NDArray[bool]:
@@ -1025,7 +1109,7 @@ class SingleProjectionProjectedApertureParticleData:
         Half mass radius of gas.
         """
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == "PartType0"],
+            self.proj_radius[self.proj_type == 0],
             self.proj_mass_gas,
             self.Mgas,
         )
@@ -1036,7 +1120,7 @@ class SingleProjectionProjectedApertureParticleData:
         Half mass radius of dark matter.
         """
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == "PartType1"], self.proj_mass_dm, self.Mdm
+            self.proj_radius[self.proj_type == 1], self.proj_mass_dm, self.Mdm
         )
 
     @lazy_property
@@ -1045,7 +1129,7 @@ class SingleProjectionProjectedApertureParticleData:
         Half mass radius of stars.
         """
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == "PartType4"],
+            self.proj_radius[self.proj_type == 4],
             self.proj_mass_star,
             self.Mstar,
         )
@@ -1057,7 +1141,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         return get_half_mass_radius(
             self.proj_radius[
-                (self.proj_type == "PartType0") | (self.proj_type == "PartType4")
+                (self.proj_type == 0) | (self.proj_type == 4)
             ],
             self.proj_mass_baryons,
             self.Mbaryons,
@@ -1110,9 +1194,18 @@ class ProjectedApertureProperties(HaloProperty):
             "BHmaxvel",
             "BHlasteventa",
             "BHmaxlasteventa",
+            "ProjectedTotalInertiaTensor",
             "ProjectedGasInertiaTensor",
             "ProjectedStellarInertiaTensor",
-            "ProjectedBaryonInertiaTensor",
+            "ProjectedTotalInertiaTensorReduced",
+            "ProjectedGasInertiaTensorReduced",
+            "ProjectedStellarInertiaTensorReduced",
+            "ProjectedTotalInertiaTensorNoniterative",
+            "ProjectedGasInertiaTensorNoniterative",
+            "ProjectedStellarInertiaTensorNoniterative",
+            "ProjectedTotalInertiaTensorReducedNoniterative",
+            "ProjectedGasInertiaTensorReducedNoniterative",
+            "ProjectedStellarInertiaTensorReducedNoniterative",
             "HydrogenMass",
             "HeliumMass",
             "MolecularHydrogenMass",
@@ -1123,9 +1216,6 @@ class ProjectedApertureProperties(HaloProperty):
             "starmetalfrac",
             "gasmetalfrac",
             "gasmetalfrac_SF",
-            "ReducedProjectedGasInertiaTensor",
-            "ReducedProjectedStellarInertiaTensor",
-            "ReducedProjectedBaryonInertiaTensor",
         ]
     ]
 
@@ -1135,6 +1225,7 @@ class ProjectedApertureProperties(HaloProperty):
         parameters: ParameterFile,
         physical_radius_kpc: float,
         category_filter: CategoryFilter,
+        halo_filter: str,
     ):
         """
         Construct an ProjectedApertureProperties object with the given physical
@@ -1152,8 +1243,11 @@ class ProjectedApertureProperties(HaloProperty):
            in units of kpc.
          - category_filter: CategoryFilter
            Filter used to determine which properties can be calculated for this halo.
-           This depends on the number of particles in the FOF subhalo and the category
+           This depends on the number of particles in the subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
         """
         super().__init__(cellgrid)
 
@@ -1170,8 +1264,11 @@ class ProjectedApertureProperties(HaloProperty):
 
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
+        self.halo_filter = halo_filter
 
         self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
+        self.group_name = f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc"
+        self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
         # Coordinates, Masses and Velocities are always required, as is
@@ -1227,26 +1324,13 @@ class ProjectedApertureProperties(HaloProperty):
         The halo_result dictionary is updated with the properties computed by this function.
         """
 
-        types_present = [type for type in self.particle_properties if type in data]
+        do_calculation = self.category_filter.get_do_calculation(halo_result)
+        registry = input_halo['cofp'].units.registry
 
-        part_props = ProjectedApertureParticleData(
-            input_halo,
-            data,
-            types_present,
-            self.physical_radius_mpc * unyt.Mpc,
-            self.snapshot_datasets,
-        )
-
-        do_calculation = self.category_filter.get_filters(halo_result)
-
-        registry = part_props.mass.units.registry
+        projected_aperture = {}
         # loop over the different projections
         for projname in ["projx", "projy", "projz"]:
-            proj_part_props = SingleProjectionProjectedApertureParticleData(
-                part_props, projname
-            )
-
-            projected_aperture = {}
+            projected_aperture[projname] = {}
             # declare all the variables we will compute
             # we set them to 0 in case a particular variable cannot be computed
             # all variables are defined with physical units and an appropriate dtype
@@ -1259,36 +1343,84 @@ class ProjectedApertureProperties(HaloProperty):
                     continue
                 # skip non-DMO properties in DMO run mode
                 is_dmo = prop[8]
-                if do_calculation["DMO"] and not is_dmo:
+                if self.category_filter.dmo and not is_dmo:
                     continue
                 name = prop[0]
                 shape = prop[2]
                 dtype = prop[3]
-                unit = prop[4]
-                category = prop[6]
+                unit = unyt.Unit(prop[4], registry=registry)
+                physical = prop[10]
+                a_exponent = prop[11]
                 if shape > 1:
                     val = [0] * shape
                 else:
                     val = 0
-                projected_aperture[name] = unyt.unyt_array(
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
+                projected_aperture[projname][name] = unyt.unyt_array(
                     val, dtype=dtype, units=unit, registry=registry
                 )
-                if do_calculation[category]:
-                    val = getattr(proj_part_props, name)
-                    if val is not None:
-                        assert (
-                            projected_aperture[name].shape == val.shape
-                        ), f"Attempting to store {name} with wrong dimensions"
-                        if unit == "dimensionless":
-                            projected_aperture[name] = unyt.unyt_array(
-                                val.astype(dtype),
-                                dtype=dtype,
-                                units=unit,
-                                registry=registry,
-                            )
-                        else:
-                            projected_aperture[name] += val
 
+        # Determine whether to skip halo
+        if do_calculation[self.halo_filter]:
+            # For projected apertures we are only using bound particles
+            # Therefore we don't need to check if the serach_radius is large enough,
+            # because all particles will have been loaded
+
+            types_present = [type for type in self.particle_properties if type in data]
+            part_props = ProjectedApertureParticleData(
+                input_halo,
+                data,
+                types_present,
+                self.physical_radius_mpc * unyt.Mpc,
+                self.snapshot_datasets,
+            )
+            for projname in ["projx", "projy", "projz"]:
+                proj_part_props = SingleProjectionProjectedApertureParticleData(
+                    part_props, projname
+                )
+                for prop in self.property_list:
+                    outputname = prop[1]
+                    # skip properties that are masked
+                    if not self.property_mask[outputname]:
+                        continue
+                    # skip non-DMO properties in DMO run mode
+                    is_dmo = prop[8]
+                    if do_calculation["DMO"] and not is_dmo:
+                        continue
+                    name = prop[0]
+                    shape = prop[2]
+                    dtype = prop[3]
+                    unit = unyt.Unit(prop[4], registry=registry)
+                    category = prop[6]
+                    physical = prop[10]
+                    a_exponent = prop[11]
+                    if not physical:
+                        unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
+                    if do_calculation[category]:
+                        val = getattr(proj_part_props, name)
+                        if val is not None:
+                            assert (
+                                projected_aperture[projname][name].shape == val.shape
+                            ), f"Attempting to store {name} with wrong dimensions"
+                            if unit == unyt.Unit("dimensionless"):
+                                if hasattr(val, "units"):
+                                    assert (
+                                        val.units == unyt.dimensionless
+                                    ), f'{name} is not dimensionless'
+                                projected_aperture[projname][name] = unyt.unyt_array(
+                                    val.astype(dtype),
+                                    dtype=dtype,
+                                    units=unit,
+                                    registry=registry,
+                                )
+                            else:
+                                err = f'Overflow for halo {input_halo["index"]} when'
+                                err += f'calculating {name} in projected_properties'
+                                assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
+                                projected_aperture[projname][name] += val
+
+        for projname in ["projx", "projy", "projz"]:
             # add the new properties to the halo_result dictionary
             prefix = (
                 f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc/{projname}"
@@ -1300,12 +1432,14 @@ class ProjectedApertureProperties(HaloProperty):
                     continue
                 # skip non-DMO properties in DMO run mode
                 is_dmo = prop[8]
-                if do_calculation["DMO"] and not is_dmo:
+                if self.category_filter.dmo and not is_dmo:
                     continue
                 name = prop[0]
                 description = prop[5]
+                physical = prop[10]
+                a_exponent = prop[11]
                 halo_result.update(
-                    {f"{prefix}/{outputname}": (projected_aperture[name], description)}
+                    {f"{prefix}/{outputname}": (projected_aperture[projname][name], description, physical, a_exponent)}
                 )
 
         return
@@ -1321,12 +1455,11 @@ def test_projected_aperture_properties():
     dtype and units.
     """
 
+    import pytest
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(127)
-    category_filter = CategoryFilter(
-        {"general": 100, "gas": 100, "dm": 100, "star": 100, "baryon": 100}
-    )
+    category_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
     parameters = ParameterFile(
         parameter_dictionary={
             "aliases": {
@@ -1342,79 +1475,64 @@ def test_projected_aperture_properties():
         "ProjectedApertureProperties", {"30_kpc": {"radius_in_kpc": 30.0}}
     )
 
-    property_calculator = ProjectedApertureProperties(
-        dummy_halos.get_cell_grid(), parameters, 30.0, category_filter
+    pc_projected = ProjectedApertureProperties(
+        dummy_halos.get_cell_grid(), parameters, 30.0, category_filter, 'basic'
     )
 
-    parameters.write_parameters("projected_apertures.used_parameters.yml")
+    # Create a filter that no halos will satisfy
+    fail_filter = CategoryFilter(dummy_halos.get_filters({"general": 10000000}))
+    pc_filter_test = ProjectedApertureProperties(
+        dummy_halos.get_cell_grid(), parameters, 30.0, fail_filter, 'general'
+    )
 
     for i in range(100):
         input_halo, data, _, _, _, particle_numbers = dummy_halos.get_random_halo(
             [1, 10, 100, 1000, 10000]
         )
-        halo_result_template = {
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
 
-        input_data = {}
-        for ptype in property_calculator.particle_properties:
-            if ptype in data:
-                input_data[ptype] = {}
-                for dset in property_calculator.particle_properties[ptype]:
-                    input_data[ptype][dset] = data[ptype][dset]
-        input_halo_copy = input_halo.copy()
-        input_data_copy = input_data.copy()
-        halo_result = dict(halo_result_template)
-        property_calculator.calculate(
-            input_halo, 0.0 * unyt.kpc, input_data, halo_result
-        )
-        assert input_halo == input_halo_copy
-        assert input_data == input_data_copy
+        for pc_name, pc_calc in [
+            ("ProjectedAperture", pc_projected),
+            ("filter_test", pc_filter_test),
+        ]:
+            input_data = {}
+            for ptype in pc_calc.particle_properties:
+                if ptype in data:
+                    input_data[ptype] = {}
+                    for dset in pc_calc.particle_properties[ptype]:
+                        input_data[ptype][dset] = data[ptype][dset]
+            input_halo_copy = input_halo.copy()
+            input_data_copy = input_data.copy()
 
-        for proj in ["projx", "projy", "projz"]:
-            for prop in property_calculator.property_list:
-                outputname = prop[1]
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
-                full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
-                assert full_name in halo_result
-                result = halo_result[full_name][0]
-                assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
-                assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
-                assert result.units.same_dimensions_as(unit.units)
+            halo_result = dict(halo_result_template)
+            pc_calc.calculate(
+                input_halo, 50 * unyt.kpc, input_data, halo_result
+            )
+            assert input_halo == input_halo_copy
+            assert input_data == input_data_copy
+
+            for proj in ["projx", "projy", "projz"]:
+                for prop in pc_calc.property_list:
+                    outputname = prop[1]
+                    size = prop[2]
+                    dtype = prop[3]
+                    unit_string = prop[4]
+                    full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
+                    assert full_name in halo_result
+                    result = halo_result[full_name][0]
+                    assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
+                    assert result.dtype == dtype
+                    unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
+                    assert result.units.same_dimensions_as(unit.units)
+
+            # Check properties were not calculated for filtered halos
+            if pc_name == 'filter_test':
+                for proj in ["projx", "projy", "projz"]:
+                    for prop in pc_calc.property_list:
+                        outputname = prop[1]
+                        size = prop[2]
+                        full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
+                        assert np.all(halo_result[full_name][0].value == np.zeros(size))
 
     # Now test the calculation for each property individually, to make sure that
     # all properties read all the datasets they require
@@ -1431,43 +1549,10 @@ def test_projected_aperture_properties():
         single_parameters = ParameterFile(parameter_dictionary=single_property)
 
         property_calculator = ProjectedApertureProperties(
-            dummy_halos.get_cell_grid(), single_parameters, 30.0, category_filter
+            dummy_halos.get_cell_grid(), single_parameters, 30.0, category_filter, 'basic'
         )
 
-        halo_result_template = {
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
 
         input_data = {}
         for ptype in property_calculator.particle_properties:
@@ -1479,7 +1564,7 @@ def test_projected_aperture_properties():
         input_data_copy = input_data.copy()
         halo_result = dict(halo_result_template)
         property_calculator.calculate(
-            input_halo, 0.0 * unyt.kpc, input_data, halo_result
+            input_halo, 50 * unyt.kpc, input_data, halo_result
         )
         assert input_halo == input_halo_copy
         assert input_data == input_data_copy
@@ -1492,13 +1577,17 @@ def test_projected_aperture_properties():
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
+                physical = prop[10]
+                a_exponent = prop[11]
                 full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
-                assert result.units.same_dimensions_as(unit.units)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                assert result.units == unit.units
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
 
@@ -1511,6 +1600,7 @@ if __name__ == "__main__":
     python3 -m pytest *.py
     in the main folder.
     """
+
     print("Calling test_projected_aperture_properties()...")
     test_projected_aperture_properties()
     print("Test passed.")

@@ -19,6 +19,27 @@ BFloat16:
       ZmxldGNoZXIzMg==
   type: !!binary |
     AwARIA8ABAAAAAAAEAAHCAAHfwAAAA==
+DMantissa21:
+  filters:
+  - - 5
+    - 1
+    - - 8
+      - 0
+      - 22
+      - 1
+      - 8
+      - 0
+      - 33
+      - 0
+    - !!binary |
+      bmJpdA==
+  - - 3
+    - 0
+    - []
+    - !!binary |
+      ZmxldGNoZXIzMg==
+  type: !!binary |
+    AwARICAACAAAAAAAIQAVCwAV/wMAAA==
 DMantissa13:
   filters:
   - - 5

@@ -8,9 +8,13 @@
 \usepackage{pdflscape}
 \usepackage{graphicx}
 \usepackage{xcolor}
+\usepackage{adjustbox}
+
+\input{filters}
+\input{units}
 
 \title{SOAP -- Spherical Overdensity and Aperture Processor}
-\author{Bert Vandenbroucke, Joop Schaye, John Helly, Matthieu Schaller}
+\author{Bert Vandenbroucke, Joop Schaye, John Helly, \\Matthieu Schaller, Rob McGibbon}
 \date{}
 
 \begin{document}
@@ -21,30 +25,20 @@
 
 \section{Introduction}
 
-SOAP computes four different types of properties, depending on whether all particles or only bound particles 
-are included, and depending on how particles are included (by radius, in projection...). For all types, we use 
-the halo membership and centre of potential as determined by VELOCIraptor (VR; Elahi et al., 2019). The latter 
-is equivalent to the position of the most gravitationally bound particle in the halo. VR determines the 
-binding energy by summing the gravitational potential energy and the kinetic energy. For gas particles, the 
-thermal energy is also included in the calculation. These choices are not configurable. VR identifies 
-(sub-)halos using a FOF algorithm in 6D phase space, and (sub-)halo membership is based on 6D FOF membership. 
-After the initial 6D FOF search, VR runs a gravitational unbinding algorithm to remove particles that are part of 
-the 6D FOF group but not actually gravitationally bound to the structure. This leaves us with two classes of 
-(sub-)halo member particles: 6D FOF particles, and 6D FOF particles that are also bound. Note that VR does not know 
-about neutrinos; neutrino particles can hence never be bound to a (sub-)halo.
+SOAP computes different types of properties, depending on  how particles are included (by radius, in projection...). 
+For all types, we use the halo membership and centre of potential as determined by the input halo catalogue. 
+This documentation is generated using the SOAP parameter file, and so the properties listed reflect those
+present in the current run of SOAP, rather than all possible properties.
 
 \section{Property types}
 
-\paragraph{Subhalo quantities (SH)} are computed for each (sub-)halo identified by VR, irrespective of whether 
-this is a field halo or a satellite (or even satellite of satellite and so on). They include all particles 
-that are members of the 6D-friends-of-friends (6D FOF) halo, or only those particles that are bound to the 
-(sub-)halo (6D FOF minus unbound particles). For each (sub-)halo, there are thus only two sets of subhalo 
-properties of this type. Subhalo properties are contained within the groups \verb+FOFSubhaloProperties+ and 
-\verb+BoundSubhaloProperties+ in the output file, depending on whether they include all particles in the 6D FOF 
-or only the subset that is also gravitionally bound.
+\paragraph{Subhalo quantities (SH)} are computed for each subhalo identified by the halo finder, irrespective of whether 
+it is a field halo or a satellite (or even satellite of satellite and so on). They include all particles 
+that they halo finder has determined are bound to the subhalo. Subhalo properties are contained within the group 
+\verb+BoundSubhalo+ in the output file.
 
 \paragraph{Exclusive sphere quantities (ES)} are similar to subhalo quantities, but they include only the 
-particles that are bound to the (sub-)halo, and apply an additional radial cut (aperture). We use eight 
+particles that are bound to the subhalo, and apply an additional radial cut (aperture). We use eight 
 different aperture radii (10, 30, 50, 100, 300, 500, 1000, 3000 kpc), so that every (sub-)halo has eight of 
 these. Exclusive sphere properties are contained within a group \verb+ExclusiveSphere/XXXkpc+, where 
 \verb+XXX+ is the corresponding aperture radius.
@@ -74,29 +68,25 @@ Bryan \& Norman (1998), and \verb+YxR_XXX_ZZZ+ for multiples of some other radiu
 The latter can only be computed after the corresponding density multiple SO radius has been computed. This is 
 achieved by ordering the calculations.
 
-\paragraph{Some properties are directly copied from the original VR catalogue.} These are stored in a
-separate group, \verb+VR+.
+\paragraph{InputHalos} Some properties are directly copied from the original halo catalogue that was passed
+to SOAP. These are stored in a separate group, \verb+InputHalos+.
 
-\paragraph{Some properties (currently just the subhalo ranking by mass) are computed by SOAP from other halo properties.} These are stored in a separate group, \verb+SOAP+. This is just done for convenience; these quantities can be computed from the SOAP output alone.
+\paragraph{SOAP} Some properties are computed by SOAP using the other halo properties
+present in the catalogue.
+These are stored in a separate group, \verb+SOAP+. This is just done for convenience; these quantities can be computed from the SOAP output alone.
 
-\paragraph{The table below summarises} the different halo types.
+\paragraph{The table below lists} all the groups in the output file which containing datasets.
+Note that there will be three groups (\verb+x+, \verb+y+ or \verb+z+) for each \verb+ProjectedAperture+ variation.
+Each halo variation can have a filter applied to it. If a halo does not satisfy the filter then the variation will
+not be calculated for that halo. More information on filters can be found in the next section.
 
-\begin{longtable}{llcp{6cm}}
- & Name & Inclusive? & Variations \\
-\hline{}SH & \verb+XXSubhaloProperties+ & \ding{53} & \verb+FOF+, \verb+Bound+\footnote{Note that FOF here refers to the 6D FOF} \\
-ES & \verb+ExclusiveSphere/XXXkpc+ & \ding{53} & 30, 50, 100, 300, 500, 1000, 3000 kpc \\
-IS & \verb+InclusiveSphere/XXXkpc+ & \ding{51} & 30, 50, 100, 300, 500, 1000, 3000 kpc \\
-EP & \verb+ProjectedAperture/XXXkpc/projP+ & \ding{53} & 10, 30, 50, 100 kpc \\
-SO & \verb+SO/XXX+ & \ding{51} & 200 mean, (50, 100, 200, 500, 1000, 2500) crit, 5$\times{}$500 crit \\
-- & \verb+VR/+ & - & Directly copied from VR output \\
-- & \verb+SOAP/+ & - & Computed from other halo properties \\
-\end{longtable}
+\input{variations_table}
 
 \section{Property categories}
 
-Halo properties only make sense if the (sub)halo contains sufficient particles. VR was run with a 
-configuration that requires at least 20 particles within a satellite subhalo and 32 particles within a central 
-subhalo. However, even for those particle numbers, a lot of the properties computed by SOAP will be zero (e.g. 
+Halo properties only make sense if the subhalo contains sufficient particles. Halo finders are often run with a 
+configuration that requires at least 20 particles for a satellite subhalo.  
+However, even for those particle numbers, a lot of the properties computed by SOAP will be zero (e.g. 
 the gas mass within a 10 kpc aperture), or have values that are outliers compared to the full halo population 
 because of undersampling. We can save a lot of disk space by filtering these out by applying appropriate cuts. 
 Filtering means setting the value of the property to \verb+NaN+; HDF5 file compression then very effectively 
@@ -113,51 +103,64 @@ quantities for an inclusive sphere with a 10 kpc aperture radius will use the sa
 quantities of the inclusive sphere with a 3000 kpc aperture radius, even though the latter by construction has 
 many more particles.
 
-\paragraph{Basic quantities (basic)} are never filtered out, and hence go all the way down to the 20/32 
-particle limit imposed by VR.
+\paragraph{Basic quantities (basic)} are never filtered out, and hence are calculated for all objects in the
+input halo catalogue.
 
-\paragraph{General derived quanties (general)} use a filter based on the total number of particles within the 
-VR 6D FOF group.
+\paragraph{General quantities (general)} use a filter based on the total number of particles bound to the 
+subhalo.
 
-\paragraph{Derived gas quantities (gas)} use a filter based on the number of gas particles within the VR 6D FOF 
-group.
+\paragraph{Gas quantities (gas)} use a filter based on the number of gas particles bound to the subhalo. 
 
-\paragraph{Derived DM quantities (dm)} use a filter based on the number of DM particles within the VR 6D FOF 
-group.
+\paragraph{DM quantities (dm)} use a filter based on the number of DM particles bound to the subhalo.
 
-\paragraph{Derived stellar quantities (star)} use a filter based on the number of star particles within the VR 
-6D FOF group.
+\paragraph{Stellar quantities (star)} use a filter based on the number of star particles bound to the 
+subhalo.
 
-\paragraph{Derived baryon quantities (baryon)} use a filter based on the number of gas and star particles 
-within the VR 6D FOF group.
+\paragraph{Baryon quantities (baryon)} use a filter based on the number of gas and star particles 
+bound to the subhalo.
 
 \paragraph{}Note that there are no quantities that use a BH or neutrino particle number filter.
 
-The different categories are summarised in the table below.
+The particle number thresholds are set in the parameter file. The different categories are summarised in the table below.
 
 \begin{longtable}{ll}
 Name & criterion \\
 \hline{}basic & (all halos) \\
-general & $N_{\rm{}gas}+N_{\rm{}dm}+N_{\rm{}star}+N_{\rm{}BH} \geq{} 100$ \\
-gas & $N_{\rm{}gas} \geq{} 100$ \\
-dm & $N_{\rm{}dm} \geq{} 100$ \\
-star & $N_{\rm{}star} \geq{} 100$ \\
-baryon & $N_{\rm{}gas}+N_{\rm{}star} \geq{} 100$ \\
+general & $N_{\rm{}gas}+N_{\rm{}dm}+N_{\rm{}star}+N_{\rm{}BH} \geq{} \generalfilter$ \\
+gas & $N_{\rm{}gas} \geq{} \gasfilter$ \\
+dm & $N_{\rm{}dm} \geq{} \dmfilter$ \\
+star & $N_{\rm{}star} \geq{} \starfilter$ \\
+baryon & $N_{\rm{}gas}+N_{\rm{}star} \geq{} \baryonfilter$ \\
 \end{longtable}
 
 \section{Overview table}
 
-The table below lists all the properties that are computed by SOAP. This table is automatically generated by 
-SOAP from the source code, so that all names, types, units, categories and descriptions match what is actually 
-used and output by SOAP. For each quantity, the table indicates for which halo types the property is computed. 
-Superscript numbers refer to more detailed explanations for some of the properties and match the numbers in 
-the next section. The properties at the end of the table that are categorised as `VR' correspond to properties 
-that are directly copied from the VR catalogue and are only listed for completeness. These do not belong to 
-any type. Properties colored violet are also computed when SOAP is run in dark matter only (DMO) mode.
+The table below lists all the properties that are computed by SOAP when run in HYDRO mode.
+For dark matter only (DMO) mode only the properties colored violet/purple are computed.
+This table is automatically generated by 
+SOAP from the source code, so that all names, types, units, categories and descriptions match what is actually
+used and output by SOAP. For each quantity, the table indicates for which halo types the property is computed.
+Superscript numbers refer to more detailed explanations for some of the properties and match the numbers in
+the next section. If swiftsimio has been used to load a catalogue then the fields names are in snake\_case rather
+than CamelCase, e.g. \verb+CentreOfMass+ becomes \verb+centre_of_mass+.
 
-Note that all units are always physical, and that the SOAP output contains all the relevant meta-data to 
-convert between physical and co-moving units, i.e. information about how the quantity depends on the 
-scale-factor and what the conversion factor to and from CGS units is. All quantities are $h$-free.
+Note that quantities are given in the base units of the simulation snapshot. The attributes of each SOAP dataset contains
+all the relevant meta-data to convert between physical and co-moving units, i.e. information about how the
+quantity depends on the scale-factor, and what the conversion factor to and from CGS units is. All quantities
+are $h$-free. The conversion of the base units to CGS is given by:
+
+\begin{longtable}{cl}
+Unit & CGS conversion \\
+\hline{}
+L & \lengthbaseunit      \hspace{1mm} cm \\
+M & \massbaseunit        \hspace{1mm} g \\
+t & \timebaseunit        \hspace{1mm} s \\
+T & \temperaturebaseunit \hspace{1mm} K \\
+\end{longtable}
+
+For example, a property whose units are listed as M/t will have units of velocity,
+where $1 \, \rm{M/t} = \velbaseunit \, \rm{km/s}$.
+The scale factor is explicitly included for comoving properties (e.g. the units of HaloCentre are aL)
 
 \input{table}
 
@@ -254,7 +257,7 @@ membership information for each particle in the SWIFT snapshot. The
 datasets in these files are stored in the same order and with the same
 partitioning between files as the datasets in the snapshots. This
 allows SOAP to read halo membership information for sub-regions of the
-simulation volume without reading the full VR output. These files may
+simulation volume without reading the full halo-finder output. These files may
 also be useful for visualising the input halo catalogue.
 
 The group membership files are HDF5 files with one group for each
@@ -262,27 +265,35 @@ particle type, named PartType0, PartType1, ... as in the
 snapshots. Each group contains the following datasets:
 
 \begin{enumerate}
-\item \verb|GroupNr_all|: for each particle in the corresponding snapshot
+\item \verb|GroupNr_bound|: for each particle in the corresponding snapshot
+  file this contains the array index of the subhalo which the
+  particle is bound to. If a particle is not bound to any subhalo it
+  will have \verb|GroupNr_bound|=-1.
+\item \verb|Rank_bound|: the ranking by total energy of this particle within
+  the subhalo it belongs to, or -1 if the particle is not bound to
+  any subhalo. The particle with the most negative total energy has
+  \verb|Rank_bound|=0.
+\item \verb|GroupNr_all|: (VELOCIraptor only) for each particle in the
+  corresponding snapshot
   file this contains the array index of the VR group which the
   particle belongs to, regardless of whether it is bound or
   unbound. Particles in no group have \verb|GroupNr_all|=-1.
-\item \verb|GroupNr_bound|: for each particle in the corresponding snapshot
-  file this contains the array index of the VR group which the
-  particle is bound to. If a particle is not bound to any group it
-  will have \verb|GroupNr_bound|=-1.
-\item \verb|Rank_bound|: the ranking by total energy of this particle within
-  the VR group it belongs to, or -1 if the particle is not bound to
-  any group. The particle with the most negative total energy has
-  \verb|Rank_bound|=0. Note that this is not the same as the potential
-  minimum.
+\item \verb|FOFGroupIDs|: the 3D FOF group the particle is part of.
+  This field is only present if a FOF snapshot is listed in the
+  parameter file. This field is present in the snapshots themselves,
+  but for FLAMINGO hydro simulations the FOF was regenerated. If this
+  field is present it will overwrite the value from the snapshots when
+  SOAP is run.
 \end{enumerate}
 
 The GroupNr values stored here are zero based array indexes into the
-full VR halo catalogue, and not VELOCIraptor IDs (which start from
-one). The first group in the catalogue will have GroupNr=0 and ID=1.
+full subhalo catalogue, and not the subhalos IDs. For example the first group
+in the VELOCIraptor catalogue has GroupNr=0 and ID=1.
 
-The snapshot and group membership files can be combined into a single
-virtual snapshot file which allows swiftsimio and gadgetviewer to read
-halo membership information alongside other particle properties.
+The script `make\_virtual\_snapshot.py` will combine snapshot and group membership files
+into a single virtual snapshot file. This virtual file can be read by swiftsimio and 
+gadgetviewer to provide halo membership information alongside other particle properties.
+Using the virtual file along with the spatial masking functionality within swiftsimio
+means it is possible to quickly load all the particles bound to a given subhalo.
 
 \end{document}

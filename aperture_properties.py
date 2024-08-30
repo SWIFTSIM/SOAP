@@ -136,7 +136,7 @@ very messy and complex. But it is in fact quite neat and powerful.
 import numpy as np
 import unyt
 
-from halo_properties import HaloProperty
+from halo_properties import HaloProperty, SearchRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from kinematic_properties import (
@@ -144,8 +144,6 @@ from kinematic_properties import (
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
     get_vmax,
-    get_inertia_tensor,
-    get_reduced_inertia_tensor,
 )
 
 from swift_cells import SWIFTCellGrid
@@ -196,6 +194,7 @@ class ApertureParticleData:
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         cold_dense_gas_filter: ColdDenseGasFilter,
         snapshot_datasets: SnapshotDatasets,
+        softening_of_parttype: unyt.unyt_array,
     ):
         """
         Constructor.
@@ -224,6 +223,8 @@ class ApertureParticleData:
          - snapshot_datasets: SnapshotDatasets
            Object containing metadata about the datasets in the snapshot, like
            appropriate aliases and column names.
+         - softening_of_parttype: unyt.unyt_array
+           Softening length of each particle types
         """
         self.input_halo = input_halo
         self.data = data
@@ -234,6 +235,7 @@ class ApertureParticleData:
         self.recently_heated_gas_filter = recently_heated_gas_filter
         self.cold_dense_gas_filter = cold_dense_gas_filter
         self.snapshot_datasets = snapshot_datasets
+        self.softening_of_parttype = softening_of_parttype
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -254,6 +256,7 @@ class ApertureParticleData:
         radius = []
         velocity = []
         types = []
+        softening = []
         for ptype in self.types_present:
             grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
             if self.inclusive:
@@ -269,15 +272,17 @@ class ApertureParticleData:
             r = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2 + pos[:, 2] ** 2)
             radius.append(r)
             velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
-            typearr = np.zeros(r.shape, dtype="U9")
-            typearr[:] = ptype
+            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
             types.append(typearr)
+            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
+            softening.append(s)
 
         self.mass = np.concatenate(mass)
         self.position = np.concatenate(position)
         self.radius = np.concatenate(radius)
         self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
+        self.softening = np.concatenate(softening)
 
         self.mask = self.radius <= self.aperture_radius
 
@@ -286,6 +291,7 @@ class ApertureParticleData:
         self.velocity = self.velocity[self.mask]
         self.radius = self.radius[self.mask]
         self.type = self.types[self.mask]
+        self.softening = self.softening[self.mask]
 
     @lazy_property
     def gas_mask_ap(self) -> NDArray[bool]:
@@ -296,7 +302,7 @@ class ApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.mask[self.types == "PartType0"]
+        return self.mask[self.types == 0]
 
     @lazy_property
     def dm_mask_ap(self) -> NDArray[bool]:
@@ -307,7 +313,7 @@ class ApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.mask[self.types == "PartType1"]
+        return self.mask[self.types == 1]
 
     @lazy_property
     def star_mask_ap(self) -> NDArray[bool]:
@@ -318,7 +324,7 @@ class ApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.mask[self.types == "PartType4"]
+        return self.mask[self.types == 4]
 
     @lazy_property
     def bh_mask_ap(self) -> NDArray[bool]:
@@ -329,7 +335,7 @@ class ApertureParticleData:
         apertures, or only the bound particles in that array for exclusive
         apertures).
         """
-        return self.mask[self.types == "PartType5"]
+        return self.mask[self.types == 5]
 
     @lazy_property
     def baryon_mask_ap(self) -> NDArray[bool]:
@@ -339,7 +345,7 @@ class ApertureParticleData:
         in the calculation. Note that baryons are gas and star particles,
         so "PartType0" and "PartType4".
         """
-        return self.mask[(self.types == "PartType0") | (self.types == "PartType4")]
+        return self.mask[(self.types == 0) | (self.types == 4)]
 
     @lazy_property
     def Ngas(self) -> int:
@@ -381,84 +387,84 @@ class ApertureParticleData:
         """
         Mass of the gas particles.
         """
-        return self.mass[self.type == "PartType0"]
+        return self.mass[self.type == 0]
 
     @lazy_property
     def mass_dm(self) -> unyt.unyt_array:
         """
         Mass of the DM particles.
         """
-        return self.mass[self.type == "PartType1"]
+        return self.mass[self.type == 1]
 
     @lazy_property
     def mass_star(self) -> unyt.unyt_array:
         """
         Mass of the star particles.
         """
-        return self.mass[self.type == "PartType4"]
+        return self.mass[self.type == 4]
 
     @lazy_property
     def mass_baryons(self) -> unyt.unyt_array:
         """
         Mass of the baryon particles (gas + stars).
         """
-        return self.mass[(self.type == "PartType0") | (self.type == "PartType4")]
+        return self.mass[(self.type == 0) | (self.type == 4)]
 
     @lazy_property
     def pos_gas(self) -> unyt.unyt_array:
         """
         Position of the gas particles.
         """
-        return self.position[self.type == "PartType0"]
+        return self.position[self.type == 0]
 
     @lazy_property
     def pos_dm(self) -> unyt.unyt_array:
         """
         Position of the DM particles.
         """
-        return self.position[self.type == "PartType1"]
+        return self.position[self.type == 1]
 
     @lazy_property
     def pos_star(self) -> unyt.unyt_array:
         """
         Position of the star particles.
         """
-        return self.position[self.type == "PartType4"]
+        return self.position[self.type == 4]
 
     @lazy_property
     def pos_baryons(self) -> unyt.unyt_array:
         """
         Position of the baryon (gas+stars) particles.
         """
-        return self.position[(self.type == "PartType0") | (self.type == "PartType4")]
+        return self.position[(self.type == 0) | (self.type == 4)]
 
     @lazy_property
     def vel_gas(self) -> unyt.unyt_array:
         """
         Velocity of the gas particles.
         """
-        return self.velocity[self.type == "PartType0"]
+        return self.velocity[self.type == 0]
 
     @lazy_property
     def vel_dm(self) -> unyt.unyt_array:
         """
         Velocity of the DM particles.
         """
-        return self.velocity[self.type == "PartType1"]
+        return self.velocity[self.type == 1]
 
     @lazy_property
     def vel_star(self) -> unyt.unyt_array:
         """
         Velocity of the star particles.
         """
-        return self.velocity[self.type == "PartType4"]
+        return self.velocity[self.type == 4]
 
     @lazy_property
     def vel_baryons(self) -> unyt.unyt_array:
         """
         Velocity of the baryon (gas+star) particles.
         """
-        return self.velocity[(self.type == "PartType0") | (self.type == "PartType4")]
+        return self.velocity[(self.type == 0) | (self.type == 4)]
 
     @lazy_property
     def Mtot(self) -> unyt.unyt_quantity:
@@ -493,7 +499,7 @@ class ApertureParticleData:
         """
         Total dynamical mass of BH particles.
         """
-        return self.mass[self.type == "PartType5"].sum()
+        return self.mass[self.type == 5].sum()
 
     @lazy_property
     def Mbaryons(self) -> unyt.unyt_quantity:
@@ -883,14 +889,15 @@ class ApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        _, vmax = get_vmax(self.mass, self.radius)
-        if vmax == 0:
-            return None
-        vrel = self.velocity - self.vcom[None, :]
-        Ltot = np.linalg.norm(
-            (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
-        )
-        return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax)
+        soft_r = np.maximum(self.softening, self.radius)
+        _, vmax_soft = get_vmax(self.mass, soft_r)
+        if vmax_soft > 0:
+            vrel = self.velocity - self.vcom[None, :]
+            Ltot = np.linalg.norm(
+                (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
+            )
+            return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax_soft)
+        return None
 
     @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
@@ -999,21 +1006,6 @@ class ApertureParticleData:
         return 0.5 * ekin_gas.sum()
 
     @lazy_property
-    def GasInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Intertia tensor of the gas component.
-        """
-        if self.Mgas == 0:
-            return None
-        return get_inertia_tensor(self.mass_gas, self.pos_gas)
-
-    @lazy_property
-    def ReducedGasInertiaTensor(self):
-        if self.Mgas == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_gas, self.pos_gas)
-
-    @lazy_property
     def dm_mass_fraction(self) -> unyt.unyt_array:
         """
         Fractional mass of DM particles. See the documentation of star_mass_fraction
@@ -1053,21 +1045,6 @@ class ApertureParticleData:
         return get_angular_momentum(
             self.mass_dm, self.pos_dm, self.vel_dm, ref_velocity=self.vcom_dm
         )
-
-    @lazy_property
-    def DMInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the DM component.
-        """
-        if self.Mdm == 0:
-            return None
-        return get_inertia_tensor(self.mass_dm, self.pos_dm)
-
-    @lazy_property
-    def ReducedDMInertiaTensor(self):
-        if self.Mdm == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm)
 
     @lazy_property
     def com_star(self) -> unyt.unyt_array:
@@ -1151,15 +1128,6 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
-    def StellarInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the stellar component.
-        """
-        if self.Mstar == 0:
-            return None
-        return get_inertia_tensor(self.mass_star, self.pos_star)
-
-    @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
         """
         Velocity dispersion matrix of the stars.
@@ -1169,12 +1137,6 @@ class ApertureParticleData:
         return get_velocity_dispersion_matrix(
             self.star_mass_fraction, self.vel_star, self.vcom_star
         )
-
-    @lazy_property
-    def ReducedStellarInertiaTensor(self):
-        if self.Mstar == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_star, self.pos_star)
 
     @lazy_property
     def Ekin_star(self) -> unyt.unyt_quantity:
@@ -1254,15 +1216,6 @@ class ApertureParticleData:
         if not hasattr(self, "internal_kappa_bar"):
             self.compute_Lbar_props()
         return self.internal_kappa_bar
-
-    @lazy_property
-    def BaryonInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the baryonic (gas + stars) component.
-        """
-        if self.Mbaryons == 0:
-            return None
-        return get_inertia_tensor(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
     def gas_mask_all(self) -> NDArray[bool]:
@@ -2354,12 +2307,6 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def ReducedBaryonInertiaTensor(self):
-        if self.Mbaryons == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_baryons, self.pos_baryons)
-
-    @lazy_property
     def LinearMassWeightedOxygenOverHydrogenOfGas(self) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the total oxygen over hydrogen ratio of gas particles.
@@ -2741,7 +2688,7 @@ class ApertureParticleData:
         Half mass radius of gas.
         """
         return get_half_mass_radius(
-            self.radius[self.type == "PartType0"], self.mass_gas, self.Mgas
+            self.radius[self.type == 0], self.mass_gas, self.Mgas
         )
 
     @lazy_property
@@ -2750,7 +2697,7 @@ class ApertureParticleData:
         Half mass radius of dark matter.
         """
         return get_half_mass_radius(
-            self.radius[self.type == "PartType1"], self.mass_dm, self.Mdm
+            self.radius[self.type == 1], self.mass_dm, self.Mdm
         )
 
     @lazy_property
@@ -2759,7 +2706,7 @@ class ApertureParticleData:
         Half mass radius of stars.
         """
         return get_half_mass_radius(
-            self.radius[self.type == "PartType4"], self.mass_star, self.Mstar
+            self.radius[self.type == 4], self.mass_star, self.Mstar
         )
 
     @lazy_property
@@ -2768,7 +2715,7 @@ class ApertureParticleData:
         Half mass radius of baryons (gas + stars).
         """
         return get_half_mass_radius(
-            self.radius[(self.type == "PartType0") | (self.type == "PartType4")],
+            self.radius[(self.type == 0) | (self.type == 4)],
             self.mass_baryons,
             self.Mbaryons,
         )
@@ -2841,14 +2788,6 @@ class ApertureProperties(HaloProperty):
             "HalfMassRadiusStar",
             "HalfMassRadiusBaryon",
             "spin_parameter",
-            "GasInertiaTensor",
-            "DMInertiaTensor",
-            "StellarInertiaTensor",
-            "BaryonInertiaTensor",
-            "ReducedGasInertiaTensor",
-            "ReducedDMInertiaTensor",
-            "ReducedStellarInertiaTensor",
-            "ReducedBaryonInertiaTensor",
             "DtoTgas",
             "DtoTstar",
             "starOfrac",
@@ -2915,6 +2854,7 @@ class ApertureProperties(HaloProperty):
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
         inclusive: bool = False,
     ):
         """
@@ -2942,8 +2882,11 @@ class ApertureProperties(HaloProperty):
            Filter used to mask out gas particles that represent cold, dense gas.
          - category_filter: CategoryFilter
            Filter used to determine which properties can be calculated for this halo.
-           This depends on the number of particles in the FOF subhalo and the category
+           This depends on the number of particles in the subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
          - inclusive: bool
            Should properties include particles that are not gravitationally bound to the
            subhalo?
@@ -2955,11 +2898,12 @@ class ApertureProperties(HaloProperty):
             "ApertureProperties", [prop[1] for prop in self.property_list]
         )
 
-        self.filter = recently_heated_gas_filter
+        self.recently_heated_gas_filter = recently_heated_gas_filter
         self.stellar_ages = stellar_age_calculator
         self.cold_dense_gas_filter = cold_dense_gas_filter
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
+        self.halo_filter = halo_filter
 
         # no density criterion for these properties
         self.mean_density_multiple = None
@@ -2972,8 +2916,11 @@ class ApertureProperties(HaloProperty):
 
         if self.inclusive:
             self.name = f"inclusive_sphere_{physical_radius_kpc:.0f}kpc"
+            self.group_name = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
         else:
             self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
+            self.group_name = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+        self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
         # Coordinates, Masses and Velocities are always required, as is
@@ -3029,29 +2976,13 @@ class ApertureProperties(HaloProperty):
         The halo_result dictionary is updated with the properties computed by this function.
         """
 
-        types_present = [type for type in self.particle_properties if type in data]
-
-        part_props = ApertureParticleData(
-            input_halo,
-            data,
-            types_present,
-            self.inclusive,
-            self.physical_radius_mpc * unyt.Mpc,
-            self.stellar_ages,
-            self.filter,
-            self.cold_dense_gas_filter,
-            self.snapshot_datasets,
-        )
-
-        do_calculation = self.category_filter.get_filters(halo_result)
-
         aperture_sphere = {}
         # declare all the variables we will compute
         # we set them to 0 in case a particular variable cannot be computed
         # all variables are defined with physical units and an appropriate dtype
         # we need to use the custom unit registry so that everything can be converted
         # back to snapshot units in the end
-        registry = part_props.mass.units.registry
+        registry = input_halo['cofp'].units.registry
         for prop in self.property_list:
             outputname = prop[1]
             # skip properties that are masked
@@ -3059,41 +2990,87 @@ class ApertureProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             shape = prop[2]
             dtype = prop[3]
-            unit = prop[4]
-            category = prop[6]
+            unit = unyt.Unit(prop[4], registry=registry)
+            physical = prop[10]
+            a_exponent = prop[11]
             if shape > 1:
                 val = [0] * shape
             else:
                 val = 0
+            if not physical:
+                unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
             aperture_sphere[name] = unyt.unyt_array(
                 val, dtype=dtype, units=unit, registry=registry
             )
-            if do_calculation[category]:
-                val = getattr(part_props, name)
-                if val is not None:
-                    assert (
-                        aperture_sphere[name].shape == val.shape
-                    ), f"Attempting to store {name} with wrong dimensions"
-                    if unit == "dimensionless":
-                        aperture_sphere[name] = unyt.unyt_array(
-                            val.astype(dtype),
-                            dtype=dtype,
-                            units=unit,
-                            registry=registry,
-                        )
-                    else:
-                        aperture_sphere[name] += val
+
+        do_calculation = self.category_filter.get_do_calculation(halo_result)
+
+        # Determine whether to skip this halo because of filter
+        if do_calculation[self.halo_filter]:
+            if search_radius < self.physical_radius_mpc * unyt.Mpc:
+                raise SearchRadiusTooSmallError("Search radius is smaller than aperture")
+
+            types_present = [type for type in self.particle_properties if type in data]
+            part_props = ApertureParticleData(
+                input_halo,
+                data,
+                types_present,
+                self.inclusive,
+                self.physical_radius_mpc * unyt.Mpc,
+                self.stellar_ages,
+                self.recently_heated_gas_filter,
+                self.cold_dense_gas_filter,
+                self.snapshot_datasets,
+                self.softening_of_parttype,
+            )
+
+            for prop in self.property_list:
+                outputname = prop[1]
+                # skip properties that are masked
+                if not self.property_mask[outputname]:
+                    continue
+                # skip non-DMO properties in DMO run mode
+                is_dmo = prop[8]
+                if do_calculation["DMO"] and not is_dmo:
+                    continue
+                name = prop[0]
+                shape = prop[2]
+                dtype = prop[3]
+                unit = unyt.Unit(prop[4], registry=registry)
+                category = prop[6]
+                physical = prop[10]
+                a_exponent = prop[11]
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
+                if do_calculation[category]:
+                    val = getattr(part_props, name)
+                    if val is not None:
+                        assert (
+                            aperture_sphere[name].shape == val.shape
+                        ), f"Attempting to store {name} with wrong dimensions"
+                        if unit == unyt.Unit("dimensionless"):
+                            if hasattr(val, "units"):
+                                assert (
+                                    val.units == unyt.dimensionless
+                                ), f'{name} is not dimensionless'
+                            aperture_sphere[name] = unyt.unyt_array(
+                                val.astype(dtype),
+                                dtype=dtype,
+                                units=unit,
+                                registry=registry,
+                            )
+                        else:
+                            err = f'Overflow for halo {input_halo["index"]} when'
+                            err += f'calculating {name} in aperture_properties'
+                            assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
+                            aperture_sphere[name] += val
 
         # add the new properties to the halo_result dictionary
-        if self.inclusive:
-            prefix = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
-        else:
-            prefix = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
         for prop in self.property_list:
             outputname = prop[1]
             # skip properties that are masked
@@ -3101,12 +3078,14 @@ class ApertureProperties(HaloProperty):
                 continue
             # skip non-DMO properties in DMO run mode
             is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            if self.category_filter.dmo and not is_dmo:
                 continue
             name = prop[0]
             description = prop[5]
+            physical = prop[10]
+            a_exponent = prop[11]
             halo_result.update(
-                {f"{prefix}/{outputname}": (aperture_sphere[name], description)}
+                {f"{self.group_name}/{outputname}": (aperture_sphere[name], description, physical, a_exponent)}
             )
 
         return
@@ -3128,6 +3107,7 @@ class ExclusiveSphereProperties(ApertureProperties):
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
     ):
         """
         Construct an ExclusiveSphereProperties object with the given physical
@@ -3154,8 +3134,11 @@ class ExclusiveSphereProperties(ApertureProperties):
            Filter used to mask out gas particles that represent cold, dense gas.
          - category_filter: CategoryFilter
            Filter used to determine which properties can be calculated for this halo.
-           This depends on the number of particles in the FOF subhalo and the category
+           This depends on the number of particles in the Bound subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
         """
         super().__init__(
             cellgrid,
@@ -3165,6 +3148,7 @@ class ExclusiveSphereProperties(ApertureProperties):
             stellar_age_calculator,
             cold_dense_gas_filter,
             category_filter,
+            halo_filter,
             False,
         )
 
@@ -3185,6 +3169,7 @@ class InclusiveSphereProperties(ApertureProperties):
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
         category_filter: CategoryFilter,
+        halo_filter: str,
     ):
         """
         Construct an InclusiveSphereProperties object with the given physical
@@ -3211,8 +3196,11 @@ class InclusiveSphereProperties(ApertureProperties):
            Filter used to mask out gas particles that represent cold, dense gas.
          - category_filter: CategoryFilter
            Filter used to determine which properties can be calculated for this halo.
-           This depends on the number of particles in the FOF subhalo and the category
+           This depends on the number of particles in the Bound subhalo and the category
            of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
         """
         super().__init__(
             cellgrid,
@@ -3222,6 +3210,7 @@ class InclusiveSphereProperties(ApertureProperties):
             stellar_age_calculator,
             cold_dense_gas_filter,
             category_filter,
+            halo_filter,
             True,
         )
 
@@ -3236,15 +3225,18 @@ def test_aperture_properties():
     are present, and have the right units, size and dtype
     """
 
+    import pytest
     from dummy_halo_generator import DummyHaloGenerator
 
     # initialise the DummyHaloGenerator with a random seed
     dummy_halos = DummyHaloGenerator(3256)
-    filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    recently_heated_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())
     cold_dense_gas_filter = ColdDenseGasFilter()
     cat_filter = CategoryFilter(
-        {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
+        dummy_halos.get_filters(
+            {"general": 0, "gas": 0, "dm": 0, "star": 0, "baryon": 0}
+        )
     )
     parameters = ParameterFile(
         parameter_dictionary={
@@ -3269,66 +3261,47 @@ def test_aperture_properties():
         dummy_halos.get_cell_grid(),
         parameters,
         50.0,
-        filter,
+        recently_heated_filter,
         stellar_age_calculator,
         cold_dense_gas_filter,
         cat_filter,
+        'basic',
     )
     pc_inclusive = InclusiveSphereProperties(
         dummy_halos.get_cell_grid(),
         parameters,
         50.0,
-        filter,
+        recently_heated_filter,
         stellar_age_calculator,
         cold_dense_gas_filter,
         cat_filter,
+        'basic',
     )
 
-    parameters.write_parameters("aperture.used_parameters.yml")
+    # Create a filter that no halos will satisfy
+    fail_filter = CategoryFilter(dummy_halos.get_filters({"general": 10000000}))
+    pc_filter_test = ExclusiveSphereProperties(
+        dummy_halos.get_cell_grid(),
+        parameters,
+        50.0,
+        recently_heated_filter,
+        stellar_age_calculator,
+        cold_dense_gas_filter,
+        fail_filter,
+        'general',
+    )
 
     # generate 100 random halos
     for i in range(100):
         input_halo, data, _, _, _, particle_numbers = dummy_halos.get_random_halo(
             [1, 10, 100, 1000, 10000]
         )
-        halo_result_template = {
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
 
-        for pc_type, pc_calc in [
-            ("ExclusiveSphere", pc_exclusive),
-            ("InclusiveSphere", pc_inclusive),
+        for pc_name, pc_type, pc_calc in [
+            ("ExclusiveSphere", "ExclusiveSphere", pc_exclusive),
+            ("InclusiveSphere", "InclusiveSphere", pc_inclusive),
+            ("filter_test", "ExclusiveSphere", pc_filter_test),
         ]:
             input_data = {}
             for ptype in pc_calc.particle_properties:
@@ -3338,8 +3311,22 @@ def test_aperture_properties():
                         input_data[ptype][dset] = data[ptype][dset]
             input_halo_copy = input_halo.copy()
             input_data_copy = input_data.copy()
+
+            # Check halo fails if search radius is too small
             halo_result = dict(halo_result_template)
-            pc_calc.calculate(input_halo, 0.0 * unyt.kpc, input_data, halo_result)
+            if pc_name != 'filter_test':
+                with pytest.raises(SearchRadiusTooSmallError):
+                    pc_calc.calculate(
+                        input_halo, 10 * unyt.kpc, input_data, halo_result
+                    )
+            # Skipped halos shouldn't ever require a larger search radius
+            else:
+                pc_calc.calculate(
+                    input_halo, 10 * unyt.kpc, input_data, halo_result
+                )
+
+            halo_result = dict(halo_result_template)
+            pc_calc.calculate(input_halo, 100 * unyt.kpc, input_data, halo_result)
             assert input_halo == input_halo_copy
             assert input_data == input_data_copy
 
@@ -3349,13 +3336,25 @@ def test_aperture_properties():
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
+                physical = prop[10]
+                a_exponent = prop[11]
                 full_name = f"{pc_type}/50kpc/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
-                assert result.units.same_dimensions_as(unit.units)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                assert result.units == unit.units
+
+            # Check properties were not calculated for filtered halos
+            if pc_name == 'filter_test':
+                for prop in pc_calc.property_list:
+                    outputname = prop[1]
+                    size = prop[2]
+                    full_name = f"{pc_type}/50kpc/{outputname}"
+                    assert np.all(halo_result[full_name][0].value == np.zeros(size))
 
     # Now test the calculation for each property individually, to make sure that
     # all properties read all the datasets they require
@@ -3373,55 +3372,25 @@ def test_aperture_properties():
             dummy_halos.get_cell_grid(),
             single_parameters,
             50.0,
-            filter,
+            recently_heated_filter,
             stellar_age_calculator,
             cold_dense_gas_filter,
             cat_filter,
+            'basic',
         )
         pc_inclusive = InclusiveSphereProperties(
             dummy_halos.get_cell_grid(),
             single_parameters,
             50.0,
-            filter,
+            recently_heated_filter,
             stellar_age_calculator,
             cold_dense_gas_filter,
             cat_filter,
+            'basic',
         )
 
-        halo_result_template = {
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ngas'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ngas for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Ndm'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Ndm for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nstar'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nstar for filter",
-            ),
-            f"FOFSubhaloProperties/{PropertyTable.full_property_list['Nbh'][0]}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
-                    units="dimensionless",
-                ),
-                "Dummy Nbh for filter",
-            ),
-        }
+        halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
+
         for pc_type, pc_calc in [
             ("ExclusiveSphere", pc_exclusive),
             ("InclusiveSphere", pc_inclusive),
@@ -3435,7 +3404,7 @@ def test_aperture_properties():
             input_halo_copy = input_halo.copy()
             input_data_copy = input_data.copy()
             halo_result = dict(halo_result_template)
-            pc_calc.calculate(input_halo, 0.0 * unyt.kpc, input_data, halo_result)
+            pc_calc.calculate(input_halo, 100 * unyt.kpc, input_data, halo_result)
             assert input_halo == input_halo_copy
             assert input_data == input_data_copy
 
@@ -3452,7 +3421,7 @@ def test_aperture_properties():
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
-                unit = unyt.Unit(unit_string)
+                unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 assert result.units.same_dimensions_as(unit.units)
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()
@@ -3464,6 +3433,7 @@ if __name__ == "__main__":
 
     Note that this can also be achieved by running "pytest *.py" in the folder.
     """
+
     print("Running test_aperture_properties()...")
     test_aperture_properties()
     print("Test passed.")
