@@ -228,6 +228,7 @@ class PropertyTable:
     # an actual description or a representative example.
     compression_description = {
         "FMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
+        "FMantissa13": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.3669{\\rm{}e}10$",
         "DMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
         "DScale6": "1 pc accurate",
         "DScale5": "10 pc accurate",
