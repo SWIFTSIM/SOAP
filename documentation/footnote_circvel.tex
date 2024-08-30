@@ -5,8 +5,11 @@ computed using
     v_{\rm{}max} = \sqrt{\frac{G M(\leq{}r)}{r}},
 \end{equation}
 
-where the cumulative mass $M(\leq{}r)$ includes all particles within the radius $r$, and includes the 
+where the cumulative mass $M(\leq{}r)$ includes all particles within the radius $r$, and includes the
 contribution of the particle(s) at $r=0$. The radius is computed relative to the centre of potential.
 The softened $v_{\rm{}max}$ value is calculated using the same method, except the particle
 radius has a floor of the softening length. An alternative way to calculate $v_{\rm{}max}$
-is to estimate it from the halo concentration by assuming an NFW profile.
+is to estimate it from the halo concentration by assuming an NFW profile. We store the radius of the
+unsoftened maximum circular velocity. If the softened and unsoftened maximum circular velocities are
+equal, then their radii will also be equal. If the values are not equal, then the radius of the
+softened maximum circular velocity will be the simulation softening length.

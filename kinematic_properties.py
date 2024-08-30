@@ -12,6 +12,7 @@ We put them in a separate file to facilitate unit testing.
 import numpy as np
 import unyt
 from typing import Union, Tuple
+from halo_properties import SearchRadiusTooSmallError
 
 
 def get_velocity_dispersion_matrix(
@@ -194,7 +195,7 @@ def get_angular_momentum_and_kappa_corot(
 
 
 def get_vmax(
-    mass: unyt.unyt_array, radius: unyt.unyt_array
+    mass: unyt.unyt_array, radius: unyt.unyt_array, nskip: int=0
 ) -> Tuple[unyt.unyt_quantity, unyt.unyt_quantity]:
     """
     Get the maximum circular velocity of a particle distribution.
@@ -208,6 +209,8 @@ def get_vmax(
        Mass of the particles.
      - radius: unyt.unyt_array
        Radius of the particles.
+     - nskip: int
+       Number of particles to skip
 
     Returns:
      - Radius at which the maximum circular velocity is reached.
@@ -220,7 +223,7 @@ def get_vmax(
     isort = np.argsort(radius)
     ordered_radius = radius[isort]
     cumulative_mass = mass[isort].cumsum()
-    nskip = np.argmin(np.isclose(ordered_radius, 0.0 * ordered_radius.units))
+    nskip = max(nskip, np.argmin(np.isclose(ordered_radius, 0.0 * ordered_radius.units)))
     ordered_radius = ordered_radius[nskip:]
     if len(ordered_radius) == 0 or ordered_radius[0] == 0:
         return 0.0 * radius.units, np.sqrt(0.0 * G * mass.units / radius.units)
@@ -230,10 +233,8 @@ def get_vmax(
     return ordered_radius[imax], np.sqrt(v_over_G[imax] * G)
 
 
-def get_inertia_tensor(
-    mass: unyt.unyt_array, position: unyt.unyt_array
-) -> unyt.unyt_array:
-    """
+def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduced=False, max_iterations=20):
+    '''
     Get the inertia tensor of the given particle distribution, computed as 
     I_{ij} = m*x_i*x_j / Mtot.
 
@@ -242,26 +243,93 @@ def get_inertia_tensor(
        Masses of the particles.
      - position: unyt.unyt_array
        Positions of the particles.
+     - sphere_radius: unyt.unyt_quantity
+       Use all particles within a sphere of this size for the calculation
+     - search_radius: unyt.unyt_quantity
+       Radius of the region of the simulation for which we have particle data
+       This function throws a SearchRadiusTooSmallError if we need particles outside
+       of this region.
+     - reduced: bool
+       Whether to calculate the reduced inertia tensor
+     - max_iterations: int
+       The maximum number of iterations to repeat the inertia tensor calculation
 
     Returns the inertia tensor.
-    """
-    # 3x3 inertia tensor
-    Itensor = (
-        mass[:, None, None] / mass.sum() * position[:, None:, None] * position[:, None]
-    ).sum(axis=0)
+    '''
 
-    # Symmetric, so only return lower triangle
-    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
+    # Remove particles at centre if calculating reduced tensor
+    if reduced:
+        norm = np.linalg.norm(position, axis=1) ** 2
+        mask = np.logical_not(np.isclose(norm, 0))
+        position = position[mask]
+        mass = mass[mask]
+        norm = norm[mask]
 
-    return Itensor
+    # Set stopping criteria
+    tol = 0.0001
+    q = 1000
+
+    # Ensure we have consistent units
+    R = sphere_radius.to('kpc')
+    position = position.to('kpc')
+
+    # Start with a sphere
+    eig_val = [1, 1, 1]
+    eig_vec = np.array([
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+    ])
+
+    for i_iter in range(max_iterations):
+        # Calculate shape
+        old_q = q
+        q = np.sqrt(eig_val[1] / eig_val[2])
+        s = np.sqrt(eig_val[0] / eig_val[2])
+        p = np.sqrt(eig_val[0] / eig_val[1])
+
+        # Break if converged
+        if abs((old_q - q) / q) < tol:
+            break
+
+        # Calculate ellipsoid, determine which particles are inside
+        axis = R * np.array([
+            1 * np.cbrt(s * p),
+            1 * np.cbrt(q / p),
+            1 / np.cbrt(q * s),
+        ])
+        p = np.dot(position, eig_vec) / axis
+        r = np.linalg.norm(p, axis=1)
+        # We want to skip the calculation if we only only have a small number of particles
+        # inside the initial sphere. We do the check here since this is the first time
+        # we calculate how many particles are within the sphere.
+        if (i_iter == 0) and (np.sum(mass[r <= 1]) < 20):
+            return None
+        weight = mass / np.sum(mass[r <= 1])
+        weight[r > 1] = 0
+
+        # Check if we have exceeded the search radius. For subhalo_properties we
+        # have all the bound particles, and so the search radius doesn't matter
+        if (search_radius is not None) and (np.max(R) > search_radius):
+            raise SearchRadiusTooSmallError("Inertia tensor required more particles")
+
+        # Calculate inertia tensor
+        tensor = weight[:, None, None] * position[:, :, None] * position[:, None, :]
+        if reduced:
+            tensor /= norm[:, None, None]
+        tensor = tensor.sum(axis=0)
+        eig_val, eig_vec = np.linalg.eigh(tensor.value)
+
+    return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
 
 
-def get_projected_inertia_tensor(
-    mass: unyt.unyt_array, position: unyt.unyt_array, axis: int
-) -> unyt.unyt_array:
-    """
-    Get the inertia tensor of the given particle distribution, projected along the
-    given axis.
+def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, max_iterations=20):
+    '''
+    Takes in the particle distribution projected along a given axis, and calculates the inertia
+    tensor using the projected values.
+
+    Unlike get_inertia_tensor, we don't need to check if we have exceeded the search radius. This
+    is because all the bound particles are passed to this function.
 
     Parameters:
      - mass: unyt.unyt_array
@@ -271,9 +339,15 @@ def get_projected_inertia_tensor(
      - axis: 0, 1, 2
        Projection axis. Only the coordinates perpendicular to this axis are
        taken into account.
+     - radius: unyt.unyt_quantity
+       Exclude particles outside this radius for the inertia tensor calculation
+     - reduced: bool
+       Whether to calculate the reduced inertia tensor
+     - max_iterations: int
+       The maximum number of iterations to repeat the inertia tensor calculation
 
     Returns the inertia tensor.
-    """
+    '''
 
     projected_position = unyt.unyt_array(
         np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
@@ -290,76 +364,61 @@ def get_projected_inertia_tensor(
     else:
         raise AttributeError(f"Invalid axis: {axis}!")
 
-    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
+    # Remove particles at centre if calculating reduced tensor
+    if reduced:
+        norm = np.linalg.norm(projected_position, axis=1) ** 2
+        mask = np.logical_not(np.isclose(norm, 0))
+        projected_position = projected_position[mask]
+        mass = mass[mask]
+        norm = norm[mask]
 
-    Itensor *= projected_position[:, :, None] * projected_position[:, None, :]
+    # Set stopping criteria
+    tol = 0.0001
+    q = 1000
 
-    Itensor = Itensor.sum(axis=0)
+    # Ensure we have consistent units
+    R = radius.to('kpc')
+    projected_position = projected_position.to('kpc')
 
-    Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
+    # Start with a circle
+    eig_val = [1, 1]
+    eig_vec = np.array([
+        [1, 0],
+        [0, 1],
+    ])
 
-    Itensor *= position.units * position.units
+    for i_iter in range(max_iterations):
+        # Calculate shape
+        old_q = q
+        q = np.sqrt(eig_val[0] / eig_val[1])
 
-    return Itensor
+        # Break if converged
+        if abs((old_q - q) / q) < tol:
+            break
 
+        # Calculate ellipse, determine which particles are inside
+        axis = R * np.array([
+            1 * np.sqrt(q),
+            1 / np.sqrt(q),
+        ])
+        p = np.dot(projected_position, eig_vec) / axis
+        r = np.linalg.norm(p, axis=1)
+        # We want to skip the calculation if we only only have a small number of particles
+        # inside the initial circle. We do the check here since this is the first time
+        # we calculate how many particles are within the circle.
+        if (i_iter == 0) and (np.sum(mass[r <= 1]) < 20):
+            return None
+        weight = mass / np.sum(mass[r <= 1])
+        weight[r > 1] = 0
+        
+        # Calculate inertia tensor
+        tensor = weight[:, None, None] * projected_position[:, :, None] * projected_position[:, None, :]
+        if reduced:
+            tensor /= norm[:, None, None]
+        tensor = tensor.sum(axis=0)
+        eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
-def get_reduced_inertia_tensor(mass, position):
-    # Remove the particle at the centre of the halo which otherwise causes division over 0.
-    norm = np.linalg.norm(position, axis=1) ** 2
-    argmin = np.argmin(norm)
-    position = np.delete(position, argmin, 0)  # Removing
-    mass = np.delete(mass, argmin)
-    norm = np.delete(norm, argmin)
-    # 3x3 inertia tensor
-    Itensor = (
-        mass[:, None, None]
-        / mass.sum()
-        * position[:, None:, None]
-        * position[:, None]
-        / norm[:, None, None]
-    ).sum(axis=0)
-
-    # Symmetric, so only return lower triangle
-    Itensor = np.concatenate([np.diag(Itensor), Itensor[np.triu_indices(3, 1)]])
-    return Itensor
-
-
-def get_reduced_projected_inertia_tensor(mass, position, axis):
-    # Remove the particle at the centre of the halo which otherwise causes division over 0.
-    norm = np.linalg.norm(position, axis=1) ** 2
-    argmin = np.argmin(norm)
-    position = np.delete(position, argmin, 0)  # Removing
-    mass = np.delete(mass, argmin)
-    norm = np.delete(norm, argmin)
-    projected_position = unyt.unyt_array(
-        np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
-    )
-    if axis == 0:
-        projected_position[:, 0] = position[:, 1]
-        projected_position[:, 1] = position[:, 2]
-    elif axis == 1:
-        projected_position[:, 0] = position[:, 2]
-        projected_position[:, 1] = position[:, 0]
-    elif axis == 2:
-        projected_position[:, 0] = position[:, 0]
-        projected_position[:, 1] = position[:, 1]
-    else:
-        raise AttributeError(f"Invalid axis: {axis}!")
-
-    Itensor = (mass[:, None, None] / mass.sum()) * np.ones((mass.shape[0], 2, 2))
-
-    Itensor *= (
-        projected_position[:, :, None]
-        * projected_position[:, None, :]
-        / norm[:, None, None].value
-    )
-
-    Itensor = Itensor.sum(axis=0)
-
-    Itensor = np.array((Itensor[0, 0], Itensor[1, 1], Itensor[0, 1]))
-
-    return Itensor
-
+    return np.concatenate([np.diag(tensor), [tensor[(0, 1)]]])
 
 if __name__ == "__main__":
     """

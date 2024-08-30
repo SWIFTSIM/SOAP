@@ -67,7 +67,7 @@ def unit_registry_from_snapshot(snap):
     # Create a registry using this base unit system
     reg = unyt.unit_registry.UnitRegistry(lut=reg.lut, unit_system=us)
 
-    # Add some units which might be useful for dealing with VR data
+    # Add some units which might be useful for dealing with input halo catalogues
     unyt.define_unit(
         "swift_mpc", 1.0e6 * physical_constants_cgs["parsec"] * unyt.cm, registry=reg
     )
@@ -78,10 +78,6 @@ def unit_registry_from_snapshot(snap):
         "newton_G",
         physical_constants_cgs["newton_G"] * unyt.cm ** 3 / unyt.g / unyt.s ** 2,
         registry=reg,
-    )
-    a_unit = unyt.Unit("a", registry=reg)
-    unyt.define_unit(
-        "cMpc", 1 * a_unit * unyt.Mpc, registry=reg
     )
 
     return reg
@@ -123,7 +119,10 @@ def units_from_attributes(attrs, registry):
     # Add expansion factor
     a_scale_exponent = attrs["a-scale exponent"][0]
     a_unit = unyt.Unit("a", registry=registry) ** a_scale_exponent
-    if a_scale_exponent != 0:
+    # Datasets in the FLAMINGO snapshots do not have a "Value stored as physical"
+    # attribute, so default to comoving in that case
+    physical = attrs.get("Value stored as physical", [0])[0] == 1
+    if (a_scale_exponent != 0) and (not physical):
         if u is unyt.dimensionless:
             u = a_unit
         else:
@@ -141,7 +140,7 @@ def units_from_attributes(attrs, registry):
     return unyt.Unit(u, registry=registry)
 
 
-def attributes_from_units(units):
+def attributes_from_units(units, physical, a_exponent):
     """
     Given a unyt.Unit object, generate SWIFT dataset attributes
 
@@ -157,20 +156,31 @@ def attributes_from_units(units):
 
     # Get a exponent
     a_unit = unyt.Unit("a", registry=units.registry)
-    a_exponent = units.expr.as_powers_dict()[a_unit.expr]
+    a_exponent_in_units = units.expr.as_powers_dict()[a_unit.expr]
     a_val = a_unit.base_value
+
+    # Check a_exponent is consistent
+    if a_exponent is None:
+        assert physical
+    else:
+        if physical:
+            assert a_exponent_in_units == 0
+        else:
+            assert a_exponent_in_units == a_exponent
 
     # Get h exponent
     h_unit = unyt.Unit("h", registry=units.registry)
     h_exponent = units.expr.as_powers_dict()[h_unit.expr]
     h_val = h_unit.base_value
+    # Something has gone wrong if we have h factors
+    assert h_exponent == 0
 
     # Find the power associated with each dimension
     powers = units.get_mks_equivalent().dimensions.as_powers_dict()
 
     # Set the attributes
     attrs["Conversion factor to CGS (not including cosmological corrections)"] = [
-        float(cgs_factor / (a_val ** a_exponent) / (h_val ** h_exponent))
+        float(cgs_factor / (a_val ** a_exponent_in_units) / (h_val ** h_exponent))
     ]
     attrs["Conversion factor to physical CGS (including cosmological corrections)"] = [
         float(cgs_factor)
@@ -180,7 +190,11 @@ def attributes_from_units(units):
     attrs["U_M exponent"] = [float(powers[unyt.dimensions.mass])]
     attrs["U_T exponent"] = [float(powers[unyt.dimensions.temperature])]
     attrs["U_t exponent"] = [float(powers[unyt.dimensions.time])]
-    attrs["a-scale exponent"] = [float(a_exponent)]
     attrs["h-scale exponent"] = [float(h_exponent)]
+    # Note that "a-scale exponent" is set even if the output is physical,
+    # or if the quantity can't be converted to comoving
+    attrs["a-scale exponent"] = [0. if a_exponent is None else a_exponent]
+    attrs["Value stored as physical"] = [1 if physical else 0]
+    attrs["Property can be converted to comoving"] = [0 if a_exponent is None else 1]
 
     return attrs

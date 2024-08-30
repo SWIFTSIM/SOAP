@@ -1,12 +1,11 @@
 # Values in this section are substituted into the other sections
 Parameters:
-  sim_dir: 
-  output_dir: 
-  scratch_dir: 
+  sim_dir: /cosma8/data/dp004/jlvc76/COLIBRE/ScienceRuns
+  output_dir: output
+  scratch_dir: output
 
 # Location of the Swift snapshots:
 Snapshots:
-  # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
   filename: "{sim_dir}/{sim_name}/colibre_{snap_nr:04d}/colibre_{snap_nr:04d}.{file_nr}.hdf5"
 
 # Which halo finder we're using, and base name for halo finder output files
@@ -14,20 +13,16 @@ HaloFinder:
   type: HBTplus
   filename: "{sim_dir}/{sim_name}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
   fof_filename: "{sim_dir}/{sim_name}/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
-  #type: VR
-  #filename: "{sim_dir}/halo_{snap_nr:04d}"
-  #type: Subfind
-  #filename: "{sim_dir}/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
 
+# Where to find the group membership files
 GroupMembership:
-  # Where to write the group membership files
-  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+  filename: "{sim_dir}/{sim_name}/SOAP/SOAP_uncompressed/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
 
 HaloProperties:
   # Where to write the halo properties file
-  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/halo_properties_{snap_nr:04d}.hdf5"
+  filename: "{output_dir}/halo_properties_{snap_nr:04d}.hdf5"
   # Where to write temporary chunk output
-  chunk_dir: "{scratch_dir}/{sim_name}/SOAP-tmp/{halo_finder}/"
+  chunk_dir: "{scratch_dir}/SOAP-tmp/"
 
 ApertureProperties:
   properties:

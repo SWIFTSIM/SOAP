@@ -8,6 +8,7 @@
 #
 # cd SOAP
 # mkdir logs
+# ./scripts/cosma_python_env.sh
 # sbatch -J HYDRO_FIDUCIAL --array=0-77%4 ./scripts/FLAMINGO/L1000N0900/halo_properties_L1000N0900.sh
 #
 #SBATCH --nodes=1
@@ -37,7 +38,7 @@ if [[ $sim == *DMO_* ]] ; then
   dmo_flag="--dmo"
 fi
 
-mpirun python3 -u -m mpi4py ./compute_halo_properties.py \
+mpirun -- python3 -u -m mpi4py ./compute_halo_properties.py \
        --sim-name=${sim} --snap-nr=${snapnum} --reference-snapshot=77 \
        --chunks=1 ${dmo_flag} parameter_files/FLAMINGO.yml
 

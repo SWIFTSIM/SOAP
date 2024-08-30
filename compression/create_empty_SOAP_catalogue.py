@@ -21,10 +21,10 @@ catalogue. Providing the wrong snapshot will work, but this might upset scripts
 that parse the SWIFT meta-data in the empty SOAP catalogue.
 """
 
-import h5py
 import argparse
 import os
-
+import h5py
+import numpy as np
 
 def get_snapshot_index(snapshot_name):
     """
@@ -87,47 +87,50 @@ class H5copier:
             # create the group in the output file
             self.ofile.create_group(name)
             # take care of attributes:
-            #  - SWIFT/Header or SWIFT/Cosmology attributes are read directly
-            #    from the snapshot file
-            #  - Parameters are copied, but some snapshot file specific info
-            #    is updated using the correct snapshot index number for this
-            #    snapshot
+            #  - Cosmology, SWIFT/Header, and SWIFT/Parameters attributes are
+            #    read directly from the snapshot file
+            #  - Header and Parameters are copied, but some snapshot file specific
+            #    info is updated
             #  - For all other groups we simply copy all attributes
-            if name in ["SWIFT/Header", "SWIFT/Cosmology"]:
-                swift_group = name.split("/")[-1]
-                for attr in self.snapfile[swift_group].attrs:
-                    self.ofile[name].attrs[attr] = self.snapfile[swift_group].attrs[
+            if name in ["Cosmology", "SWIFT/Header", "SWIFT/Parameters"]:
+                swift_name = name.replace("SWIFT/", "")
+                for attr in self.snapfile[swift_name].attrs:
+                    self.ofile[name].attrs[attr] = self.snapfile[swift_name].attrs[
                         attr
                     ]
+            elif name == "Header":
+                for attr in self.ifile[name].attrs:
+                    self.ofile[name].attrs[attr] = self.ifile[name].attrs[attr]
+                self.ofile[name].attrs['NumSubhalos_ThisFile'] = np.array([0], dtype='int32')
+                self.ofile[name].attrs['NumSubhalos_Total'] = np.array([0], dtype='int32')
+                self.ofile[name].attrs['Redshift'] = snapfile['Cosmology'].attrs['Redshift']
+                self.ofile[name].attrs['Scale-factor'] = snapfile['Cosmology'].attrs['Scale-factor']
             elif name == "Parameters":
-                attrs = dict(self.ifile[name].attrs)
-                old_snapnum = attrs["snapshot_nr"]
-                attrs["snapshot_nr"] = self.snapnum
-                attrs["swift_filename"] = attrs["swift_filename"].replace(
-                    f"{old_snapnum:04d}", f"{self.snapnum:04d}"
-                )
-                attrs["vr_basename"] = attrs["vr_basename"].replace(
-                    f"{old_snapnum:04d}", f"{self.snapnum:04d}"
-                )
-                for attr in attrs:
-                    self.ofile[name].attrs[attr] = attrs[attr]
+                for attr in self.ifile[name].attrs:
+                    self.ofile[name].attrs[attr] = self.ifile[name].attrs[attr]
+                self.ofile[name].attrs['halo_indices'] = np.array([], dtype='int64')
+                self.ofile[name].attrs['snapshot_nr'] = self.snapnum
             else:
                 for attr in self.ifile[name].attrs:
                     self.ofile[name].attrs[attr] = self.ifile[name].attrs[attr]
         elif type == "dataset":
-            # dataset: get the dtype and shape and create a new dataset with
-            # the same name, dtype and shape, but with the length of the array
-            # (shape[0]) set to 0
-            dtype = h5obj.dtype
-            shape = h5obj.shape
-            new_shape = None
-            if len(shape) == 1:
-                new_shape = (0,)
+            if name in ["Cells/Counts/Subhalos", "Cells/OffsetsInFile/Subhalos"]:
+                arr = 0 * self.ifile[name][:]
+                self.ofile.create_dataset(name, data=arr)
             else:
-                new_shape = (0, *shape[1:])
-            self.ofile.create_dataset(name, new_shape, dtype)
-            for attr in self.ifile[name].attrs:
-                self.ofile[name].attrs[attr] = self.ifile[name].attrs[attr]
+                # dataset: get the dtype and shape and create a new dataset with
+                # the same name, dtype and shape, but with the length of the array
+                # (shape[0]) set to 0
+                dtype = h5obj.dtype
+                shape = h5obj.shape
+                new_shape = None
+                if len(shape) == 1:
+                    new_shape = (0,)
+                else:
+                    new_shape = (0, *shape[1:])
+                self.ofile.create_dataset(name, new_shape, dtype)
+                for attr in self.ifile[name].attrs:
+                    self.ofile[name].attrs[attr] = self.ifile[name].attrs[attr]
 
 
 if __name__ == "__main__":
@@ -146,6 +149,10 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     snapnum = get_snapshot_index(args.snapshot)
+    ofile_snapnum = get_snapshot_index(args.outputSOAP)
+    assert snapnum == ofile_snapnum
+
+    assert not os.path.exists(args.outputSOAP)
 
     with h5py.File(args.referenceSOAP, "r") as ifile, h5py.File(
         args.snapshot, "r"

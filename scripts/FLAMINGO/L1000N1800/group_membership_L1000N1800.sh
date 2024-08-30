@@ -9,6 +9,7 @@
 #
 # cd SOAP
 # mkdir logs
+# ./scripts/cosma_python_env.sh
 # sbatch -J HYDRO_FIDUCIAL --array=0-77%4 ./scripts/FLAMINGO/L1000N1800/group_membership_L1000N1800.sh
 #
 #SBATCH --nodes=1
@@ -34,7 +35,7 @@ snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 sim="L1000N1800/${SLURM_JOB_NAME}"
 
 # Run the code
-mpirun python3 -u -m mpi4py ./group_membership.py \
+mpirun -- python3 -u -m mpi4py ./group_membership.py \
        --sim-name=${sim} --snap-nr=${snapnum} \
        parameter_files/FLAMINGO.yml
 

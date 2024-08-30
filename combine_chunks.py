@@ -1,5 +1,7 @@
 #!/bin/env python
 
+import socket
+import time
 import numpy as np
 import h5py
 from mpi4py import MPI
@@ -35,6 +37,7 @@ def combine_chunks(
     comm_world,
     category_filter,
     recently_heated_gas_filter,
+    cold_dense_gas_filter,
 ):
     """
     Combine the per-chunk output files into a single, sorted output
@@ -45,11 +48,31 @@ def combine_chunks(
         scratch_file_format, file_idx=range(nr_chunks), comm=comm_world
     )
 
-    # Read the halo index from the scratch files and make a sorting index to put them in order
-    with MPITimer("Establishing ID ordering of halos", comm_world):
-        halo_index = scratch_file.read("InputHalos/HaloCatalogueIndex")
-        order = psort.parallel_sort(halo_index, return_index=True, comm=comm_world)
-        del halo_index
+    # Determine units of halo centres:
+    # ref_metadata is a list of (name, dimensions, units, description) for each property.
+    cofp_metadata = [rm for rm in ref_metadata if rm[0] == "InputHalos/HaloCentre"][0]
+    cofp_units = cofp_metadata[2]
+    
+    # Sort halos based on what cell their centre is in
+    with MPITimer("Establishing ordering of halos based on SWIFT cell structure", comm_world):
+        halo_cofp = scratch_file.read('InputHalos/HaloCentre') * cofp_units
+        halo_index = scratch_file.read('InputHalos/HaloCatalogueIndex')
+        cell_indices = (halo_cofp // cellgrid.cell_size).value.astype('int64')
+        assert cellgrid.dimension[0] >= cellgrid.dimension[1] >= cellgrid.dimension[2]
+        # Sort first based on position, then on catalogue index
+        sort_hash_dtype = [('cell_index', np.int64), ('catalogue_index', np.int64)]
+        sort_hash = np.zeros(cell_indices.shape[0], dtype=sort_hash_dtype)
+        sort_hash['cell_index'] += cell_indices[:, 0] * cellgrid.dimension[0] ** 2
+        sort_hash['cell_index'] += cell_indices[:, 1] * cellgrid.dimension[1]
+        sort_hash['cell_index'] += cell_indices[:, 2]
+        sort_hash['catalogue_index'] = halo_index
+        order = psort.parallel_sort(sort_hash, return_index=True, comm=comm_world)
+        del halo_cofp
+
+        # Calculate local count of halos in each cell, and combine on rank 0
+        local_cell_counts = np.bincount(sort_hash['cell_index'], minlength=cellgrid.nr_cells[0]).astype('int64')
+        assert local_cell_counts.shape[0] == np.prod(cellgrid.dimension)
+        cell_counts = comm_world.reduce(local_cell_counts)
 
     # Determine total number of halos
     total_nr_halos = comm_world.allreduce(len(order))
@@ -70,7 +93,11 @@ def combine_chunks(
         dtype = props[2]
         unit = cellgrid.get_unit(props[3])
         description = props[4]
-        soap_metadata.append((name, size, unit, dtype, description))
+        physical = props[9]
+        a_exponent = props[10]
+        if not physical:
+            unit = unit * cellgrid.get_unit('a') ** a_exponent
+        soap_metadata.append((name, size, unit, dtype, description, physical, a_exponent))
 
     # Add metadata for FOF properties
     fof_metadata = []
@@ -88,7 +115,11 @@ def combine_chunks(
             dtype = props[2]
             unit = cellgrid.get_unit(props[3])
             description = props[4]
-            fof_metadata.append((name, size, unit, dtype, description))
+            physical = props[9]
+            a_exponent = props[10]
+            if not physical:
+                unit = unit * cellgrid.get_unit('a') ** a_exponent
+            fof_metadata.append((name, size, unit, dtype, description, physical, a_exponent))
 
     # First MPI rank sets up the output file
     with MPITimer("Creating output file", comm_world):
@@ -96,8 +127,8 @@ def combine_chunks(
         if comm_world.Get_rank() == 0:
             # Create the file
             outfile = h5py.File(output_file, "w")
-            # Write parameters etc
-            cellgrid.write_metadata(outfile.create_group("SWIFT"))
+
+            # Write parameters
             params = outfile.create_group("Parameters")
             params.attrs["swift_filename"] = args.swift_filename
             params.attrs["halo_basename"] = args.halo_basename
@@ -109,15 +140,83 @@ def combine_chunks(
             params.attrs["halo_indices"] = (
                 args.halo_indices if args.halo_indices is not None else np.ndarray(0, dtype=int)
             )
-            params.attrs["git_hash"] = args.git_hash
-            # NOTE: FLAMINGO
             recently_heated_gas_metadata = recently_heated_gas_filter.get_metadata()
-            recently_heated_gas_params = outfile.create_group("RecentlyHeatedGasFilter")
+            recently_heated_gas_params = params.create_group("RecentlyHeatedGasFilter")
             for at, val in recently_heated_gas_metadata.items():
                 recently_heated_gas_params.attrs[at] = val
+            if cold_dense_gas_filter.initialised:
+                cold_dense_gas_params = params.create_group("ColdDenseGasFilter")
+                for at, val in cold_dense_gas_filter.get_metadata().items():
+                    cold_dense_gas_params.attrs[at] = val
+
+            # Write code information
+            code = outfile.create_group('Code')
+            code.attrs["Code"] = 'SOAP'
+            code.attrs["git_hash"] = args.git_hash
+
+            # Copy swift metadata
+            params = cellgrid.copy_swift_metadata(outfile)
+
+            # Generate header
+            header = outfile.create_group('Header')
+            for attr in [
+                    'BoxSize',
+                    'Dimension',
+                    'NumPartTypes',
+                    'Redshift',
+                    'RunName',
+                    'Scale-factor',
+                ]:
+                header.attrs[attr] = cellgrid.swift_header_group[attr]
+            header.attrs['Code'] = 'SOAP'
+            header.attrs['Dimension'] = cellgrid.swift_header_group['Dimension']
+            header.attrs['NumFilesPerSnapshot'] = np.array([1], dtype='int32')
+            header.attrs['NumSubhalos_ThisFile'] = np.array([total_nr_halos], dtype='int32')
+            header.attrs['NumSubhalos_Total'] = np.array([total_nr_halos], dtype='int32')
+            n_part_type = cellgrid.swift_header_group['NumPartTypes'][0]
+            header.attrs['NumPart_ThisFile'] = np.zeros(n_part_type, dtype='int32')
+            header.attrs['NumPart_Total'] = np.zeros(n_part_type, dtype='uint32')
+            header.attrs['NumPart_Total_Highword'] = np.zeros(n_part_type, dtype='uint32')
+            header.attrs['OutputType'] = 'SOAP'
+            snapshot_date = time.strftime("%H:%M:%S %Y-%m-%d GMT", time.gmtime())
+            header.attrs['SnapshotDate'] = snapshot_date
+            header.attrs['System'] = socket.gethostname()
+            header.attrs['ThisFile'] = np.array([0], dtype='int32')
+
+            # Write cosmology
+            cosmo = outfile.create_group("Cosmology")
+            for name, value in cellgrid.cosmology.items():
+                cosmo.attrs[name] = [value]
+
+            # Write units
+            units = outfile.create_group("Units")
+            for name, value in cellgrid.swift_units_group.items():
+                units.attrs[name] = [value]
+
+            # Write physical constants
+            const = outfile.create_group("PhysicalConstants")
+            const = const.create_group("CGS")
+            for name, value in cellgrid.constants.items():
+                const.attrs[name] = [value]
+
+            # Write cell information
+            cells = outfile.create_group("Cells")
+            cells_metadata = cells.create_group("Meta-data")
+            cells_metadata.attrs['dimension'] = cellgrid.dimension
+            cells_metadata.attrs['nr_cells'] = cellgrid.nr_cells
+            cell_size = cellgrid.cell_size.to('a*snap_length').value
+            cells_metadata.attrs['size'] = cell_size
+            cells.create_dataset('Centres', data=cellgrid.cell_centres)
+            cells.create_dataset('Counts/Subhalos', data=cell_counts)
+            cells.create_dataset(
+                'Files/Subhalos', data=np.zeros(cellgrid.nr_cells[0], dtype='int32')
+            )
+            cell_offsets = np.cumsum(cell_counts) - cell_counts
+            cells.create_dataset('OffsetsInFile/Subhalos', data=cell_offsets)
 
             # Create datasets for all halo properties
-            for name, size, unit, dtype, description in ref_metadata + soap_metadata + fof_metadata:
+            for metadata in ref_metadata + soap_metadata + fof_metadata:
+                name, size, unit, dtype, description, physical, a_exponent = metadata
                 if description == 'No description available':
                     print(f'{name} not found in property table')
                 shape = (total_nr_halos,) + size
@@ -125,7 +224,7 @@ def combine_chunks(
                     name, shape=shape, dtype=dtype, fillvalue=None
                 )
                 # Add units and description
-                attrs = swift_units.attributes_from_units(unit)
+                attrs = swift_units.attributes_from_units(unit, physical, a_exponent)
                 attrs["Description"] = description
                 mask_metadata = category_filter.get_filter_metadata_for_property(name)
                 attrs.update(mask_metadata)
@@ -133,6 +232,14 @@ def combine_chunks(
                 attrs.update(compression_metadata)
                 for attr_name, attr_value in attrs.items():
                     dataset.attrs[attr_name] = attr_value
+
+            # Save the names of the groups containing the data
+            subhalo_types = set()
+            for metadata in ref_metadata + soap_metadata + fof_metadata:
+                # Remove property name from full hdf5 path
+                group_name = '/'.join(metadata[0].split('/')[:-1])
+                subhalo_types.add(group_name)
+            header.attrs['SubhaloTypes'] = sorted(subhalo_types)
 
             # Save masks for each halo variation
             for halo_prop in halo_prop_list:
@@ -173,7 +280,7 @@ def combine_chunks(
             i2 = min(i1 + props_per_iteration, total_nr_props)
 
             # Find the properties to reorder on this iteration
-            names, sizes, units, dtypes, descriptions = zip(*ref_metadata[i1:i2])
+            names = [metadata[0] for metadata in ref_metadata[i1:i2]]
 
             # Read in and reorder the properties
             data = scratch_file.read(names)
@@ -186,7 +293,7 @@ def combine_chunks(
                     props_kept[name] = data[name]
 
             # Write these properties to the output file
-            for name, size, unit, description in zip(names, sizes, units, descriptions):
+            for name in names:
                 phdf5.collective_write(
                     outfile, name, data[name], create_dataset=False, comm=comm_world
                 )
@@ -199,8 +306,8 @@ def combine_chunks(
         if comm_world.Get_rank() == 0:
             with h5py.File(args.fof_group_filename.format(file_nr=0, snap_nr= args.snapshot_nr), "r") as fof_file:
                 fof_reg = swift_units.unit_registry_from_snapshot(fof_file)
-                fof_com_unit = swift_units.units_from_attributes(fof_file['Groups/Centres'].attrs, fof_reg)
-                fof_mass_unit = swift_units.units_from_attributes(fof_file['Groups/Masses'].attrs, fof_reg)
+                fof_com_unit = swift_units.units_from_attributes(dict(fof_file['Groups/Centres'].attrs), fof_reg)
+                fof_mass_unit = swift_units.units_from_attributes(dict(fof_file['Groups/Masses'].attrs), fof_reg)
         else:
             fof_reg = None
             fof_com_unit = None

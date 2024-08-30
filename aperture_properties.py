@@ -136,7 +136,7 @@ very messy and complex. But it is in fact quite neat and powerful.
 import numpy as np
 import unyt
 
-from halo_properties import HaloProperty, ReadRadiusTooSmallError
+from halo_properties import HaloProperty, SearchRadiusTooSmallError
 from dataset_names import mass_dataset
 from half_mass_radius import get_half_mass_radius
 from kinematic_properties import (
@@ -144,8 +144,6 @@ from kinematic_properties import (
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
     get_vmax,
-    get_inertia_tensor,
-    get_reduced_inertia_tensor,
 )
 
 from swift_cells import SWIFTCellGrid
@@ -196,6 +194,7 @@ class ApertureParticleData:
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         cold_dense_gas_filter: ColdDenseGasFilter,
         snapshot_datasets: SnapshotDatasets,
+        softening_of_parttype: unyt.unyt_array,
     ):
         """
         Constructor.
@@ -224,6 +223,8 @@ class ApertureParticleData:
          - snapshot_datasets: SnapshotDatasets
            Object containing metadata about the datasets in the snapshot, like
            appropriate aliases and column names.
+         - softening_of_parttype: unyt.unyt_array
+           Softening length of each particle types
         """
         self.input_halo = input_halo
         self.data = data
@@ -234,6 +235,7 @@ class ApertureParticleData:
         self.recently_heated_gas_filter = recently_heated_gas_filter
         self.cold_dense_gas_filter = cold_dense_gas_filter
         self.snapshot_datasets = snapshot_datasets
+        self.softening_of_parttype = softening_of_parttype
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -254,6 +256,7 @@ class ApertureParticleData:
         radius = []
         velocity = []
         types = []
+        softening = []
         for ptype in self.types_present:
             grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
             if self.inclusive:
@@ -271,12 +274,15 @@ class ApertureParticleData:
             velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
             typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
             types.append(typearr)
+            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
+            softening.append(s)
 
         self.mass = np.concatenate(mass)
         self.position = np.concatenate(position)
         self.radius = np.concatenate(radius)
         self.velocity = np.concatenate(velocity)
         self.types = np.concatenate(types)
+        self.softening = np.concatenate(softening)
 
         self.mask = self.radius <= self.aperture_radius
 
@@ -285,6 +291,7 @@ class ApertureParticleData:
         self.velocity = self.velocity[self.mask]
         self.radius = self.radius[self.mask]
         self.type = self.types[self.mask]
+        self.softening = self.softening[self.mask]
 
     @lazy_property
     def gas_mask_ap(self) -> NDArray[bool]:
@@ -882,14 +889,15 @@ class ApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        _, vmax = get_vmax(self.mass, self.radius)
-        if vmax == 0:
-            return None
-        vrel = self.velocity - self.vcom[None, :]
-        Ltot = np.linalg.norm(
-            (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
-        )
-        return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax)
+        soft_r = np.maximum(self.softening, self.radius)
+        _, vmax_soft = get_vmax(self.mass, soft_r)
+        if vmax_soft > 0:
+            vrel = self.velocity - self.vcom[None, :]
+            Ltot = np.linalg.norm(
+                (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
+            )
+            return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax_soft)
+        return None
 
     @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
@@ -998,21 +1006,6 @@ class ApertureParticleData:
         return 0.5 * ekin_gas.sum()
 
     @lazy_property
-    def GasInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Intertia tensor of the gas component.
-        """
-        if self.Mgas == 0:
-            return None
-        return get_inertia_tensor(self.mass_gas, self.pos_gas)
-
-    @lazy_property
-    def ReducedGasInertiaTensor(self):
-        if self.Mgas == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_gas, self.pos_gas)
-
-    @lazy_property
     def dm_mass_fraction(self) -> unyt.unyt_array:
         """
         Fractional mass of DM particles. See the documentation of star_mass_fraction
@@ -1052,21 +1045,6 @@ class ApertureParticleData:
         return get_angular_momentum(
             self.mass_dm, self.pos_dm, self.vel_dm, ref_velocity=self.vcom_dm
         )
-
-    @lazy_property
-    def DMInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the DM component.
-        """
-        if self.Mdm == 0:
-            return None
-        return get_inertia_tensor(self.mass_dm, self.pos_dm)
-
-    @lazy_property
-    def ReducedDMInertiaTensor(self):
-        if self.Mdm == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_dm, self.pos_dm)
 
     @lazy_property
     def com_star(self) -> unyt.unyt_array:
@@ -1150,15 +1128,6 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
-    def StellarInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the stellar component.
-        """
-        if self.Mstar == 0:
-            return None
-        return get_inertia_tensor(self.mass_star, self.pos_star)
-
-    @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
         """
         Velocity dispersion matrix of the stars.
@@ -1168,12 +1137,6 @@ class ApertureParticleData:
         return get_velocity_dispersion_matrix(
             self.star_mass_fraction, self.vel_star, self.vcom_star
         )
-
-    @lazy_property
-    def ReducedStellarInertiaTensor(self):
-        if self.Mstar == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_star, self.pos_star)
 
     @lazy_property
     def Ekin_star(self) -> unyt.unyt_quantity:
@@ -1253,15 +1216,6 @@ class ApertureParticleData:
         if not hasattr(self, "internal_kappa_bar"):
             self.compute_Lbar_props()
         return self.internal_kappa_bar
-
-    @lazy_property
-    def BaryonInertiaTensor(self) -> unyt.unyt_array:
-        """
-        Inertia tensor of the baryonic (gas + stars) component.
-        """
-        if self.Mbaryons == 0:
-            return None
-        return get_inertia_tensor(self.mass_baryons, self.pos_baryons)
 
     @lazy_property
     def gas_mask_all(self) -> NDArray[bool]:
@@ -2353,12 +2307,6 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def ReducedBaryonInertiaTensor(self):
-        if self.Mbaryons == 0:
-            return None
-        return get_reduced_inertia_tensor(self.mass_baryons, self.pos_baryons)
-
-    @lazy_property
     def LinearMassWeightedOxygenOverHydrogenOfGas(self) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the total oxygen over hydrogen ratio of gas particles.
@@ -2840,14 +2788,6 @@ class ApertureProperties(HaloProperty):
             "HalfMassRadiusStar",
             "HalfMassRadiusBaryon",
             "spin_parameter",
-            "GasInertiaTensor",
-            "DMInertiaTensor",
-            "StellarInertiaTensor",
-            "BaryonInertiaTensor",
-            "ReducedGasInertiaTensor",
-            "ReducedDMInertiaTensor",
-            "ReducedStellarInertiaTensor",
-            "ReducedBaryonInertiaTensor",
             "DtoTgas",
             "DtoTstar",
             "starOfrac",
@@ -3055,11 +2995,15 @@ class ApertureProperties(HaloProperty):
             name = prop[0]
             shape = prop[2]
             dtype = prop[3]
-            unit = prop[4]
+            unit = unyt.Unit(prop[4], registry=registry)
+            physical = prop[10]
+            a_exponent = prop[11]
             if shape > 1:
                 val = [0] * shape
             else:
                 val = 0
+            if not physical:
+                unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
             aperture_sphere[name] = unyt.unyt_array(
                 val, dtype=dtype, units=unit, registry=registry
             )
@@ -3069,7 +3013,7 @@ class ApertureProperties(HaloProperty):
         # Determine whether to skip this halo because of filter
         if do_calculation[self.halo_filter]:
             if search_radius < self.physical_radius_mpc * unyt.Mpc:
-                raise ReadRadiusTooSmallError("Search radius is smaller than aperture")
+                raise SearchRadiusTooSmallError("Search radius is smaller than aperture")
 
             types_present = [type for type in self.particle_properties if type in data]
             part_props = ApertureParticleData(
@@ -3082,6 +3026,7 @@ class ApertureProperties(HaloProperty):
                 self.recently_heated_gas_filter,
                 self.cold_dense_gas_filter,
                 self.snapshot_datasets,
+                self.softening_of_parttype,
             )
 
             for prop in self.property_list:
@@ -3096,15 +3041,23 @@ class ApertureProperties(HaloProperty):
                 name = prop[0]
                 shape = prop[2]
                 dtype = prop[3]
-                unit = prop[4]
+                unit = unyt.Unit(prop[4], registry=registry)
                 category = prop[6]
+                physical = prop[10]
+                a_exponent = prop[11]
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
                 if do_calculation[category]:
                     val = getattr(part_props, name)
                     if val is not None:
                         assert (
                             aperture_sphere[name].shape == val.shape
                         ), f"Attempting to store {name} with wrong dimensions"
-                        if unit == "dimensionless":
+                        if unit == unyt.Unit("dimensionless"):
+                            if hasattr(val, "units"):
+                                assert (
+                                    val.units == unyt.dimensionless
+                                ), f'{name} is not dimensionless'
                             aperture_sphere[name] = unyt.unyt_array(
                                 val.astype(dtype),
                                 dtype=dtype,
@@ -3112,6 +3065,9 @@ class ApertureProperties(HaloProperty):
                                 registry=registry,
                             )
                         else:
+                            err = f'Overflow for halo {input_halo["index"]} when'
+                            err += f'calculating {name} in aperture_properties'
+                            assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
                             aperture_sphere[name] += val
 
         # add the new properties to the halo_result dictionary
@@ -3126,8 +3082,10 @@ class ApertureProperties(HaloProperty):
                 continue
             name = prop[0]
             description = prop[5]
+            physical = prop[10]
+            a_exponent = prop[11]
             halo_result.update(
-                {f"{self.group_name}/{outputname}": (aperture_sphere[name], description)}
+                {f"{self.group_name}/{outputname}": (aperture_sphere[name], description, physical, a_exponent)}
             )
 
         return
@@ -3357,7 +3315,7 @@ def test_aperture_properties():
             # Check halo fails if search radius is too small
             halo_result = dict(halo_result_template)
             if pc_name != 'filter_test':
-                with pytest.raises(ReadRadiusTooSmallError):
+                with pytest.raises(SearchRadiusTooSmallError):
                     pc_calc.calculate(
                         input_halo, 10 * unyt.kpc, input_data, halo_result
                     )
@@ -3378,13 +3336,17 @@ def test_aperture_properties():
                 size = prop[2]
                 dtype = prop[3]
                 unit_string = prop[4]
+                physical = prop[10]
+                a_exponent = prop[11]
                 full_name = f"{pc_type}/50kpc/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]
                 assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
-                assert result.units.same_dimensions_as(unit.units)
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                assert result.units == unit.units
 
             # Check properties were not calculated for filtered halos
             if pc_name == 'filter_test':

@@ -10,6 +10,7 @@ import unyt
 
 import virgo.util.match
 import virgo.mpi.gather_array as g
+import virgo.mpi.parallel_sort as psort
 
 import domain_decomposition
 import read_vr
@@ -131,14 +132,27 @@ class SOCatalogue:
             for name in local_halo:
                 local_halo[name] = local_halo[name][:nr_keep_local, ...]
 
+        # Repartition halos
+        nr_halos = local_halo['index'].shape[0]
+        total_nr_halos = comm.allreduce(nr_halos)
+        ndesired = np.zeros(comm_size, dtype=int)
+        ndesired[:] = total_nr_halos // comm_size
+        ndesired[:total_nr_halos % comm_size] += 1
+        for name in local_halo:
+            local_halo[name] = psort.repartition(local_halo[name], ndesired, comm=comm)
+
         # Store total number of halos
         self.nr_local_halos = len(local_halo["index"])
         self.nr_halos = comm.allreduce(self.nr_local_halos, op=MPI.SUM)
-        
+
+        if (self.nr_halos == 0) and (comm_rank == 0):
+            print('No halos found, aborting run')
+            exit(1)
+
         # Reduce the number of chunks if necessary so that all chunks have at least one halo
         nr_chunks = min(nr_chunks, self.nr_halos)
         self.nr_chunks = nr_chunks
-        
+
         # Assign halos to chunk tasks:
         # This sorts the halos by chunk across all MPI ranks and returns the size of each chunk.
         chunk_size = domain_decomposition.peano_decomposition(
@@ -215,11 +229,11 @@ class SOCatalogue:
         assert np.all(chunk_min_rank >= 0)
         assert np.all(chunk_max_rank < comm_size)
         assert np.all(chunk_max_rank >= 0)
-        
+
         # Check that chunk_[min|max]_rank is consistent with local_chunk_size
         for chunk_nr in range(nr_chunks):
             assert (comm_rank >= chunk_min_rank[chunk_nr] and comm_rank <= chunk_max_rank[chunk_nr]) == (self.local_chunk_size[chunk_nr] > 0)
-                
+
         self.chunk_min_rank = chunk_min_rank
         self.chunk_max_rank = chunk_max_rank
 
@@ -231,14 +245,14 @@ class SOCatalogue:
         # rank_chunk_sizes[rank_nr][chunk_nr] stores the number of elements in
         # chunk chunk_nr on rank rank_nr.
         self.rank_chunk_sizes = comm.allgather(self.local_chunk_size)
-        
+
     def process_requests(self):
         """
         Wait for and respond to requests for halo data.
         To be run in a separate thread. Request chunk -1 to terminate.
         """
         comm = self.comm
-        
+
         while True:
 
             # Receive the requested chunk number and check where the request came form
@@ -256,7 +270,7 @@ class SOCatalogue:
                 i2 = self.local_chunk_offset[chunk_nr] + self.local_chunk_size[chunk_nr]
                 sendbuf = self.local_halo[name][i1:i2,...]
                 comm.Send(sendbuf, dest=src_rank, tag=HALO_RESPONSE_TAG)
-        
+
     def start_request_thread(self):
         """
         Start a thread to respond to requests for halos
@@ -278,7 +292,7 @@ class SOCatalogue:
         # Determine how many halos we will receive in total
         nr_halos = sum([self.rank_chunk_sizes[rank_nr][chunk_nr] for rank_nr in rank_nrs])
         assert nr_halos == self.chunk_size[chunk_nr]
-        
+
         # Allocate the output arrays. These are the same as our local part of
         # the halo catalogue except that the size in the first dimension is
         # the size of the chunk to receive.
@@ -305,7 +319,7 @@ class SOCatalogue:
 
         # Wait for all communications to complete
         MPI.Request.waitall(send_requests+recv_requests)
-                
+
         return data
 
     def stop_request_thread(self):

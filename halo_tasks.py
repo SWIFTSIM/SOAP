@@ -6,7 +6,7 @@ import numpy as np
 import unyt
 
 from dataset_names import mass_dataset, ptypes_for_so_masses
-from halo_properties import ReadRadiusTooSmallError
+from halo_properties import SearchRadiusTooSmallError
 import shared_array
 from property_table import PropertyTable
 
@@ -262,7 +262,7 @@ def process_single_halo(
                     halo_prop.calculate(
                         input_halo, current_radius, particle_data, halo_result
                     )
-                except ReadRadiusTooSmallError:
+                except SearchRadiusTooSmallError:
                     # Search radius was too small, so will need to try again with a larger radius.
                     max_physical_radius_mpc = max(
                         max_physical_radius_mpc, halo_prop.physical_radius_mpc
@@ -321,22 +321,28 @@ def process_single_halo(
                 else:
                     dataset_name = prop[0]
                 dtype = prop[2]
-                unit = prop[3]
+                unit = unyt.Unit(prop[3], registry=unit_registry)
+                description = prop[4]
+                physical = prop[9]
+                a_exponent = prop[10]
+                if not physical:
+                    unit = unit * unyt.Unit('a', registry=unit_registry) ** a_exponent
                 # unyt_array.to outputs a float64 array, which is dangerous for integers
                 # so don't allow this to happen
                 if np.issubdtype(input_halo[name].dtype, np.integer) or np.issubdtype(dtype, np.integer):
                     arr = input_halo[name].astype(dtype)
-                    assert input_halo[name].units == unyt.Unit(unit)
+                    assert input_halo[name].units == unit
                 else:
                     arr = input_halo[name].to(unit).astype(dtype)
-                description = prop[4]
             # Property not present in PropertyTable. We log this fact to the output
             # within combine_chunks, rather than here.
             except KeyError:
                 dataset_name = name
                 arr = input_halo[name]
                 description = "No description available"
-            halo_result[f"InputHalos/{dataset_name}"] = (arr, description)
+                physical = True
+                a_exponent = None
+            halo_result[f"InputHalos/{dataset_name}"] = (arr, description, physical, a_exponent)
 
     return halo_result
 

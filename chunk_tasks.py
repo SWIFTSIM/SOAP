@@ -189,6 +189,7 @@ class ChunkTask:
                         )
                 for ptype in properties:
                     properties[ptype] = list(properties[ptype])
+                cellgrid.check_datasets_exist(properties)
             else:
                 properties = None
             properties = comm.bcast(properties)

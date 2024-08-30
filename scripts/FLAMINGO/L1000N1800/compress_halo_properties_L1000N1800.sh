@@ -24,9 +24,10 @@
 #SBATCH -t 01:00:00
 #
 
+set -e
+
 module purge
-module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
-source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
+module load python/3.12.4
 
 # Get location for temporary output
 if [[ "${FLAMINGO_SCRATCH_DIR}" ]] ; then
@@ -62,10 +63,11 @@ sim="L1000N1800/${SLURM_JOB_NAME}"
 script="./compression/compress_fast_metadata.py"
 
 # Location of the input to compress
-inbase="${output_dir}/${sim}/SOAP_uncompressed/${halo_finder}/"
+inbase="${scratch_dir}/${sim}/SOAP_uncompressed/${halo_finder}/"
 
 # Location of the compressed output
-outbase="${output_dir}/${sim}/SOAP/${halo_finder}/"
+outbase="${output_dir}/${sim}/SOAP-HBT/"
+mkdir -p $outbase
 
 # Name of the input SOAP catalogue
 input_filename="${inbase}/halo_properties_${snapnum}.hdf5"
@@ -79,5 +81,7 @@ scratch_dir="${scratch_dir}/${sim}/SOAP_compression_tmp/"
 
 # run the script using all available threads on the node
 python3 ${script} --nproc 128 ${input_filename} ${output_filename} ${scratch_dir}
+
+chmod a=r ${output_filename}
 
 echo "Job complete!"

@@ -21,15 +21,18 @@ python -m venv "${venv_name}"
 # Activate the venv
 source "${venv_name}"/bin/activate
 
-# Install mpi4py
-pip install mpi4py
+# Install mpi4py and h5py using precompiled wheels
+wheel_dir="/cosma/local/python-wheels/3.12.4/openmpi-5.0.3-hdf5-${hdf5_version}/"
+pip install "${wheel_dir}mpi4py-3.1.6-cp312-cp312-linux_x86_64.whl"
+pip install "${wheel_dir}h5py-3.11.0-cp312-cp312-linux_x86_64.whl"
 
-# Install h5py
-export CC="`which mpicc`"
-export HDF5_MPI="ON"
-export HDF5_DIR=${HDF5_HOME}
-pip install setuptools cython "numpy<2" pkgconfig
-pip install --no-binary h5py --no-build-isolation h5py
+# Install mpi4py and h5py from source
+#pip install mpi4py
+#export CC="`which mpicc`"
+#export HDF5_MPI="ON"
+#export HDF5_DIR=${HDF5_HOME}
+#pip install setuptools cython "numpy<2" pkgconfig
+#pip install --no-binary h5py --no-build-isolation h5py
 
 # Add symlink to the right mpirun in the venv's bin directory
 mpirun=`which mpirun`

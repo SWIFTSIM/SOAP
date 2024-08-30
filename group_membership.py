@@ -67,7 +67,7 @@ def process_particle_type(ptype, snap_file, ids_bound, grnr_bound, rank_bound,
         swift_rank_bound[matched == False] = -1
     del ptr
     del matched
-        
+
     if ids_unbound is not None:
         if comm_rank == 0:
             print("  Matching SWIFT particle IDs to unbound IDs")
@@ -84,7 +84,7 @@ def process_particle_type(ptype, snap_file, ids_bound, grnr_bound, rank_bound,
         swift_grnr_all = np.maximum(swift_grnr_bound, swift_grnr_unbound)
         del ptr
         del matched
-        
+
     # Determine if we need to create a new output file set
     if create_file:
         mode = "w"
@@ -162,14 +162,20 @@ if __name__ == "__main__":
     halo_format = args["HaloFinder"]["type"]
     halo_basename = args["HaloFinder"]["filename"]
     output_file = args["GroupMembership"]["filename"]
-    
+
     # Substitute in the snapshot number where necessary
     pf = PartialFormatter()
     swift_filename = pf.format(swift_filename, snap_nr=snap_nr, file_nr=None)
     fof_filename = pf.format(fof_filename, snap_nr=snap_nr, file_nr=None)
     halo_basename = pf.format(halo_basename, snap_nr=snap_nr, file_nr=None)
     output_file = pf.format(output_file, snap_nr=snap_nr, file_nr=None)
-    
+
+    # Check both swift and output filenames are (not) chunk files
+    if 'file_nr' in swift_filename:
+        assert 'file_nr' in output_file, "Membership filenames require {file_nr}"
+    else:
+        assert 'file_nr' not in output_file, "Membership filenames shouldn't have {file_nr}"
+
     # Ensure output dir exists
     if comm_rank == 0:
         lustre.ensure_output_dir(output_file)

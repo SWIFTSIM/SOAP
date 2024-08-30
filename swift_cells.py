@@ -12,6 +12,7 @@ import swift_units
 import task_queue
 import shared_array
 from snapshot_datasets import SnapshotDatasets
+import property_table
 
 # HDF5 chunk cache parameters:
 # SWIFT writes datasets with large chunks so the default 1Mb may be too small
@@ -232,6 +233,12 @@ class SWIFTCellGrid:
                 float(self.parameters.get("Gravity:max_physical_nu_softening", 0)),
             ) * self.get_unit("code_length")
 
+            # Try to read in AGN_delta_T. We assert we have a valid value when we
+            # create the recently_heated_gas_filter
+            self.AGN_delta_T = float(
+                self.parameters.get("EAGLEAGN:AGN_delta_T_K", 0)
+            ) * self.get_unit('K')
+
             # Compute mean density at the redshift of the snapshot:
             # Here we compute the mean density in internal units at z=0 using
             # constants from the snapshot. The comoving mean density is
@@ -294,6 +301,7 @@ class SWIFTCellGrid:
             self.cell_size = unyt.unyt_array(
                 infile["Cells/Meta-data"].attrs["size"], units=comoving_length_unit
             )
+            self.cell_centres = infile["Cells/Centres"][...]
             for name in infile["Cells/Counts"]:
                 self.ptypes.append(name)
 
@@ -354,6 +362,26 @@ class SWIFTCellGrid:
                         self.nr_files,
                         self.ptypes_ref,
                         self.snap_unit_registry,
+                    )
+
+
+    def check_datasets_exist(self, required_datasets):
+        # Check we have all the fields needed for each property
+        # Doing it at this point rather than in masked cells since we want
+        # to output a list of properties that require the missing fields
+        for ptype in set(self.ptypes).intersection(set(required_datasets.keys())):
+            for name in required_datasets[ptype]:
+                in_extra = (self.extra_filename is not None) and (name in self.extra_metadata[ptype])
+                in_snap = (name in self.snap_metadata[ptype])
+                if not (in_extra or in_snap):
+                    dataset = f'{ptype}/{name}'
+                    print(f"The following properties require {dataset}:")
+                    full_property_list = property_table.PropertyTable.full_property_list
+                    for k, v in full_property_list.items():
+                        if dataset in v[8]:
+                            print(f'  {v[0]}')
+                    raise Exception(
+                        f"Can't find required dataset {dataset} in input file(s)!"
                     )
 
     def prepare_read(self, ptype, mask):
@@ -548,6 +576,7 @@ class SWIFTCellGrid:
                     elif name in self.snap_metadata[ptype]:
                         units, dtype, shape = self.snap_metadata[ptype][name]
                     else:
+                        # This shouldn't ever be hit because of check_datasets_exist
                         raise Exception(
                             "Can't find required dataset %s in input file(s)!" % name
                         )
@@ -610,34 +639,22 @@ class SWIFTCellGrid:
 
         return data
 
-    def write_metadata(self, group):
+    def copy_swift_metadata(self, outfile):
         """
         Write simulation information etc to the specified HDF5 group
         """
 
-        # Write cosmology
-        cosmo = group.create_group("Cosmology")
-        for name, value in self.cosmology.items():
-            cosmo.attrs[name] = [value]
-
-        # Write physical constants
-        const = group.create_group("PhysicalConstants")
-        const = const.create_group("CGS")
-        for name, value in self.constants.items():
-            const.attrs[name] = [value]
-
-        # Write units
-        units = group.create_group("Units")
-        for name, value in self.swift_units_group.items():
-            units.attrs[name] = [value]
-        units = group.create_group("InternalCodeUnits")
-        for name, value in self.swift_internal_units_group.items():
-            units.attrs[name] = [value]
+        group = outfile.create_group("SWIFT")
 
         # Write header
         header = group.create_group("Header")
         for name, value in self.swift_header_group.items():
             header.attrs[name] = value
+
+        # Write parameters
+        params = group.create_group("Parameters")
+        for name, value in self.parameters.items():
+            params.attrs[name] = value
 
     def complete_radius_from_mask(self, mask):
         """
