@@ -102,6 +102,8 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
                 outfile.create_virtual_dataset(
                     f"PartType{ptype}/HaloCatalogueIndex", layout_halo_catalogue_index, fillvalue=-999
                 )
+                for k, v in outfile[f"PartType{ptype}/GroupNr_bound"].attrs.items():
+                    outfile[f"PartType{ptype}/HaloCatalogueIndex"].attrs[k] = v
             if have_rank_bound:
                 outfile.create_virtual_dataset(
                     f"PartType{ptype}/Rank_bound", layout_rank_bound, fillvalue=-999
