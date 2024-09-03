@@ -9,6 +9,7 @@
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{adjustbox}
+\usepackage{hyperref}
 
 \input{filters}
 \input{units}
@@ -29,6 +30,21 @@ SOAP computes different types of properties, depending on  how particles are inc
 For all types, we use the halo membership and halo centre as determined by the input halo catalogue. 
 This documentation is generated using the SOAP parameter file, and so the properties listed reflect those
 present in the current run of SOAP, rather than all possible properties.
+
+For loading SOAP catalogues we recommend using the \verb|load_fof_catalogues| branch of \href{https://github.com/SWIFTSIM/swiftsimio/tree/load\_fof\_catalogues}{swiftsimio}. A simple example is:
+\begin{verbatim}
+import swiftsimio as sw
+soap_dir = '/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/SOAP-HBT/'
+data = sw.load(f'{soap_dir}halo_properties_0077.hdf5')
+# Load a dataset
+m200 = data.spherical_overdensity_200_crit.total_mass
+# Specify units
+m200.convert_to_units('Msun')
+# Specify physical/comoving
+m200.convert_to_physical()
+# Get metadata from file
+z = data.metadata.redshift
+\end{verbatim}
 
 \section{Property types}
 
@@ -266,8 +282,10 @@ snapshots. Each group contains the following datasets:
 
 \begin{enumerate}
 \item \verb|GroupNr_bound|: for each particle in the corresponding snapshot
-  file this contains the array index of the subhalo which the
-  particle is bound to. If a particle is not bound to any subhalo it
+  file this contains the index in the original halo finder catalogue of the object 
+  which the particle is bound to. Note this is not the same as the index of the object
+  in the SOAP catalogue, it instead corresponds to the value of \verb|HaloCatalogueIndex|
+  stored in the SOAP catalogues. If a particle is not bound to any subhalo it
   will have \verb|GroupNr_bound|=-1.
 \item \verb|Rank_bound|: the ranking by total energy of this particle within
   the subhalo it belongs to, or -1 if the particle is not bound to
@@ -286,14 +304,14 @@ snapshots. Each group contains the following datasets:
   SOAP is run.
 \end{enumerate}
 
-The GroupNr values stored here are zero based array indexes into the
-full subhalo catalogue, and not the subhalo's IDs. For example the first group
-in the VELOCIraptor catalogue has GroupNr=0 and ID=1.
-
 The script `make\_virtual\_snapshot.py` will combine snapshot and group membership files
 into a single virtual snapshot file. This virtual file can be read by swiftsimio and 
 gadgetviewer to provide halo membership information alongside other particle properties.
 Using the virtual file along with the spatial masking functionality within swiftsimio
 means it is possible to quickly load all the particles bound to a given subhalo.
+
+The \href{https://swiftgalaxy.readthedocs.io/en/latest/index.html}{SWIFTGalaxy package}
+makes use of the membership files, and is helpful for analysing individual galaxies when 
+manipulating their particles (recentering, rotations, cylindrical coordinates, etc.).
 
 \end{document}

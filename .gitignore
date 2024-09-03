@@ -12,3 +12,6 @@ documentation/table.tex
 documentation/timestamp.tex
 documentation/variations_table.tex
 documentation/units.tex
+
+tests/FLAMINGO/test_parameters.yml
+tests/COLIBRE/test_parameters.yml

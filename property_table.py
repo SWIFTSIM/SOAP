@@ -228,6 +228,7 @@ class PropertyTable:
     # an actual description or a representative example.
     compression_description = {
         "FMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
+        "FMantissa13": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.3669{\\rm{}e}10$",
         "DMantissa9": "$1.36693{\\rm{}e}10 \\rightarrow{} 1.367{\\rm{}e}10$",
         "DScale6": "1 pc accurate",
         "DScale5": "10 pc accurate",
@@ -296,6 +297,32 @@ class PropertyTable:
             True,
             None,
         ),
+        "BlackHolesTotalInjectedThermalEnergy": (
+            "BlackHolesTotalInjectedThermalEnergy",
+            1,
+            np.float32,
+            "snap_mass*snap_length**2/snap_time**2",
+            "Total thermal energy injected into gas particles by all black holes.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/AGNTotalInjectedEnergies"],
+            True,
+            None,
+        ),
+        "BlackHolesTotalInjectedJetEnergy": (
+            "BlackHolesTotalInjectedJetEnergy",
+            1,
+            np.float32,
+            "snap_mass*snap_length**2/snap_time**2",
+            "Total jet energy injected into gas particles by all black holes.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/InjectedJetEnergies"],
+            True,
+            None,
+        ),
         "BHmaxAR": (
             "MostMassiveBlackHoleAccretionRate",
             1,
@@ -309,6 +336,201 @@ class PropertyTable:
             True,
             None,
         ),
+        "MostMassiveBlackHoleAveragedAccretionRate": (
+            "MostMassiveBlackHoleAveragedAccretionRate",
+            2,
+            np.float32,
+            "snap_mass/snap_time",
+            "Gas accretion rate of the most massive black hole, averaged over past 100Myr and past 10Myr",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/AveragedAccretionRates"],
+            True,
+            None,
+        ),
+        "MostMassiveBlackHoleInjectedThermalEnergy": (
+            "MostMassiveBlackHoleInjectedThermalEnergy",
+            1,
+            np.float32,
+            "snap_mass*snap_length**2/snap_time**2",
+            "Total thermal energy injected into gas particles by the most massive black hole.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/AGNTotalInjectedEnergies"],
+            True,
+            None,
+        ),
+        "MostMassiveBlackHoleAccretionMode": (
+            "MostMassiveBlackHoleAccretionMode",
+            1,
+            np.int32,
+            "dimensionless",
+            "Accretion flow regime of the most massive black hole. 0 - Thick disk, 1 - Thin disk, 2 - Slim disk",
+            "general",
+            "None",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/AccretionModes"],
+            True,
+            0,
+        ),
+        "MostMassiveBlackHoleGWMassLoss": (
+            "MostMassiveBlackHoleGWMassLoss",
+            1,
+            np.float32,
+            "snap_mass",
+            "Cumulative mass lost to GW via BH-BH mergers over the history of the most massive black holes. This includes the mass loss from all the progenitors.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/GWMassLosses"],
+            True,
+            0,
+        ),
+        "MostMassiveBlackHoleInjectedJetEnergyByMode": (
+            "MostMassiveBlackHoleInjectedJetEnergyByMode",
+            3,
+            np.float32,
+            "snap_mass*snap_length**2/snap_time**2",
+            "The total energy injected in the kinetic jet AGN feedback mode by the mostmassive black hole, split by accretion mode. The components correspond to the jet energy dumped in the thick, thin and slim disc modes, respectively.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/InjectedJetEnergiesByMode"],
+            True,
+            None,
+        ),
+        "MostMassiveBlackHoleFormationScalefactor": (
+            "MostMassiveBlackHoleFormationScalefactor",
+            1,
+            np.float32,
+            "dimensionless",
+            "Scale-factor when most massive black hole was formed.",
+            "general",
+            "FMantissa13",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/FormationScaleFactors"],
+            True,
+            None,
+        ),
+        "MostMassiveBlackHoleLastJetEventScalefactor": (
+            "MostMassiveBlackHoleLastJetEventScalefactor",
+            1,
+            np.float32,
+            "dimensionless",
+            "Scale-factor of last jet event for most massive black hole.",
+            "general",
+            "FMantissa13",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/LastAGNJetScaleFactors"],
+            True,
+            None,
+        ),
+        "MostMassiveBlackHoleNumberOfAGNEvents": (
+            "MostMassiveBlackHoleNumberOfAGNEvents",
+            1,
+            np.int32,
+            "dimensionless",
+            "Number of thermal AGN events the most massive black hole has had so far",
+            "general",
+            "None",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/NumberOfAGNEvents"],
+            True,
+            0,
+        ),
+        "MostMassiveBlackHoleNumberOfAGNJetEvents": (
+            "MostMassiveBlackHoleNumberOfAGNJetEvents",
+            1,
+            np.int32,
+            "dimensionless",
+            "Number of jet events the most massive black hole has had so far",
+            "general",
+            "None",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/NumberOfAGNJetEvents"],
+            True,
+            0,
+        ),
+        "MostMassiveBlackHoleNumberOfMergers": (
+            "MostMassiveBlackHoleNumberOfMergers",
+            1,
+            np.int32,
+            "dimensionless",
+            "Number of mergers experienced by the most massive black hole.",
+            "general",
+            "None",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/NumberOfMergers"],
+            True,
+            0,
+        ),
+        "MostMassiveBlackHoleRadiatedEnergyByMode": (
+            "MostMassiveBlackHoleRadiatedEnergyByMode",
+            3,
+            np.float32,
+            "snap_mass*snap_length**2/snap_time**2",
+            "The total energy launched into radiation by the most massive black hole, split by accretion mode. The components correspond to the radiative energy dumped in the thick, thin and slim disc modes, respectively.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/RadiatedEnergiesByMode"],
+            True,
+            None,
+        ),
+        "MostMassiveBlackHoleTotalAccretedMass": (
+            "MostMassiveBlackHoleTotalAccretedMass",
+            1,
+            np.float32,
+            "snap_mass",
+            "The total mass accreted by the most massive black hole.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/TotalAccretedMasses"],
+            True,
+            0,
+        ),
+        "MostMassiveBlackHoleTotalAccretedMassesByMode": (
+            "MostMassiveBlackHoleTotalAccretedMassesByMode",
+            3,
+            np.float32,
+            "snap_mass",
+            "The total mass accreted by the most massive black hole in each accretion mode. The components correspond to the mass accreted in the thick, thin and slim disc modes, respectively.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/TotalAccretedMassesByMode"],
+            True,
+            0,
+        ),
+        "MostMassiveBlackHoleSpin": (
+            "MostMassiveBlackHoleSpin",
+            1,
+            np.float32,
+            "dimensionless",
+            "Dimensionless spin of the most massive black hole. Negative values indicate retrograde accretion.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/Spins"],
+            True,
+            0,
+        ),
+        "MostMassiveBlackHoleWindEnergyByMode": (
+            "MostMassiveBlackHoleWindEnergyByMode",
+            3,
+            np.float32,
+            "snap_mass*snap_length**2/snap_time**2",
+            "The total energy launched into accretion disc winds by the most massive black hole, split by accretion mode. The components correspond to the radiative energy dumped in the thick, thin and slim disc modes, respectively.",
+            "general",
+            "FMantissa9",
+            False,
+            ["PartType5/SubgridMasses", "PartType5/WindEnergiesByMode"],
+            True,
+            None,
+        ),
         "BHmaxID": (
             "MostMassiveBlackHoleID",
             1,
@@ -316,7 +538,7 @@ class PropertyTable:
             "dimensionless",
             "ID of most massive black hole.",
             "basic",
-            "Nbit40",
+            "None",
             False,
             ["PartType5/SubgridMasses", "PartType5/ParticleIDs"],
             True,
@@ -340,9 +562,9 @@ class PropertyTable:
             1,
             np.float32,
             "dimensionless",
-            "Scale-factor of last AGN event for most massive black hole.",
+            "Scale-factor of last thermal AGN event for most massive black hole.",
             "general",
-            "FMantissa9",
+            "FMantissa13",
             False,
             ["PartType5/SubgridMasses", "PartType5/LastAGNFeedbackScaleFactors"],
             True,
@@ -3789,7 +4011,15 @@ class PropertyTable:
         Add all the properties calculated for a particular halo type to the
         internal dictionary.
         """
+        # Get the property_mask dict, which says whether a property should be included
         props = halo_property.property_list
+        base_halo_type = halo_type
+        if halo_type in ['ExclusiveSphereProperties', 'InclusiveSphereProperties']:
+            base_halo_type = 'ApertureProperties'
+        property_mask = self.parameters.get_property_mask(base_halo_type, [prop[1] for prop in props])
+
+        # Loop through all possible properties for this halo type and add them to the
+        # table, skipping those that we shouldn't calculate according to the parameter file
         for (
             i,
             (
@@ -3807,22 +4037,8 @@ class PropertyTable:
                 prop_a_exponent,
             ),
         ) in enumerate(props):
-            # Don't include property if it's set to false in parameter file
-            # Do include property if it isn't defined in parameter file
-            try:
-                base_halo_type = halo_type
-                if halo_type in ['ExclusiveSphereProperties', 'InclusiveSphereProperties']:
-                    base_halo_type = 'ApertureProperties'
-                parameter_file_properties = self.parameters[base_halo_type][
-                    "properties"
-                ]
-                # Whether to include properties missing from parameter file
-                calculations = self.parameters.get("calculations", {})
-                default = calculations.get("calculate_missing_properties", True)
-                if not parameter_file_properties.get(prop_outputname, default):
-                    continue
-            except KeyError:
-                pass
+            if not property_mask[prop_outputname]:
+                continue
 
             units = unyt.unyt_quantity(1, units=prop_units)
             if not prop_physical:
@@ -4033,7 +4249,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
 
         # Particle limits for each filter
         with open(f"{output_dir}/filters.tex", "w") as ofile:
-            for name, filter_info in parameters['filters'].items():
+            for name, filter_info in self.parameters.parameters['filters'].items():
                 value = filter_info['limit']
                 ofile.write(f'\\newcommand{{\\{name.lower()}filter}}{{{value}}}\n')
 
@@ -4044,7 +4260,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
 \\hline
 \\verb+BoundSubhalo+ & \\verb+bound_subhalo+ & \\ding{53} & - \\\\*\n"""
         # Add SO apertures to table
-        apertures = parameters.get('SOProperties', {})
+        apertures = self.parameters.parameters.get('SOProperties', {})
         for _, variation in apertures.get('variations', {}).items():
             name = ''
             if 'radius_multiple' in variation:
@@ -4058,7 +4274,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             tablestr += f'\\verb+SO/{name}+ & \\verb+spherical_overdensity_{name.lower()}+& \\ding{{51}} & {filter} \\\\*\n'
         # Determine which ExclusiveSphere and InclusiveSphere apertures are present
         variations_ES, variations_IS = {}, {}
-        apertures = parameters.get('ApertureProperties', {})
+        apertures = self.parameters.parameters.get('ApertureProperties', {})
         for _, variation in apertures.get('variations', {}).items():
             if variation['inclusive']:
                 variations_IS[int(variation['radius_in_kpc'])] = variation.get('filter', 'basic')
@@ -4074,7 +4290,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             tablestr += f'\\verb+InclusiveSphere/{radius}kpc+ & \\verb+inclusive_sphere_{radius}kpc+ & \\ding{{51}} & {filter} \\\\*\n'
         # Determine which projected apertures are present
         variations_proj = {}
-        apertures = parameters.get('ProjectedApertureProperties', {})
+        apertures = self.parameters.parameters.get('ProjectedApertureProperties', {})
         for _, variation in apertures.get('variations', {}).items():
             variations_proj[int(variation['radius_in_kpc'])] = variation.get('filter', 'basic')
         # Add ProjectedApertures to table in sorted order
@@ -4084,7 +4300,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         # Add others groups
         tablestr += f'\\verb+SOAP+ & \\verb+soap+ & - & - \\\\*\n'
         tablestr += f'\\verb+InputHalos+ & \\verb+input_halos+ & - & - \\\\*\n'
-        halo_finder = parameters['HaloFinder']['type']
+        halo_finder = self.parameters.parameters['HaloFinder']['type']
         tablestr += f'\\verb+InputHalos/{halo_finder}+ & \\verb+input_halos_{halo_finder.lower()}+ & - & - \\\\*\n'
         if halo_finder == 'HBTplus':
             tablestr += f'\\verb+InputHalos/FOF+ & \\verb+input_halos_fof+ & - & - \\\\*\n'
@@ -4135,9 +4351,9 @@ if __name__ == "__main__":
 
     # Parse parameter file
     try:
-        parameters = ParameterFile(sys.argv[1]).parameters
+        parameters = ParameterFile(file_name=sys.argv[1])
     except IndexError:
-        print("No parameter file passed.")
+        print("A valid parameter file was not passed.")
         exit()
 
     # Parse snapshot file to extract base units
@@ -4180,14 +4396,14 @@ if __name__ == "__main__":
     table.add_properties(InclusiveSphereProperties, "InclusiveSphereProperties")
     table.add_properties(ProjectedApertureProperties, "ProjectedApertureProperties")
     # Decide whether to add core excised properties
-    for _, variation in parameters['SOProperties']['variations'].items():
+    for _, variation in parameters.parameters['SOProperties']['variations'].items():
         if variation.get('core_excision_fraction', 0):
             table.add_properties(CoreExcisedSOProperties, "SOProperties")
             break
     else:
         table.add_properties(SOProperties, "SOProperties")
     # Add InputHalos and SOAP properties
-    table.add_properties(DummyProperties(parameters['HaloFinder']['type']), "")
+    table.add_properties(DummyProperties(parameters.parameters['HaloFinder']['type']), "")
 
     table.generate_tex_files("documentation")
 

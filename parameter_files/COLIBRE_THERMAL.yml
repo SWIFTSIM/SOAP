@@ -35,39 +35,85 @@ ApertureProperties:
     AngularMomentumDarkMatter: true
     AngularMomentumGas: true
     AngularMomentumStars: true
-    AtomicHydrogenMass: true
+    AtomicHydrogenMass:
+      snapshot: true
+      snipshot: false
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
+    BlackHolesTotalInjectedThermalEnergy: true
+    BlackHolesTotalInjectedJetEnergy: false
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
     DarkMatterVelocityDispersionMatrix: true
-    DiffuseCarbonMass: true
-    DiffuseIronMass: true
-    DiffuseMagnesiumMass: true
-    DiffuseOxygenMass: true
-    DiffuseSiliconMass: true
+    DiffuseCarbonMass:
+      snapshot: true
+      snipshot: false
+    DiffuseIronMass:
+      snapshot: true
+      snipshot: false
+    DiffuseMagnesiumMass:
+      snapshot: true
+      snipshot: false
+    DiffuseOxygenMass:
+      snapshot: true
+      snipshot: false
+    DiffuseSiliconMass:
+      snapshot: true
+      snipshot: false
     DiscToTotalGasMassFraction: true
     DiscToTotalStellarMassFraction: true
-    DustGraphiteMass: true
-    DustGraphiteMassInAtomicGas: true
-    DustGraphiteMassInColdDenseGas: true
-    DustGraphiteMassInMolecularGas: true
-    DustLargeGrainMass: true
-    DustLargeGrainMassInColdDenseGas: true
-    DustLargeGrainMassInMolecularGas: true
-    DustSilicatesMass: true
-    DustSilicatesMassInAtomicGas: true
-    DustSilicatesMassInColdDenseGas: true
-    DustSilicatesMassInMolecularGas: true
-    DustSmallGrainMass: true
-    DustSmallGrainMassInColdDenseGas: true
-    DustSmallGrainMassInMolecularGas: true
+    DustGraphiteMass:
+      snapshot: true
+      snipshot: false
+    DustGraphiteMassInAtomicGas:
+      snapshot: true
+      snipshot: false
+    DustGraphiteMassInColdDenseGas:
+      snapshot: true
+      snipshot: false
+    DustGraphiteMassInMolecularGas:
+      snapshot: true
+      snipshot: false
+    DustLargeGrainMass:
+      snapshot: true
+      snipshot: false
+    DustLargeGrainMassInColdDenseGas:
+      snapshot: true
+      snipshot: false
+    DustLargeGrainMassInMolecularGas:
+      snapshot: true
+      snipshot: false
+    DustSilicatesMass:
+      snapshot: true
+      snipshot: false
+    DustSilicatesMassInAtomicGas:
+      snapshot: true
+      snipshot: false
+    DustSilicatesMassInColdDenseGas:
+      snapshot: true
+      snipshot: false
+    DustSilicatesMassInMolecularGas:
+      snapshot: true
+      snipshot: false
+    DustSmallGrainMass:
+      snapshot: true
+      snipshot: false
+    DustSmallGrainMassInColdDenseGas:
+      snapshot: true
+      snipshot: false
+    DustSmallGrainMassInMolecularGas:
+      snapshot: true
+      snipshot: false
     GasMass: true
-    GasMassFractionInIron: true
+    GasMassFractionInIron:
+      snapshot: true
+      snipshot: false
     GasMassFractionInMetals: true
-    GasMassFractionInOxygen: true
+    GasMassFractionInOxygen:
+      snapshot: true
+      snipshot: false
     GasMassInColdDenseGas: true
     GasMassInMetals: true
     GasTemperature: true
@@ -77,43 +123,96 @@ ApertureProperties:
     HalfMassRadiusDarkMatter: true
     HalfMassRadiusGas: true
     HalfMassRadiusStars: true
-    HeliumMass: true
-    HydrogenMass: true
+    HeliumMass:
+      snapshot: true
+      snipshot: false
+    HydrogenMass:
+      snapshot: true
+      snipshot: false
     KappaCorotBaryons: true
     KappaCorotGas: true
     KappaCorotStars: true
     KineticEnergyGas: true
     KineticEnergyStars: true
-    LinearMassWeightedDiffuseOxygenOverHydrogenOfGas: true
+    LinearMassWeightedDiffuseOxygenOverHydrogenOfGas:
+      snapshot: true
+      snipshot: false
     LinearMassWeightedIronFromSNIaOverHydrogenOfStars: true
     LinearMassWeightedIronOverHydrogenOfStars: true
-    LinearMassWeightedOxygenOverHydrogenOfGas: true
-    LinearMassWeightedDiffuseCarbonOverOxygenOfGas: true
-    LinearMassWeightedNitrogenOverOxygenOfGas: true
-    LinearMassWeightedCarbonOverOxygenOfGas: true
-    LinearMassWeightedDiffuseNitrogenOverOxygenOfGas: true
-    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit: true
-    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit: true
-    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit: true
-    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit: true
-    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit: true
-    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit: true
+    LinearMassWeightedOxygenOverHydrogenOfGas:
+      snapshot: true
+      snipshot: false
+    LinearMassWeightedDiffuseCarbonOverOxygenOfGas:
+      snapshot: true
+      snipshot: false
+    LinearMassWeightedNitrogenOverOxygenOfGas:
+      snapshot: true
+      snipshot: false
+    LinearMassWeightedCarbonOverOxygenOfGas:
+      snapshot: true
+      snipshot: false
+    LinearMassWeightedDiffuseNitrogenOverOxygenOfGas:
+      snapshot: true
+      snipshot: false
+    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit:
+      snapshot: true
+      snipshot: false
+    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit:
+      snapshot: true
+      snipshot: false
+    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit:
+      snapshot: true
+      snipshot: false
+    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit:
+      snapshot: true
+      snipshot: false
+    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit:
+      snapshot: true
+      snipshot: false
+    LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit:
+      snapshot: true
+      snipshot: false
     LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit: true
     LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit: true
     LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit: true
-    LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit: true
-    LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit: true
-    LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit: true
-    LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit: true
+    LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit:
+      snapshot: true
+      snipshot: false
+    LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit:
+      snapshot: true
+      snipshot: false
+    LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit:
+      snapshot: true
+      snipshot: false
+    LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit:
+      snapshot: true
+      snipshot: false
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
-    MolecularHydrogenMass: true
+    MolecularHydrogenMass:
+      snapshot: true
+      snipshot: false
     MostMassiveBlackHoleAccretionRate: true
+    MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
+    MostMassiveBlackHoleInjectedThermalEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: false
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: false
+    MostMassiveBlackHoleLastJetEventScalefactor: false
+    MostMassiveBlackHoleNumberOfAGNJetEvents: false
+    MostMassiveBlackHoleNumberOfMergers: false
+    MostMassiveBlackHoleRadiatedEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMassesByMode: false
+    MostMassiveBlackHoleWindEnergyByMode: false
+    MostMassiveBlackHoleSpin: false
+    MostMassiveBlackHoleTotalAccretedMass: true
+    MostMassiveBlackHoleFormationScalefactor: true
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
@@ -137,10 +236,18 @@ ApertureProperties:
     StellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
     StarFormingGasMass: true
-    StarFormingGasMassFractionInIron: true
-    StarFormingGasMassFractionInMetals: true
-    StarFormingGasMassFractionInOxygen: true
-    StarFormingGasMassInMetals: true
+    StarFormingGasMassFractionInIron:
+      snapshot: true
+      snipshot: false
+    StarFormingGasMassFractionInMetals:
+      snapshot: true
+      snipshot: false
+    StarFormingGasMassFractionInOxygen:
+      snapshot: true
+      snipshot: false
+    StarFormingGasMassInMetals:
+      snapshot: true
+      snipshot: false
     StellarCentreOfMass: false
     StellarInitialMass: true
     StellarLuminosity: true
@@ -153,7 +260,9 @@ ApertureProperties:
     StellarVelocityDispersionMatrix: true
     TotalMass: true
     TotalSNIaRate: true
-    GasMassInColdDenseDiffuseMetals: true
+    GasMassInColdDenseDiffuseMetals:
+      snapshot: true
+      snipshot: false
     StellarCentreOfMassVelocity: false
   variations:
     exclusive_1_kpc:
@@ -218,10 +327,14 @@ ApertureProperties:
       #filter: general
 ProjectedApertureProperties:
   properties:
-    AtomicHydrogenMass: true
+    AtomicHydrogenMass:
+      snapshot: true
+      snipshot: false
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
+    BlackHolesTotalInjectedThermalEnergy: true
+    BlackHolesTotalInjectedJetEnergy: false
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
@@ -233,14 +346,36 @@ ProjectedApertureProperties:
     HalfMassRadiusDarkMatter: true
     HalfMassRadiusGas: true
     HalfMassRadiusStars: true
-    HeliumMass: true
-    HydrogenMass: true
-    MolecularHydrogenMass: true
+    HeliumMass:
+      snapshot: true
+      snipshot: false
+    HydrogenMass:
+      snapshot: true
+      snipshot: false
+    MolecularHydrogenMass:
+      snapshot: true
+      snipshot: false
+    MostMassiveBlackHoleAccretionRate: true
+    MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
+    MostMassiveBlackHoleInjectedThermalEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: false
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: false
+    MostMassiveBlackHoleLastJetEventScalefactor: false
+    MostMassiveBlackHoleNumberOfAGNJetEvents: false
+    MostMassiveBlackHoleNumberOfMergers: false
+    MostMassiveBlackHoleRadiatedEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMassesByMode: false
+    MostMassiveBlackHoleWindEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMass: true
+    MostMassiveBlackHoleFormationScalefactor: true
+    MostMassiveBlackHoleSpin: false
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
@@ -290,10 +425,16 @@ SOProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
+    BlackHolesTotalInjectedThermalEnergy: true
+    BlackHolesTotalInjectedJetEnergy: false
     CentreOfMass: true
     CentreOfMassVelocity: true
-    ComptonY: true
-    ComptonYWithoutRecentAGNHeating: true
+    ComptonY:
+      snapshot: true
+      snipshot: false
+    ComptonYWithoutRecentAGNHeating:
+      snapshot: true
+      snipshot: false
     Concentration: true
     ConcentrationUnsoftened: true
     DarkMatterConcentration: true
@@ -305,9 +446,13 @@ SOProperties:
     GasCentreOfMass: true
     GasCentreOfMassVelocity: true
     GasMass: true
-    GasMassFractionInIron: true
+    GasMassFractionInIron:
+      snapshot: true
+      snipshot: false
     GasMassFractionInMetals: true
-    GasMassFractionInOxygen: true
+    GasMassFractionInOxygen:
+      snapshot: true
+      snipshot: false
     GasMassInMetals: true
     GasComptonYTemperature: false
     GasComptonYTemperatureCoreExcision: false
@@ -327,11 +472,26 @@ SOProperties:
     MassFractionSatellites: true
     MassFractionExternal: true
     MostMassiveBlackHoleAccretionRate: true
+    MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
+    MostMassiveBlackHoleInjectedThermalEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: false
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: false
+    MostMassiveBlackHoleLastJetEventScalefactor: false
+    MostMassiveBlackHoleNumberOfAGNJetEvents: false
+    MostMassiveBlackHoleNumberOfMergers: false
+    MostMassiveBlackHoleRadiatedEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMassesByMode: false
+    MostMassiveBlackHoleWindEnergyByMode: false
+    MostMassiveBlackHoleSpin: false
+    MostMassiveBlackHoleTotalAccretedMass: true
+    MostMassiveBlackHoleFormationScalefactor: true
     NoiseSuppressedNeutrinoMass: false
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
@@ -370,17 +530,25 @@ SOProperties:
     StellarMassInMetals: true
     ThermalEnergyGas: true
     TotalMass: true
-    XRayLuminosity: true
+    XRayLuminosity:
+      snapshot: true
+      snipshot: false
     XRayLuminosityCoreExcision: false
-    XRayLuminosityWithoutRecentAGNHeating: true
+    XRayLuminosityWithoutRecentAGNHeating:
+      snapshot: true
+      snipshot: false
     XRayLuminosityWithoutRecentAGNHeatingCoreExcision: false
     XRayLuminosityInRestframe: false
     XRayLuminosityInRestframeCoreExcision: false
     XRayLuminosityInRestframeWithoutRecentAGNHeating: false
     XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: false
-    XRayPhotonLuminosity: true
+    XRayPhotonLuminosity:
+      snapshot: true
+      snipshot: false
     XRayPhotonLuminosityCoreExcision: false
-    XRayPhotonLuminosityWithoutRecentAGNHeating: true
+    XRayPhotonLuminosityWithoutRecentAGNHeating:
+      snapshot: true
+      snipshot: false
     XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision: false
     XRayPhotonLuminosityInRestframe: false
     XRayPhotonLuminosityInRestframeCoreExcision: false
@@ -434,6 +602,8 @@ SubhaloProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
+    BlackHolesTotalInjectedThermalEnergy: true
+    BlackHolesTotalInjectedJetEnergy: false
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
@@ -457,7 +627,9 @@ SubhaloProperties:
     KappaCorotBaryons: true
     KappaCorotGas: true
     KappaCorotStars: true
-    LastSupernovaEventMaximumGasDensity: true
+    LastSupernovaEventMaximumGasDensity:
+      snapshot: true
+      snipshot: false
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
     MaximumCircularVelocity: true
@@ -475,11 +647,26 @@ SubhaloProperties:
     MinimumStellarBirthPressure: true
     MaximumStellarBirthPressure: true
     MostMassiveBlackHoleAccretionRate: true
+    MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleLastEventScalefactor: true
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
+    MostMassiveBlackHoleInjectedThermalEnergy: true
+    MostMassiveBlackHoleNumberOfAGNEvents: true
+    MostMassiveBlackHoleAccretionMode: false
+    MostMassiveBlackHoleGWMassLoss: true
+    MostMassiveBlackHoleInjectedJetEnergyByMode: false
+    MostMassiveBlackHoleLastJetEventScalefactor: false
+    MostMassiveBlackHoleNumberOfAGNJetEvents: false
+    MostMassiveBlackHoleNumberOfMergers: false
+    MostMassiveBlackHoleRadiatedEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMassesByMode: false
+    MostMassiveBlackHoleWindEnergyByMode: false
+    MostMassiveBlackHoleTotalAccretedMass: true
+    MostMassiveBlackHoleFormationScalefactor: true
+    MostMassiveBlackHoleSpin: false
     NumberOfBlackHoleParticles: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true

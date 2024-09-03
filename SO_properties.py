@@ -2245,6 +2245,28 @@ class SOParticleData:
         return np.max(self.agn_eventa)
 
     @lazy_property
+    def BlackHolesTotalInjectedThermalEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total thermal energy injected into gas particles by all BH particles.
+        """
+        if self.Nbh == 0:
+            return None
+        return np.sum(self.get_dataset("PartType5/AGNTotalInjectedEnergies")[
+            self.bh_selection
+        ])
+
+    @lazy_property
+    def BlackHolesTotalInjectedJetEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total jet energy injected into gas particles by all BH particles.
+        """
+        if self.Nbh == 0:
+            return None
+        return np.sum(self.get_dataset("PartType5/InjectedJetEnergies")[
+            self.bh_selection
+        ])
+
+    @lazy_property
     def iBHmax(self) -> int:
         """
         Index of the most massive BH particle (largest sub-grid mass).
@@ -2297,6 +2319,173 @@ class SOParticleData:
         if self.Nbh == 0:
             return None
         return self.get_dataset("PartType5/AccretionRates")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleAveragedAccretionRate(self) -> unyt.unyt_quantity:
+        """
+        Averaged accretion rate of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AveragedAccretionRates")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleInjectedThermalEnergy(self) -> unyt.unyt_quantity:
+        """
+        Thermal energy injected into gas particles by the most massive
+        BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AGNTotalInjectedEnergies")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleAccretionMode(self) -> unyt.unyt_quantity:
+        """
+        Accretion flow regime of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/AccretionModes")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleGWMassLoss(self) -> unyt.unyt_quantity:
+        """
+        Cumulative mass lost to GW of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/GWMassLosses")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleInjectedJetEnergyByMode(self) -> unyt.unyt_quantity:
+        """
+        Total energy injected in the kinetic jet AGN feedback mode, split by accretion mode,
+        of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/InjectedJetEnergiesByMode")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleLastJetEventScalefactor(self) -> unyt.unyt_quantity:
+        """
+        Scale-factor of last jet event of the most massive BH particle (largest sub-grid mass).
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/LastAGNJetScaleFactors")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleNumberOfAGNEvents(self) -> unyt.unyt_quantity:
+        """
+        Number of AGN events the most massive black hole has had so far.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/NumberOfAGNEvents")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleNumberOfAGNJetEvents(self) -> unyt.unyt_quantity:
+        """
+        Number of jet events the most massive black hole has had so far.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/NumberOfAGNJetEvents")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleNumberOfMergers(self) -> unyt.unyt_quantity:
+        """
+        Number of mergers the most massive black hole has had so far.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/NumberOfMergers")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleRadiatedEnergyByMode(self) -> unyt.unyt_quantity:
+        """
+        The total energy launched into radiation by the most massive black hole, split by accretion mode.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/RadiatedEnergiesByMode")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleTotalAccretedMassesByMode(self) -> unyt.unyt_quantity:
+        """
+        The total mass accreted by the most massive black hole, split by accretion mode.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/TotalAccretedMassesByMode")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleWindEnergyByMode(self) -> unyt.unyt_quantity:
+        """
+        The total energy launched into accretion disc winds by the most massive black hole, split by accretion mode.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/WindEnergiesByMode")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleSpin(self) -> unyt.unyt_quantity:
+        """
+        The spin of the most massive black hole.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/Spins")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleTotalAccretedMass(self) -> unyt.unyt_quantity:
+        """
+        The total accreted mass of the most massive black hole.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/TotalAccretedMasses")[self.bh_selection][
+            self.iBHmax
+        ]
+
+    @lazy_property
+    def MostMassiveBlackHoleFormationScalefactor(self) -> unyt.unyt_quantity:
+        """
+        The formation scale factor of the most massive black hole.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.get_dataset("PartType5/FormationScaleFactors")[self.bh_selection][
             self.iBHmax
         ]
 
@@ -2511,6 +2700,23 @@ class SOProperties(HaloProperty):
             "BHmaxvel",
             "BHmaxAR",
             "BHmaxlasteventa",
+            "BlackHolesTotalInjectedThermalEnergy",
+            "BlackHolesTotalInjectedJetEnergy",
+            "MostMassiveBlackHoleAveragedAccretionRate",
+            "MostMassiveBlackHoleInjectedThermalEnergy",
+            "MostMassiveBlackHoleNumberOfAGNEvents",
+            "MostMassiveBlackHoleAccretionMode",
+            "MostMassiveBlackHoleGWMassLoss",
+            "MostMassiveBlackHoleInjectedJetEnergyByMode",
+            "MostMassiveBlackHoleLastJetEventScalefactor",
+            "MostMassiveBlackHoleNumberOfAGNJetEvents",
+            "MostMassiveBlackHoleNumberOfMergers",
+            "MostMassiveBlackHoleRadiatedEnergyByMode",
+            "MostMassiveBlackHoleTotalAccretedMassesByMode",
+            "MostMassiveBlackHoleWindEnergyByMode",
+            "MostMassiveBlackHoleSpin",
+            "MostMassiveBlackHoleTotalAccretedMass",
+            "MostMassiveBlackHoleFormationScalefactor",
             "MnuNS",
             "Mnu",
             "spin_parameter",
@@ -3052,7 +3258,7 @@ def test_SO_properties_random_halo():
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(4251)
-    gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    gas_filter = dummy_halos.get_recently_heated_gas_filter()
     cat_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
     parameters = ParameterFile(
         parameter_dictionary={
@@ -3362,7 +3568,7 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
     from dummy_halo_generator import DummyHaloGenerator
 
     dummy_halos = DummyHaloGenerator(seed)
-    gas_filter = RecentlyHeatedGasFilter(dummy_halos.get_cell_grid())
+    gas_filter = dummy_halos.get_recently_heated_gas_filter()
     cat_filter = CategoryFilter(dummy_halos.get_filters({"general": 100}))
     parameters = ParameterFile(
         parameter_dictionary={

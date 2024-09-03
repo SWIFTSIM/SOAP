@@ -39,6 +39,7 @@ def get_soap_args(comm):
     parser.add_argument("--profile", metavar="LEVEL", type=int, default=0, help="Run with profiling (0=off, 1=first MPI rank only, 2=all ranks)")
     parser.add_argument("--max-ranks-reading", type=int, default=32, help="Number of ranks per node reading snapshot data")
     parser.add_argument("--output-parameters", type=str, default='', help="Where to write the used parameters")
+    parser.add_argument("--snipshot", action="store_true", help="Run in snipshot mode")
     all_args = parser.parse_args()
 
     # Combine with parameters from configuration file
@@ -72,6 +73,7 @@ def get_soap_args(comm):
     args.git_hash = all_args["git_hash"]
     args.min_read_radius_cmpc = all_args["calculations"]["min_read_radius_cmpc"]
     args.calculations = all_args["calculations"]
+    args.snipshot = all_args["Parameters"]["snipshot"]
 
     # Check we can write to the halo properties file
     if comm.Get_rank() == 0:

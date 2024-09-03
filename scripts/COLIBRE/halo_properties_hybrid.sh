@@ -1,6 +1,7 @@
 #!/bin/bash -l
 #
-# Compute group membership for each particle in a snapshot.
+# Compute halo properties for a snapshot. 
+# Must run the group_membership script first.
 # Specify input and output files in this script.
 # Array job index is the snapshot number to do.
 #
@@ -9,16 +10,16 @@
 # cd SOAP
 # mkdir logs
 # ./scripts/cosma_python_env.sh
-# sbatch --array=0-3 -J SIM_NAME ./scripts/COLIBRE/group_membership.sh
+# sbatch --array=0-3 -J SIM_NAME  ./scripts/COLIBRE/hybrid_properties.sh
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/colibre_membership.%a.%j.out
-#SBATCH -J group_membership_colibre
+#SBATCH -o ./logs/colibre_properties_%a.%j.out
+#SBATCH -J halo_properties_colibre
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
-#SBATCH -t 0:30:00
+#SBATCH -t 04:00:00
 #
 
 set -e
@@ -28,14 +29,16 @@ module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
 source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Which snapshot to do
-snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
+snapnum="${SLURM_ARRAY_TASK_ID}"
 
 # Which simulation to do
 sim="${SLURM_JOB_NAME}"
 
-# Run the code
-mpirun -- python3 -u -m mpi4py ./group_membership.py \
-       parameter_files/COLIBRE.yml \
-       --sim-name=${sim} --snap-nr=${snapnum}
+dmo_flag=""
+
+#TODO: Set nodes and chunks
+mpirun -- python3 -u -m mpi4py ./compute_halo_properties.py \
+       parameter_files/COLIBRE_HYBRID.yml \
+       --sim-name=${sim} --snap-nr=${snapnum} --chunks=1 ${dmo_flag}
 
 echo "Job complete!"

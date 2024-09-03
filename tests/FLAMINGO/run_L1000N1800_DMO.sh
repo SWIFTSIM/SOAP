@@ -23,9 +23,12 @@ snapnum=0057
 # Halo indices to do: all halos with x<10, y<10, and z<10Mpc in snap 57
 halo_indices="188656 187627 38142 14580600 159179 182418 214329 226243 187624 172666 227086 214370 190343 19553 193246 125904 67585 193243 31517 127948 187623 37502 214331"
 
+# Create parameters files
+python tests/FLAMINGO/create_parameters_file.py
+
 # Run SOAP on eight cores processing the selected halos. Use 'python3 -m pdb' to start in the debugger.
 mpirun -np 8 python3 -u -m mpi4py ./compute_halo_properties.py \
-       ./tests/FLAMINGO/parameters.yml \
+       ./tests/FLAMINGO/test_parameters.yml \
        --halo-indices ${halo_indices} \
        --dmo \
        --sim-name=${sim} --snap-nr=${snapnum} --chunks=1

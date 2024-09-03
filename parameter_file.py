@@ -101,6 +101,7 @@ class ParameterFile:
         self,
         file_name: Union[None, str] = None,
         parameter_dictionary: Union[None, Dict] = None,
+        snipshot: bool = False,
     ):
         """
         Constructor.
@@ -126,6 +127,8 @@ class ParameterFile:
                 self.parameters = parameter_dictionary
             else:
                 self.parameters = {}
+
+        self.snipshot = snipshot
 
     def get_parameters(self) -> Dict:
         """
@@ -172,18 +175,29 @@ class ParameterFile:
         if not "properties" in self.parameters[halo_type]:
             self.parameters[halo_type]["properties"] = {}
             for property in full_list:
-                self.parameters[halo_type]["properties"][property] = True
+                self.parameters[halo_type]["properties"][property] = self.calculate_missing_properties()
         mask = {}
         for property in full_list:
+            # Property is listed in the parameter file for this halo_type
             if property in self.parameters[halo_type]["properties"]:
-                mask[property] = self.parameters[halo_type]["properties"][property]
-            elif self.calculate_missing_properties():
-                mask[property] = True
-                self.parameters[halo_type]["properties"][property] = True
-                if self.unregistered_parameters is not None:
-                    self.unregistered_parameters.add((halo_type, property))
-            else:
-                mask[property] = False
+                should_calculate = self.parameters[halo_type]["properties"][property]
+                # should_calculate can be a dict if we want different behaviour for snapshots/snipshots
+                if isinstance(should_calculate, dict):
+                    if self.snipshot:
+                        should_calculate = should_calculate['snipshot']
+                    else:
+                        should_calculate = should_calculate['snapshot']
+                mask[property] = should_calculate
+            # Property is not listed in the parameter file for this halo_type
+            else: 
+                if self.calculate_missing_properties():
+                    mask[property] = True
+                    self.parameters[halo_type]["properties"][property] = True
+                    if self.unregistered_parameters is not None:
+                        self.unregistered_parameters.add((halo_type, property))
+                else:
+                    mask[property] = False
+            assert isinstance(mask[property], bool)
         return mask
 
     def print_unregistered_properties(self) -> None:
