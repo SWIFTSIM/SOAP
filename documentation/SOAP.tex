@@ -304,10 +304,6 @@ snapshots. Each group contains the following datasets:
   SOAP is run.
 \end{enumerate}
 
-The GroupNr values stored here are zero based array indexes into the
-full subhalo catalogue, and not the subhalo's IDs. For example the first group
-in the VELOCIraptor catalogue has GroupNr=0 and ID=1.
-
 The script `make\_virtual\_snapshot.py` will combine snapshot and group membership files
 into a single virtual snapshot file. This virtual file can be read by swiftsimio and 
 gadgetviewer to provide halo membership information alongside other particle properties.
