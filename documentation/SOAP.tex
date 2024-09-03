@@ -223,7 +223,7 @@ For clarity, this is the full set of rules for determining the SO radius in SOAP
 \begin{enumerate}
     \item Sort particles according to radius and construct the cumulative mass profile.
     \item Discard any particles at zero radius, since we cannot compute a density for those. The mass of these 
-    particles is used as an $r=0$ offset for the cumulative mass profile. Since the halos centre is the 
+    particles is used as an $r=0$ offset for the cumulative mass profile. Since the halo's centre is the 
     position of the most bound particle, there should always be at least one such particle.
     \item Construct the density profile by dividing the cumulative mass at every radius by the volume of the 
     sphere with that radius.
@@ -287,7 +287,7 @@ snapshots. Each group contains the following datasets:
 \end{enumerate}
 
 The GroupNr values stored here are zero based array indexes into the
-full subhalo catalogue, and not the subhalos IDs. For example the first group
+full subhalo catalogue, and not the subhalo's IDs. For example the first group
 in the VELOCIraptor catalogue has GroupNr=0 and ID=1.
 
 The script `make\_virtual\_snapshot.py` will combine snapshot and group membership files
