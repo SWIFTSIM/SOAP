@@ -83,12 +83,16 @@ def update_virtual_snapshot_paths(filename, snapshot_dir=None, membership_dir=No
     for dset in all_datasets:
         if dset.is_virtual:
             name = dset.name.split("/")[-1]
-            if name in ("GroupNr_all", "GroupNr_bound", "Rank_bound", "FOFGroupIDs"):
-                # Data comes from the membership files
+            # Data comes from the membership files
+            if name in ("GroupNr_all", "GroupNr_bound", "Rank_bound"):
                 if membership_dir is not None:
                     update_vds_paths(dset, replace_membership_path)
+            # FOF IDs come from membership files
+            elif (name == "FOFGroupIDs") and ("PartType1/FOFGroupIDs_old" in f):
+                if membership_dir is not None:
+                    update_vds_paths(dset, replace_membership_path)
+            # Data comes from the snapshot files
             else:
-                # Data comes from the snapshot files
                 if snapshot_dir is not None:
                     update_vds_paths(dset, replace_snapshot_path)
 

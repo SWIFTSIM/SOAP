@@ -27,7 +27,7 @@
 \section{Introduction}
 
 SOAP computes different types of properties, depending on  how particles are included (by radius, in projection...). 
-For all types, we use the halo membership and centre of potential as determined by the input halo catalogue. 
+For all types, we use the halo membership and halo centre as determined by the input halo catalogue. 
 This documentation is generated using the SOAP parameter file, and so the properties listed reflect those
 present in the current run of SOAP, rather than all possible properties.
 
@@ -73,7 +73,7 @@ corresponds to a particular projection direction (\verb+x+, \verb+y+ or \verb+z+
 
 \paragraph{Spherical overdensity properties (SO)} are fundamentally different from the three other types in 
 that their aperture radius is determined from the density profile and is different for different halos. They 
-always include all particles within a sphere around the centre of potential, regardless of halo membership. 
+always include all particles within a sphere around the halo centre, regardless of halo membership. 
 The radius is either the radius at which the density reaches a certain target value (50 crit, 100 crit, 200 
 crit, 500 crit, 1000 crit, 2500 crit, 200 mean, BN98) or a multiple of such a radius (5xR 500 crit). Details 
 of the spherical overdensity calculation are given at the end of this document. Spherical overdensities are 
@@ -239,7 +239,7 @@ For clarity, this is the full set of rules for determining the SO radius in SOAP
 \begin{enumerate}
     \item Sort particles according to radius and construct the cumulative mass profile.
     \item Discard any particles at zero radius, since we cannot compute a density for those. The mass of these 
-    particles is used as an $r=0$ offset for the cumulative mass profile. Since the centre of potential is the 
+    particles is used as an $r=0$ offset for the cumulative mass profile. Since the halo's centre is the 
     position of the most bound particle, there should always be at least one such particle.
     \item Construct the density profile by dividing the cumulative mass at every radius by the volume of the 
     sphere with that radius.
@@ -248,7 +248,7 @@ For clarity, this is the full set of rules for determining the SO radius in SOAP
     \begin{enumerate}
         \item If there are none, analytically compute $R_{\rm{}SO}=\sqrt{3M_1/(4\pi{}R_1\rho_{\rm{}target})}$, 
         where $R_1$ and $M_1$ are the first non zero radius and the corresponding cumulative mass. This is a 
-        special case of Eq. (\ref{eq:RSO}). Unless there are multiple particles at the exact centre of potential 
+        special case of Eq. (\ref{eq:RSO}). Unless there are multiple particles at the exact halo centre 
         position, this radius estimate will then be based on just two particles.
         \item In all other cases, we use $R_{1,2}$ and $M_{1,2}$ as input for Eq. (\ref{eq:RSO}) and solve for 
         $R_{\rm{}SO}$. The only exception is the special case where $R_1 = R_2$. If that happens, we simply 
@@ -303,6 +303,10 @@ snapshots. Each group contains the following datasets:
   field is present it will overwrite the value from the snapshots when
   SOAP is run.
 \end{enumerate}
+
+The GroupNr values stored here are zero based array indexes into the
+full subhalo catalogue, and not the subhalo's IDs. For example the first group
+in the VELOCIraptor catalogue has GroupNr=0 and ID=1.
 
 The script `make\_virtual\_snapshot.py` will combine snapshot and group membership files
 into a single virtual snapshot file. This virtual file can be read by swiftsimio and 
