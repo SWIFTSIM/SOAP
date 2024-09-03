@@ -60,7 +60,6 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
                 layout_grnr_all = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
             if have_grnr_bound:
                 layout_grnr_bound = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
-                layout_halo_catalogue_index = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
             if have_rank_bound:
                 layout_rank_bound = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
             # PartType6 (neutrinos) are not assigned a FOF group
@@ -93,15 +92,10 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
                     f"PartType{ptype}/GroupNr_all", layout_grnr_all, fillvalue=-999
                 )
             if have_grnr_bound:
-                outfile.create_virtual_dataset(
+                dset_groupnr_bound = outfile.create_virtual_dataset(
                     f"PartType{ptype}/GroupNr_bound", layout_grnr_bound, fillvalue=-999
                 )
-                layout_halo_catalogue_index[:] = h5py.VirtualSource(outfile.filename,
-                    f"PartType{ptype}/GroupNr_bound", shape=full_shape
-                )
-                outfile.create_virtual_dataset(
-                    f"PartType{ptype}/HaloCatalogueIndex", layout_halo_catalogue_index, fillvalue=-999
-                )
+                outfile[f"PartType{ptype}/HaloCatalogueIndex"] = dset_groupnr_bound
                 for k, v in outfile[f"PartType{ptype}/GroupNr_bound"].attrs.items():
                     outfile[f"PartType{ptype}/HaloCatalogueIndex"].attrs[k] = v
             if have_rank_bound:

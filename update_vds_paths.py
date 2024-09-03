@@ -83,10 +83,6 @@ def update_virtual_snapshot_paths(filename, snapshot_dir=None, membership_dir=No
     for dset in all_datasets:
         if dset.is_virtual:
             name = dset.name.split("/")[-1]
-            # Skip dataset if it points somewhere else within the virtual file
-            vsources = dset.virtual_sources()
-            if (len(vsources) == 1) and (vsources[0].file_name == '.'):
-                continue
             # Data comes from the membership files
             if name in ("GroupNr_all", "GroupNr_bound", "Rank_bound"):
                 if membership_dir is not None:
