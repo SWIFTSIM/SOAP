@@ -41,7 +41,8 @@ ApertureProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
-    BlackHolesTotalInjectedEnergy: true
+    BlackHolesTotalInjectedThermalEnergy: true
+    BlackHolesTotalInjectedJetEnergy: true
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
@@ -198,7 +199,7 @@ ApertureProperties:
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
-    MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleInjectedThermalEnergy: true
     MostMassiveBlackHoleNumberOfAGNEvents: true
     MostMassiveBlackHoleAccretionMode: true
     MostMassiveBlackHoleGWMassLoss: true
@@ -332,7 +333,8 @@ ProjectedApertureProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
-    BlackHolesTotalInjectedEnergy: true
+    BlackHolesTotalInjectedThermalEnergy: true
+    BlackHolesTotalInjectedJetEnergy: true
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
@@ -360,7 +362,7 @@ ProjectedApertureProperties:
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
-    MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleInjectedThermalEnergy: true
     MostMassiveBlackHoleNumberOfAGNEvents: true
     MostMassiveBlackHoleAccretionMode: true
     MostMassiveBlackHoleGWMassLoss: true
@@ -423,7 +425,8 @@ SOProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
-    BlackHolesTotalInjectedEnergy: true
+    BlackHolesTotalInjectedThermalEnergy: true
+    BlackHolesTotalInjectedJetEnergy: true
     CentreOfMass: true
     CentreOfMassVelocity: true
     ComptonY:
@@ -475,7 +478,7 @@ SOProperties:
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
-    MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleInjectedThermalEnergy: true
     MostMassiveBlackHoleNumberOfAGNEvents: true
     MostMassiveBlackHoleAccretionMode: true
     MostMassiveBlackHoleGWMassLoss: true
@@ -599,7 +602,8 @@ SubhaloProperties:
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
-    BlackHolesTotalInjectedEnergy: true
+    BlackHolesTotalInjectedThermalEnergy: true
+    BlackHolesTotalInjectedJetEnergy: true
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
@@ -649,7 +653,7 @@ SubhaloProperties:
     MostMassiveBlackHoleMass: true
     MostMassiveBlackHolePosition: true
     MostMassiveBlackHoleVelocity: true
-    MostMassiveBlackHoleTotalInjectedEnergy: true
+    MostMassiveBlackHoleInjectedThermalEnergy: true
     MostMassiveBlackHoleNumberOfAGNEvents: true
     MostMassiveBlackHoleAccretionMode: true
     MostMassiveBlackHoleGWMassLoss: true

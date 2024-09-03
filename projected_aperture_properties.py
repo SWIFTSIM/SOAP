@@ -465,13 +465,24 @@ class SingleProjectionProjectedApertureParticleData:
         return np.max(self.agn_eventa)
 
     @lazy_property
-    def BlackHolesTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+    def BlackHolesTotalInjectedThermalEnergy(self) -> unyt.unyt_quantity:
         """
-        Total energy injected into gas particles by all BH particles.
+        Thermal energy injected into gas particles by all BH particles.
         """
         if self.Nbh == 0:
             return None
         return np.sum(self.part_props.get_dataset("PartType5/AGNTotalInjectedEnergies")[
+            self.bh_mask_all
+        ][self.bh_mask_ap])
+
+    @lazy_property
+    def BlackHolesTotalInjectedJetEnergy(self) -> unyt.unyt_quantity:
+        """
+        Jet energy injected into gas particles by all BH particles.
+        """
+        if self.Nbh == 0:
+            return None
+        return np.sum(self.part_props.get_dataset("PartType5/InjectedJetEnergies")[
             self.bh_mask_all
         ][self.bh_mask_ap])
 
@@ -549,9 +560,9 @@ class SingleProjectionProjectedApertureParticleData:
         ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
-    def MostMassiveBlackHoleTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+    def MostMassiveBlackHoleInjectedThermalEnergy(self) -> unyt.unyt_quantity:
         """
-        Total energy injected into gas particles by the most massive
+        Total thermal energy injected into gas particles by the most massive
         BH particle (largest sub-grid mass).
         """
         if self.Nbh == 0:
@@ -1373,7 +1384,8 @@ class ProjectedApertureProperties(HaloProperty):
             "BHmaxvel",
             "BHlasteventa",
             "BHmaxlasteventa",
-            "BlackHolesTotalInjectedEnergy",
+            "BlackHolesTotalInjectedThermalEnergy",
+            "BlackHolesTotalInjectedJetEnergy",
             "MostMassiveBlackHoleAveragedAccretionRate",
             "MostMassiveBlackHoleNumberOfAGNEvents",
             "MostMassiveBlackHoleAccretionMode",
@@ -1385,7 +1397,7 @@ class ProjectedApertureProperties(HaloProperty):
             "MostMassiveBlackHoleRadiatedEnergyByMode",
             "MostMassiveBlackHoleTotalAccretedMassesByMode",
             "MostMassiveBlackHoleWindEnergyByMode",
-            "MostMassiveBlackHoleTotalInjectedEnergy",
+            "MostMassiveBlackHoleInjectedThermalEnergy",
             "MostMassiveBlackHoleSpin",
             "MostMassiveBlackHoleTotalAccretedMass",
             "MostMassiveBlackHoleFormationScalefactor",

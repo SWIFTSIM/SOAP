@@ -781,13 +781,24 @@ class ApertureParticleData:
         return np.max(self.agn_eventa)
 
     @lazy_property
-    def BlackHolesTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+    def BlackHolesTotalInjectedThermalEnergy(self) -> unyt.unyt_quantity:
         """
-        Total energy injected into gas particles by all BH particles.
+        Total thermal energy injected into gas particles by all BH particles.
         """
         if self.Nbh == 0:
             return None
         return np.sum(self.get_dataset("PartType5/AGNTotalInjectedEnergies")[
+            self.bh_mask_all
+        ][self.bh_mask_ap])
+
+    @lazy_property
+    def BlackHolesTotalInjectedJetEnergy(self) -> unyt.unyt_quantity:
+        """
+        Total jet energy injected into gas particles by all BH particles.
+        """
+        if self.Nbh == 0:
+            return None
+        return np.sum(self.get_dataset("PartType5/InjectedJetEnergies")[
             self.bh_mask_all
         ][self.bh_mask_ap])
 
@@ -865,7 +876,7 @@ class ApertureParticleData:
         ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
-    def MostMassiveBlackHoleTotalInjectedEnergy(self) -> unyt.unyt_quantity:
+    def MostMassiveBlackHoleInjectedThermalEnergy(self) -> unyt.unyt_quantity:
         """
         Total energy injected into gas particles by the most massive
         BH particle (largest sub-grid mass).
@@ -2933,9 +2944,10 @@ class ApertureProperties(HaloProperty):
             "BHmaxvel",
             "BHmaxAR",
             "BHmaxlasteventa",
-            "BlackHolesTotalInjectedEnergy",
+            "BlackHolesTotalInjectedThermalEnergy",
+            "BlackHolesTotalInjectedJetEnergy",
             "MostMassiveBlackHoleAveragedAccretionRate",
-            "MostMassiveBlackHoleTotalInjectedEnergy",
+            "MostMassiveBlackHoleInjectedThermalEnergy",
             "MostMassiveBlackHoleNumberOfAGNEvents",
             "MostMassiveBlackHoleAccretionMode",
             "MostMassiveBlackHoleGWMassLoss",

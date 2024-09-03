@@ -210,6 +210,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "AccretionRates",
                 "AveragedAccretionRates",
                 "AGNTotalInjectedEnergies",
+                "InjectedJetEnergies",
                 "AccretionModes",
                 "GWMassLosses",
                 "InjectedJetEnergiesByMode",
@@ -1186,6 +1187,12 @@ class DummyHaloGenerator:
                 registry=reg,
             )
             data["PartType5"]["AGNTotalInjectedEnergies"] = unyt.unyt_array(
+                1e5 * np.random.random(Nbh),
+                dtype=np.float32,
+                units="snap_mass*snap_length**2/snap_time**2",
+                registry=reg,
+            )
+            data["PartType5"]["InjectedJetEnergies"] = unyt.unyt_array(
                 1e5 * np.random.random(Nbh),
                 dtype=np.float32,
                 units="snap_mass*snap_length**2/snap_time**2",
