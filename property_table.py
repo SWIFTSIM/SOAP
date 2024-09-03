@@ -341,8 +341,7 @@ class PropertyTable:
             2,
             np.float32,
             "snap_mass/snap_time",
-            #TODO:What is this averaged over?
-            "Gas accretion rate of most massive black hole.",
+            "Gas accretion rate of the most massive black hole, averaged over past 100Myr and past 10Myr",
             "general",
             "FMantissa9",
             False,
