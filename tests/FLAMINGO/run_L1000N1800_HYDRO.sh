@@ -24,7 +24,7 @@ snapnum=0057
 halo_indices="17254 18469 22841 42946 42950 63135 76467 93390 95879 109700 110158 134085 151292 151750 155367 156637 164846 165513 170042 183254 183257 183260 183262 186690 186692 190490 190494 190495 192175 194739 194752 204951 204954 204960 212597 13387915 17588428"
 
 # Create parameters files
-python tests/FLAMINGO/create_parameters_file.py
+python tests/FLAMINGO/create_parameters_file.py tests/FLAMINGO/parameters_HYDRO.yml
 
 # Run SOAP on eight cores processing the selected halos. Use 'python3 -m pdb' to start in the debugger.
 mpirun -np 8 python3 -u -m mpi4py ./compute_halo_properties.py \

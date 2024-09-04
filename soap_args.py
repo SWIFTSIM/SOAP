@@ -75,12 +75,17 @@ def get_soap_args(comm):
     args.calculations = all_args["calculations"]
     args.snipshot = all_args["Parameters"]["snipshot"]
 
-    # Check we can write to the halo properties file
+    # Check certain input/output paths are valid, as they won't be used until the end
     if comm.Get_rank() == 0:
+        # Check we can write to the halo properties file
         dirname = os.path.dirname(os.path.abspath(args.output_file))
         # Directory may not exist yet, so move up the tree until we find one that does
         while not os.path.exists(dirname):
             dirname = os.path.dirname(dirname)
         assert os.access(dirname, os.W_OK), "Can't write to output directory"
+        # Check if the FOF files exist
+        if args.fof_group_filename != '':
+            fof_filename = args.fof_group_filename.format(snap_nr=args.snapshot_nr, file_nr=0)
+        assert os.path.exists(fof_filename), "FOF group catalogues do not exist"
 
     return args
