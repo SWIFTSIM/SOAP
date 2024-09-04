@@ -1,20 +1,17 @@
 #!/bin/env python
 
-import os
-
-import numpy as np
-import h5py
-
-import virgo.mpi.parallel_sort as psort
-import virgo.mpi.parallel_hdf5 as phdf5
-
-import lustre
-
 from mpi4py import MPI
-
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
 comm_size = comm.Get_size()
+
+import os
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
+import h5py
+import numpy as np
+import virgo.mpi.parallel_sort as psort
+import virgo.mpi.parallel_hdf5 as phdf5
 
 # Maximum number of particle types
 NTYPEMAX = 5
