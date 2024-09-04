@@ -63,6 +63,29 @@ def consistent_match(match_index_12, match_index_21):
     # If we retrieved our own halo index, we have a match
     return np.where(match_back == local_halo_index, 1, 0)
 
+def assign_task_based_on_id(ids):
+    """
+    Uses a hash function and modulus operation to assign a
+    task given an id.
+
+    Parameters
+    ----------
+    ids : np.ndarray
+        An array of particle IDs
+
+    Returns
+    -------
+    np.ndarray
+        An array with the task rank assigned to each ID
+    """
+
+    # Taken from: https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
+    ids = ((ids >> 16) ^ ids) * 0x45d9f3b
+    ids = ((ids >> 16) ^ ids) * 0x45d9f3b
+    ids = (ids >> 16) ^ ids
+
+    return abs(ids) % comm.size
+
 def get_membership_subfile_list(path):
     """
     Function to circumvent the lack of information about subfiles within 
