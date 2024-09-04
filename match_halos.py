@@ -17,8 +17,7 @@ comm_rank = comm.Get_rank()
 comm_size = comm.Get_size()
 
 # Maximum number of particle types
-NTYPEMAX = 7
-
+NTYPEMAX = 5
 
 def message(s):
     if comm_rank == 0:
