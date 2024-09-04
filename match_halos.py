@@ -14,13 +14,9 @@ from glob import glob
 import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5
 
-# Maximum number of particle types
-NTYPEMAX = 5
-
 def message(s):
     if comm_rank == 0:
         print(s)
-
 
 def exchange_array(arr, dest, comm):
     """
@@ -240,9 +236,6 @@ def consistent_match(match_index_12, match_index_21):
     # If we retrieved our own halo index, we have a match
     return np.where(match_back == local_halo_index, 1, 0)
 
-
-
-
 def get_membership_subfile_list(path):
     """
     Function to circumvent the lack of information about subfiles within 
@@ -302,6 +295,11 @@ def match_halos(first_membership_path, second_membership_path, output_path, cent
     # We load the particle memberships of both catalogues.
     first_subgroup_particle_memberships  = load_particle_subgroup_memberships(first_membership_path, types)
     second_subgroup_particle_memberships = load_particle_subgroup_memberships(second_membership_path, types)
+
+    # Remove particles that are not bound to any subgroup in either dataset
+    index_to_keep = (first_subgroup_particle_memberships != -1) & (second_subgroup_particle_memberships != -1)
+    first_subgroup_particle_memberships  = first_subgroup_particle_memberships[index_to_keep]
+    second_subgroup_particle_memberships = second_subgroup_particle_memberships[index_to_keep]
 
 if __name__ == "__main__":
 
