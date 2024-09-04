@@ -10,6 +10,7 @@ os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
 import h5py
 import numpy as np
+from glob import glob
 import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5
 
@@ -38,23 +39,6 @@ def exchange_array(arr, dest, comm):
         sendbuf, send_count, send_offset, recvbuf, recv_count, recv_offset, comm=comm
     )
     return recvbuf
-
-
-def read_host_index(basename):
-    """
-    Find the host halo's global array index for each halo in a VR output.
-    Returns -1 for field halos.
-    """
-
-    # Read the ID and hostHaloID
-    cat = read_vr.read_vr_datasets(basename, "properties", ("ID", "hostHaloID"))
-    vr_id = cat["ID"]
-    vr_host_id = cat["hostHaloID"]
-
-    # For each halo, find the index of the host halo by matching hostHaloID to
-    # ID. Field halos have hostHaloID=-1, which will not match to any halo ID.
-    return psort.parallel_match(vr_host_id, vr_id, comm=comm)
-
 
 def find_matching_halos(
     cat1_length,
@@ -257,197 +241,88 @@ def consistent_match(match_index_12, match_index_21):
     return np.where(match_back == local_halo_index, 1, 0)
 
 
-def get_match_vr_halos_args(comm):
+
+
+def get_membership_subfile_list(path):
     """
-    Process command line arguments for halo matching program.
-
-    Returns a dict with the argument values, or None on failure.
+    Function to circumvent the lack of information about subfiles within 
+    membership files.
     """
 
-    from virgo.mpi.util import MPIArgumentParser
+    # If no file_nr is provided, there are no subfiles
+    if "{file_nr}" not in path:
+        return [path]
 
-    parser = MPIArgumentParser(comm, description="Find matching halos between snapshots")
-    parser.add_argument(
-        "vr_basename1",
-        help="Base name of the first VELOCIraptor files, excluding trailing .properties[.N] etc.",
-    )
-    parser.add_argument(
-        "vr_basename2",
-        help="Base name of the second VELOCIraptor files, excluding trailing .properties[.N] etc.",
-    )
-    parser.add_argument(
-        "nr_particles",
-        metavar="N",
-        type=int,
-        help="Number of most bound particles to use.",
-    )
-    parser.add_argument("output_file", help="Output file name")
-    parser.add_argument(
-        "--use-types",
-        nargs="*",
-        type=int,
-        help="Only use the specified particle types (integer, 0-6)",
-    )
-    parser.add_argument(
-        "--to-field-halos-only",
-        action="store_true",
-        help="Only match to field halos (with hostHaloID=-1 in VR catalogue)",
-    )
-    args = parser.parse_args()
+    def get_subfile_nr(path):
+        return int(path.split('/')[-1].split('.')[1])
 
-    return args
+    return sorted(glob(path.replace('{file_nr}','*')),key=get_subfile_nr)
 
+def load_particle_subgroup_memberships(membership_path, particles_types_to_use):
+    '''
+    Loads the subgroup memberships of particles.
+
+    Parameters
+    ----------
+    membership_path: str
+        Location of the memberships file.
+    particle_types_to_use: list
+        List containing which particle types to load.
+
+    Returns
+    -------
+    particle_subgroup_memberships: np.ndarray
+        Subgroup membership for each particle, sorted in the same way 
+        as the snapshots.
+    '''
+
+    # Get paths to each subfile, if applicable
+    file_paths = get_membership_subfile_list(membership_path)
+
+    file =  phdf5.MultiFile(file_paths, comm=comm)
+
+    # Only load the particle memberships for the particle types we will use to match
+    particle_subgroup_memberships = []
+    for particle_type in particles_types_to_use:
+
+        # Load information from the snapshot
+        particle_subgroup_memberships.append(file.read(f"PartType{particle_type}/GroupNr_bound"))
+
+    del file
+
+    # Return the merged array
+    return np.hstack(particle_subgroup_memberships)
+
+def match_halos(first_membership_path, second_membership_path, output_path, centrals_only, dmo, types):
+
+    # Assuming they have both been created from the same simulation, the ordering is the same. We
+    # can therefore do a direct match.
+    # TODO: add a sorting algorithm based on IDs 
+
+    # We load the particle memberships of both catalogues.
+    first_subgroup_particle_memberships  = load_particle_subgroup_memberships(first_membership_path, types)
+    second_subgroup_particle_memberships = load_particle_subgroup_memberships(second_membership_path, types)
 
 if __name__ == "__main__":
 
+    from virgo.mpi.util import MPIArgumentParser
+
     # Read command line parameters
-    args = get_match_vr_halos_args(comm)
+    parser = MPIArgumentParser(comm, description="Match haloes between two specified SOAP catalogues.")
 
-    # Ensure output dir exists
-    if comm_rank == 0:
-        lustre.ensure_output_dir(args.output_file)
-    comm.barrier()
+    # Mandatory arguments
+    parser.add_argument("first_membership_path", type=str, help="Path to the first SOAP catalogue file.")
+    parser.add_argument("second_membership_path", type=str, help="Path to the second SOAP catalogue file.")
+    parser.add_argument("output_path", type=str, help="Path where the matching inf ormation is saved to.")
 
-    # Read VR lengths, offsets and IDs for the two outputs
-    (
-        length_bound1,
-        offset_bound1,
-        ids_bound1,
-        length_unbound1,
-        offset_unbound1,
-        ids_unbound1,
-    ) = read_vr.read_vr_lengths_and_offsets(args.vr_basename1)
-    (
-        length_bound2,
-        offset_bound2,
-        ids_bound2,
-        length_unbound2,
-        offset_unbound2,
-        ids_unbound2,
-    ) = read_vr.read_vr_lengths_and_offsets(args.vr_basename2)
+    # Optional arguments
+    parser.add_argument("--centrals_only", action="store_true", help="Whether we match centrals only or not.")
+    parser.add_argument("--dmo", action="store_true", help="If the simulation is DMO or hydro.")
+    parser.add_argument('--types', nargs='+', help='Which particle types are used to match subgroups')
 
-    # Read in particle types for the two outputs
-    type_bound1 = read_vr.read_vr_datasets(
-        args.vr_basename1, "catalog_parttypes", ("Particle_types",)
-    )["Particle_types"]
-    type_bound2 = read_vr.read_vr_datasets(
-        args.vr_basename2, "catalog_parttypes", ("Particle_types",)
-    )["Particle_types"]
+    args = parser.parse_args()
 
-    # Read host halo indexes
-    host_index1 = read_host_index(args.vr_basename1)
-    host_index2 = read_host_index(args.vr_basename2)
+    match_halos(**vars(args))
 
-    # Decide which particle types we want to keep
-    if args.use_types is not None:
-        use_type = np.zeros(NTYPEMAX, dtype=bool)
-        for ut in args.use_types:
-            use_type[ut] = True
-            message(f"Using particle type {ut}")
-    else:
-        message("Using all particle types")
-        use_type = np.ones(NTYPEMAX, dtype=bool)
-
-    # For each halo in output 1, find the matching halo in output 2
-    message("Matching from first catalogue to second")
-    match_index_12, count_12 = find_matching_halos(
-        length_bound1,
-        offset_bound1,
-        ids_bound1,
-        type_bound1,
-        host_index1,
-        length_bound2,
-        offset_bound2,
-        ids_bound2,
-        type_bound2,
-        host_index2,
-        args.nr_particles,
-        use_type,
-        args.to_field_halos_only,
-    )
-    total_nr_halos = comm.allreduce(len(match_index_12))
-    total_nr_matched = comm.allreduce(np.sum(match_index_12 >= 0))
-    message(f"  Matched {total_nr_matched} of {total_nr_halos} halos")
-
-    # For each halo in output 2, find the matching halo in output 1
-    message("Matching from second catalogue to first")
-    match_index_21, count_21 = find_matching_halos(
-        length_bound2,
-        offset_bound2,
-        ids_bound2,
-        type_bound2,
-        host_index2,
-        length_bound1,
-        offset_bound1,
-        ids_bound1,
-        type_bound1,
-        host_index1,
-        args.nr_particles,
-        use_type,
-        args.to_field_halos_only,
-    )
-    total_nr_halos = comm.allreduce(len(match_index_21))
-    total_nr_matched = comm.allreduce(np.sum(match_index_21 >= 0))
-    message(f"  Matched {total_nr_matched} of {total_nr_halos} halos")
-
-    # Check for consistent matches in both directions
-    message("Checking for consistent matches")
-    consistent_12 = consistent_match(match_index_12, match_index_21)
-    consistent_21 = consistent_match(match_index_21, match_index_12)
-
-    # Write the output
-    def write_output_field(name, data, description):
-        dataset = phdf5.collective_write(outfile, name, data, comm)
-        dataset.attrs["Description"] = description
-
-    message("Writing output")
-    with h5py.File(args.output_file, "w", driver="mpio", comm=comm) as outfile:
-        # Write input parameters
-        params = outfile.create_group("Parameters")
-        for name, value in vars(args).items():
-            if value is not None:
-                params.attrs[name] = value
-        # Matching from first catalogue to second
-        write_output_field(
-            "BoundParticleNr1",
-            length_bound1,
-            "Number of bound particles in each halo in the first catalogue",
-        )
-        write_output_field(
-            "MatchIndex1to2",
-            match_index_12,
-            "For each halo in the first catalogue, index of the matching halo in the second",
-        )
-        write_output_field(
-            "MatchCount1to2",
-            count_12,
-            f"How many of the {args.nr_particles} most bound particles from the halo in the first catalogue are in the matched halo in the second",
-        )
-        write_output_field(
-            "Consistent1to2",
-            consistent_12,
-            "Whether the match from first to second catalogue is consistent with second to first (1) or not (0)",
-        )
-        # Matching from second catalogue to first
-        write_output_field(
-            "BoundParticleNr2",
-            length_bound2,
-            "Number of bound particles in each halo in the second catalogue",
-        )
-        write_output_field(
-            "MatchIndex2to1",
-            match_index_21,
-            "For each halo in the second catalogue, index of the matching halo in the first",
-        )
-        write_output_field(
-            "MatchCount2to1",
-            count_21,
-            f"How many of the {args.nr_particles} most bound particles from the halo in the second catalogue are in the matched halo in the first",
-        )
-        write_output_field(
-            "Consistent2to1",
-            consistent_21,
-            "Whether the match from second to first catalogue is consistent with first to second (1) or not (0)",
-        )
     comm.barrier()
     message("Done.")
