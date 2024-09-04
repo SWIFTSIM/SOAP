@@ -120,13 +120,13 @@ def match_halos(first_membership_path, second_membership_path, output_path, cent
     # TODO: add a sorting algorithm based on IDs 
 
     # We load the particle memberships of both catalogues.
-    first_subgroup_particle_memberships  = load_particle_subgroup_memberships(first_membership_path, types)
-    second_subgroup_particle_memberships = load_particle_subgroup_memberships(second_membership_path, types)
+    particle_memberships_one  = load_particle_subgroup_memberships(first_membership_path, types)
+    particle_memberships_two = load_particle_subgroup_memberships(second_membership_path, types)
 
     # Remove particles that are not bound to any subgroup in either dataset
-    index_to_keep = (first_subgroup_particle_memberships != -1) & (second_subgroup_particle_memberships != -1)
-    first_subgroup_particle_memberships  = first_subgroup_particle_memberships[index_to_keep]
-    second_subgroup_particle_memberships = second_subgroup_particle_memberships[index_to_keep]
+    index_to_keep = (particle_memberships_one != -1) & (particle_memberships_two != -1)
+    particle_memberships_one  = particle_memberships_one[index_to_keep]
+    particle_memberships_two = particle_memberships_two[index_to_keep]
 
 if __name__ == "__main__":
 
