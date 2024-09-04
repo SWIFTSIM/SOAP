@@ -9,7 +9,6 @@ import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5
 
 import lustre
-import read_vr
 
 from mpi4py import MPI
 
