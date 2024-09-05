@@ -136,6 +136,49 @@ def load_particle_subgroup_memberships(membership_path, particles_types_to_use):
     # Make it a np.ndarray and return
     return np.hstack(particle_memberships)
 
+def load_memberships(catalogue_path_1, catalogue_path_2, types):
+    """
+    Returns the memberships of particles that are bound and present
+    in both catalogues. Entries are sorted in ascending particle ID.
+
+    Parameters
+    ----------
+    catalogue_path_1: str
+        Path to the membership files of the reference catalogue.
+    catalogue_path_2: str
+        Path to membership files of the catalogue to match to.
+    types: list
+        Particle types to load and use for matching.
+
+    Returns
+    -------
+    particle_memberships_1: np.ndarray
+        Subgroup memberships of particles from the reference catalogue. They
+        are sorted in ascending ID and only have those bound to objects in both
+        catalogues.
+    particle_memberships_2: np.ndarray
+        Subgroup memberships of particles from the catalogue to match to. The entries
+        have a one-to-one correspondence to the particles in particle_memberships_1
+    """
+
+    particle_memberships_1 = load_particle_subgroup_memberships(catalogue_path_1, types)
+    particle_memberships_2 = load_particle_subgroup_memberships(catalogue_path_2, types)
+
+    # Remove particles that are not bound to any subgroup in either dataset
+    index_to_keep = (particle_memberships_1 != -1) & (particle_memberships_2 != -1)
+    particle_memberships_1 = particle_memberships_1[index_to_keep]
+    particle_memberships_2 = particle_memberships_2[index_to_keep]
+
+    # Sanity checks for overflow
+    assert np.all(particle_memberships_1 < 2 ** 32)
+    assert np.all(particle_memberships_2 < 2 ** 32)
+
+    # Sanity checks for keeping bound particles
+    assert np.all(particle_memberships_1 >= 0)
+    assert np.all(particle_memberships_2 >= 0)
+
+    return particle_memberships_1, particle_memberships_2
+
 def match_one_way(particle_memberships_one, particle_memberships_two):
     '''
     Obtains the most likely match of subgroups between two SOAP catalogues.
@@ -155,11 +198,6 @@ def match_one_way(particle_memberships_one, particle_memberships_two):
         catalogue.
     '''
 
-    # Sanity checks
-    assert np.all(particle_memberships_one < 2 ** 32)
-    assert np.all(particle_memberships_one >= 0)
-    assert np.all(particle_memberships_two < 2 ** 32)
-    assert np.all(particle_memberships_two >= 0)
 
     # Get sorted, unique (grnr1, grnr2) combinations and counts of how many instances of each we have
     sort_key = (particle_memberships_one.astype(np.uint64) << 32) + particle_memberships_two.astype(np.uint64)
@@ -188,24 +226,24 @@ def match_one_way(particle_memberships_one, particle_memberships_two):
 
     return np.vstack([reference_subgroups[unique_index], matched_subgroups[unique_index]]).T
 
+
+
+
+
 def match_halos(first_membership_path, second_membership_path, output_path, centrals_only, dmo, types):
 
-    # Assuming they have both been created from the same simulation, the ordering is the same. We
+    # NOTE: Assuming they have both been created from the same simulation, the ordering is the same. We
     # can therefore do a direct match.
     # TODO: add a sorting algorithm based on IDs 
 
-    # We load the particle memberships of both catalogues.
-    particle_memberships_one  = load_particle_subgroup_memberships(first_membership_path, types)
-    particle_memberships_two = load_particle_subgroup_memberships(second_membership_path, types)
+    # We load the membership of particles present in both catalogues, only keeping particles that are bound to 
+    # something.
+    particle_memberships_1, particle_memberships_2 = load_memberships(first_membership_path, second_membership_path, types)
 
-    # Remove particles that are not bound to any subgroup in either dataset
-    index_to_keep = (particle_memberships_one != -1) & (particle_memberships_two != -1)
-    particle_memberships_one  = particle_memberships_one[index_to_keep]
-    particle_memberships_two = particle_memberships_two[index_to_keep]
-
-    results_12 = match_one_way(particle_memberships_one, particle_memberships_two)
-    results_21 = match_one_way(particle_memberships_two, particle_memberships_one)
-
+    results_12 = match_one_way(particle_memberships_1, particle_memberships_2)
+    results_21 = match_one_way(particle_memberships_2, particle_memberships_1)
+    results = match_bijectively(results_12, results_21)
+    
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
