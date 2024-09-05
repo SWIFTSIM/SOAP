@@ -114,7 +114,7 @@ def load_particle_subgroup_memberships(membership_path, particles_types_to_use):
 
     Returns
     -------
-    particle_subgroup_memberships: np.ndarray
+    particle_memberships: np.ndarray
         Subgroup membership for each particle, sorted in the same way 
         as the snapshots.
     '''
@@ -125,16 +125,16 @@ def load_particle_subgroup_memberships(membership_path, particles_types_to_use):
     file =  phdf5.MultiFile(file_paths, comm=comm)
 
     # Only load the particle memberships for the particle types we will use to match
-    particle_subgroup_memberships = []
+    particle_memberships = []
     for particle_type in particles_types_to_use:
 
         # Load information from the snapshot
-        particle_subgroup_memberships.append(file.read(f"PartType{particle_type}/GroupNr_bound"))
+        particle_memberships.append(file.read(f"PartType{particle_type}/GroupNr_bound"))
 
     del file
 
-    # Return the merged array
-    return np.hstack(particle_subgroup_memberships)
+    # Make it a np.ndarray and return
+    return np.hstack(particle_memberships)
 
 def match_one_way(particle_memberships_one, particle_memberships_two):
     '''
