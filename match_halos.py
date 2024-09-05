@@ -179,15 +179,15 @@ def load_memberships(catalogue_path_1, catalogue_path_2, types):
 
     return particle_memberships_1, particle_memberships_2
 
-def match_one_way(particle_memberships_one, particle_memberships_two):
+def match_one_way(particle_memberships_1, particle_memberships_2):
     '''
     Obtains the most likely match of subgroups between two SOAP catalogues.
 
     Parameters
     ----------
-    particle_memberships_one: np.ndarray 
+    particle_memberships_1: np.ndarray 
         Subgroup memberships of all particles for one SOAP catalogue. 
-    particle_memberships_two: np.ndarray 
+    particle_memberships_2: np.ndarray 
         Subgroup memberships of all particles for a second SOAP catalogue. 
 
     Returns
@@ -198,19 +198,18 @@ def match_one_way(particle_memberships_one, particle_memberships_two):
         catalogue.
     '''
 
-
     # Get sorted, unique (grnr1, grnr2) combinations and counts of how many instances of each we have
-    sort_key = (particle_memberships_one.astype(np.uint64) << 32) + particle_memberships_two.astype(np.uint64)
+    sort_key = (particle_memberships_1.astype(np.uint64) << 32) + particle_memberships_2.astype(np.uint64)
     unique_value, counts = psort.parallel_unique(sort_key, comm=comm, return_counts=True, repartition_output=True)
 
     # Cast to int because mixing signed and unsigned causes numpy to cast to float!
-    particle_memberships_one = (unique_value >> 32).astype(int)
-    particle_memberships_two = (unique_value % (1 << 32)).astype(int)
+    particle_memberships_1 = (unique_value >> 32).astype(int)
+    particle_memberships_2 = (unique_value % (1 << 32)).astype(int)
 
     # Send each (grnr1, grnr2, count) combination to the rank which will store the result for that halo
-    target_task = assign_task_based_on_id(particle_memberships_one)
-    reference_subgroups = exchange_array(particle_memberships_one, target_task, comm)
-    matched_subgroups = exchange_array(particle_memberships_two, target_task, comm)
+    target_task = assign_task_based_on_id(particle_memberships_1)
+    reference_subgroups = exchange_array(particle_memberships_1, target_task, comm)
+    matched_subgroups = exchange_array(particle_memberships_2, target_task, comm)
     matched_counts = exchange_array(counts, target_task, comm)
 
     # We now do a sort to place the matched subgroups for each reference subgroup in descending 
@@ -228,8 +227,6 @@ def match_one_way(particle_memberships_one, particle_memberships_two):
 
 
 
-
-
 def match_halos(first_membership_path, second_membership_path, output_path, centrals_only, dmo, types):
 
     # NOTE: Assuming they have both been created from the same simulation, the ordering is the same. We
@@ -240,8 +237,8 @@ def match_halos(first_membership_path, second_membership_path, output_path, cent
     # something.
     particle_memberships_1, particle_memberships_2 = load_memberships(first_membership_path, second_membership_path, types)
 
-    results_12 = match_one_way(particle_memberships_1, particle_memberships_2)
-    results_21 = match_one_way(particle_memberships_2, particle_memberships_1)
+    matches_12 = match_one_way(particle_memberships_1, particle_memberships_2)
+    matches_21 = match_one_way(particle_memberships_2, particle_memberships_1)
     results = match_bijectively(results_12, results_21)
     
 if __name__ == "__main__":
