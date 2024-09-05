@@ -179,6 +179,27 @@ def load_memberships(catalogue_path_1, catalogue_path_2, types):
 
     return particle_memberships_1, particle_memberships_2
 
+def get_number_subhaloes(particle_memberships):
+    """
+    Returns the number of subhaloes that exist in a SOAP catalogue.
+
+    Parameters
+    ----------
+    particle_memberships: np.ndarray
+        Array containing the subgroup membership of particles
+
+    Returns
+    -------
+    number_subgroups: int
+        Number of subgroups in the catalogue
+    """
+
+    # The maximum number across tasks corresponds to the total number of subgroups
+    local_max = particle_memberships.max()
+    number_subgroups= comm.allreduce(local_max,op=MPI.MAX)
+
+    return number_subgroups
+
 def match_one_way(particle_memberships_1, particle_memberships_2):
     '''
     Obtains the most likely match of subgroups between two SOAP catalogues.
@@ -198,6 +219,9 @@ def match_one_way(particle_memberships_1, particle_memberships_2):
         catalogue.
     '''
 
+    # Before doing any matching, determine how many haloes there are in catalogue 1.
+    number_subhaloes = get_number_subhaloes(particle_memberships_1)
+    
     # Get sorted, unique (grnr1, grnr2) combinations and counts of how many instances of each we have
     sort_key = (particle_memberships_1.astype(np.uint64) << 32) + particle_memberships_2.astype(np.uint64)
     unique_value, counts = psort.parallel_unique(sort_key, comm=comm, return_counts=True, repartition_output=True)
