@@ -248,7 +248,7 @@ def match_one_way(particle_memberships_1, particle_memberships_2):
 
     Parameters
     ----------
-    particle_memberships_1: np.ndarray 
+    particle_memberships_1: np.ndarray
         Subgroup memberships of all particles for one SOAP catalogue. 
     particle_memberships_2: np.ndarray 
         Subgroup memberships of all particles for a second SOAP catalogue. 
@@ -256,8 +256,8 @@ def match_one_way(particle_memberships_1, particle_memberships_2):
     Returns
     -------
     np.ndarray
-        2D array with the first column corresponding to subgroups in the reference 
-        catalogue, and the second column their matched counterparts in the other 
+        2D array with the first column corresponding to subgroups in the reference
+        catalogue, and the second column their matched counterparts in the other
         catalogue.
     '''
 
