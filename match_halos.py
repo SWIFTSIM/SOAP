@@ -200,6 +200,48 @@ def get_number_subhaloes(particle_memberships):
 
     return number_subgroups
 
+def collect_matches(matches, total_number_subgroups):
+    """
+    Creates array with total length equal to total number of subgroups,
+    and the matches are placed in the entry corresponding to the reference
+    subgroup number.
+
+    Parameters
+    ----------
+    matches: np.ndarray
+        Array with matches between both catalogues.
+    total_number_subgroups: int
+        Total number of subgroups.
+
+    Returns
+    -------
+    collected_matches: np.ndarray
+        Array containing matches between both catalogues, where each entry 
+        corresponds to the halo catalogue index of the subgroup in the reference 
+        catalogue. If no match was found, it equals -1.
+    """
+
+    # How many subgroups we want per rank
+    target_subhalo_number = np.zeros(comm_size, dtype=int)
+    target_subhalo_number[:] = total_number_subgroups // comm_size
+    target_subhalo_number[:total_number_subgroups % comm_size] += 1
+    assert target_subhalo_number.sum() == total_number_subgroups 
+
+    # This will eventually be used to collect matches. For the time being, 
+    # it is a continous array used to search for the subhaloes
+    collected_matches = np.arange(target_subhalo_number[comm_rank]) + target_subhalo_number[:comm_rank].sum()
+
+    # Find the corresponding match if possible
+    ptr = psort.parallel_match(collected_matches, matches[:,0], comm=comm)
+    sorted_match = psort.fetch_elements(matches[:,1], ptr[ptr >= 0])
+
+    # Entries corresponding to matches have positive values; those which 
+    # were not matched have -1
+    collected_matches[ptr  < 0] = -1
+    collected_matches[ptr >= 0] = sorted_match
+
+    return collected_matches
+
 def match_one_way(particle_memberships_1, particle_memberships_2):
     '''
     Obtains the most likely match of subgroups between two SOAP catalogues.
@@ -220,7 +262,7 @@ def match_one_way(particle_memberships_1, particle_memberships_2):
     '''
 
     # Before doing any matching, determine how many haloes there are in catalogue 1.
-    number_subhaloes = get_number_subhaloes(particle_memberships_1)
+    total_number_subgroups = get_number_subhaloes(particle_memberships_1)
     
     # Get sorted, unique (grnr1, grnr2) combinations and counts of how many instances of each we have
     sort_key = (particle_memberships_1.astype(np.uint64) << 32) + particle_memberships_2.astype(np.uint64)
@@ -246,8 +288,16 @@ def match_one_way(particle_memberships_1, particle_memberships_2):
     # Find index corresponding to the first entry of each unique reference subgroup, i.e.
     # the one with the most matches.
     _,  unique_index = np.unique(reference_subgroups, return_index=True)
+    
+    # This array contains information about which matches have been succesful, but does not contain
+    # information about unsuccesful ones.
+    successful_matches = np.vstack([reference_subgroups[unique_index], matched_subgroups[unique_index]]).T
 
-    return np.vstack([reference_subgroups[unique_index], matched_subgroups[unique_index]]).T
+    # Organise the matched array in a continous manner, and leave the 
+    # unsuccessful matches as -1 entries
+    successful_matches = collect_matches(successful_matches, total_number_subgroups)
+
+    return successful_matches
 
 
 
