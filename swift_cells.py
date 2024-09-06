@@ -206,6 +206,9 @@ class SWIFTCellGrid:
             for name in infile["Header"].attrs:
                 self.swift_header_group[name] = infile["Header"].attrs[name]
 
+            # Determine if this is a snapshot or snipshot
+            self.snipshot = (self.swift_header_group["SelectOutput"] == "Snipshot")
+
             # Read the critical density and attach units
             # This is in internal units, which may not be the same as snapshot units.
             critical_density = float(
