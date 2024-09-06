@@ -61,7 +61,9 @@ def consistent_match(match_index_12, match_index_21):
     )
 
     # If we retrieved our own halo index, we have a match
-    return np.where(match_back == local_halo_index, 1, 0)
+    consistent_matches = np.where(match_back == local_halo_index, 1, 0)
+
+    return consistent_matches
 
 def assign_task_based_on_id(ids):
     """
@@ -264,6 +266,9 @@ def match_one_way(particle_memberships_1, particle_memberships_2):
     # Before doing any matching, determine how many haloes there are in catalogue 1.
     total_number_subgroups = get_number_subhaloes(particle_memberships_1)
     
+    if comm_rank == 0:
+        print(f"There are {total_number_subgroups} subgroups to match.")
+
     # Get sorted, unique (grnr1, grnr2) combinations and counts of how many instances of each we have
     sort_key = (particle_memberships_1.astype(np.uint64) << 32) + particle_memberships_2.astype(np.uint64)
     unique_value, counts = psort.parallel_unique(sort_key, comm=comm, return_counts=True, repartition_output=True)
@@ -292,6 +297,10 @@ def match_one_way(particle_memberships_1, particle_memberships_2):
     # This array contains information about which matches have been succesful, but does not contain
     # information about unsuccesful ones.
     successful_matches = np.vstack([reference_subgroups[unique_index], matched_subgroups[unique_index]]).T
+
+    total_number_successful_matches = comm.allreduce(len(successful_matches))
+    if comm_rank == 0:
+        print(f"We matched {total_number_successful_matches} subhaloes ({total_number_successful_matches/total_number_subgroups * 100:.2f}% of the total.)")
 
     # Organise the matched array in a continous manner, and leave the 
     # unsuccessful matches as -1 entries
@@ -335,11 +344,22 @@ def match_halos(first_membership_path, second_membership_path, output_path, cent
     # something.
     particle_memberships_1, particle_memberships_2 = load_memberships(first_membership_path, second_membership_path, types)
 
-    # Match one way and the other
+    # Match one way
+    if comm_rank == 0:
+        print("")
+        print("Matching from first catalogue to second. ")
     matches_12 = match_one_way(particle_memberships_1, particle_memberships_2)
+
+    # Match the other way
+    if comm_rank == 0:
+        print("")
+        print("Matching from second catalogue to first.")
     matches_21 = match_one_way(particle_memberships_2, particle_memberships_1)
 
-    # Flag which matches gave consistent results
+    # Check for consistent matches
+    if comm_rank == 0:
+        print("")
+        print("Identifying consistent bijective matches.")
     consistent = consistent_match(matches_12, matches_21)
 
     # Save catalogues
