@@ -299,7 +299,31 @@ def match_one_way(particle_memberships_1, particle_memberships_2):
 
     return successful_matches
 
+def save(matches, consistent, file_path):
+    """
+    Parallel saves the array containing matches between catalogues in a single
+    HDF5 file.
 
+    Parameters
+    ----------
+    matches: np.ndarray
+        Value of the halo catalogue index of reference subgroup catalogue in the
+        other subgroup catalogue.
+    consistent: np.ndarray
+        Booleans indicating whether the match is bijective.
+    file_path: str
+        Location to save the HDF5 file.
+    """
+
+    comm.barrier()
+
+    with h5py.File(file_path, 'w', driver='mpio', comm=MPI.COMM_WORLD) as file:
+        group = file.create_group("Matches")
+
+        phdf5.collective_write(group, "HaloCatalogueIndex", matches, comm=MPI.COMM_WORLD)
+        phdf5.collective_write(group, "IsConsistent", consistent, comm=MPI.COMM_WORLD)
+
+    comm.barrier()
 
 def match_halos(first_membership_path, second_membership_path, output_path, centrals_only, dmo, types):
 
@@ -311,10 +335,16 @@ def match_halos(first_membership_path, second_membership_path, output_path, cent
     # something.
     particle_memberships_1, particle_memberships_2 = load_memberships(first_membership_path, second_membership_path, types)
 
+    # Match one way and the other
     matches_12 = match_one_way(particle_memberships_1, particle_memberships_2)
     matches_21 = match_one_way(particle_memberships_2, particle_memberships_1)
-    results = match_bijectively(results_12, results_21)
-    
+
+    # Flag which matches gave consistent results
+    consistent = consistent_match(matches_12, matches_21)
+
+    # Save catalogues
+    save(matches_12, consistent, output_path)
+
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
