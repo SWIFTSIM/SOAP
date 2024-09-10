@@ -249,7 +249,7 @@ def test_read_gadget4_groupnr(basename):
     """
     Read in Gadget-4 group numbers and compute the number of particles
     in each group. This is then compared with the input catalogue as a
-    sanity check on the group membershp files.
+    sanity check on the group membership files.
     """
 
     from mpi4py import MPI
