@@ -196,9 +196,10 @@ def get_number_subhaloes(particle_memberships):
         Number of subgroups in the catalogue
     """
 
-    # The maximum number across tasks corresponds to the total number of subgroups
+    # The maximum number across tasks corresponds to one minus the total number
+    # of subgroups, as we start with a 0 subgroup number
     local_max = particle_memberships.max()
-    number_subgroups= comm.allreduce(local_max,op=MPI.MAX)
+    number_subgroups= comm.allreduce(local_max,op=MPI.MAX) + 1
 
     return number_subgroups
 
