@@ -453,7 +453,7 @@ def combine_chunks(
             # Each rank determines which halos to keep
             reduced_snapshot = np.zeros(order.shape[0], dtype=np.int32)
             for i_bin in range(bins.shape[0]-1):
-                mask = (bins[i_bin] < mass) & (mass < bins[i_bin+1])
+                mask = (bins[i_bin] <= mass) & (mass < bins[i_bin+1])
                 idx = np.where(mask)[0]
                 assert n_keep[i_bin] <= np.sum(mask)
                 keep_idx = np.random.choice(idx, size=n_keep[i_bin], replace=False)
