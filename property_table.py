@@ -219,6 +219,16 @@ class PropertyTable:
             "concentration_dmo",
             "concentration_dmo_soft",
         ],
+        "footnote_tensor.tex": [
+            "TotalInertiaTensor",
+            "TotalInertiaTensorReduced",
+            "TotalInertiaTensorNoniterative",
+            "TotalInertiaTensorReducedNoniterative",
+            "ProjectedTotalInertiaTensor",
+            "ProjectedTotalInertiaTensorReduced",
+            "ProjectedTotalInertiaTensorNoniterative",
+            "ProjectedTotalInertiaTensorReducedNoniterative",
+        ]
     }
 
     # dictionary with human-friendly descriptions of the various lossy
