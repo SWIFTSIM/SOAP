@@ -59,7 +59,7 @@ def build_matrix(flattened_matrix):
 if __name__ == "__main__":
 
     # How many random matricies we generate
-    number_test_matricies = 2
+    number_test_matricies = 100
 
     # Test implementation in relevant dimensions
     for ndim in [2,3]:
