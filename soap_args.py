@@ -82,10 +82,14 @@ def get_soap_args(comm):
         # Directory may not exist yet, so move up the tree until we find one that does
         while not os.path.exists(dirname):
             dirname = os.path.dirname(dirname)
-        assert os.access(dirname, os.W_OK), "Can't write to output directory"
+        if not os.access(dirname, os.W_OK):
+            print("Can't write to output directory")
+            comm.Abort()
         # Check if the FOF files exist
         if args.fof_group_filename != '':
             fof_filename = args.fof_group_filename.format(snap_nr=args.snapshot_nr, file_nr=0)
-        assert os.path.exists(fof_filename), "FOF group catalogues do not exist"
+        if not os.path.exists(fof_filename):
+            print("FOF group catalogues do not exist")
+            comm.Abort()
 
     return args
