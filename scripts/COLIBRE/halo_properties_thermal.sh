@@ -10,7 +10,8 @@
 # cd SOAP
 # mkdir logs
 # ./scripts/cosma_python_env.sh
-# sbatch --array=0-3 -J SIM_NAME  ./scripts/COLIBRE/thermal_properties.sh
+# sbatch --array=0-127 -J SIM_NAME  ./scripts/COLIBRE/halo_properties_thermal.sh
+
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1

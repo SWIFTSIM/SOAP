@@ -130,6 +130,8 @@ def compute_halo_properties():
     )
 
     # Process parameter file
+    if args.snipshot is None:
+        args.snipshot = cellgrid.snipshot
     if comm_world_rank == 0:
         parameter_file = ParameterFile(file_name=args.config_filename, snipshot=args.snipshot)
     else:

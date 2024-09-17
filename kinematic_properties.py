@@ -303,7 +303,7 @@ def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduce
         # We want to skip the calculation if we only only have a small number of particles
         # inside the initial sphere. We do the check here since this is the first time
         # we calculate how many particles are within the sphere.
-        if (i_iter == 0) and (np.sum(mass[r <= 1]) < 20):
+        if (i_iter == 0) and (np.sum(r <= 1) < 20):
             return None
         weight = mass / np.sum(mass[r <= 1])
         weight[r > 1] = 0

@@ -219,6 +219,16 @@ class PropertyTable:
             "concentration_dmo",
             "concentration_dmo_soft",
         ],
+        "footnote_tensor.tex": [
+            "TotalInertiaTensor",
+            "TotalInertiaTensorReduced",
+            "TotalInertiaTensorNoniterative",
+            "TotalInertiaTensorReducedNoniterative",
+            "ProjectedTotalInertiaTensor",
+            "ProjectedTotalInertiaTensorReduced",
+            "ProjectedTotalInertiaTensorNoniterative",
+            "ProjectedTotalInertiaTensorReducedNoniterative",
+        ]
     }
 
     # dictionary with human-friendly descriptions of the various lossy
@@ -3998,13 +4008,14 @@ class PropertyTable:
         else:
             return ""
 
-    def __init__(self, parameters):
+    def __init__(self, parameters, snipshot_parameters):
         """
         Constructor.
         """
         self.properties = {}
         self.footnotes = []
         self.parameters = parameters
+        self.snipshot_parameters = snipshot_parameters
 
     def add_properties(self, halo_property: HaloProperty, halo_type: str):
         """
@@ -4017,6 +4028,7 @@ class PropertyTable:
         if halo_type in ['ExclusiveSphereProperties', 'InclusiveSphereProperties']:
             base_halo_type = 'ApertureProperties'
         property_mask = self.parameters.get_property_mask(base_halo_type, [prop[1] for prop in props])
+        snipshot_mask = self.snipshot_parameters.get_property_mask(base_halo_type, [prop[1] for prop in props])
 
         # Loop through all possible properties for this halo type and add them to the
         # table, skipping those that we shouldn't calculate according to the parameter file
@@ -4082,7 +4094,11 @@ class PropertyTable:
                     print(halo_type, prop_name, prop_cat, self.properties[prop_name])
                     exit()
                 assert prop_outputname == self.properties[prop_name]["name"]
-                self.properties[prop_name]["types"].append(halo_type)
+
+                if not snipshot_mask[prop_outputname]:
+                    self.properties[prop_name]["types"].append('SnapshotOnly'+halo_type)
+                else:
+                    self.properties[prop_name]["types"].append(halo_type)
             else:
                 self.properties[prop_name] = {
                     "name": prop_outputname,
@@ -4093,9 +4109,12 @@ class PropertyTable:
                     "category": prop_cat,
                     "compression": prop_comp,
                     "dmo": prop_dmo,
-                    "types": [halo_type],
                     "raw": props[i],
                 }
+                if not snipshot_mask[prop_outputname]:
+                    self.properties[prop_name]["types"] = ['SnapshotOnly'+halo_type]
+                else:
+                    self.properties[prop_name]["types"] = [halo_type]
 
     def print_dictionary(self):
         """
@@ -4193,17 +4212,17 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
 
             checkmark = "\\ding{51}"
             xmark = "\\ding{53}"
+            scissor = "\\ding{36}"
             prop_subhalo = checkmark if "SubhaloProperties" in prop["types"] else xmark
-            prop_exclusive = (
-                checkmark if "ExclusiveSphereProperties" in prop["types"] else xmark
-            )
-            prop_inclusive = (
-                checkmark if "InclusiveSphereProperties" in prop["types"] else xmark
-            )
-            prop_projected = (
-                checkmark if "ProjectedApertureProperties" in prop["types"] else xmark
-            )
+            prop_subhalo = scissor if 'SnapshotOnlySubhaloProperties' in prop["types"] else prop_subhalo
+            prop_exclusive = checkmark if "ExclusiveSphereProperties" in prop["types"] else xmark
+            prop_exclusive = scissor if "SnapshotOnlyExclusiveSphereProperties" in prop["types"] else prop_exclusive 
+            prop_inclusive = checkmark if "InclusiveSphereProperties" in prop["types"] else xmark
+            prop_inclusive = scissor if "SnapshotOnlyInclusiveSphereProperties" in prop["types"] else prop_inclusive 
+            prop_projected = checkmark if "ProjectedApertureProperties" in prop["types"] else xmark
+            prop_projected = scissor if "SnapshotOnlyProjectedApertureProperties" in prop["types"] else prop_projected
             prop_SO = checkmark if "SOProperties" in prop["types"] else xmark
+            prop_SO = scissor if "SnapshotOnlySOProperties" in prop["types"] else prop_SO
             table_props = [
                 prop_outputname,
                 prop_shape,
@@ -4351,7 +4370,8 @@ if __name__ == "__main__":
 
     # Parse parameter file
     try:
-        parameters = ParameterFile(file_name=sys.argv[1])
+        parameters = ParameterFile(file_name=sys.argv[1], snipshot=False)
+        snipshot_parameters = ParameterFile(file_name=sys.argv[1], snipshot=True)
     except IndexError:
         print("A valid parameter file was not passed.")
         exit()
@@ -4389,7 +4409,7 @@ if __name__ == "__main__":
     # Define scale factor unit
     unyt.define_unit('a', 1*unyt.dimensionless, tex_repr='\\rm{a}')
 
-    table = PropertyTable(parameters)
+    table = PropertyTable(parameters, snipshot_parameters)
     # Add standard halo definitions
     table.add_properties(SubhaloProperties, "SubhaloProperties")
     table.add_properties(ExclusiveSphereProperties, "ExclusiveSphereProperties")
