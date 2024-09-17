@@ -193,7 +193,7 @@ def attributes_from_units(units, physical, a_exponent):
     attrs["h-scale exponent"] = [float(h_exponent)]
     # Note that "a-scale exponent" is set even if the output is physical,
     # or if the quantity can't be converted to comoving
-    attrs["a-scale exponent"] = [0. if a_exponent is None else a_exponent]
+    attrs["a-scale exponent"] = [0.0 if a_exponent is None else a_exponent]
     attrs["Value stored as physical"] = [1 if physical else 0]
     attrs["Property can be converted to comoving"] = [0 if a_exponent is None else 1]
 

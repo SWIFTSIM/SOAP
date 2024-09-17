@@ -507,20 +507,16 @@ class DummyHaloGenerator:
 
     def get_recently_heated_gas_filter(self):
         return RecentlyHeatedGasFilter(
-             self.dummy_cellgrid,
-             0 * unyt.Myr,
-             False,
-             delta_logT_min=-1.0,
-             delta_logT_max=0.3,
-         )
+            self.dummy_cellgrid,
+            0 * unyt.Myr,
+            False,
+            delta_logT_min=-1.0,
+            delta_logT_max=0.3,
+        )
 
     @staticmethod
     def get_cold_dense_gas_filter():
-        return ColdDenseGasFilter(
-            3.16e4 * unyt.K,
-            0.1 / unyt.cm ** 3,
-            True,
-        )
+        return ColdDenseGasFilter(3.16e4 * unyt.K, 0.1 / unyt.cm ** 3, True)
 
     @staticmethod
     def get_halo_result_template(particle_numbers):
@@ -573,42 +569,36 @@ class DummyHaloGenerator:
     @staticmethod
     def get_filters(filter_limits):
         return {
-            'general': {
-                    'limit': filter_limits.get('general', 100),
-                    'properties': [
-                        'BoundSubhalo/NumberOfDarkMatterParticles',
-                        'BoundSubhalo/NumberOfGasParticles',
-                        'BoundSubhalo/NumberOfStarParticles',
-                        'BoundSubhalo/NumberOfBlackHoleParticles',
-                     ],
-                    'combine_properties': 'sum'
-                 },
-            'dm': {
-                    'limit': filter_limits.get('dm', 100),
-                    'properties': [
-                        'BoundSubhalo/NumberOfDarkMatterParticles',
-                     ],
-                 },
-            'gas': {
-                    'limit': filter_limits.get('gas', 100),
-                    'properties': [
-                        'BoundSubhalo/NumberOfGasParticles',
-                     ],
-                 },
-            'star': {
-                    'limit': filter_limits.get('star', 100),
-                    'properties': [
-                        'BoundSubhalo/NumberOfStarParticles',
-                     ],
-                 },
-            'baryon': {
-                    'limit': filter_limits.get('baryon', 100),
-                    'properties': [
-                        'BoundSubhalo/NumberOfGasParticles',
-                        'BoundSubhalo/NumberOfStarParticles',
-                     ],
-                    'combine_properties': 'sum'
-                 },
+            "general": {
+                "limit": filter_limits.get("general", 100),
+                "properties": [
+                    "BoundSubhalo/NumberOfDarkMatterParticles",
+                    "BoundSubhalo/NumberOfGasParticles",
+                    "BoundSubhalo/NumberOfStarParticles",
+                    "BoundSubhalo/NumberOfBlackHoleParticles",
+                ],
+                "combine_properties": "sum",
+            },
+            "dm": {
+                "limit": filter_limits.get("dm", 100),
+                "properties": ["BoundSubhalo/NumberOfDarkMatterParticles"],
+            },
+            "gas": {
+                "limit": filter_limits.get("gas", 100),
+                "properties": ["BoundSubhalo/NumberOfGasParticles"],
+            },
+            "star": {
+                "limit": filter_limits.get("star", 100),
+                "properties": ["BoundSubhalo/NumberOfStarParticles"],
+            },
+            "baryon": {
+                "limit": filter_limits.get("baryon", 100),
+                "properties": [
+                    "BoundSubhalo/NumberOfGasParticles",
+                    "BoundSubhalo/NumberOfStarParticles",
+                ],
+                "combine_properties": "sum",
+            },
         }
 
     @staticmethod
@@ -726,7 +716,6 @@ class DummyHaloGenerator:
         input_halo["Structuretype"] = structuretype
 
         return input_halo, data, rmax, Mtot, npart, particle_numbers
-
 
     def get_random_halo(
         self, npart: Union[int, List], has_neutrinos: bool = False

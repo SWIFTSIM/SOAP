@@ -16,20 +16,18 @@ def combine_arguments(command_line_args, config_file):
     """
 
     command_line_args = vars(command_line_args)
-    
+
     # Read the config file
     with open(config_file, "r") as infile:
         config_file_args = yaml.safe_load(infile)
 
     # Combine the two
-    all_args = {
-        "Parameters" : {},
-    }
+    all_args = {"Parameters": {}}
     for name in config_file_args["Parameters"]:
         all_args["Parameters"][name] = config_file_args["Parameters"][name]
     for arg_name in command_line_args:
-        name = arg_name.replace("-","_")
-        value =  command_line_args[arg_name]
+        name = arg_name.replace("-", "_")
+        value = command_line_args[arg_name]
         if value is not None or name not in all_args["Parameters"]:
             all_args["Parameters"][name] = value
 
@@ -43,8 +41,8 @@ def combine_arguments(command_line_args, config_file):
     format_values["snap_nr"] = None
     format_values["file_nr"] = None
     # Add halo_finder. Currently this must be passed through config_file
-    format_values["halo_finder"] = config_file_args['HaloFinder']['type']
-            
+    format_values["halo_finder"] = config_file_args["HaloFinder"]["type"]
+
     # Now copy any extra sections from the config file while substituting in
     # parameters from the Parameters section
     for section in config_file_args:
@@ -53,9 +51,10 @@ def combine_arguments(command_line_args, config_file):
                 all_args[section] = {}
             for name in config_file_args[section]:
                 if isinstance(config_file_args[section][name], str):
-                    all_args[section][name] = pf.format(config_file_args[section][name], **format_values)
+                    all_args[section][name] = pf.format(
+                        config_file_args[section][name], **format_values
+                    )
                 else:
                     all_args[section][name] = config_file_args[section][name]
 
     return all_args
-    

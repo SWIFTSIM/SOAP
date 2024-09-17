@@ -15,6 +15,7 @@ import yaml
 
 import property_table
 
+
 class ParameterFile:
     """
     Internal representation of the parameter file.
@@ -103,7 +104,9 @@ class ParameterFile:
         if not "properties" in self.parameters[halo_type]:
             self.parameters[halo_type]["properties"] = {}
             for property in full_list:
-                self.parameters[halo_type]["properties"][property] = self.calculate_missing_properties()
+                self.parameters[halo_type]["properties"][
+                    property
+                ] = self.calculate_missing_properties()
         mask = {}
         for property in full_list:
             # Property is listed in the parameter file for this halo_type
@@ -112,12 +115,12 @@ class ParameterFile:
                 # should_calculate can be a dict if we want different behaviour for snapshots/snipshots
                 if isinstance(should_calculate, dict):
                     if self.snipshot:
-                        should_calculate = should_calculate['snipshot']
+                        should_calculate = should_calculate["snipshot"]
                     else:
-                        should_calculate = should_calculate['snapshot']
+                        should_calculate = should_calculate["snapshot"]
                 mask[property] = should_calculate
             # Property is not listed in the parameter file for this halo_type
-            else: 
+            else:
                 if self.calculate_missing_properties():
                     mask[property] = True
                     self.parameters[halo_type]["properties"][property] = True
@@ -154,13 +157,15 @@ class ParameterFile:
         valid_properties = [prop[0] for prop in full_property_list.values()]
         for key in self.parameters:
             # Skip keys which aren't halo types
-            if 'properties' not in self.parameters[key]:
+            if "properties" not in self.parameters[key]:
                 continue
-            for prop in self.parameters[key]['properties']:
+            for prop in self.parameters[key]["properties"]:
                 if prop not in valid_properties:
                     invalid_properties.append(prop)
         if len(invalid_properties):
-            print('The following properties were found in the parameter file, but are invalid:')
+            print(
+                "The following properties were found in the parameter file, but are invalid:"
+            )
             for prop in invalid_properties:
                 print(f"  {prop}")
 

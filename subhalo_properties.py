@@ -496,9 +496,9 @@ class SubhaloParticleData:
         """
         if self.Nbh == 0:
             return None
-        return np.sum(self.get_dataset("PartType5/AGNTotalInjectedEnergies")[
-            self.bh_mask_all
-        ])
+        return np.sum(
+            self.get_dataset("PartType5/AGNTotalInjectedEnergies")[self.bh_mask_all]
+        )
 
     @lazy_property
     def BlackHolesTotalInjectedJetEnergy(self) -> unyt.unyt_quantity:
@@ -507,9 +507,9 @@ class SubhaloParticleData:
         """
         if self.Nbh == 0:
             return None
-        return np.sum(self.get_dataset("PartType5/InjectedJetEnergies")[
-            self.bh_mask_all
-        ])
+        return np.sum(
+            self.get_dataset("PartType5/InjectedJetEnergies")[self.bh_mask_all]
+        )
 
     @lazy_property
     def iBHmax(self) -> int:
@@ -608,9 +608,7 @@ class SubhaloParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/GWMassLosses")[self.bh_mask_all][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/GWMassLosses")[self.bh_mask_all][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleInjectedJetEnergyByMode(self) -> unyt.unyt_quantity:
@@ -620,9 +618,9 @@ class SubhaloParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/InjectedJetEnergiesByMode")[self.bh_mask_all][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/InjectedJetEnergiesByMode")[
+            self.bh_mask_all
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleLastJetEventScalefactor(self) -> unyt.unyt_quantity:
@@ -686,9 +684,9 @@ class SubhaloParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/TotalAccretedMassesByMode")[self.bh_mask_all][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/TotalAccretedMassesByMode")[
+            self.bh_mask_all
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleWindEnergyByMode(self) -> unyt.unyt_quantity:
@@ -708,9 +706,7 @@ class SubhaloParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/Spins")[self.bh_mask_all][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/Spins")[self.bh_mask_all][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleTotalAccretedMass(self) -> unyt.unyt_quantity:
@@ -793,7 +789,9 @@ class SubhaloParticleData:
         if self.Mtot == 0:
             return None
         if not hasattr(self, "r_vmax_unsoft"):
-            self.r_vmax_unsoft, self.vmax_unsoft = get_vmax(self.mass, self.radius, nskip=1)
+            self.r_vmax_unsoft, self.vmax_unsoft = get_vmax(
+                self.mass, self.radius, nskip=1
+            )
         return self.r_vmax_unsoft
 
     @lazy_property
@@ -808,7 +806,9 @@ class SubhaloParticleData:
         if self.Mtot == 0:
             return None
         if not hasattr(self, "vmax_unsoft"):
-            self.r_vmax_unsoft, self.vmax_unsoft = get_vmax(self.mass, self.radius, nskip=1)
+            self.r_vmax_unsoft, self.vmax_unsoft = get_vmax(
+                self.mass, self.radius, nskip=1
+            )
         return self.vmax_unsoft
 
     @lazy_property
@@ -865,7 +865,9 @@ class SubhaloParticleData:
             )
             M_r_vmax = self.mass[mask_r_vmax].sum()
             if M_r_vmax > 0:
-                return Ltot / (np.sqrt(2.0) * M_r_vmax * self.Vmax_soft * self.R_vmax_soft)
+                return Ltot / (
+                    np.sqrt(2.0) * M_r_vmax * self.Vmax_soft * self.R_vmax_soft
+                )
         return None
 
     @lazy_property
@@ -888,7 +890,9 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_inertia_tensor(self.mass, self.position, self.HalfMassRadiusTot, reduced=True)
+        return get_inertia_tensor(
+            self.mass, self.position, self.HalfMassRadiusTot, reduced=True
+        )
 
     @lazy_property
     def TotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
@@ -898,7 +902,9 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_inertia_tensor(self.mass, self.position, self.HalfMassRadiusTot, max_iterations=1)
+        return get_inertia_tensor(
+            self.mass, self.position, self.HalfMassRadiusTot, max_iterations=1
+        )
 
     @lazy_property
     def TotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -908,7 +914,13 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_inertia_tensor(self.mass, self.position, self.HalfMassRadiusTot, reduced=True, max_iterations=1)
+        return get_inertia_tensor(
+            self.mass,
+            self.position,
+            self.HalfMassRadiusTot,
+            reduced=True,
+            max_iterations=1,
+        )
 
     @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
@@ -1007,7 +1019,9 @@ class SubhaloParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, reduced=True)
+        return get_inertia_tensor(
+            self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, reduced=True
+        )
 
     @lazy_property
     def GasInertiaTensorNoniterative(self) -> unyt.unyt_array:
@@ -1017,7 +1031,9 @@ class SubhaloParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, max_iterations=1)
+        return get_inertia_tensor(
+            self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, max_iterations=1
+        )
 
     @lazy_property
     def GasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -1027,7 +1043,13 @@ class SubhaloParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, reduced=True, max_iterations=1)
+        return get_inertia_tensor(
+            self.mass_gas,
+            self.pos_gas,
+            self.HalfMassRadiusGas,
+            reduced=True,
+            max_iterations=1,
+        )
 
     @lazy_property
     def veldisp_matrix_gas(self) -> unyt.unyt_array:
@@ -1091,7 +1113,9 @@ class SubhaloParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, reduced=True)
+        return get_inertia_tensor(
+            self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, reduced=True
+        )
 
     @lazy_property
     def DarkMatterInertiaTensorNoniterative(self) -> unyt.unyt_array:
@@ -1101,7 +1125,9 @@ class SubhaloParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, max_iterations=1)
+        return get_inertia_tensor(
+            self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, max_iterations=1
+        )
 
     @lazy_property
     def DarkMatterInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -1111,7 +1137,13 @@ class SubhaloParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, reduced=True, max_iterations=1)
+        return get_inertia_tensor(
+            self.mass_dm,
+            self.pos_dm,
+            self.HalfMassRadiusDM,
+            reduced=True,
+            max_iterations=1,
+        )
 
     @lazy_property
     def veldisp_matrix_dm(self) -> unyt.unyt_array:
@@ -1133,10 +1165,10 @@ class SubhaloParticleData:
         if self.Ndm == 0:
             return None
         if not hasattr(self, "DM_r_vmax_soft"):
-            soft_r = np.maximum(self.softening[self.dm_mask_sh], self.radius[self.dm_mask_sh])
-            self.DM_r_vmax_soft, self.DM_vmax_soft = get_vmax(
-                self.mass_dm, soft_r
+            soft_r = np.maximum(
+                self.softening[self.dm_mask_sh], self.radius[self.dm_mask_sh]
             )
+            self.DM_r_vmax_soft, self.DM_vmax_soft = get_vmax(self.mass_dm, soft_r)
         return self.DM_vmax_soft
 
     @lazy_property
@@ -1149,10 +1181,10 @@ class SubhaloParticleData:
         if self.Ndm == 0:
             return None
         if not hasattr(self, "DM_r_vmax_soft"):
-            soft_r = np.maximum(self.softening[self.dm_mask_sh], self.radius[self.dm_mask_sh])
-            self.DM_r_vmax_soft, self.DM_vmax_soft = get_vmax(
-                self.mass_dm, soft_r
+            soft_r = np.maximum(
+                self.softening[self.dm_mask_sh], self.radius[self.dm_mask_sh]
             )
+            self.DM_r_vmax_soft, self.DM_vmax_soft = get_vmax(self.mass_dm, soft_r)
         return self.DM_r_vmax_soft
 
     @lazy_property
@@ -1241,7 +1273,9 @@ class SubhaloParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(self.mass_star, self.pos_star, self.HalfMassRadiusStar)
+        return get_inertia_tensor(
+            self.mass_star, self.pos_star, self.HalfMassRadiusStar
+        )
 
     @lazy_property
     def StellarInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -1252,7 +1286,9 @@ class SubhaloParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(self.mass_star, self.pos_star, self.HalfMassRadiusStar, reduced=True)
+        return get_inertia_tensor(
+            self.mass_star, self.pos_star, self.HalfMassRadiusStar, reduced=True
+        )
 
     @lazy_property
     def StellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
@@ -1262,7 +1298,9 @@ class SubhaloParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(self.mass_star, self.pos_star, self.HalfMassRadiusStar, max_iterations=1)
+        return get_inertia_tensor(
+            self.mass_star, self.pos_star, self.HalfMassRadiusStar, max_iterations=1
+        )
 
     @lazy_property
     def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -1272,7 +1310,13 @@ class SubhaloParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(self.mass_star, self.pos_star, self.HalfMassRadiusStar, reduced=True, max_iterations=1)
+        return get_inertia_tensor(
+            self.mass_star,
+            self.pos_star,
+            self.HalfMassRadiusStar,
+            reduced=True,
+            max_iterations=1,
+        )
 
     @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
@@ -1916,7 +1960,7 @@ class SubhaloProperties(HaloProperty):
             self.name = "fof_subhalo_properties"
             self.group_name = "FOFSubhalo"
         self.mask_metadata = {"Masked": False}
-        self.halo_filter = 'basic'
+        self.halo_filter = "basic"
 
         # Arrays which must be read in for this calculation.
         # Note that if there are no particles of a given type in the
@@ -1982,11 +2026,11 @@ class SubhaloProperties(HaloProperty):
             do_calculation = self.category_filter.get_do_calculation(
                 halo_result,
                 {
-                    'BoundSubhalo/NumberOfDarkMatterParticles': part_props.Ndm,
-                    'BoundSubhalo/NumberOfGasParticles': part_props.Ngas,
-                    'BoundSubhalo/NumberOfStarParticles': part_props.Nstar,
-                    'BoundSubhalo/NumberOfBlackHoleParticles': part_props.Nbh,
-                }
+                    "BoundSubhalo/NumberOfDarkMatterParticles": part_props.Ndm,
+                    "BoundSubhalo/NumberOfGasParticles": part_props.Ngas,
+                    "BoundSubhalo/NumberOfStarParticles": part_props.Nstar,
+                    "BoundSubhalo/NumberOfBlackHoleParticles": part_props.Nbh,
+                },
             )
         else:
             do_calculation = self.category_filter.get_do_calculation(halo_result)
@@ -2019,7 +2063,7 @@ class SubhaloProperties(HaloProperty):
             else:
                 val = 0
             if not physical:
-                unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
+                unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
             subhalo[name] = unyt.unyt_array(
                 val, dtype=dtype, units=unit, registry=registry
             )
@@ -2033,7 +2077,7 @@ class SubhaloProperties(HaloProperty):
                         if hasattr(val, "units"):
                             assert (
                                 val.units == unyt.dimensionless
-                            ), f'{name} is not dimensionless'
+                            ), f"{name} is not dimensionless"
                         subhalo[name] = unyt.unyt_array(
                             val.astype(dtype),
                             dtype=dtype,
@@ -2042,8 +2086,8 @@ class SubhaloProperties(HaloProperty):
                         )
                     else:
                         err = f'Overflow for halo {input_halo["index"]} when'
-                        err += f'calculating {name} in subhalo_properties'
-                        assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
+                        err += f"calculating {name} in subhalo_properties"
+                        assert np.max(np.abs(val.to(unit).value)) < float("inf"), err
                         subhalo[name] += val
 
         # Check that we found the expected number of halo member particles:
@@ -2076,7 +2120,16 @@ class SubhaloProperties(HaloProperty):
             description = prop[5]
             physical = prop[10]
             a_exponent = prop[11]
-            halo_result.update({f"{self.group_name}/{outputname}": (subhalo[name], description, physical, a_exponent)})
+            halo_result.update(
+                {
+                    f"{self.group_name}/{outputname}": (
+                        subhalo[name],
+                        description,
+                        physical,
+                        a_exponent,
+                    )
+                }
+            )
 
 
 def test_subhalo_properties():
@@ -2169,7 +2222,11 @@ def test_subhalo_properties():
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 if not physical:
-                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                    unit = (
+                        unit
+                        * unyt.Unit("a", registry=dummy_halos.unit_registry)
+                        ** a_exponent
+                    )
                 assert result.units == unit.units
 
     # Now test the calculation for each property individually, to make sure that
@@ -2201,7 +2258,7 @@ def test_subhalo_properties():
         halo_result = {}
         for subhalo_name, prop_calc in [
             # ("FOFSubhaloProperties", property_calculator_both),
-            ("BoundSubhalo", property_calculator_bound),
+            ("BoundSubhalo", property_calculator_bound)
         ]:
             input_data = {}
             for ptype in prop_calc.particle_properties:

@@ -64,7 +64,7 @@ class ChunkTask:
         self.chunk_nr = chunk_nr
         self.nr_chunks = nr_chunks
         self.shared = False
-        
+
     def __call__(
         self,
         cellgrid,
@@ -93,7 +93,7 @@ class ChunkTask:
                         m,
                     )
                 )
-        
+
         # The first rank on this node imports the halos to be processed
         comm.barrier()
         t0_halos = time.time()
@@ -111,7 +111,7 @@ class ChunkTask:
             names = None
             self.halo_arrays = {}
         names = comm.bcast(names)
-        
+
         # Then we copy the halo arrays into shared memory
         for name in names:
             if comm_rank == 0:
@@ -121,9 +121,12 @@ class ChunkTask:
             self.halo_arrays[name] = share_array(comm, arr)
         t1_halos = time.time()
         nr_halos = len(self.halo_arrays["index"].full)
-        self.shared = True # So we know to explicitly free the shared memory regions
-        message("receiving %d halos for chunk %d took %.2fs" % (nr_halos, self.chunk_nr, t1_halos-t0_halos))
-        
+        self.shared = True  # So we know to explicitly free the shared memory regions
+        message(
+            "receiving %d halos for chunk %d took %.2fs"
+            % (nr_halos, self.chunk_nr, t1_halos - t0_halos)
+        )
+
         # Create object to store the results for this chunk
         results = result_set.ResultSet(initial_size=max(1, nr_halos // comm_size))
 

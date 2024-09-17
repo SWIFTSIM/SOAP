@@ -237,6 +237,7 @@ def make_test_dataset(boxsize, total_nr_points, centre, radius, box_wrap, comm):
     comm.barrier()
     return pos
 
+
 def _test_periodic_box(
     total_nr_points,
     centre,
@@ -259,7 +260,6 @@ def _test_periodic_box(
     comm = MPI.COMM_WORLD
     comm_size = comm.Get_size()
     comm_rank = comm.Get_rank()
-
 
     if comm_rank == 0:
         print(
@@ -333,10 +333,12 @@ def _test_periodic_box(
             print(f"    {nr_failures} of {nr_queries*comm_size} queries FAILED")
             comm.Abort()
 
+
 @pytest.mark.mpi
 def test_shared_mesh():
 
     import unyt
+
     # Use a different, reproducible seed on each rank
     from mpi4py import MPI
 

@@ -315,9 +315,9 @@ def process_single_halo(
                 prop = PropertyTable.full_property_list[name]
                 # Don't remove halo finder prefix
                 # e.g. don't want "VR/ID" replaced with "ID"
-                if '/' in name:
-                    group = name.split('/')[0]
-                    dataset_name = f'{group}/{prop[0]}'
+                if "/" in name:
+                    group = name.split("/")[0]
+                    dataset_name = f"{group}/{prop[0]}"
                 else:
                     dataset_name = prop[0]
                 dtype = prop[2]
@@ -326,10 +326,12 @@ def process_single_halo(
                 physical = prop[9]
                 a_exponent = prop[10]
                 if not physical:
-                    unit = unit * unyt.Unit('a', registry=unit_registry) ** a_exponent
+                    unit = unit * unyt.Unit("a", registry=unit_registry) ** a_exponent
                 # unyt_array.to outputs a float64 array, which is dangerous for integers
                 # so don't allow this to happen
-                if np.issubdtype(input_halo[name].dtype, np.integer) or np.issubdtype(dtype, np.integer):
+                if np.issubdtype(input_halo[name].dtype, np.integer) or np.issubdtype(
+                    dtype, np.integer
+                ):
                     arr = input_halo[name].astype(dtype)
                     assert input_halo[name].units == unit
                 else:
@@ -342,7 +344,12 @@ def process_single_halo(
                 description = "No description available"
                 physical = True
                 a_exponent = None
-            halo_result[f"InputHalos/{dataset_name}"] = (arr, description, physical, a_exponent)
+            halo_result[f"InputHalos/{dataset_name}"] = (
+                arr,
+                description,
+                physical,
+                a_exponent,
+            )
 
     return halo_result
 

@@ -113,18 +113,43 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
     # Done
     outfile.close()
 
+
 if __name__ == "__main__":
 
     import argparse
     from update_vds_paths import update_virtual_snapshot_paths
 
     # For description of parameters run the following: $ python make_virtual_snapshot.py --help
-    parser = argparse.ArgumentParser(description="Link SWIFT snapshots with SOAP membership files")
-    parser.add_argument("virtual_snapshot", type=str, help="Name of the SWIFT virtual snapshot file, e.g. snapshot_{snap_nr:04}.hdf5")
-    parser.add_argument("membership", type=str, help="Format string for membership files, e.g. membership_{snap_nr:04}.{file_nr}.hdf5")
-    parser.add_argument("output_file", type=str, help="Name of the virtual snapshot to create, e.g. membership_{snap_nr:04}.hdf5")
-    parser.add_argument("snap_nr", type=int, nargs='?', default=-1, help="Snapshot number (default: -1). Not required if snap_nr is present in filenames passed.")
-    parser.add_argument("--absolute-paths", action='store_true', help="Use absolute paths in the virtual dataset")
+    parser = argparse.ArgumentParser(
+        description="Link SWIFT snapshots with SOAP membership files"
+    )
+    parser.add_argument(
+        "virtual_snapshot",
+        type=str,
+        help="Name of the SWIFT virtual snapshot file, e.g. snapshot_{snap_nr:04}.hdf5",
+    )
+    parser.add_argument(
+        "membership",
+        type=str,
+        help="Format string for membership files, e.g. membership_{snap_nr:04}.{file_nr}.hdf5",
+    )
+    parser.add_argument(
+        "output_file",
+        type=str,
+        help="Name of the virtual snapshot to create, e.g. membership_{snap_nr:04}.hdf5",
+    )
+    parser.add_argument(
+        "snap_nr",
+        type=int,
+        nargs="?",
+        default=-1,
+        help="Snapshot number (default: -1). Not required if snap_nr is present in filenames passed.",
+    )
+    parser.add_argument(
+        "--absolute-paths",
+        action="store_true",
+        help="Use absolute paths in the virtual dataset",
+    )
     args = parser.parse_args()
 
     # Substitute snap number
@@ -136,7 +161,9 @@ if __name__ == "__main__":
 
     # Set file paths for datasets
     abs_snapshot_dir = os.path.abspath(os.path.dirname(virtual_snapshot))
-    abs_membership_dir = os.path.abspath(os.path.dirname(args.membership.format(snap_nr=args.snap_nr, file_nr=0)))
+    abs_membership_dir = os.path.abspath(
+        os.path.dirname(args.membership.format(snap_nr=args.snap_nr, file_nr=0))
+    )
     if args.absolute_paths:
         # Ensure all paths in the virtual file are absolute to avoid VDS prefix issues
         # (we probably need to pick up datasets from two different directories)

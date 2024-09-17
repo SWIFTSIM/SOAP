@@ -382,10 +382,11 @@ def read_vr_catalogue(comm, basename, a_unit, registry, boxsize):
     local_halo["search_radius"] = local_halo["R_size"] * 1.01 + dist
 
     # Remove properties no longer needed
-    del local_halo['cofm']
-    del local_halo['R_size']
+    del local_halo["cofm"]
+    del local_halo["R_size"]
 
     return local_halo
+
 
 def read_vr_group_sizes(basename, suffix, comm):
     """
@@ -560,5 +561,6 @@ def test_read_vr(snap_nr=57):
 
 if __name__ == "__main__":
     import sys
+
     snap_nr = int(sys.argv[1])
     test_read_vr(snap_nr=snap_nr)

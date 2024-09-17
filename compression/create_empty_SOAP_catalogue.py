@@ -26,6 +26,7 @@ import os
 import h5py
 import numpy as np
 
+
 def get_snapshot_index(snapshot_name):
     """
     Turn a snapshot name into a snapshot index number.
@@ -95,21 +96,27 @@ class H5copier:
             if name in ["Cosmology", "SWIFT/Header", "SWIFT/Parameters"]:
                 swift_name = name.replace("SWIFT/", "")
                 for attr in self.snapfile[swift_name].attrs:
-                    self.ofile[name].attrs[attr] = self.snapfile[swift_name].attrs[
-                        attr
-                    ]
+                    self.ofile[name].attrs[attr] = self.snapfile[swift_name].attrs[attr]
             elif name == "Header":
                 for attr in self.ifile[name].attrs:
                     self.ofile[name].attrs[attr] = self.ifile[name].attrs[attr]
-                self.ofile[name].attrs['NumSubhalos_ThisFile'] = np.array([0], dtype='int32')
-                self.ofile[name].attrs['NumSubhalos_Total'] = np.array([0], dtype='int32')
-                self.ofile[name].attrs['Redshift'] = snapfile['Cosmology'].attrs['Redshift']
-                self.ofile[name].attrs['Scale-factor'] = snapfile['Cosmology'].attrs['Scale-factor']
+                self.ofile[name].attrs["NumSubhalos_ThisFile"] = np.array(
+                    [0], dtype="int32"
+                )
+                self.ofile[name].attrs["NumSubhalos_Total"] = np.array(
+                    [0], dtype="int32"
+                )
+                self.ofile[name].attrs["Redshift"] = snapfile["Cosmology"].attrs[
+                    "Redshift"
+                ]
+                self.ofile[name].attrs["Scale-factor"] = snapfile["Cosmology"].attrs[
+                    "Scale-factor"
+                ]
             elif name == "Parameters":
                 for attr in self.ifile[name].attrs:
                     self.ofile[name].attrs[attr] = self.ifile[name].attrs[attr]
-                self.ofile[name].attrs['halo_indices'] = np.array([], dtype='int64')
-                self.ofile[name].attrs['snapshot_nr'] = self.snapnum
+                self.ofile[name].attrs["halo_indices"] = np.array([], dtype="int64")
+                self.ofile[name].attrs["snapshot_nr"] = self.snapnum
             else:
                 for attr in self.ifile[name].attrs:
                     self.ofile[name].attrs[attr] = self.ifile[name].attrs[attr]

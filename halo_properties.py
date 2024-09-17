@@ -1,7 +1,6 @@
 #!/bin/env python
 
 
-
 class SearchRadiusTooSmallError(Exception):
     pass
 

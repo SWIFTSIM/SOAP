@@ -195,7 +195,7 @@ def get_angular_momentum_and_kappa_corot(
 
 
 def get_vmax(
-    mass: unyt.unyt_array, radius: unyt.unyt_array, nskip: int=0
+    mass: unyt.unyt_array, radius: unyt.unyt_array, nskip: int = 0
 ) -> Tuple[unyt.unyt_quantity, unyt.unyt_quantity]:
     """
     Get the maximum circular velocity of a particle distribution.
@@ -223,7 +223,9 @@ def get_vmax(
     isort = np.argsort(radius)
     ordered_radius = radius[isort]
     cumulative_mass = mass[isort].cumsum()
-    nskip = max(nskip, np.argmin(np.isclose(ordered_radius, 0.0 * ordered_radius.units)))
+    nskip = max(
+        nskip, np.argmin(np.isclose(ordered_radius, 0.0 * ordered_radius.units))
+    )
     ordered_radius = ordered_radius[nskip:]
     if len(ordered_radius) == 0 or ordered_radius[0] == 0:
         return 0.0 * radius.units, np.sqrt(0.0 * G * mass.units / radius.units)
@@ -233,8 +235,10 @@ def get_vmax(
     return ordered_radius[imax], np.sqrt(v_over_G[imax] * G)
 
 
-def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduced=False, max_iterations=20):
-    '''
+def get_inertia_tensor(
+    mass, position, sphere_radius, search_radius=None, reduced=False, max_iterations=20
+):
+    """
     Get the inertia tensor of the given particle distribution, computed as 
     I_{ij} = m*x_i*x_j / Mtot.
 
@@ -255,7 +259,7 @@ def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduce
        The maximum number of iterations to repeat the inertia tensor calculation
 
     Returns the inertia tensor.
-    '''
+    """
 
     # Remove particles at centre if calculating reduced tensor
     if reduced:
@@ -270,16 +274,12 @@ def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduce
     q = 1000
 
     # Ensure we have consistent units
-    R = sphere_radius.to('kpc')
-    position = position.to('kpc')
+    R = sphere_radius.to("kpc")
+    position = position.to("kpc")
 
     # Start with a sphere
     eig_val = [1, 1, 1]
-    eig_vec = np.array([
-        [1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-    ])
+    eig_vec = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
     for i_iter in range(max_iterations):
         # Calculate shape
@@ -293,11 +293,9 @@ def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduce
             break
 
         # Calculate ellipsoid, determine which particles are inside
-        axis = R * np.array([
-            1 * np.cbrt(s * p),
-            1 * np.cbrt(q / p),
-            1 / np.cbrt(q * s),
-        ])
+        axis = R * np.array(
+            [1 * np.cbrt(s * p), 1 * np.cbrt(q / p), 1 / np.cbrt(q * s)]
+        )
         p = np.dot(position, eig_vec) / axis
         r = np.linalg.norm(p, axis=1)
         # We want to skip the calculation if we only only have a small number of particles
@@ -323,8 +321,10 @@ def get_inertia_tensor(mass, position, sphere_radius, search_radius=None, reduce
     return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
 
 
-def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, max_iterations=20):
-    '''
+def get_projected_inertia_tensor(
+    mass, position, axis, radius, reduced=False, max_iterations=20
+):
+    """
     Takes in the particle distribution projected along a given axis, and calculates the inertia
     tensor using the projected values.
 
@@ -347,7 +347,7 @@ def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, ma
        The maximum number of iterations to repeat the inertia tensor calculation
 
     Returns the inertia tensor.
-    '''
+    """
 
     projected_position = unyt.unyt_array(
         np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
@@ -377,15 +377,12 @@ def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, ma
     q = 1000
 
     # Ensure we have consistent units
-    R = radius.to('kpc')
-    projected_position = projected_position.to('kpc')
+    R = radius.to("kpc")
+    projected_position = projected_position.to("kpc")
 
     # Start with a circle
     eig_val = [1, 1]
-    eig_vec = np.array([
-        [1, 0],
-        [0, 1],
-    ])
+    eig_vec = np.array([[1, 0], [0, 1]])
 
     for i_iter in range(max_iterations):
         # Calculate shape
@@ -397,10 +394,7 @@ def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, ma
             break
 
         # Calculate ellipse, determine which particles are inside
-        axis = R * np.array([
-            1 * np.sqrt(q),
-            1 / np.sqrt(q),
-        ])
+        axis = R * np.array([1 * np.sqrt(q), 1 / np.sqrt(q)])
         p = np.dot(projected_position, eig_vec) / axis
         r = np.linalg.norm(p, axis=1)
         # We want to skip the calculation if we only only have a small number of particles
@@ -410,15 +404,20 @@ def get_projected_inertia_tensor(mass, position, axis, radius, reduced=False, ma
             return None
         weight = mass / np.sum(mass[r <= 1])
         weight[r > 1] = 0
-        
+
         # Calculate inertia tensor
-        tensor = weight[:, None, None] * projected_position[:, :, None] * projected_position[:, None, :]
+        tensor = (
+            weight[:, None, None]
+            * projected_position[:, :, None]
+            * projected_position[:, None, :]
+        )
         if reduced:
             tensor /= norm[:, None, None]
         tensor = tensor.sum(axis=0)
         eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
     return np.concatenate([np.diag(tensor), [tensor[(0, 1)]]])
+
 
 if __name__ == "__main__":
     """

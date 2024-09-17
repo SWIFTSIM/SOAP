@@ -48,8 +48,10 @@ class ColdDenseGasFilter:
         self.minimum_hydrogen_number_density = minimum_hydrogen_number_density
         self.initialised = initialised
         self.metadata = {
-            'maximum_temperature_in_K': maximum_temperature.to('K').value,
-            'minimum_hydrogen_number_density_in_cm-3': minimum_hydrogen_number_density.to('1/cm**3').value,
+            "maximum_temperature_in_K": maximum_temperature.to("K").value,
+            "minimum_hydrogen_number_density_in_cm-3": minimum_hydrogen_number_density.to(
+                "1/cm**3"
+            ).value,
         }
 
     def is_cold_and_dense(
@@ -67,7 +69,7 @@ class ColdDenseGasFilter:
         Returns a mask array that can be used to index other particle arrays.
         """
         if not self.initialised:
-            raise RuntimeError('ColdDenseGasFilter was not initialised')
+            raise RuntimeError("ColdDenseGasFilter was not initialised")
         hydrogen_number_density = mass_density / unyt.mh
         return (temperature < self.maximum_temperature.to(temperature.units)) & (
             hydrogen_number_density
