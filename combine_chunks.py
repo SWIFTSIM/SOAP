@@ -301,6 +301,50 @@ def combine_chunks(
 
             del data
 
+    # Save the properties from the FOF catalogues
+    if fof_metadata:
+        # Extract units from FOF file
+        if comm_world.Get_rank() == 0:
+            with h5py.File(args.fof_group_filename.format(file_nr=0, snap_nr= args.snapshot_nr), "r") as fof_file:
+                fof_reg = swift_units.unit_registry_from_snapshot(fof_file)
+                fof_com_unit = swift_units.units_from_attributes(dict(fof_file['Groups/Centres'].attrs), fof_reg)
+                fof_mass_unit = swift_units.units_from_attributes(dict(fof_file['Groups/Masses'].attrs), fof_reg)
+        else:
+            fof_reg = None
+            fof_com_unit = None
+            fof_mass_unit = None
+        (fof_reg, fof_com_unit, fof_mass_unit) = comm_world.bcast((fof_reg, fof_com_unit, fof_mass_unit))
+            
+        # Open file in parallel
+        pf = PartialFormatter()
+        fof_filename = pf.format(args.fof_group_filename, snap_nr=args.snapshot_nr, file_nr=None)
+        fof_file = phdf5.MultiFile(
+            fof_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm_world
+        )
+
+        # Save data only for central halos which are not hostless
+        keep = (props_kept["InputHalos/IsCentral"] == 1) & (props_kept["InputHalos/HBTplus/HostFOFId"] != -1)
+        fof_ids = props_kept["InputHalos/HBTplus/HostFOFId"][keep]
+        indices = psort.parallel_match(fof_ids, fof_file.read('Groups/GroupIDs'), comm=comm_world)
+        # Assert that a FOF group has been found for all subhalos which should have one
+        assert np.all(indices >= 0)
+
+        fof_com = np.zeros((keep.shape[0], 3), dtype=np.float64)
+        fof_com[keep] = psort.fetch_elements(fof_file.read('Groups/Centres'), indices, comm=comm_world)
+        props = PropertyTable.full_property_list[f"FOF/Centres"]
+        fof_com = (fof_com * fof_com_unit).to(cellgrid.get_unit(props[3]))
+        phdf5.collective_write(outfile, "InputHalos/FOF/Centres", fof_com, create_dataset=False, comm=comm_world)
+
+        fof_mass = np.zeros(keep.shape[0], dtype=np.float64)
+        fof_mass[keep] = psort.fetch_elements(fof_file.read('Groups/Masses'), indices, comm=comm_world)
+        props = PropertyTable.full_property_list[f"FOF/Masses"]
+        fof_mass = (fof_mass * fof_mass_unit).to(cellgrid.get_unit(props[3]))
+        phdf5.collective_write(outfile, "InputHalos/FOF/Masses", fof_mass, create_dataset=False, comm=comm_world)
+
+        fof_size = np.zeros(keep.shape[0], dtype=np.int64)
+        fof_size[keep] = psort.fetch_elements(fof_file.read('Groups/Sizes'), indices, comm=comm_world)
+        phdf5.collective_write(outfile, "InputHalos/FOF/Sizes", fof_size, create_dataset=False, comm=comm_world)
+
     # Calculate the index in the SOAP output of the host field halo (VR) or the central subhalo of the host FOF group (HBTplus)
     if len(host_halo_index_props) > 0:
         with MPITimer("Calculate and write host index of each satellite", comm_world):
@@ -411,7 +455,7 @@ def combine_chunks(
             # Each rank determines which halos to keep
             reduced_snapshot = np.zeros(order.shape[0], dtype=np.int32)
             for i_bin in range(bins.shape[0]-1):
-                mask = (bins[i_bin] < mass) & (mass < bins[i_bin+1])
+                mask = (bins[i_bin] <= mass) & (mass < bins[i_bin+1])
                 idx = np.where(mask)[0]
                 assert n_keep[i_bin] <= np.sum(mask)
                 keep_idx = np.random.choice(idx, size=n_keep[i_bin], replace=False)
@@ -428,52 +472,6 @@ def combine_chunks(
         create_dataset=False,
         comm=comm_world,
     )
-
-    # Save the properties from the FOF catalogues
-    # Run this last in case it fails
-    comm.barrier()
-    if fof_metadata:
-        # Extract units from FOF file
-        if comm_world.Get_rank() == 0:
-            with h5py.File(args.fof_group_filename.format(file_nr=0, snap_nr= args.snapshot_nr), "r") as fof_file:
-                fof_reg = swift_units.unit_registry_from_snapshot(fof_file)
-                fof_com_unit = swift_units.units_from_attributes(dict(fof_file['Groups/Centres'].attrs), fof_reg)
-                fof_mass_unit = swift_units.units_from_attributes(dict(fof_file['Groups/Masses'].attrs), fof_reg)
-        else:
-            fof_reg = None
-            fof_com_unit = None
-            fof_mass_unit = None
-        (fof_reg, fof_com_unit, fof_mass_unit) = comm_world.bcast((fof_reg, fof_com_unit, fof_mass_unit))
-
-        # Open file in parallel
-        pf = PartialFormatter()
-        fof_filename = pf.format(args.fof_group_filename, snap_nr=args.snapshot_nr, file_nr=None)
-        fof_file = phdf5.MultiFile(
-            fof_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm_world
-        )
-
-        # Save data only for central halos which are not hostless
-        keep = (props_kept["InputHalos/IsCentral"] == 1) & (props_kept["InputHalos/HBTplus/HostFOFId"] != -1)
-        fof_ids = props_kept["InputHalos/HBTplus/HostFOFId"][keep]
-        indices = psort.parallel_match(fof_ids, fof_file.read('Groups/GroupIDs'), comm=comm_world)
-        # Assert that a FOF group has been found for all subhalos which should have one
-        assert np.all(indices >= 0), "Corresponding FOF groups could not be found for certain subhalos"
-
-        fof_com = np.zeros((keep.shape[0], 3), dtype=np.float64)
-        fof_com[keep] = psort.fetch_elements(fof_file.read('Groups/Centres'), indices, comm=comm_world)
-        props = PropertyTable.full_property_list[f"FOF/Centres"]
-        fof_com = (fof_com * fof_com_unit).to(cellgrid.get_unit(props[3]))
-        phdf5.collective_write(outfile, "InputHalos/FOF/Centres", fof_com, create_dataset=False, comm=comm_world)
-
-        fof_mass = np.zeros(keep.shape[0], dtype=np.float64)
-        fof_mass[keep] = psort.fetch_elements(fof_file.read('Groups/Masses'), indices, comm=comm_world)
-        props = PropertyTable.full_property_list[f"FOF/Masses"]
-        fof_mass = (fof_mass * fof_mass_unit).to(cellgrid.get_unit(props[3]))
-        phdf5.collective_write(outfile, "InputHalos/FOF/Masses", fof_mass, create_dataset=False, comm=comm_world)
-
-        fof_size = np.zeros(keep.shape[0], dtype=np.int64)
-        fof_size[keep] = psort.fetch_elements(fof_file.read('Groups/Sizes'), indices, comm=comm_world)
-        phdf5.collective_write(outfile, "InputHalos/FOF/Sizes", fof_size, create_dataset=False, comm=comm_world)
 
     # Done.
     outfile.close()
