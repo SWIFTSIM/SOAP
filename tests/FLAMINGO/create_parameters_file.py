@@ -1,13 +1,15 @@
 """
 Creates a parameter file used for testing SOAP on FLAMINGO.
 
-Loads input/output file paths from 'tests/FLAMINGO/parameters.yml'
+Loads input/output file paths from yaml file passed as argument
 Loads properties to compute from 'parameter_files/FLAMINGO.yml'
 """
 
+import sys
+
 import yaml
 
-with open('tests/FLAMINGO/parameters.yml', 'r') as file:
+with open(sys.argv[1], 'r') as file:
     test_params = yaml.safe_load(file)
 
 with open('parameter_files/FLAMINGO.yml', 'r') as file:

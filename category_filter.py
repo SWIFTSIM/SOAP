@@ -25,6 +25,7 @@ BoundSubhalo properties.
 from property_table import PropertyTable
 from typing import Dict
 
+
 class CategoryFilter:
     """
     Filter used to determine whether properties need to be calculated for a
@@ -63,7 +64,9 @@ class CategoryFilter:
         self.filters = filters
         self.dmo = dmo
 
-    def get_do_calculation(self, halo_result: Dict, precomputed_properties: Dict = {}) -> Dict:
+    def get_do_calculation(
+        self, halo_result: Dict, precomputed_properties: Dict = {}
+    ) -> Dict:
         """
         Get a mask for each category, depending on the properties of the subhalo.
 
@@ -76,25 +79,27 @@ class CategoryFilter:
 
         Returns a dictionary containing True/False for each filter category.
         """
-        do_calculation = {'basic': True, 'DMO': self.dmo}
+        do_calculation = {"basic": True, "DMO": self.dmo}
         if self.dmo:
-            precomputed_properties['BoundSubhalo/NumberOfGasParticles'] = 0
-            precomputed_properties['BoundSubhalo/NumberOfStarParticles'] = 0
-            precomputed_properties['BoundSubhalo/NumberOfBlackHoleParticles'] = 0
-            precomputed_properties['SO/200_crit/NumberOfGasParticles'] = 0
+            precomputed_properties["BoundSubhalo/NumberOfGasParticles"] = 0
+            precomputed_properties["BoundSubhalo/NumberOfStarParticles"] = 0
+            precomputed_properties["BoundSubhalo/NumberOfBlackHoleParticles"] = 0
+            precomputed_properties["SO/200_crit/NumberOfGasParticles"] = 0
         for name, filter_info in self.filters.items():
-            if (len(filter_info['properties']) == 1) or (filter_info['combine_properties'] == 'sum'):
+            if (len(filter_info["properties"]) == 1) or (
+                filter_info["combine_properties"] == "sum"
+            ):
                 v = 0
-                for prop in filter_info['properties']:
+                for prop in filter_info["properties"]:
                     # Try to find the property in precomputed_properties
                     if prop in precomputed_properties:
                         v += precomputed_properties[prop]
                     # If property is also not present in halo_result throw an error
                     else:
                         v += halo_result[prop][0].value
-                do_calculation[name] = v >= filter_info['limit']
+                do_calculation[name] = v >= filter_info["limit"]
             else:
-                msg = f'Invalid combine_properties function for filter {name}'
+                msg = f"Invalid combine_properties function for filter {name}"
                 raise NotImplementedError(msg)
         return do_calculation
 
@@ -146,7 +151,6 @@ class CategoryFilter:
         # (e.g. "density_in_search_radius")
         return self.get_filter_metadata(category)
 
-
     def get_filter_metadata(self, category: str) -> Dict:
         """
         Return a dictionary with metadata for the input category filter.
@@ -183,11 +187,13 @@ class CategoryFilter:
         elif category in self.filters:
             metadata = {
                 "Masked": True,
-                "Mask Datasets": self.filters[category]['properties'],
-                "Mask Threshold": self.filters[category]['limit'],
+                "Mask Datasets": self.filters[category]["properties"],
+                "Mask Threshold": self.filters[category]["limit"],
             }
-            if len(self.filters[category]['properties']) > 1:
-                metadata["Mask Dataset Combination"] = self.filters[category]['combine_properties']
+            if len(self.filters[category]["properties"]) > 1:
+                metadata["Mask Dataset Combination"] = self.filters[category][
+                    "combine_properties"
+                ]
             return metadata
         else:
             # if we don't know the category, we cannot mask it
@@ -197,6 +203,6 @@ class CategoryFilter:
     def print_filters(self):
         if self.dmo:
             print("Run in DMO mode")
-        print('Category filters :')
+        print("Category filters :")
         for name, filter_info in self.filters.items():
             print(f"  {name.ljust(10)}{filter_info['limit']}")

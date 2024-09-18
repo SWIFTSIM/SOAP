@@ -104,11 +104,13 @@ def compress_dataset(arguments):
     # Setting hdf5 version of file
     fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
     fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
-    fid = h5py.h5f.create(output_name.encode('utf-8'), flags=h5py.h5f.ACC_TRUNC, fapl=fapl)
+    fid = h5py.h5f.create(
+        output_name.encode("utf-8"), flags=h5py.h5f.ACC_TRUNC, fapl=fapl
+    )
 
     with h5py.File(input_name, "r") as ifile, h5py.File(output_name, "r+") as ofile:
         group_name = dset.split("/")[0]
-        if group_name == 'Cells':
+        if group_name == "Cells":
             filter = "None"
         else:
             filter = ifile[dset].attrs["Lossy compression filter"]
@@ -116,8 +118,8 @@ def compress_dataset(arguments):
         if dset_name in compression_fixes:
             filter = compression_fixes[dset_name]
         # TODO: Remove after removing DMantissa21 from property table
-        if filter == 'DMantissa21':
-            filter = 'DMantissa9'
+        if filter == "DMantissa21":
+            filter = "DMantissa9"
         data = ifile[dset][:]
         if filter == "None":
             if len(data.shape) == 1:
@@ -139,8 +141,13 @@ def compress_dataset(arguments):
                 if attr == "Lossy compression filter":
                     ofile["data"].attrs[attr] = filter
                 # TODO: Remove, this was only the case for a small number of catalogues
-                elif attr == "Conversion factor to CGS (including cosmological corrections)":
-                    ofile["data"].attrs["Conversion factor to physical CGS (including cosmological corrections)"] = filter
+                elif (
+                    attr
+                    == "Conversion factor to CGS (including cosmological corrections)"
+                ):
+                    ofile["data"].attrs[
+                        "Conversion factor to physical CGS (including cosmological corrections)"
+                    ] = filter
                 else:
                     ofile["data"].attrs[attr] = ifile[dset].attrs[attr]
 
@@ -165,7 +172,9 @@ if __name__ == "__main__":
     # Setting hdf5 version of file
     fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
     fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
-    fid = h5py.h5f.create(args.output.encode('utf-8'), flags=h5py.h5f.ACC_TRUNC, fapl=fapl)
+    fid = h5py.h5f.create(
+        args.output.encode("utf-8"), flags=h5py.h5f.ACC_TRUNC, fapl=fapl
+    )
 
     print(f"Copying over groups to {args.output} and listing datasets...")
     tic = time.time()

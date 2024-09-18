@@ -20,8 +20,17 @@ comm_rank = comm.Get_rank()
 comm_size = comm.Get_size()
 
 
-def process_particle_type(ptype, snap_file, ids_bound, grnr_bound, rank_bound,
-                          ids_unbound, fof_ptypes, fof_file, create_file):
+def process_particle_type(
+    ptype,
+    snap_file,
+    ids_bound,
+    grnr_bound,
+    rank_bound,
+    ids_unbound,
+    fof_ptypes,
+    fof_file,
+    create_file,
+):
     """
     Compute group membership for one particle type
     """
@@ -34,7 +43,9 @@ def process_particle_type(ptype, snap_file, ids_bound, grnr_bound, rank_bound,
     max_nr_parts_local = comm.allreduce(nr_parts_local, op=MPI.MAX)
     min_nr_parts_local = comm.allreduce(nr_parts_local, op=MPI.MIN)
     if comm_rank == 0:
-        print(f"  Number of snapshot particle IDs per rank min={min_nr_parts_local}, max={max_nr_parts_local}")
+        print(
+            f"  Number of snapshot particle IDs per rank min={min_nr_parts_local}, max={max_nr_parts_local}"
+        )
 
     # Look up FoF group membership of the particles
     if ptype in fof_ptypes:
@@ -77,9 +88,7 @@ def process_particle_type(ptype, snap_file, ids_bound, grnr_bound, rank_bound,
             print("  Assigning unbound group membership to SWIFT particles")
         matched = ptr >= 0
         swift_grnr_unbound = np.ndarray(len(swift_ids), dtype=grnr_unbound.dtype)
-        swift_grnr_unbound[matched] = psort.fetch_elements(
-            grnr_unbound, ptr[matched]
-        )
+        swift_grnr_unbound[matched] = psort.fetch_elements(grnr_unbound, ptr[matched])
         swift_grnr_unbound[matched == False] = -1
         swift_grnr_all = np.maximum(swift_grnr_bound, swift_grnr_unbound)
         del ptr
@@ -148,10 +157,17 @@ if __name__ == "__main__":
 
     # Read parameters from command line and config file
     from virgo.mpi.util import MPIArgumentParser
-    parser = MPIArgumentParser(comm=comm, description="Compute particle group membership in SWIFT snapshots.")
-    parser.add_argument("config_file", type=str, help="Name of the yaml configuration file")
-    parser.add_argument("--sim-name", type=str, help="Name of the simulation to process")
-    parser.add_argument("--snap-nr", type=int, help="Snapshot number to process")    
+
+    parser = MPIArgumentParser(
+        comm=comm, description="Compute particle group membership in SWIFT snapshots."
+    )
+    parser.add_argument(
+        "config_file", type=str, help="Name of the yaml configuration file"
+    )
+    parser.add_argument(
+        "--sim-name", type=str, help="Name of the simulation to process"
+    )
+    parser.add_argument("--snap-nr", type=int, help="Snapshot number to process")
     args = parser.parse_args()
     args = combine_args.combine_arguments(args, args.config_file)
 
@@ -171,10 +187,12 @@ if __name__ == "__main__":
     output_file = pf.format(output_file, snap_nr=snap_nr, file_nr=None)
 
     # Check both swift and output filenames are (not) chunk files
-    if 'file_nr' in swift_filename:
-        assert 'file_nr' in output_file, "Membership filenames require {file_nr}"
+    if "file_nr" in swift_filename:
+        assert "file_nr" in output_file, "Membership filenames require {file_nr}"
     else:
-        assert 'file_nr' not in output_file, "Membership filenames shouldn't have {file_nr}"
+        assert (
+            "file_nr" not in output_file
+        ), "Membership filenames shouldn't have {file_nr}"
 
     # Ensure output dir exists
     if comm_rank == 0:
@@ -207,7 +225,7 @@ if __name__ == "__main__":
         ids_unbound = None
         grnr_unbound = None
         rank_bound = None
-    elif halo_format == 'Rockstar':
+    elif halo_format == "Rockstar":
         # Read Rockstar output
         total_nr_halos, ids_bound, grnr_bound = read_rockstar.read_rockstar_groupnr(
             halo_basename
@@ -223,7 +241,9 @@ if __name__ == "__main__":
     max_nr_parts_local = comm.allreduce(nr_parts_local, op=MPI.MAX)
     min_nr_parts_local = comm.allreduce(nr_parts_local, op=MPI.MIN)
     if comm_rank == 0:
-        print(f"Number of group particle IDs per rank min={min_nr_parts_local}, max={max_nr_parts_local}")
+        print(
+            f"Number of group particle IDs per rank min={min_nr_parts_local}, max={max_nr_parts_local}"
+        )
         # Determine SWIFT particle types which exist in the snapshot
         ptypes = []
         with h5py.File(swift_filename.format(file_nr=0), "r") as infile:
@@ -246,13 +266,13 @@ if __name__ == "__main__":
     # Read in FOF file information if a separate file has been passed
     fof_ptypes = []
     fof_file = None
-    if fof_filename != '':
+    if fof_filename != "":
         # Determine particle types which exist in the FOF file
         if comm_rank == 0:
             with h5py.File(fof_filename.format(file_nr=0), "r") as infile:
                 nr_types = infile["Header"].attrs["NumPartTypes"][0]
                 for i in range(nr_types):
-                    if f'PartType{i}' in infile:
+                    if f"PartType{i}" in infile:
                         fof_ptypes.append(f"PartType{i}")
         fof_ptypes = comm.bcast(fof_ptypes)
 
@@ -264,8 +284,17 @@ if __name__ == "__main__":
     # Loop over particle types
     create_file = True
     for ptype in ptypes:
-        process_particle_type(ptype, snap_file, ids_bound, grnr_bound, rank_bound,
-                              ids_unbound, fof_ptypes, fof_file, create_file)
+        process_particle_type(
+            ptype,
+            snap_file,
+            ids_bound,
+            grnr_bound,
+            rank_bound,
+            ids_unbound,
+            fof_ptypes,
+            fof_file,
+            create_file,
+        )
         create_file = False
 
     comm.barrier()

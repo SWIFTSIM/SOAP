@@ -57,7 +57,7 @@ class SOCatalogue:
 
         comm_rank = comm.Get_rank()
         comm_size = comm.Get_size()
-        
+
         # Get SWIFT's definition of physical and comoving Mpc units
         swift_pmpc = unyt.Unit("swift_mpc", registry=registry)
         swift_cmpc = unyt.Unit(a_unit * swift_pmpc, registry=registry)
@@ -105,7 +105,7 @@ class SOCatalogue:
         del halo_data
 
         # Only keep halos in the supplied list of halo IDs.
-        if (halo_indices is not None) and (local_halo['index'].shape[0]):
+        if (halo_indices is not None) and (local_halo["index"].shape[0]):
             halo_indices = np.asarray(halo_indices, dtype=np.int64)
             keep = np.zeros_like(local_halo["index"], dtype=bool)
             matching_index = virgo.util.match.match(halo_indices, local_halo["index"])
@@ -133,11 +133,11 @@ class SOCatalogue:
                 local_halo[name] = local_halo[name][:nr_keep_local, ...]
 
         # Repartition halos
-        nr_halos = local_halo['index'].shape[0]
+        nr_halos = local_halo["index"].shape[0]
         total_nr_halos = comm.allreduce(nr_halos)
         ndesired = np.zeros(comm_size, dtype=int)
         ndesired[:] = total_nr_halos // comm_size
-        ndesired[:total_nr_halos % comm_size] += 1
+        ndesired[: total_nr_halos % comm_size] += 1
         for name in local_halo:
             local_halo[name] = psort.repartition(local_halo[name], ndesired, comm=comm)
 
@@ -146,7 +146,7 @@ class SOCatalogue:
         self.nr_halos = comm.allreduce(self.nr_local_halos, op=MPI.SUM)
 
         if (self.nr_halos == 0) and (comm_rank == 0):
-            print('No halos found, aborting run')
+            print("No halos found, aborting run")
             exit(1)
 
         # Reduce the number of chunks if necessary so that all chunks have at least one halo
@@ -168,12 +168,14 @@ class SOCatalogue:
         physical_radius_mpc = 0.0
         for halo_prop in halo_prop_list:
             # Skip halo_types with a filter
-            if halo_prop.halo_filter != 'basic':
+            if halo_prop.halo_filter != "basic":
                 continue
             physical_radius_mpc = max(
                 physical_radius_mpc, halo_prop.physical_radius_mpc
             )
-            physical_radius_mpc = unyt.unyt_quantity(physical_radius_mpc, units=swift_pmpc)
+            physical_radius_mpc = unyt.unyt_quantity(
+                physical_radius_mpc, units=swift_pmpc
+            )
 
         # Ensure that both the initial search radius and the radius to read in
         # are >= the minimum physical radius required by property calculations
@@ -201,7 +203,11 @@ class SOCatalogue:
             i1 = self.chunk_offset[chunk_nr] - self.local_halo_offset
             if i1 < 0:
                 i1 = 0
-            i2 = self.chunk_offset[chunk_nr] + self.chunk_size[chunk_nr] - self.local_halo_offset
+            i2 = (
+                self.chunk_offset[chunk_nr]
+                + self.chunk_size[chunk_nr]
+                - self.local_halo_offset
+            )
             if i2 > self.nr_local_halos:
                 i2 = self.nr_local_halos
             # Record the range
@@ -217,8 +223,10 @@ class SOCatalogue:
         # Here we make an array with one element per chunk. Each MPI rank enters its own rank
         # index in every chunk for which it has >0 halos. We then find the min and max of
         # each array element over all MPI ranks.
-        chunk_min_rank = np.ones(nr_chunks, dtype=int) * comm_size # One more than maximum rank
-        chunk_max_rank = np.ones(nr_chunks, dtype=int) -1          # One less than minimum rank
+        chunk_min_rank = (
+            np.ones(nr_chunks, dtype=int) * comm_size
+        )  # One more than maximum rank
+        chunk_max_rank = np.ones(nr_chunks, dtype=int) - 1  # One less than minimum rank
         for chunk_nr in range(nr_chunks):
             if self.local_chunk_size[chunk_nr] > 0:
                 chunk_min_rank[chunk_nr] = comm_rank
@@ -232,7 +240,10 @@ class SOCatalogue:
 
         # Check that chunk_[min|max]_rank is consistent with local_chunk_size
         for chunk_nr in range(nr_chunks):
-            assert (comm_rank >= chunk_min_rank[chunk_nr] and comm_rank <= chunk_max_rank[chunk_nr]) == (self.local_chunk_size[chunk_nr] > 0)
+            assert (
+                comm_rank >= chunk_min_rank[chunk_nr]
+                and comm_rank <= chunk_max_rank[chunk_nr]
+            ) == (self.local_chunk_size[chunk_nr] > 0)
 
         self.chunk_min_rank = chunk_min_rank
         self.chunk_max_rank = chunk_max_rank
@@ -261,14 +272,16 @@ class SOCatalogue:
             src_rank = status.Get_source()
             if chunk_nr < 0:
                 break
-            assert self.local_chunk_size[chunk_nr] > 0 # Should only get requests for chunks we have locally
+            assert (
+                self.local_chunk_size[chunk_nr] > 0
+            )  # Should only get requests for chunks we have locally
 
             # Return our local part of the halo catalogue arrays for the
             # requested chunk.
             for name in self.prop_names:
                 i1 = self.local_chunk_offset[chunk_nr]
                 i2 = self.local_chunk_offset[chunk_nr] + self.local_chunk_size[chunk_nr]
-                sendbuf = self.local_halo[name][i1:i2,...]
+                sendbuf = self.local_halo[name][i1:i2, ...]
                 comm.Send(sendbuf, dest=src_rank, tag=HALO_RESPONSE_TAG)
 
     def start_request_thread(self):
@@ -286,11 +299,15 @@ class SOCatalogue:
         comm = self.comm
 
         # Determine which ranks in comm_world contain parts of chunk chunk_nr
-        rank_nrs = list(range(self.chunk_min_rank[chunk_nr], self.chunk_max_rank[chunk_nr]+1))
+        rank_nrs = list(
+            range(self.chunk_min_rank[chunk_nr], self.chunk_max_rank[chunk_nr] + 1)
+        )
         nr_ranks = len(rank_nrs)
 
         # Determine how many halos we will receive in total
-        nr_halos = sum([self.rank_chunk_sizes[rank_nr][chunk_nr] for rank_nr in rank_nrs])
+        nr_halos = sum(
+            [self.rank_chunk_sizes[rank_nr][chunk_nr] for rank_nr in rank_nrs]
+        )
         assert nr_halos == self.chunk_size[chunk_nr]
 
         # Allocate the output arrays. These are the same as our local part of
@@ -306,7 +323,9 @@ class SOCatalogue:
         # Submit requests for halo data
         send_requests = []
         for rank_nr in rank_nrs:
-            send_requests.append(comm.isend(chunk_nr, dest=rank_nr, tag=HALO_REQUEST_TAG))
+            send_requests.append(
+                comm.isend(chunk_nr, dest=rank_nr, tag=HALO_REQUEST_TAG)
+            )
 
         # Post receives for the halo arrays
         recv_requests = []
@@ -314,11 +333,17 @@ class SOCatalogue:
         for rank_nr in rank_nrs:
             count = self.rank_chunk_sizes[rank_nr][chunk_nr]
             for name in self.prop_names:
-                recv_requests.append(comm.Irecv(data[name][offset:offset+count,...], source=rank_nr, tag=HALO_RESPONSE_TAG))
+                recv_requests.append(
+                    comm.Irecv(
+                        data[name][offset : offset + count, ...],
+                        source=rank_nr,
+                        tag=HALO_RESPONSE_TAG,
+                    )
+                )
             offset += count
 
         # Wait for all communications to complete
-        MPI.Request.waitall(send_requests+recv_requests)
+        MPI.Request.waitall(send_requests + recv_requests)
 
         return data
 

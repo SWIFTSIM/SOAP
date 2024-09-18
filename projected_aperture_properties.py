@@ -294,9 +294,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         Mass of the baryon particles (gas + stars).
         """
-        return self.proj_mass[
-            (self.proj_type == 0) | (self.proj_type == 4)
-        ]
+        return self.proj_mass[(self.proj_type == 0) | (self.proj_type == 4)]
 
     @lazy_property
     def proj_pos_gas(self) -> unyt.unyt_array:
@@ -324,9 +322,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         Projected position of the baryon (gas + stars) particles.
         """
-        return self.proj_position[
-            (self.proj_type == 0) | (self.proj_type == 4)
-        ]
+        return self.proj_position[(self.proj_type == 0) | (self.proj_type == 4)]
 
     @lazy_property
     def Mtot(self) -> unyt.unyt_quantity:
@@ -471,9 +467,11 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return np.sum(self.part_props.get_dataset("PartType5/AGNTotalInjectedEnergies")[
-            self.bh_mask_all
-        ][self.bh_mask_ap])
+        return np.sum(
+            self.part_props.get_dataset("PartType5/AGNTotalInjectedEnergies")[
+                self.bh_mask_all
+            ][self.bh_mask_ap]
+        )
 
     @lazy_property
     def BlackHolesTotalInjectedJetEnergy(self) -> unyt.unyt_quantity:
@@ -482,9 +480,11 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return np.sum(self.part_props.get_dataset("PartType5/InjectedJetEnergies")[
-            self.bh_mask_all
-        ][self.bh_mask_ap])
+        return np.sum(
+            self.part_props.get_dataset("PartType5/InjectedJetEnergies")[
+                self.bh_mask_all
+            ][self.bh_mask_ap]
+        )
 
     @lazy_property
     def iBHmax(self) -> int:
@@ -578,9 +578,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/AccretionModes")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/AccretionModes")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleGWMassLoss(self) -> unyt.unyt_quantity:
@@ -589,9 +589,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/GWMassLosses")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/GWMassLosses")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleInjectedJetEnergyByMode(self) -> unyt.unyt_quantity:
@@ -601,9 +601,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/InjectedJetEnergiesByMode")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/InjectedJetEnergiesByMode")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleLastJetEventScalefactor(self) -> unyt.unyt_quantity:
@@ -612,9 +612,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/LastAGNJetScaleFactors")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/LastAGNJetScaleFactors")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleNumberOfAGNEvents(self) -> unyt.unyt_quantity:
@@ -623,9 +623,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/NumberOfAGNEvents")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/NumberOfAGNEvents")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleNumberOfAGNJetEvents(self) -> unyt.unyt_quantity:
@@ -634,9 +634,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/NumberOfAGNJetEvents")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/NumberOfAGNJetEvents")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleNumberOfMergers(self) -> unyt.unyt_quantity:
@@ -645,9 +645,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/NumberOfMergers")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/NumberOfMergers")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleRadiatedEnergyByMode(self) -> unyt.unyt_quantity:
@@ -656,9 +656,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/RadiatedEnergiesByMode")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/RadiatedEnergiesByMode")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleTotalAccretedMassesByMode(self) -> unyt.unyt_quantity:
@@ -667,9 +667,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/TotalAccretedMassesByMode")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/TotalAccretedMassesByMode")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleWindEnergyByMode(self) -> unyt.unyt_quantity:
@@ -678,9 +678,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/WindEnergiesByMode")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/WindEnergiesByMode")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleSpin(self) -> unyt.unyt_quantity:
@@ -689,9 +689,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/Spins")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/Spins")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleTotalAccretedMass(self) -> unyt.unyt_quantity:
@@ -700,9 +700,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/TotalAccretedMasses")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/TotalAccretedMasses")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleFormationScalefactor(self) -> unyt.unyt_quantity:
@@ -711,9 +711,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/FormationScaleFactors")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.part_props.get_dataset("PartType5/FormationScaleFactors")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def BHmaxlasteventa(self) -> unyt.unyt_quantity:
@@ -771,7 +771,12 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(self.part_props.mass, self.part_props.position, self.iproj, self.aperture_radius)
+        return get_projected_inertia_tensor(
+            self.part_props.mass,
+            self.part_props.position,
+            self.iproj,
+            self.aperture_radius,
+        )
 
     @lazy_property
     def ProjectedTotalInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -782,7 +787,13 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(self.part_props.mass, self.part_props.position, self.iproj, self.aperture_radius, reduced=True)
+        return get_projected_inertia_tensor(
+            self.part_props.mass,
+            self.part_props.position,
+            self.iproj,
+            self.aperture_radius,
+            reduced=True,
+        )
 
     @lazy_property
     def ProjectedTotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
@@ -792,7 +803,13 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, max_iterations=1)
+        return get_projected_inertia_tensor(
+            self.proj_mass,
+            self.proj_position,
+            self.iproj,
+            self.aperture_radius,
+            max_iterations=1,
+        )
 
     @lazy_property
     def ProjectedTotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -802,7 +819,14 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(self.proj_mass, self.proj_position, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
+        return get_projected_inertia_tensor(
+            self.proj_mass,
+            self.proj_position,
+            self.iproj,
+            self.aperture_radius,
+            reduced=True,
+            max_iterations=1,
+        )
 
     @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
@@ -833,7 +857,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         mass = self.part_props.mass[self.part_props.types == 0]
         position = self.part_props.position[self.part_props.types == 0]
-        return get_projected_inertia_tensor(mass, position, self.iproj, self.aperture_radius, **kwargs)
+        return get_projected_inertia_tensor(
+            mass, position, self.iproj, self.aperture_radius, **kwargs
+        )
 
     @lazy_property
     def ProjectedGasInertiaTensor(self) -> unyt.unyt_array:
@@ -865,7 +891,13 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, max_iterations=1)
+        return get_projected_inertia_tensor(
+            self.proj_mass_gas,
+            self.proj_pos_gas,
+            self.iproj,
+            self.aperture_radius,
+            max_iterations=1,
+        )
 
     @lazy_property
     def ProjectedGasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -875,7 +907,14 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_projected_inertia_tensor(self.proj_mass_gas, self.proj_pos_gas, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
+        return get_projected_inertia_tensor(
+            self.proj_mass_gas,
+            self.proj_pos_gas,
+            self.iproj,
+            self.aperture_radius,
+            reduced=True,
+            max_iterations=1,
+        )
 
     @lazy_property
     def dm_mass_fraction(self) -> unyt.unyt_array:
@@ -929,7 +968,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         mass = self.part_props.mass[self.part_props.types == 4]
         position = self.part_props.position[self.part_props.types == 4]
-        return get_projected_inertia_tensor(mass, position, self.iproj, self.aperture_radius, **kwargs)
+        return get_projected_inertia_tensor(
+            mass, position, self.iproj, self.aperture_radius, **kwargs
+        )
 
     @lazy_property
     def ProjectedStellarInertiaTensor(self) -> unyt.unyt_array:
@@ -961,7 +1002,13 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, max_iterations=1)
+        return get_projected_inertia_tensor(
+            self.proj_mass_star,
+            self.proj_pos_star,
+            self.iproj,
+            self.aperture_radius,
+            max_iterations=1,
+        )
 
     @lazy_property
     def ProjectedStellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -971,7 +1018,14 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(self.proj_mass_star, self.proj_pos_star, self.iproj, self.aperture_radius, reduced=True, max_iterations=1)
+        return get_projected_inertia_tensor(
+            self.proj_mass_star,
+            self.proj_pos_star,
+            self.iproj,
+            self.aperture_radius,
+            reduced=True,
+            max_iterations=1,
+        )
 
     @lazy_property
     def gas_mask_all(self) -> NDArray[bool]:
@@ -1298,9 +1352,7 @@ class SingleProjectionProjectedApertureParticleData:
         Half mass radius of gas.
         """
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == 0],
-            self.proj_mass_gas,
-            self.Mgas,
+            self.proj_radius[self.proj_type == 0], self.proj_mass_gas, self.Mgas
         )
 
     @lazy_property
@@ -1318,9 +1370,7 @@ class SingleProjectionProjectedApertureParticleData:
         Half mass radius of stars.
         """
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == 4],
-            self.proj_mass_star,
-            self.Mstar,
+            self.proj_radius[self.proj_type == 4], self.proj_mass_star, self.Mstar
         )
 
     @lazy_property
@@ -1329,9 +1379,7 @@ class SingleProjectionProjectedApertureParticleData:
         Half mass radius of baryons (gas + stars).
         """
         return get_half_mass_radius(
-            self.proj_radius[
-                (self.proj_type == 0) | (self.proj_type == 4)
-            ],
+            self.proj_radius[(self.proj_type == 0) | (self.proj_type == 4)],
             self.proj_mass_baryons,
             self.Mbaryons,
         )
@@ -1532,7 +1580,7 @@ class ProjectedApertureProperties(HaloProperty):
         """
 
         do_calculation = self.category_filter.get_do_calculation(halo_result)
-        registry = input_halo['cofp'].units.registry
+        registry = input_halo["cofp"].units.registry
 
         projected_aperture = {}
         # loop over the different projections
@@ -1563,7 +1611,7 @@ class ProjectedApertureProperties(HaloProperty):
                 else:
                     val = 0
                 if not physical:
-                    unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
+                    unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
                 projected_aperture[projname][name] = unyt.unyt_array(
                     val, dtype=dtype, units=unit, registry=registry
                 )
@@ -1603,7 +1651,7 @@ class ProjectedApertureProperties(HaloProperty):
                     physical = prop[10]
                     a_exponent = prop[11]
                     if not physical:
-                        unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
+                        unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
                     if do_calculation[category]:
                         val = getattr(proj_part_props, name)
                         if val is not None:
@@ -1614,7 +1662,7 @@ class ProjectedApertureProperties(HaloProperty):
                                 if hasattr(val, "units"):
                                     assert (
                                         val.units == unyt.dimensionless
-                                    ), f'{name} is not dimensionless'
+                                    ), f"{name} is not dimensionless"
                                 projected_aperture[projname][name] = unyt.unyt_array(
                                     val.astype(dtype),
                                     dtype=dtype,
@@ -1623,8 +1671,10 @@ class ProjectedApertureProperties(HaloProperty):
                                 )
                             else:
                                 err = f'Overflow for halo {input_halo["index"]} when'
-                                err += f'calculating {name} in projected_properties'
-                                assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
+                                err += f"calculating {name} in projected_properties"
+                                assert np.max(np.abs(val.to(unit).value)) < float(
+                                    "inf"
+                                ), err
                                 projected_aperture[projname][name] += val
 
         for projname in ["projx", "projy", "projz"]:
@@ -1646,7 +1696,14 @@ class ProjectedApertureProperties(HaloProperty):
                 physical = prop[10]
                 a_exponent = prop[11]
                 halo_result.update(
-                    {f"{prefix}/{outputname}": (projected_aperture[projname][name], description, physical, a_exponent)}
+                    {
+                        f"{prefix}/{outputname}": (
+                            projected_aperture[projname][name],
+                            description,
+                            physical,
+                            a_exponent,
+                        )
+                    }
                 )
 
         return
@@ -1683,13 +1740,13 @@ def test_projected_aperture_properties():
     )
 
     pc_projected = ProjectedApertureProperties(
-        dummy_halos.get_cell_grid(), parameters, 30.0, category_filter, 'basic'
+        dummy_halos.get_cell_grid(), parameters, 30.0, category_filter, "basic"
     )
 
     # Create a filter that no halos will satisfy
     fail_filter = CategoryFilter(dummy_halos.get_filters({"general": 10000000}))
     pc_filter_test = ProjectedApertureProperties(
-        dummy_halos.get_cell_grid(), parameters, 30.0, fail_filter, 'general'
+        dummy_halos.get_cell_grid(), parameters, 30.0, fail_filter, "general"
     )
 
     for i in range(100):
@@ -1712,9 +1769,7 @@ def test_projected_aperture_properties():
             input_data_copy = input_data.copy()
 
             halo_result = dict(halo_result_template)
-            pc_calc.calculate(
-                input_halo, 50 * unyt.kpc, input_data, halo_result
-            )
+            pc_calc.calculate(input_halo, 50 * unyt.kpc, input_data, halo_result)
             assert input_halo == input_halo_copy
             assert input_data == input_data_copy
 
@@ -1727,13 +1782,15 @@ def test_projected_aperture_properties():
                     full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
                     assert full_name in halo_result
                     result = halo_result[full_name][0]
-                    assert (len(result.shape) == 0 and size == 1) or result.shape[0] == size
+                    assert (len(result.shape) == 0 and size == 1) or result.shape[
+                        0
+                    ] == size
                     assert result.dtype == dtype
                     unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                     assert result.units.same_dimensions_as(unit.units)
 
             # Check properties were not calculated for filtered halos
-            if pc_name == 'filter_test':
+            if pc_name == "filter_test":
                 for proj in ["projx", "projy", "projz"]:
                     for prop in pc_calc.property_list:
                         outputname = prop[1]
@@ -1756,7 +1813,11 @@ def test_projected_aperture_properties():
         single_parameters = ParameterFile(parameter_dictionary=single_property)
 
         property_calculator = ProjectedApertureProperties(
-            dummy_halos.get_cell_grid(), single_parameters, 30.0, category_filter, 'basic'
+            dummy_halos.get_cell_grid(),
+            single_parameters,
+            30.0,
+            category_filter,
+            "basic",
         )
 
         halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
@@ -1793,7 +1854,11 @@ def test_projected_aperture_properties():
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 if not physical:
-                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                    unit = (
+                        unit
+                        * unyt.Unit("a", registry=dummy_halos.unit_registry)
+                        ** a_exponent
+                    )
                 assert result.units == unit.units
 
     dummy_halos.get_cell_grid().snapshot_datasets.print_dataset_log()

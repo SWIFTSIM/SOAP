@@ -9,11 +9,19 @@ import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5
 
 from mpi4py import MPI
+
 comm = MPI.COMM_WORLD
 comm_size = comm.Get_size()
 comm_rank = comm.Get_rank()
 
-def check_membership(membership_filenames, nr_memb_files, snapshot_filenames, nr_snap_files, hbt_filenames):
+
+def check_membership(
+    membership_filenames,
+    nr_memb_files,
+    snapshot_filenames,
+    nr_snap_files,
+    hbt_filenames,
+):
     """
     Check that membership files are consistent with HBT particle lists
     """
@@ -37,13 +45,17 @@ def check_membership(membership_filenames, nr_memb_files, snapshot_filenames, nr
     # Read membership files
     if comm_rank == 0:
         print("Reading membership files")
-    memb = phdf5.MultiFile(membership_filenames, file_idx=np.arange(nr_memb_files, dtype=int), comm=comm)
+    memb = phdf5.MultiFile(
+        membership_filenames, file_idx=np.arange(nr_memb_files, dtype=int), comm=comm
+    )
     memb_grnr = memb.read("PartType1/GroupNr_bound")
 
     # Read snapshot files
     if comm_rank == 0:
         print("Reading snapshot files")
-    snap = phdf5.MultiFile(snapshot_filenames, file_idx=np.arange(nr_snap_files, dtype=int), comm=comm)
+    snap = phdf5.MultiFile(
+        snapshot_filenames, file_idx=np.arange(nr_snap_files, dtype=int), comm=comm
+    )
     snap_part_ids = snap.read("PartType1/ParticleIDs")
 
     # Mask out particles which aren't in a halo
@@ -86,16 +98,22 @@ def check_membership(membership_filenames, nr_memb_files, snapshot_filenames, nr
         first_file_on_rank[comm_rank],
         first_file_on_rank[comm_rank] + files_per_rank[comm_rank],
     ):
-        with h5py.File(hbt_filenames.format(file_nr=file_nr), 'r') as infile:
+        with h5py.File(hbt_filenames.format(file_nr=file_nr), "r") as infile:
             hbt_part_ids.append(infile["SubhaloParticles"][...])
-            hbt_track_ids.append(np.repeat(infile["Subhalos"]["TrackId"], infile["Subhalos"]["Nbound"]))
+            hbt_track_ids.append(
+                np.repeat(infile["Subhalos"]["TrackId"], infile["Subhalos"]["Nbound"])
+            )
 
     # Combine arrays of particles in halos
     if len(hbt_part_ids) > 0:
         hbt_track_ids = np.concatenate(hbt_track_ids)
-        hbt_part_ids = np.concatenate(hbt_part_ids)  # Combine arrays of halos from different files
+        hbt_part_ids = np.concatenate(
+            hbt_part_ids
+        )  # Combine arrays of halos from different files
         if len(hbt_part_ids) > 0:
-            hbt_part_ids = np.concatenate(hbt_part_ids)  # Combine arrays of particles from different halos
+            hbt_part_ids = np.concatenate(
+                hbt_part_ids
+            )  # Combine arrays of particles from different halos
     # TODO: Handle ranks which didn't read files?
 
     # Sort by particle ID
@@ -119,23 +137,37 @@ def check_membership(membership_filenames, nr_memb_files, snapshot_filenames, nr
     comm.barrier()
     if comm_rank == 0:
         print("Track IDs agree.")
- 
-    
+
+
 if __name__ == "__main__":
 
     # Read in snapshot as input
     snap_nr = int(sys.argv[1])
-    
+
     # Location of membership files
     membership_dir = "/cosma8/data/dp004/dc-mcgi1/FLAMINGO/Runs/L2800N10080/DMO_FIDUCIAL/SOAP/HBTplus/"
-    membership_filenames = f"{membership_dir}/membership_{snap_nr:04d}/membership_{snap_nr:04d}."+"{file_nr}.hdf5"
+    membership_filenames = (
+        f"{membership_dir}/membership_{snap_nr:04d}/membership_{snap_nr:04d}."
+        + "{file_nr}.hdf5"
+    )
     nr_memb_files = 1024
     # Location of HBT output
     hbt_dir = "/snap8/scratch/dp004/jch/FLAMINGO/HBT/L2800N10080/DMO_FIDUCIAL/hbt/"
-    hbt_filenames = f"{hbt_dir}/{snap_nr:03d}/SubSnap_{snap_nr:03d}."+"{file_nr}.hdf5"
+    hbt_filenames = f"{hbt_dir}/{snap_nr:03d}/SubSnap_{snap_nr:03d}." + "{file_nr}.hdf5"
     # Location of snapshot files
-    snapshot_dir = "/cosma8/data/dp004/flamingo/Runs/L2800N10080/DMO_FIDUCIAL/snapshots/"
-    snapshot_filenames = f"{snapshot_dir}/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}."+"{file_nr}.hdf5"
+    snapshot_dir = (
+        "/cosma8/data/dp004/flamingo/Runs/L2800N10080/DMO_FIDUCIAL/snapshots/"
+    )
+    snapshot_filenames = (
+        f"{snapshot_dir}/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}."
+        + "{file_nr}.hdf5"
+    )
     nr_snap_files = 1024
 
-    check_membership(membership_filenames, nr_memb_files, snapshot_filenames, nr_snap_files, hbt_filenames)
+    check_membership(
+        membership_filenames,
+        nr_memb_files,
+        snapshot_filenames,
+        nr_snap_files,
+        hbt_filenames,
+    )

@@ -3,79 +3,7 @@
 """
 parameter_file.py
 
-(Hacky) support for parameter files.
-
-The parameter file is a simple YAML dictionary
-with the following structure:
-
-ApertureProperties:
-  properties:
-    TotalMass: true
-    ...
-  variations:
-    exclusive_100_kpc:
-      inclusive: false
-      radius_in_kpc: 100.0
-    inclusive_100_kpc:
-      inclusive: true
-      radius_in_kpc: 100.0
-    ...
-ProjectedApertures:
-  properties:
-    ...
-  variations:
-    100_kpc:
-      radius_in_kpc: 100.0
-    ...
-SOProperties:
-  properties:
-    ...
-  variations:
-    200_crit:
-      type: crit
-      value: 200.0
-    200_mean:
-      type: mean
-      value: 200.0
-    BN98:
-      type: BN98
-      value: 0.0
-    5xR200_crit:
-      type: crit
-      value: 200.0
-      radius_multiple: 5.0
-    ...
-SubhaloProperties:
-  properties:
-    ...
-  variations:
-    Bound:
-      bound_only: true
-    FOF:
-      bound_only: false
-aliases:
-  PartType0/ElementMassFractions: PartType0/SmoothedElementMassFractions
-  ...
-defined_constants:
-  Fe_H_sun: 2.82e-5
-  ...
-filters:
-  baryon: 100
-  dm: 100
-  gas: 50
-  star: 50
-  general: 100
-
-where non relevant repetitive parameters have been omitted. Note that all
-parameters are optional; if a block/parameter is missing, default values
-are used.
-
-For the proper working of SOAP, it is important that
-SubhaloProperties:variations:FOF:bound_only:false is present, since this
-halo type is used for the category filtering. Note that the variation
-names are not used by SOAP; their name can be used to create meaningful
-structure in the parameter file. The list of properties for a particular
-halo type is fixed for all variations of that halo type.
+Support for parameter files.
 
 The parameter file object keeps track of the parameters that are requested,
 and can output this information in the form of a ".used_parameters" file,
@@ -86,6 +14,7 @@ from typing import Dict, Union, List, Tuple
 import yaml
 
 import property_table
+
 
 class ParameterFile:
     """
@@ -175,7 +104,9 @@ class ParameterFile:
         if not "properties" in self.parameters[halo_type]:
             self.parameters[halo_type]["properties"] = {}
             for property in full_list:
-                self.parameters[halo_type]["properties"][property] = self.calculate_missing_properties()
+                self.parameters[halo_type]["properties"][
+                    property
+                ] = self.calculate_missing_properties()
         mask = {}
         for property in full_list:
             # Property is listed in the parameter file for this halo_type
@@ -184,12 +115,12 @@ class ParameterFile:
                 # should_calculate can be a dict if we want different behaviour for snapshots/snipshots
                 if isinstance(should_calculate, dict):
                     if self.snipshot:
-                        should_calculate = should_calculate['snipshot']
+                        should_calculate = should_calculate["snipshot"]
                     else:
-                        should_calculate = should_calculate['snapshot']
+                        should_calculate = should_calculate["snapshot"]
                 mask[property] = should_calculate
             # Property is not listed in the parameter file for this halo_type
-            else: 
+            else:
                 if self.calculate_missing_properties():
                     mask[property] = True
                     self.parameters[halo_type]["properties"][property] = True
@@ -226,13 +157,15 @@ class ParameterFile:
         valid_properties = [prop[0] for prop in full_property_list.values()]
         for key in self.parameters:
             # Skip keys which aren't halo types
-            if 'properties' not in self.parameters[key]:
+            if "properties" not in self.parameters[key]:
                 continue
-            for prop in self.parameters[key]['properties']:
+            for prop in self.parameters[key]["properties"]:
                 if prop not in valid_properties:
                     invalid_properties.append(prop)
         if len(invalid_properties):
-            print('The following properties were found in the parameter file, but are invalid:')
+            print(
+                "The following properties were found in the parameter file, but are invalid:"
+            )
             for prop in invalid_properties:
                 print(f"  {prop}")
 

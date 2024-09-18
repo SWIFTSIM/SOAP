@@ -207,7 +207,9 @@ class SWIFTCellGrid:
                 self.swift_header_group[name] = infile["Header"].attrs[name]
 
             # Determine if this is a snapshot or snipshot
-            self.snipshot = (self.swift_header_group["SelectOutput"].decode() == "Snipshot")
+            self.snipshot = (
+                self.swift_header_group["SelectOutput"].decode() == "Snipshot"
+            )
 
             # Read the critical density and attach units
             # This is in internal units, which may not be the same as snapshot units.
@@ -240,7 +242,7 @@ class SWIFTCellGrid:
             # create the recently_heated_gas_filter
             self.AGN_delta_T = float(
                 self.parameters.get("EAGLEAGN:AGN_delta_T_K", 0)
-            ) * self.get_unit('K')
+            ) * self.get_unit("K")
 
             # Compute mean density at the redshift of the snapshot:
             # Here we compute the mean density in internal units at z=0 using
@@ -340,8 +342,8 @@ class SWIFTCellGrid:
             self.extra_metadata = identify_datasets(
                 extra_filename, self.nr_files, self.ptypes, self.snap_unit_registry
             )
-            if "FOFGroupIDs" in self.extra_metadata['PartType1']:
-                print('Using FOFGroupIDs from group membership files')
+            if "FOFGroupIDs" in self.extra_metadata["PartType1"]:
+                print("Using FOFGroupIDs from group membership files")
 
         # Scan reference snapshot for missing particle types (e.g. stars or black holes at high z)
         self.ptypes_ref = []
@@ -367,22 +369,23 @@ class SWIFTCellGrid:
                         self.snap_unit_registry,
                     )
 
-
     def check_datasets_exist(self, required_datasets):
         # Check we have all the fields needed for each property
         # Doing it at this point rather than in masked cells since we want
         # to output a list of properties that require the missing fields
         for ptype in set(self.ptypes).intersection(set(required_datasets.keys())):
             for name in required_datasets[ptype]:
-                in_extra = (self.extra_filename is not None) and (name in self.extra_metadata[ptype])
-                in_snap = (name in self.snap_metadata[ptype])
+                in_extra = (self.extra_filename is not None) and (
+                    name in self.extra_metadata[ptype]
+                )
+                in_snap = name in self.snap_metadata[ptype]
                 if not (in_extra or in_snap):
-                    dataset = f'{ptype}/{name}'
+                    dataset = f"{ptype}/{name}"
                     print(f"The following properties require {dataset}:")
                     full_property_list = property_table.PropertyTable.full_property_list
                     for k, v in full_property_list.items():
                         if dataset in v[8]:
-                            print(f'  {v[0]}')
+                            print(f"  {v[0]}")
                     raise Exception(
                         f"Can't find required dataset {dataset} in input file(s)!"
                     )
@@ -509,7 +512,10 @@ class SWIFTCellGrid:
                 if self.extra_filename is not None:
                     extra_metadata.update(self.extra_metadata[ptype])
                 for dataset in property_names[ptype]:
-                    if dataset in self.snap_metadata[ptype] and dataset not in extra_metadata:
+                    if (
+                        dataset in self.snap_metadata[ptype]
+                        and dataset not in extra_metadata
+                    ):
                         if file_nr in reads_for_type[ptype]:
                             for (file_offset, mem_offset, count) in reads_for_type[
                                 ptype

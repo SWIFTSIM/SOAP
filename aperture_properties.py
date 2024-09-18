@@ -787,9 +787,11 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return np.sum(self.get_dataset("PartType5/AGNTotalInjectedEnergies")[
-            self.bh_mask_all
-        ][self.bh_mask_ap])
+        return np.sum(
+            self.get_dataset("PartType5/AGNTotalInjectedEnergies")[self.bh_mask_all][
+                self.bh_mask_ap
+            ]
+        )
 
     @lazy_property
     def BlackHolesTotalInjectedJetEnergy(self) -> unyt.unyt_quantity:
@@ -798,9 +800,11 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return np.sum(self.get_dataset("PartType5/InjectedJetEnergies")[
-            self.bh_mask_all
-        ][self.bh_mask_ap])
+        return np.sum(
+            self.get_dataset("PartType5/InjectedJetEnergies")[self.bh_mask_all][
+                self.bh_mask_ap
+            ]
+        )
 
     @lazy_property
     def iBHmax(self) -> int:
@@ -871,9 +875,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/AveragedAccretionRates")[
-            self.bh_mask_all
-        ][self.bh_mask_ap][self.iBHmax]
+        return self.get_dataset("PartType5/AveragedAccretionRates")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleInjectedThermalEnergy(self) -> unyt.unyt_quantity:
@@ -883,9 +887,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/AGNTotalInjectedEnergies")[
-            self.bh_mask_all
-        ][self.bh_mask_ap][self.iBHmax]
+        return self.get_dataset("PartType5/AGNTotalInjectedEnergies")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleAccretionMode(self) -> unyt.unyt_quantity:
@@ -894,9 +898,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/AccretionModes")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/AccretionModes")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleGWMassLoss(self) -> unyt.unyt_quantity:
@@ -905,9 +909,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/GWMassLosses")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/GWMassLosses")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleInjectedJetEnergyByMode(self) -> unyt.unyt_quantity:
@@ -917,9 +921,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/InjectedJetEnergiesByMode")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/InjectedJetEnergiesByMode")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleLastJetEventScalefactor(self) -> unyt.unyt_quantity:
@@ -928,9 +932,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/LastAGNJetScaleFactors")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/LastAGNJetScaleFactors")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleNumberOfAGNEvents(self) -> unyt.unyt_quantity:
@@ -939,9 +943,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/NumberOfAGNEvents")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/NumberOfAGNEvents")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleNumberOfAGNJetEvents(self) -> unyt.unyt_quantity:
@@ -950,9 +954,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/NumberOfAGNJetEvents")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/NumberOfAGNJetEvents")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleNumberOfMergers(self) -> unyt.unyt_quantity:
@@ -961,9 +965,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/NumberOfMergers")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/NumberOfMergers")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleRadiatedEnergyByMode(self) -> unyt.unyt_quantity:
@@ -972,9 +976,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/RadiatedEnergiesByMode")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/RadiatedEnergiesByMode")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleTotalAccretedMassesByMode(self) -> unyt.unyt_quantity:
@@ -983,9 +987,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/TotalAccretedMassesByMode")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/TotalAccretedMassesByMode")[
+            self.bh_mask_all
+        ][self.bh_mask_ap][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleWindEnergyByMode(self) -> unyt.unyt_quantity:
@@ -994,9 +998,9 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset("PartType5/WindEnergiesByMode")[self.bh_mask_all][self.bh_mask_ap][
-            self.iBHmax
-        ]
+        return self.get_dataset("PartType5/WindEnergiesByMode")[self.bh_mask_all][
+            self.bh_mask_ap
+        ][self.iBHmax]
 
     @lazy_property
     def MostMassiveBlackHoleSpin(self) -> unyt.unyt_quantity:
@@ -2885,9 +2889,7 @@ class ApertureParticleData:
         """
         Half mass radius of dark matter.
         """
-        return get_half_mass_radius(
-            self.radius[self.type == 1], self.mass_dm, self.Mdm
-        )
+        return get_half_mass_radius(self.radius[self.type == 1], self.mass_dm, self.Mdm)
 
     @lazy_property
     def HalfMassRadiusStar(self) -> unyt.unyt_quantity:
@@ -3188,7 +3190,7 @@ class ApertureProperties(HaloProperty):
         # all variables are defined with physical units and an appropriate dtype
         # we need to use the custom unit registry so that everything can be converted
         # back to snapshot units in the end
-        registry = input_halo['cofp'].units.registry
+        registry = input_halo["cofp"].units.registry
         for prop in self.property_list:
             outputname = prop[1]
             # skip properties that are masked
@@ -3209,7 +3211,7 @@ class ApertureProperties(HaloProperty):
             else:
                 val = 0
             if not physical:
-                unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
+                unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
             aperture_sphere[name] = unyt.unyt_array(
                 val, dtype=dtype, units=unit, registry=registry
             )
@@ -3219,7 +3221,9 @@ class ApertureProperties(HaloProperty):
         # Determine whether to skip this halo because of filter
         if do_calculation[self.halo_filter]:
             if search_radius < self.physical_radius_mpc * unyt.Mpc:
-                raise SearchRadiusTooSmallError("Search radius is smaller than aperture")
+                raise SearchRadiusTooSmallError(
+                    "Search radius is smaller than aperture"
+                )
 
             types_present = [type for type in self.particle_properties if type in data]
             part_props = ApertureParticleData(
@@ -3252,7 +3256,7 @@ class ApertureProperties(HaloProperty):
                 physical = prop[10]
                 a_exponent = prop[11]
                 if not physical:
-                    unit = unit * unyt.Unit('a', registry=registry) ** a_exponent
+                    unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
                 if do_calculation[category]:
                     val = getattr(part_props, name)
                     if val is not None:
@@ -3263,7 +3267,7 @@ class ApertureProperties(HaloProperty):
                             if hasattr(val, "units"):
                                 assert (
                                     val.units == unyt.dimensionless
-                                ), f'{name} is not dimensionless'
+                                ), f"{name} is not dimensionless"
                             aperture_sphere[name] = unyt.unyt_array(
                                 val.astype(dtype),
                                 dtype=dtype,
@@ -3272,8 +3276,10 @@ class ApertureProperties(HaloProperty):
                             )
                         else:
                             err = f'Overflow for halo {input_halo["index"]} when'
-                            err += f'calculating {name} in aperture_properties'
-                            assert np.max(np.abs(val.to(unit).value)) < float('inf'), err
+                            err += f"calculating {name} in aperture_properties"
+                            assert np.max(np.abs(val.to(unit).value)) < float(
+                                "inf"
+                            ), err
                             aperture_sphere[name] += val
 
         # add the new properties to the halo_result dictionary
@@ -3291,7 +3297,14 @@ class ApertureProperties(HaloProperty):
             physical = prop[10]
             a_exponent = prop[11]
             halo_result.update(
-                {f"{self.group_name}/{outputname}": (aperture_sphere[name], description, physical, a_exponent)}
+                {
+                    f"{self.group_name}/{outputname}": (
+                        aperture_sphere[name],
+                        description,
+                        physical,
+                        a_exponent,
+                    )
+                }
             )
 
         return
@@ -3471,7 +3484,7 @@ def test_aperture_properties():
         stellar_age_calculator,
         cold_dense_gas_filter,
         cat_filter,
-        'basic',
+        "basic",
     )
     pc_inclusive = InclusiveSphereProperties(
         dummy_halos.get_cell_grid(),
@@ -3481,7 +3494,7 @@ def test_aperture_properties():
         stellar_age_calculator,
         cold_dense_gas_filter,
         cat_filter,
-        'basic',
+        "basic",
     )
 
     # Create a filter that no halos will satisfy
@@ -3494,7 +3507,7 @@ def test_aperture_properties():
         stellar_age_calculator,
         cold_dense_gas_filter,
         fail_filter,
-        'general',
+        "general",
     )
 
     # generate 100 random halos
@@ -3520,16 +3533,14 @@ def test_aperture_properties():
 
             # Check halo fails if search radius is too small
             halo_result = dict(halo_result_template)
-            if pc_name != 'filter_test':
+            if pc_name != "filter_test":
                 with pytest.raises(SearchRadiusTooSmallError):
                     pc_calc.calculate(
                         input_halo, 10 * unyt.kpc, input_data, halo_result
                     )
             # Skipped halos shouldn't ever require a larger search radius
             else:
-                pc_calc.calculate(
-                    input_halo, 10 * unyt.kpc, input_data, halo_result
-                )
+                pc_calc.calculate(input_halo, 10 * unyt.kpc, input_data, halo_result)
 
             halo_result = dict(halo_result_template)
             pc_calc.calculate(input_halo, 100 * unyt.kpc, input_data, halo_result)
@@ -3551,11 +3562,15 @@ def test_aperture_properties():
                 assert result.dtype == dtype
                 unit = unyt.Unit(unit_string, registry=dummy_halos.unit_registry)
                 if not physical:
-                    unit = unit * unyt.Unit('a', registry=dummy_halos.unit_registry) ** a_exponent
+                    unit = (
+                        unit
+                        * unyt.Unit("a", registry=dummy_halos.unit_registry)
+                        ** a_exponent
+                    )
                 assert result.units == unit.units
 
             # Check properties were not calculated for filtered halos
-            if pc_name == 'filter_test':
+            if pc_name == "filter_test":
                 for prop in pc_calc.property_list:
                     outputname = prop[1]
                     size = prop[2]
@@ -3582,7 +3597,7 @@ def test_aperture_properties():
             stellar_age_calculator,
             cold_dense_gas_filter,
             cat_filter,
-            'basic',
+            "basic",
         )
         pc_inclusive = InclusiveSphereProperties(
             dummy_halos.get_cell_grid(),
@@ -3592,7 +3607,7 @@ def test_aperture_properties():
             stellar_age_calculator,
             cold_dense_gas_filter,
             cat_filter,
-            'basic',
+            "basic",
         )
 
         halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)

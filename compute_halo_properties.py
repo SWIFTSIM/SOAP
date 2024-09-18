@@ -72,6 +72,7 @@ def compute_halo_properties():
     # Enable profiling, if requested
     if args.profile == 2 or (args.profile == 1 and comm_world_rank == 0):
         import cProfile, pstats, io
+
         pr = cProfile.Profile()
         pr.enable()
 
@@ -101,7 +102,7 @@ def compute_halo_properties():
         print("Halo basename is %s" % args.halo_basename)
         print("Output file is %s" % args.output_file)
         print("Snapshot number is %d" % args.snapshot_nr)
-        
+
     # Open the snapshot and read SWIFT cell structure, units etc
     if comm_world_rank == 0:
         swift_filename = sub_snapnum(args.swift_filename, args.snapshot_nr)
@@ -133,7 +134,9 @@ def compute_halo_properties():
     if args.snipshot is None:
         args.snipshot = cellgrid.snipshot
     if comm_world_rank == 0:
-        parameter_file = ParameterFile(file_name=args.config_filename, snipshot=args.snipshot)
+        parameter_file = ParameterFile(
+            file_name=args.config_filename, snipshot=args.snipshot
+        )
     else:
         parameter_file = None
     parameter_file = comm_world.bcast(parameter_file)
@@ -143,12 +146,12 @@ def compute_halo_properties():
     )
 
     recently_heated_params = args.calculations["recently_heated_gas_filter"]
-    if (not args.dmo) and (recently_heated_params['use_AGN_delta_T']):
+    if (not args.dmo) and (recently_heated_params["use_AGN_delta_T"]):
         assert cellgrid.AGN_delta_T.value != 0, "Invalid value for AGN_delta_T"
     recently_heated_gas_filter = RecentlyHeatedGasFilter(
         cellgrid,
-        float(recently_heated_params['delta_time_myr']) * unyt.Myr,
-        float(recently_heated_params['use_AGN_delta_T']),
+        float(recently_heated_params["delta_time_myr"]) * unyt.Myr,
+        float(recently_heated_params["use_AGN_delta_T"]),
         delta_logT_min=-1.0,
         delta_logT_max=0.3,
     )
@@ -161,60 +164,42 @@ def compute_halo_properties():
     try:
         cold_dense_params = args.calculations["cold_dense_gas_filter"]
         cold_dense_gas_filter = ColdDenseGasFilter(
-            float(cold_dense_params['maximum_temperature_K']) * unyt.K,
-            float(cold_dense_params['minimum_hydrogen_number_density_cm3']) / unyt.cm ** 3,
+            float(cold_dense_params["maximum_temperature_K"]) * unyt.K,
+            float(cold_dense_params["minimum_hydrogen_number_density_cm3"])
+            / unyt.cm ** 3,
             True,
         )
     except KeyError:
-        cold_dense_gas_filter = ColdDenseGasFilter(
-            0 * unyt.K,
-            0 / unyt.cm ** 3,
-            False,
-        )
+        cold_dense_gas_filter = ColdDenseGasFilter(0 * unyt.K, 0 / unyt.cm ** 3, False)
 
     default_filters = {
-        'general': {
-                'limit': 100,
-                'properties': [
-                    'BoundSubhalo/NumberOfDarkMatterParticles',
-                    'BoundSubhalo/NumberOfGasParticles',
-                    'BoundSubhalo/NumberOfStarParticles',
-                    'BoundSubhalo/NumberOfBlackHoleParticles',
-                 ],
-                'combine_properties': 'sum'
-             },
-        'dm': {
-                'limit': 100,
-                'properties': [
-                    'BoundSubhalo/NumberOfDarkMatterParticles',
-                 ],
-             },
-        'gas': {
-                'limit': 100,
-                'properties': [
-                    'BoundSubhalo/NumberOfGasParticles',
-                 ],
-             },
-        'star': {
-                'limit': 100,
-                'properties': [
-                    'BoundSubhalo/NumberOfStarParticles',
-                 ],
-             },
-        'baryon': {
-                'limit': 100,
-                'properties': [
-                    'BoundSubhalo/NumberOfGasParticles',
-                    'BoundSubhalo/NumberOfStarParticles',
-                 ],
-                'combine_properties': 'sum'
-             },
+        "general": {
+            "limit": 100,
+            "properties": [
+                "BoundSubhalo/NumberOfDarkMatterParticles",
+                "BoundSubhalo/NumberOfGasParticles",
+                "BoundSubhalo/NumberOfStarParticles",
+                "BoundSubhalo/NumberOfBlackHoleParticles",
+            ],
+            "combine_properties": "sum",
+        },
+        "dm": {
+            "limit": 100,
+            "properties": ["BoundSubhalo/NumberOfDarkMatterParticles"],
+        },
+        "gas": {"limit": 100, "properties": ["BoundSubhalo/NumberOfGasParticles"]},
+        "star": {"limit": 100, "properties": ["BoundSubhalo/NumberOfStarParticles"]},
+        "baryon": {
+            "limit": 100,
+            "properties": [
+                "BoundSubhalo/NumberOfGasParticles",
+                "BoundSubhalo/NumberOfStarParticles",
+            ],
+            "combine_properties": "sum",
+        },
     }
     category_filter = CategoryFilter(
-        parameter_file.get_filters(
-            default_filters
-        ),
-        dmo=args.dmo,
+        parameter_file.get_filters(default_filters), dmo=args.dmo
     )
 
     # Get the full list of property calculations we can do
@@ -225,8 +210,7 @@ def compute_halo_properties():
     halo_prop_list = []
     # Make sure BoundSubhalo is always first, since it's used for filters
     subhalo_variations = parameter_file.get_halo_type_variations(
-        "SubhaloProperties",
-        {"Bound": {"bound_only": True}},
+        "SubhaloProperties", {"Bound": {"bound_only": True}}
     )
     for variation in subhalo_variations:
         if subhalo_variations[variation]["bound_only"]:
@@ -240,7 +224,7 @@ def compute_halo_properties():
                     bound_only=subhalo_variations[variation]["bound_only"],
                 )
             )
-    assert len(halo_prop_list) > 0, 'BoundSubhalo must be calculated'
+    assert len(halo_prop_list) > 0, "BoundSubhalo must be calculated"
     # Adding FOFSubhaloProperties if present
     for variation in subhalo_variations:
         if not subhalo_variations[variation]["bound_only"]:
@@ -284,7 +268,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
-                    SO_variations[variation].get('filter', 'basic'),
+                    SO_variations[variation].get("filter", "basic"),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["type"],
                     core_excision_fraction=SO_variations[variation][
@@ -299,7 +283,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
-                    SO_variations[variation].get('filter', 'basic'),
+                    SO_variations[variation].get("filter", "basic"),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["type"],
                 )
@@ -316,7 +300,7 @@ def compute_halo_properties():
                     parameter_file,
                     recently_heated_gas_filter,
                     category_filter,
-                    SO_variations[variation].get('filter', 'basic'),
+                    SO_variations[variation].get("filter", "basic"),
                     SO_variations[variation]["value"],
                     SO_variations[variation]["radius_multiple"],
                     SO_variations[variation]["type"],
@@ -355,7 +339,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
-                    aperture_variations[variation].get('filter', 'basic')
+                    aperture_variations[variation].get("filter", "basic"),
                 )
             )
         else:
@@ -368,7 +352,7 @@ def compute_halo_properties():
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
-                    aperture_variations[variation].get('filter', 'basic')
+                    aperture_variations[variation].get("filter", "basic"),
                 )
             )
     projected_aperture_variations = parameter_file.get_halo_type_variations(
@@ -387,7 +371,7 @@ def compute_halo_properties():
                 parameter_file,
                 projected_aperture_variations[variation]["radius_in_kpc"],
                 category_filter,
-                projected_aperture_variations[variation].get('filter', 'basic')
+                projected_aperture_variations[variation].get("filter", "basic"),
             )
         )
 
@@ -407,11 +391,13 @@ def compute_halo_properties():
         else:
             print("for central and satellite halos")
         if args.snipshot:
-            print('Running in snipshot mode')
+            print("Running in snipshot mode")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties()
         if parameter_file.recalculate_xrays():
-            print(f"Recalculating xray properties using table: {parameter_file.get_xray_table_path()}")
+            print(
+                f"Recalculating xray properties using table: {parameter_file.get_xray_table_path()}"
+            )
         category_filter.print_filters()
 
     # Ensure output dir exists
@@ -477,11 +463,14 @@ def compute_halo_properties():
         args.min_read_radius_cmpc,
     )
     so_cat.start_request_thread()
-    
+
     # Generate the chunk task list
     nr_chunks = so_cat.nr_chunks
     if comm_world_rank == 0:
-        tasks = [chunk_tasks.ChunkTask(halo_prop_list, chunk_nr, nr_chunks) for chunk_nr in range(nr_chunks)]
+        tasks = [
+            chunk_tasks.ChunkTask(halo_prop_list, chunk_nr, nr_chunks)
+            for chunk_nr in range(nr_chunks)
+        ]
     else:
         tasks = None
 
@@ -536,7 +525,7 @@ def compute_halo_properties():
 
     # Can stop the halo request thread now that all chunk tasks have executed
     so_cat.stop_request_thread()
-    
+
     # Check metadata for consistency between chunks. Sets ref_metadata on all ranks,
     # including those that processed no halos.
     ref_metadata = result_set.check_metadata(metadata, comm_inter_node, comm_world)

@@ -85,6 +85,7 @@ def compute_subhalo_rank(host_id, subhalo_mass, comm):
 
     return subhalo_rank
 
+
 @pytest.mark.mpi
 def test_subhalo_rank():
 
@@ -130,6 +131,7 @@ def test_subhalo_rank():
         rank0_hosts = all_host_ids[rank0]
         assert len(rank0_hosts) == len(np.unique(all_host_ids))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Run test with "mpirun -np 8 python3 -m mpi4py ./subhalo_rank.py"
     test_subhalo_rank()

@@ -69,9 +69,13 @@ def read_hbtplus_groupnr(basename):
 
     # Combine arrays of particles in halos
     if len(ids_bound) > 0:
-        ids_bound = np.concatenate(ids_bound)  # Combine arrays of halos from different files
+        ids_bound = np.concatenate(
+            ids_bound
+        )  # Combine arrays of halos from different files
         if len(ids_bound) > 0:
-            ids_bound = np.concatenate(ids_bound)  # Combine arrays of particles from different halos
+            ids_bound = np.concatenate(
+                ids_bound
+            )  # Combine arrays of particles from different halos
         else:
             # The files assigned to this rank contain zero halos
             ids_bound = np.zeros(0, dtype=id_dtype)
@@ -108,7 +112,7 @@ def read_hbtplus_groupnr(basename):
     unique_ids_bound, unique_counts = psort.parallel_unique(
         ids_bound, comm=comm, arr_sorted=False, return_counts=True
     )
-    assert len(unique_counts)==0 or np.max(unique_counts) == 1
+    assert len(unique_counts) == 0 or np.max(unique_counts) == 1
 
     return total_nr_halos, ids_bound, grnr_bound, rank_bound
 
@@ -169,9 +173,9 @@ def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize):
                 VelInKmS = float(infile["Units/VelInKmS"][...])
                 have_units = True
         # Otherwise, will have to read the Parameters.log file
-        if not(have_units):
+        if not (have_units):
             dirname = os.path.dirname(os.path.dirname(filename))
-            with open(dirname+"/Parameters.log", "r") as infile:
+            with open(dirname + "/Parameters.log", "r") as infile:
                 for line in infile:
                     fields = line.split()
                     if len(fields) == 2:
@@ -197,7 +201,7 @@ def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize):
 
     # Load the number of bound particles
     nr_bound_part = unyt.unyt_array(
-        subhalo['Nbound'], units=unyt.dimensionless, dtype=int, registry=registry
+        subhalo["Nbound"], units=unyt.dimensionless, dtype=int, registry=registry
     )
 
     # Only process resolved subhalos (HBTplus also outputs unresolved "orphan" subhalos)
@@ -235,35 +239,46 @@ def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize):
         subhalo["TrackId"][keep], units=unyt.dimensionless, dtype=int, registry=registry
     )
     host_halo_id = unyt.unyt_array(
-        subhalo["HostHaloId"][keep], units=unyt.dimensionless, dtype=int, registry=registry
+        subhalo["HostHaloId"][keep],
+        units=unyt.dimensionless,
+        dtype=int,
+        registry=registry,
     )
     depth = unyt.unyt_array(
         subhalo["Depth"][keep], units=unyt.dimensionless, dtype=int, registry=registry
     )
     snapshot_birth = unyt.unyt_array(
-        subhalo["SnapshotIndexOfBirth"][keep], units=unyt.dimensionless, dtype=int, registry=registry
+        subhalo["SnapshotIndexOfBirth"][keep],
+        units=unyt.dimensionless,
+        dtype=int,
+        registry=registry,
     )
     parent_id = unyt.unyt_array(
-        subhalo["NestedParentTrackId"][keep], units=unyt.dimensionless, dtype=int, registry=registry
+        subhalo["NestedParentTrackId"][keep],
+        units=unyt.dimensionless,
+        dtype=int,
+        registry=registry,
     )
     descendant_id = unyt.unyt_array(
-        subhalo["DescendantTrackId"][keep], units=unyt.dimensionless, dtype=int, registry=registry
+        subhalo["DescendantTrackId"][keep],
+        units=unyt.dimensionless,
+        dtype=int,
+        registry=registry,
     )
 
     # Peak mass
-    max_mass = (subhalo["LastMaxMass"][keep] * MassInMsunh / h ) * swift_msun
+    max_mass = (subhalo["LastMaxMass"][keep] * MassInMsunh / h) * swift_msun
     snapshot_max_mass = subhalo["SnapshotIndexOfLastMaxMass"][keep]
     snapshot_max_mass = unyt.unyt_array(
         snapshot_max_mass, units=unyt.dimensionless, dtype=int, registry=registry
     )
 
     # Peak vmax
-    max_vmax = (subhalo["LastMaxVmaxPhysical"][keep] * VelInKmS ) * kms
+    max_vmax = (subhalo["LastMaxVmaxPhysical"][keep] * VelInKmS) * kms
     snapshot_max_vmax = subhalo["SnapshotIndexOfLastMaxVmax"][keep]
     snapshot_max_vmax = unyt.unyt_array(
         snapshot_max_vmax, units=unyt.dimensionless, dtype=int, registry=registry
     )
-
 
     # Number of bound particles
     nr_bound_part = nr_bound_part[keep]

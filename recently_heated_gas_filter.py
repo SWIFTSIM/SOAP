@@ -131,7 +131,7 @@ class RecentlyHeatedGasFilter:
         self.metadata = {
             "delta_time_in_Myr": delta_time.to("Myr").value,
             "a_limit": self.a_limit.value,
-            "use_AGN_delta_T": use_AGN_delta_T
+            "use_AGN_delta_T": use_AGN_delta_T,
         }
 
         self.use_AGN_delta_T = use_AGN_delta_T
@@ -139,12 +139,11 @@ class RecentlyHeatedGasFilter:
             AGN_delta_T = cellgrid.AGN_delta_T
             self.Tmin = AGN_delta_T * 10.0 ** delta_logT_min
             self.Tmax = AGN_delta_T * 10.0 ** delta_logT_max
-            self.metadata["AGN_delta_T_in_K"] = AGN_delta_T.to("K").value,
-            self.metadata["delta_logT_min"] = delta_logT_min,
-            self.metadata["delta_logT_max"] = delta_logT_max,
-            self.metadata["Tmin_in_K"] = self.Tmin.to("K").value,
-            self.metadata["Tmax_in_K"] = self.Tmax.to("K").value,
-
+            self.metadata["AGN_delta_T_in_K"] = (AGN_delta_T.to("K").value,)
+            self.metadata["delta_logT_min"] = (delta_logT_min,)
+            self.metadata["delta_logT_max"] = (delta_logT_max,)
+            self.metadata["Tmin_in_K"] = (self.Tmin.to("K").value,)
+            self.metadata["Tmax_in_K"] = (self.Tmax.to("K").value,)
 
     def is_recently_heated(
         self, lastAGNfeedback: unyt.unyt_array, temperature: unyt.unyt_array

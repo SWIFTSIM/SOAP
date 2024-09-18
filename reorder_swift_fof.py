@@ -33,7 +33,7 @@ def message(s):
     if comm_rank == 0:
         print(s)
 
-        
+
 def reorder_swift_fof(snapshot1, snapshot2, snap_nr, output_name):
 
     # Substitute the snapshot number (but not the file number) into file paths
@@ -45,7 +45,7 @@ def reorder_swift_fof(snapshot1, snapshot2, snap_nr, output_name):
     message(f"\nSnapshot with FOF info: {snapshot1}")
     message(f"Snapshot with ordering: {snapshot2}")
     message(f"Output: {output_name}\n")
-    
+
     # Determine SWIFT particle types which have FOF info in the snapshot
     # (assumed to be the same between snapshot1 and snapshot2)
     ptypes = []
@@ -61,57 +61,77 @@ def reorder_swift_fof(snapshot1, snapshot2, snap_nr, output_name):
                 if numpart_total[i] > 0 and "FOFGroupIDs" in infile[group_name]:
                     ptypes.append(group_name)
     ptypes = comm.bcast(ptypes)
-    
+
     # Open the snapshots
-    snapfile1 = phdf5.MultiFile(snapshot1, file_nr_attr=("Header", "NumFilesPerSnapshot"))
-    snapfile2 = phdf5.MultiFile(snapshot2, file_nr_attr=("Header", "NumFilesPerSnapshot"))
+    snapfile1 = phdf5.MultiFile(
+        snapshot1, file_nr_attr=("Header", "NumFilesPerSnapshot")
+    )
+    snapfile2 = phdf5.MultiFile(
+        snapshot2, file_nr_attr=("Header", "NumFilesPerSnapshot")
+    )
 
     # Loop over particle types
     create_file = True
     for ptype in ptypes:
 
         message(f"Reading data for particle type {ptype}")
-        
+
         # Read particle IDs and FoF membership from snapshot 1
-        snap1_data = snapfile1.read(("ParticleIDs", "FOFGroupIDs"), group=ptype, read_attributes=True)
+        snap1_data = snapfile1.read(
+            ("ParticleIDs", "FOFGroupIDs"), group=ptype, read_attributes=True
+        )
 
         # Read particle IDs from snapshot 2
         snap2_data = snapfile2.read(("ParticleIDs",), group=ptype, read_attributes=True)
-        
+
         # For each ID in snap2, find the index in snap1. All IDs should match.
         message(f"  Matching particle IDs")
-        ptr = psort.parallel_match(snap2_data["ParticleIDs"], snap1_data["ParticleIDs"], comm=comm)
-        if np.any(ptr<0):
+        ptr = psort.parallel_match(
+            snap2_data["ParticleIDs"], snap1_data["ParticleIDs"], comm=comm
+        )
+        if np.any(ptr < 0):
             raise RuntimeError("Failed to match a particle ID!")
 
         # For each particle in snap2, fetch the FoF group index from snap1 for the same ID
         message(f"  Reordering FoF group IDs")
-        snap2_data["FOFGroupIDs"] = psort.fetch_elements(snap1_data["FOFGroupIDs"], ptr, comm=comm)
+        snap2_data["FOFGroupIDs"] = psort.fetch_elements(
+            snap1_data["FOFGroupIDs"], ptr, comm=comm
+        )
         del ptr
-        
+
         # Write out the result
         message(f"  Writing output")
         mode = "w" if create_file else "r+"
         elements_per_file = snapfile2.get_elements_per_file("ParticleIDs", group=ptype)
-        snapfile2.write(snap2_data, elements_per_file, filenames=output_name, mode=mode, group=ptype)
-        
+        snapfile2.write(
+            snap2_data, elements_per_file, filenames=output_name, mode=mode, group=ptype
+        )
+
         # Tidy up before we do the next particle type
         del snap1_data
         del snap2_data
 
     comm.barrier()
     message("Done.")
-    
+
 
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
+
     parser = MPIArgumentParser(comm=comm, description="Reorder SWIFT FOF information")
-    parser.add_argument("snapshot1",   type=str, help="Format string for snapshot with FoF info to use")
-    parser.add_argument("snapshot2",   type=str, help="Format string for snapshot with particle ordering to use")
-    parser.add_argument("snap_nr",     type=int, help="Snapshot number to process")    
-    parser.add_argument("output_name", type=str, help="Format string for the output files")
+    parser.add_argument(
+        "snapshot1", type=str, help="Format string for snapshot with FoF info to use"
+    )
+    parser.add_argument(
+        "snapshot2",
+        type=str,
+        help="Format string for snapshot with particle ordering to use",
+    )
+    parser.add_argument("snap_nr", type=int, help="Snapshot number to process")
+    parser.add_argument(
+        "output_name", type=str, help="Format string for the output files"
+    )
     args = parser.parse_args()
 
     reorder_swift_fof(**vars(args))
-    

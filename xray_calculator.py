@@ -47,7 +47,7 @@ class XrayCalculator:
         try:
             table = h5py.File(table_path, "r")
         except ValueError as e:
-            raise Exception('You must pass an x-ray table path') from e
+            raise Exception("You must pass an x-ray table path") from e
 
         self.redshift_bins = table["/Bins/Redshift_bins"][()].astype(np.float32)
         idx_z, self.dx_z = self.get_index_1d(self.redshift_bins, np.array([redshift]))

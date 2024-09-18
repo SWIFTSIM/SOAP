@@ -55,7 +55,7 @@ def peano_decomposition(boxsize, local_halo, nr_chunks, comm):
     # Decide how many halos to put in each chunk
     chunk_size = np.zeros(nr_chunks, dtype=int)
     chunk_size[:] = total_nr_halos // nr_chunks
-    chunk_size[:total_nr_halos % nr_chunks] += 1
+    chunk_size[: total_nr_halos % nr_chunks] += 1
     assert np.sum(chunk_size) == total_nr_halos
-    
+
     return chunk_size

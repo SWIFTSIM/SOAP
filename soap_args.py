@@ -13,10 +13,15 @@ import combine_args
 
 def get_git_hash() -> str:
     try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+        return (
+            subprocess.check_output(["git", "rev-parse", "HEAD"])
+            .decode("ascii")
+            .strip()
+        )
     except subprocess.CalledProcessError:
-        print('Could not determine git hash')
-        return ''
+        print("Could not determine git hash")
+        return ""
+
 
 def get_soap_args(comm):
     """
@@ -26,19 +31,67 @@ def get_soap_args(comm):
     """
 
     # Define command line arguments
-    parser = MPIArgumentParser(comm=comm, description="Compute halo properties in SWIFT snapshots.")
-    parser.add_argument("config_file", type=str, help="Name of the yaml configuration file")
-    parser.add_argument("--sim-name", type=str, help="Name of the simulation to process")
-    parser.add_argument("--snap-nr", type=int, help="Snapshot number to process")    
-    parser.add_argument("--chunks", metavar="N", type=int, default=1, help="Splits volume into N chunks and each compute node processes one chunk at a time")
-    parser.add_argument("--dmo", action="store_true", help="Run in dark matter only mode")
-    parser.add_argument("--centrals-only", action="store_true", help="Only process central halos")
-    parser.add_argument("--max-halos", metavar="N", type=int, default=0, help="(For debugging) only process the first N halos in the catalogue")
-    parser.add_argument("--halo-indices", nargs="*", type=int, help="Only process the specified halo indices")
-    parser.add_argument("--reference-snapshot", help="Specify reference snapshot number containing all particle types", metavar="N", type=int)
-    parser.add_argument("--profile", metavar="LEVEL", type=int, default=0, help="Run with profiling (0=off, 1=first MPI rank only, 2=all ranks)")
-    parser.add_argument("--max-ranks-reading", type=int, default=32, help="Number of ranks per node reading snapshot data")
-    parser.add_argument("--output-parameters", type=str, default='', help="Where to write the used parameters")
+    parser = MPIArgumentParser(
+        comm=comm, description="Compute halo properties in SWIFT snapshots."
+    )
+    parser.add_argument(
+        "config_file", type=str, help="Name of the yaml configuration file"
+    )
+    parser.add_argument(
+        "--sim-name", type=str, help="Name of the simulation to process"
+    )
+    parser.add_argument("--snap-nr", type=int, help="Snapshot number to process")
+    parser.add_argument(
+        "--chunks",
+        metavar="N",
+        type=int,
+        default=1,
+        help="Splits volume into N chunks and each compute node processes one chunk at a time",
+    )
+    parser.add_argument(
+        "--dmo", action="store_true", help="Run in dark matter only mode"
+    )
+    parser.add_argument(
+        "--centrals-only", action="store_true", help="Only process central halos"
+    )
+    parser.add_argument(
+        "--max-halos",
+        metavar="N",
+        type=int,
+        default=0,
+        help="(For debugging) only process the first N halos in the catalogue",
+    )
+    parser.add_argument(
+        "--halo-indices",
+        nargs="*",
+        type=int,
+        help="Only process the specified halo indices",
+    )
+    parser.add_argument(
+        "--reference-snapshot",
+        help="Specify reference snapshot number containing all particle types",
+        metavar="N",
+        type=int,
+    )
+    parser.add_argument(
+        "--profile",
+        metavar="LEVEL",
+        type=int,
+        default=0,
+        help="Run with profiling (0=off, 1=first MPI rank only, 2=all ranks)",
+    )
+    parser.add_argument(
+        "--max-ranks-reading",
+        type=int,
+        default=32,
+        help="Number of ranks per node reading snapshot data",
+    )
+    parser.add_argument(
+        "--output-parameters",
+        type=str,
+        default="",
+        help="Where to write the used parameters",
+    )
     parser.add_argument("--snipshot", action="store_true", help="Run in snipshot mode")
     parser.add_argument("--snapshot", action="store_true", help="Run in snapshot mode")
     all_args = parser.parse_args()
@@ -50,7 +103,7 @@ def get_soap_args(comm):
     else:
         all_args = None
     all_args = comm.bcast(all_args)
-    
+
     # Extract parameters we need for SOAP
     args = argparse.Namespace()
     args.config_filename = all_args["Parameters"]["config_file"]
@@ -80,19 +133,32 @@ def get_soap_args(comm):
     # Passing --snipshot or --snapshot will override this
     if all_args["Parameters"]["snipshot"]:
         args.snipshot = True
-        assert not all_args["Parameters"]["snapshot"], 'You cannot pass both --snapshot and --snipshot'
+        assert not all_args["Parameters"][
+            "snapshot"
+        ], "You cannot pass both --snapshot and --snipshot"
     elif all_args["Parameters"]["snapshot"]:
         args.snipshot = False
     else:
         # We will set the value of arg.snipshot later
         args.snipshot = None
 
-    # Check we can write to the halo properties file
+    # Check certain input/output paths are valid, as they won't be used until the end
     if comm.Get_rank() == 0:
+        # Check we can write to the halo properties file
         dirname = os.path.dirname(os.path.abspath(args.output_file))
         # Directory may not exist yet, so move up the tree until we find one that does
         while not os.path.exists(dirname):
             dirname = os.path.dirname(dirname)
-        assert os.access(dirname, os.W_OK), "Can't write to output directory"
+        if not os.access(dirname, os.W_OK):
+            print("Can't write to output directory")
+            comm.Abort()
+        # Check if the FOF files exist
+        if args.fof_group_filename != "":
+            fof_filename = args.fof_group_filename.format(
+                snap_nr=args.snapshot_nr, file_nr=0
+            )
+        if not os.path.exists(fof_filename):
+            print("FOF group catalogues do not exist")
+            comm.Abort()
 
     return args

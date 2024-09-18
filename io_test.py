@@ -14,6 +14,7 @@ import swift_cells
 import shared_mesh
 import pytest
 
+
 @pytest.mark.mpi
 def test_io():
 

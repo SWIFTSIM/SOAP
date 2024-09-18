@@ -271,7 +271,9 @@ def get_match_vr_halos_args(comm):
 
     from virgo.mpi.util import MPIArgumentParser
 
-    parser = MPIArgumentParser(comm, description="Find matching halos between snapshots")
+    parser = MPIArgumentParser(
+        comm, description="Find matching halos between snapshots"
+    )
     parser.add_argument(
         "vr_basename1",
         help="Base name of the first VELOCIraptor files, excluding trailing .properties[.N] etc.",
