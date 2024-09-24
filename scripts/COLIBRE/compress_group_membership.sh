@@ -52,7 +52,7 @@ snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 sim="${SLURM_JOB_NAME}"
 
 # Location of the input to compress
-inbase="${scratch_dir}/${sim}/SOAP/SOAP_uncompressed/"
+inbase="${scratch_dir}/${sim}/SOAP_uncompressed/"
 
 # Location of the compressed output
 outbase="${output_dir}/${sim}/SOAP/"
@@ -88,9 +88,9 @@ echo "Setting files to be read-only"
 chmod a=r "${output_filename}"*
 
 echo "Creating virtual snapshot"
-snapshot="${output_dir}/${sim}/colibre_${snapnum}/colibre_${snapnum}.hdf5"
+snapshot="${output_dir}/${sim}/snapshots/colibre_${snapnum}/colibre_${snapnum}.hdf5"
 membership="${output_filename}.{file_nr}.hdf5"
-virtual="${outbase}/membership_${snapnum}/colibre_${snapnum}.hdf5"
+virtual="${outbase}/colibre_with_SOAP_membership_${snapnum}.hdf5"
 python make_virtual_snapshot.py $snapshot $membership $virtual
 
 echo "Job complete!"
