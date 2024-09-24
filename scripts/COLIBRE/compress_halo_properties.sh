@@ -55,7 +55,7 @@ sim="${SLURM_JOB_NAME}"
 script="./compression/compress_fast_metadata.py"
 
 # Location of the input to compress
-inbase="${output_dir}/${sim}/SOAP/SOAP_uncompressed/"
+inbase="${output_dir}/${sim}/SOAP_uncompressed/"
 
 # Location of the compressed output
 outbase="${output_dir}/${sim}/SOAP/"
@@ -72,7 +72,7 @@ output_filename="${outbase}/halo_properties_${snapnum}.hdf5"
 scratch_dir="${scratch_dir}/${sim}/SOAP_compression_tmp/"
 
 # run the script using all available threads on the node
-python3 ${script} --nproc 128 ${input_filename} ${output_filename} ${scratch_dir}
+python3 -u ${script} --nproc 128 ${input_filename} ${output_filename} ${scratch_dir}
 
 chmod a=r ${output_filename}
 

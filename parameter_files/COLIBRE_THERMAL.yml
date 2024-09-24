@@ -21,13 +21,13 @@ HaloFinder:
 
 GroupMembership:
   # Where to write the group membership files
-  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
 
 HaloProperties:
   # Where to write the halo properties file
-  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/halo_properties_{snap_nr:04d}.hdf5"
+  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/halo_properties_{snap_nr:04d}.hdf5"
   # Where to write temporary chunk output
-  chunk_dir: "{scratch_dir}/{sim_name}/SOAP-tmp/{halo_finder}/"
+  chunk_dir: "{scratch_dir}/{sim_name}/SOAP-tmp/"
 
 ApertureProperties:
   properties:
