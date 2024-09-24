@@ -236,7 +236,7 @@ def get_vmax(
 
 
 def get_inertia_tensor(
-    mass, position, sphere_radius, search_radius=None, reduced=False, max_iterations=20
+    mass, position, sphere_radius, search_radius=None, reduced=False, max_iterations=20, min_particles=20
 ):
     """
     Get the inertia tensor of the given particle distribution, computed as 
@@ -257,9 +257,16 @@ def get_inertia_tensor(
        Whether to calculate the reduced inertia tensor
      - max_iterations: int
        The maximum number of iterations to repeat the inertia tensor calculation
+     - min_particles: int
+       The number of particles required within the initial sphere. The inertia tensor
+       is not computed if this threshold is not met.
 
     Returns the inertia tensor.
     """
+
+    # Check we have at least "min_particles" particles
+    if mass.shape[0] < min_particles:
+        return None
 
     # Remove particles at centre if calculating reduced tensor
     if reduced:
@@ -298,10 +305,10 @@ def get_inertia_tensor(
         )
         p = np.dot(position, eig_vec) / axis
         r = np.linalg.norm(p, axis=1)
-        # We want to skip the calculation if we only only have a small number of particles
-        # inside the initial sphere. We do the check here since this is the first time
-        # we calculate how many particles are within the sphere.
-        if (i_iter == 0) and (np.sum(r <= 1) < 20):
+        # We want to skip the calculation if we have less than "min_particles"
+        # inside the initial sphere. We do the check here since this is the first
+        # time we calculate how many particles are within the sphere.
+        if (i_iter == 0) and (np.sum(r <= 1) < min_particles):
             return None
         weight = mass / np.sum(mass[r <= 1])
         weight[r > 1] = 0
@@ -322,7 +329,7 @@ def get_inertia_tensor(
 
 
 def get_projected_inertia_tensor(
-    mass, position, axis, radius, reduced=False, max_iterations=20
+    mass, position, axis, radius, reduced=False, max_iterations=20, min_particles=20
 ):
     """
     Takes in the particle distribution projected along a given axis, and calculates the inertia
@@ -345,9 +352,16 @@ def get_projected_inertia_tensor(
        Whether to calculate the reduced inertia tensor
      - max_iterations: int
        The maximum number of iterations to repeat the inertia tensor calculation
+     - min_particles: int
+       The number of particles required within the initial circle. The inertia tensor
+       is not computed if this threshold is not met.
 
     Returns the inertia tensor.
     """
+
+    # Check we have at least "min_particles" particles
+    if mass.shape[0] < min_particles:
+        return None
 
     projected_position = unyt.unyt_array(
         np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
@@ -397,10 +411,10 @@ def get_projected_inertia_tensor(
         axis = R * np.array([1 * np.sqrt(q), 1 / np.sqrt(q)])
         p = np.dot(projected_position, eig_vec) / axis
         r = np.linalg.norm(p, axis=1)
-        # We want to skip the calculation if we only only have a small number of particles
-        # inside the initial circle. We do the check here since this is the first time
-        # we calculate how many particles are within the circle.
-        if (i_iter == 0) and (np.sum(mass[r <= 1]) < 20):
+        # We want to skip the calculation if we have less than "min_particles"
+        # inside the initial circle. We do the check here since this is the first
+        # time we calculate how many particles are within the circle.
+        if (i_iter == 0) and (np.sum(r <= 1) < min_particles):
             return None
         weight = mass / np.sum(mass[r <= 1])
         weight[r > 1] = 0
