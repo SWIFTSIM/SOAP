@@ -97,6 +97,7 @@ ApertureProperties:
     LinearMassWeightedDiffuseOxygenOverHydrogenOfGas: false
     LinearMassWeightedIronFromSNIaOverHydrogenOfStars: false
     LinearMassWeightedIronOverHydrogenOfStars: false
+    LinearMassWeightedMagnesiumOverHydrogenOfStars: false
     LinearMassWeightedOxygenOverHydrogenOfGas: false
     LinearMassWeightedCarbonOverOxygenOfGas: false
     LinearMassWeightedDiffuseCarbonOverOxygenOfGas: false
@@ -110,7 +111,9 @@ ApertureProperties:
     LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit: false
     LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit: false
     LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit: false
+    LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit: false
     LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit: false
+    LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit: false
     LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit: false
     LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit: false
     LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit: false
