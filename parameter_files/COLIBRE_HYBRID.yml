@@ -139,6 +139,7 @@ ApertureProperties:
       snipshot: false
     LinearMassWeightedIronFromSNIaOverHydrogenOfStars: true
     LinearMassWeightedIronOverHydrogenOfStars: true
+    LinearMassWeightedMagnesiumOverHydrogenOfStars: true
     LinearMassWeightedOxygenOverHydrogenOfGas:
       snapshot: true
       snipshot: false
@@ -174,7 +175,9 @@ ApertureProperties:
       snipshot: false
     LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit: true
     LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit: true
+    LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit: true
     LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit: true
+    LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit: true
     LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit:
       snapshot: true
       snipshot: false
@@ -738,6 +741,7 @@ defined_constants:
   Fe_H_sun: 3.16e-5
   N_O_sun: 0.138
   C_O_sun: 0.549
+  Mg_H_sun: 3.98e-5
 calculations:
   recalculate_xrays: false
   min_read_radius_cmpc: 0.5

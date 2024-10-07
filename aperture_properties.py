@@ -2876,6 +2876,87 @@ class ApertureParticleData:
         return (self.star_Fe_from_SNIa_over_H * self.mass_star).sum()
 
     @lazy_property
+    def star_Mg_over_H(self) -> unyt.unyt_array:
+        """
+        Magnesium over hydrogen ratio of star particles.
+        """
+        if self.Nstar == 0:
+            return None
+        nH = self.star_element_fractions[
+            :,
+            self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
+        ]
+        nMg = self.star_element_fractions[
+            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Magnesium")
+        ]
+        return nMg / (24.305 * nH)
+
+    @lazy_property
+    def star_log10_Mg_over_H_low_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the iron over hydrogen ratio of star particles, using a lower limit
+        on the ratio of 1.e-4 times the solar ratio, set in the parameter file.
+        """
+        if self.Nstar == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.star_Mg_over_H,
+                self.snapshot_datasets.get_defined_constant("Mg_H_sun") * 1.0e-4,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def star_log10_Mg_over_H_high_limit(self) -> unyt.unyt_array:
+        """
+        Logarithm of the iron over hydrogen ratio of star particles, using a lower limit
+        on the ratio of 1.e-3 times the solar ratio, set in the parameter file.
+        """
+        if self.Nstar == 0:
+            return None
+        return np.log10(
+            np.clip(
+                self.star_Mg_over_H,
+                self.snapshot_datasets.get_defined_constant("Mg_H_sun") * 1.0e-3,
+                np.inf,
+            )
+        )
+
+    @lazy_property
+    def LinearMassWeightedMagnesiumOverHydrogenOfStars(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the iron over hydrogen ratio for star particles.
+        """
+        if self.Nstar == 0:
+            return None
+        return (self.star_Mg_over_H * self.mass_star).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the iron over hydrogen ratio for star particles,
+        using a lower limit of 1.e-4 times the solar ratio, set in the parameter file.
+        """
+        if self.Nstar == 0:
+            return None
+        return (self.star_log10_Mg_over_H_low_limit * self.mass_star).sum()
+
+    @lazy_property
+    def LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit(
+        self,
+    ) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the logarithm of the iron over hydrogen ratio for star particles,
+        using a lower limit of 1.e-3 times the solar ratio, set in the parameter file.
+        """
+        if self.Nstar == 0:
+            return None
+        return (self.star_log10_Mg_over_H_high_limit * self.mass_star).sum()
+
+    @lazy_property
     def HalfMassRadiusGas(self) -> unyt.unyt_quantity:
         """
         Half mass radius of gas.
@@ -3044,6 +3125,9 @@ class ApertureProperties(HaloProperty):
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit",
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit",
             "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit",
+            "LinearMassWeightedMagnesiumOverHydrogenOfStars",
+            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit",
+            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit",
             "LinearMassWeightedIronOverHydrogenOfStars",
             "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit",
             "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit",
