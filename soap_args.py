@@ -157,8 +157,8 @@ def get_soap_args(comm):
             fof_filename = args.fof_group_filename.format(
                 snap_nr=args.snapshot_nr, file_nr=0
             )
-        if not os.path.exists(fof_filename):
-            print("FOF group catalogues do not exist")
-            comm.Abort()
+            if not os.path.exists(fof_filename):
+                print("FOF group catalogues do not exist")
+                comm.Abort()
 
     return args
