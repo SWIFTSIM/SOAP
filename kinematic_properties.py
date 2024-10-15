@@ -150,6 +150,8 @@ def get_angular_momentum_and_kappa_corot(
         0.0, dtype=np.float32, units="dimensionless", registry=mass.units.registry
     )
 
+    # Phase space coordinates used as reference point to compute angular momentum.
+    # NOTE: Why are we doing [None, :]? Seems it is not needed.
     if ref_position is None:
         prel = position
     else:
@@ -159,6 +161,8 @@ def get_angular_momentum_and_kappa_corot(
     else:
         vrel = velocity - ref_velocity[None, :]
 
+    # Angular momentum of individual particles, the total angular momentum vector
+    # and its magnitude.
     Lpart = mass[:, None] * np.cross(prel, vrel)
     Ltot = Lpart.sum(axis=0)
     Lnrm = np.linalg.norm(Ltot)
@@ -170,17 +174,24 @@ def get_angular_momentum_and_kappa_corot(
 
     if Lnrm > 0.0 * Lnrm.units:
         K = 0.5 * (mass[:, None] * vrel ** 2).sum()
+
+        # Sum of the particle's angular momentum component that is aligned with the total
+        # angular momentum. NOTE: why are we doing [None, :]?
         if K > 0.0 * K.units or do_counterrot_mass:
             Ldir = Ltot / Lnrm
             Li = (Lpart * Ldir[None, :]).sum(axis=1)
+
         if K > 0.0 * K.units:
+            # Orthogonal distance to the axis of rotation. NOTE: why are we doing [None, :]?
             r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2
             rdotL = (prel * Ldir[None, :]).sum(axis=1)
             Ri2 = r2 - rdotL ** 2
-            # deal with division by zero (the first particle is guaranteed to
-            # be in the centre)
+
+            # Deal with division by zero (the first particle might be in the centre). 
+            # NOTE: why are we setting its value if we are not using it?
             mask = Ri2 == 0.0
             Ri2[mask] = 1.0 * Ri2.units
+            
             Krot = 0.5 * (Li ** 2 / (mass * Ri2))
             Kcorot = Krot[(~mask) & (Li > 0.0 * Li.units)].sum()
             kappa_corot += Kcorot / K
