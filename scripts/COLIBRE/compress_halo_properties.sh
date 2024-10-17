@@ -55,7 +55,7 @@ sim="${SLURM_JOB_NAME}"
 script="./compression/compress_fast_metadata.py"
 
 # Location of the input to compress
-inbase="${output_dir}/${sim}/SOAP_uncompressed/"
+inbase="${scratch_dir}/${sim}/SOAP_uncompressed/"
 
 # Location of the compressed output
 outbase="${output_dir}/${sim}/SOAP/"

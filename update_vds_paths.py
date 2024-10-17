@@ -84,7 +84,7 @@ def update_virtual_snapshot_paths(filename, snapshot_dir=None, membership_dir=No
         if dset.is_virtual:
             name = dset.name.split("/")[-1]
             # Data comes from the membership files
-            if name in ("GroupNr_all", "GroupNr_bound", "Rank_bound"):
+            if name in ("GroupNr_all", "GroupNr_bound", "Rank_bound", "HaloCatalogueIndex"):
                 if membership_dir is not None:
                     update_vds_paths(dset, replace_membership_path)
             # FOF IDs come from membership files
