@@ -1525,6 +1525,17 @@ class SOParticleData:
         return self.gas_SFR.sum()
 
     @lazy_property
+    def AveragedStarFormationRate(self) -> unyt.unyt_array:
+        """
+        Averaged star formation rates of gas particles. Averaging times are
+        set by the value of 'recording_triggers' in the SWIFT parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[self.gas_selection]
+        return np.sum(avg_SFR, axis=0)
+
+    @lazy_property
     def Mgas_SF(self) -> unyt.unyt_quantity:
         """
         Total mass of star-forming (SFR > 0) gas.
@@ -2749,6 +2760,7 @@ class SOProperties(HaloProperty):
             "Mnu",
             "spin_parameter",
             "SFR",
+            "AveragedStarFormationRate",
             "DopplerB",
             "gasOfrac",
             "gasFefrac",
