@@ -92,6 +92,17 @@ def get_soap_args(comm):
         default="",
         help="Where to write the used parameters",
     )
+    parser.add_argument(
+        "--extra-input",
+        nargs="*",
+        type=str,
+        help=(
+            "Snapshot-like files containing datasets not present in the original "
+            "snapshots. If datasets of the same name are found in both the "
+            "snapshots and the extra input, the values from the extra input "
+            "files will be used."
+        ),
+    )
     parser.add_argument("--snipshot", action="store_true", help="Run in snipshot mode")
     parser.add_argument("--snapshot", action="store_true", help="Run in snapshot mode")
     all_args = parser.parse_args()
@@ -115,7 +126,6 @@ def get_soap_args(comm):
     args.output_file = all_args["HaloProperties"]["filename"]
     args.snapshot_nr = all_args["Parameters"]["snap_nr"]
     args.chunks = all_args["Parameters"]["chunks"]
-    args.extra_input = all_args["GroupMembership"]["filename"]
     args.centrals_only = all_args["Parameters"]["centrals_only"]
     args.dmo = all_args["Parameters"]["dmo"]
     args.max_halos = all_args["Parameters"]["max_halos"]
@@ -127,6 +137,14 @@ def get_soap_args(comm):
     args.git_hash = all_args["git_hash"]
     args.min_read_radius_cmpc = all_args["calculations"]["min_read_radius_cmpc"]
     args.calculations = all_args["calculations"]
+
+    # Extra-input files which are passed as an argument when running SOAP are
+    # processed the same way as the membership files
+    if all_args["Parameters"]["extra_input"] is None:
+        args.extra_input = []
+    else:
+        args.extra_input = all_args["Parameters"]["extra_input"]
+    args.extra_input.append(all_args["GroupMembership"]["filename"])
 
     # The default behaviour is to determine whether to run in snipshot mode
     # by looking at the value of "SelectOutut" in the snapshot header.

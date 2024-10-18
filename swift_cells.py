@@ -144,15 +144,15 @@ class SWIFTCellGrid:
     def __init__(
         self,
         snap_filename,
-        extra_filename=None,
+        extra_filenames=None,
         snap_filename_ref=None,
-        extra_filename_ref=None,
+        extra_filenames_ref=None,
     ):
 
         self.snap_filename = snap_filename
 
         # Option format string to generate name of file(s) with extra datasets
-        self.extra_filename = extra_filename
+        self.extra_filenames = extra_filenames
 
         # Open the input file
         with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
@@ -338,12 +338,28 @@ class SWIFTCellGrid:
         self.snap_metadata = identify_datasets(
             snap_filename, self.nr_files, self.ptypes, self.snap_unit_registry
         )
-        if extra_filename is not None:
-            self.extra_metadata = identify_datasets(
-                extra_filename, self.nr_files, self.ptypes, self.snap_unit_registry
-            )
-            if "FOFGroupIDs" in self.extra_metadata["PartType1"]:
-                print("Using FOFGroupIDs from group membership files")
+        self.extra_metadata_combined = {}
+        if extra_filenames is not None:
+            # Unlike snap_metadata (which is a dict), extra_metadata is a list of
+            # dicts. Each dict corresponds to one of the passed extra-input files
+            self.extra_metadata = []
+            for extra_filename in extra_filenames:
+                file_metadata = identify_datasets(
+                    extra_filename, self.nr_files, self.ptypes, self.snap_unit_registry
+                )
+                self.extra_metadata.append(file_metadata)
+                for ptype in file_metadata:
+                    if ptype not in self.extra_metadata_combined:
+                        self.extra_metadata_combined[ptype] = {}
+                    for name in file_metadata[ptype]:
+                        if name in self.snap_metadata[ptype]:
+                            print(
+                                f"Using {ptype}/{name} from extra-input files instead of snapshot"
+                            )
+                        if name in self.extra_metadata_combined[ptype]:
+                            # TODO Throw error (& test)
+                            pass
+                    self.extra_metadata_combined[ptype].update(file_metadata[ptype])
 
         # Scan reference snapshot for missing particle types (e.g. stars or black holes at high z)
         self.ptypes_ref = []
@@ -361,13 +377,23 @@ class SWIFTCellGrid:
                     self.ptypes_ref,
                     self.snap_unit_registry,
                 )
-                if extra_filename_ref is not None:
-                    self.extra_metadata_ref = identify_datasets(
-                        extra_filename_ref,
-                        self.nr_files,
-                        self.ptypes_ref,
-                        self.snap_unit_registry,
-                    )
+                if extra_filenames_ref is not None:
+                    self.extra_metadata_ref_combined = {}
+                    for extra_filename_ref in extra_filenames_ref:
+                        file_metadata = identify_datasets(
+                            extra_filename_ref,
+                            self.nr_files,
+                            self.ptypes_ref,
+                            self.snap_unit_registry,
+                        )
+                        for ptype in file_metadata:
+                            if ptype not in self.extra_metadata_ref_combined:
+                                self.extra_metadata_ref_combined[ptype] = {}
+                            # TODO Check datasets do not appear in multiple extra-input files, because in
+                            # that case we wouldn't know which one to use
+                            self.extra_metadata_ref_combined[ptype].update(
+                                file_metadata[ptype]
+                            )
 
     def check_datasets_exist(self, required_datasets):
         # Check we have all the fields needed for each property
@@ -375,8 +401,8 @@ class SWIFTCellGrid:
         # to output a list of properties that require the missing fields
         for ptype in set(self.ptypes).intersection(set(required_datasets.keys())):
             for name in required_datasets[ptype]:
-                in_extra = (self.extra_filename is not None) and (
-                    name in self.extra_metadata[ptype]
+                in_extra = (self.extra_filenames is not None) and (
+                    name in self.extra_metadata_combined[ptype]
                 )
                 in_snap = name in self.snap_metadata[ptype]
                 if not (in_extra or in_snap):
@@ -508,13 +534,10 @@ class SWIFTCellGrid:
         for file_nr in all_file_nrs:
             filename = self.snap_filename.format(file_nr=file_nr)
             for ptype in reads_for_type:
-                extra_metadata = {}
-                if self.extra_filename is not None:
-                    extra_metadata.update(self.extra_metadata[ptype])
                 for dataset in property_names[ptype]:
                     if (
                         dataset in self.snap_metadata[ptype]
-                        and dataset not in extra_metadata
+                        and dataset not in self.extra_metadata_combined[ptype]
                     ):
                         if file_nr in reads_for_type[ptype]:
                             for (file_offset, mem_offset, count) in reads_for_type[
@@ -532,26 +555,31 @@ class SWIFTCellGrid:
                                 )
 
         # Create additional read tasks for the extra data files
-        if self.extra_filename is not None:
-            for file_nr in all_file_nrs:
-                filename = self.extra_filename.format(file_nr=file_nr)
-                for ptype in reads_for_type:
-                    for dataset in property_names[ptype]:
-                        if dataset in self.extra_metadata[ptype]:
-                            if file_nr in reads_for_type[ptype]:
-                                for (file_offset, mem_offset, count) in reads_for_type[
-                                    ptype
-                                ][file_nr]:
-                                    all_tasks.append(
-                                        ReadTask(
-                                            filename,
-                                            ptype,
-                                            dataset,
-                                            file_offset,
-                                            mem_offset,
-                                            count,
+        if self.extra_filenames is not None:
+            for extra_filename, file_metadata in zip(
+                self.extra_filenames, self.extra_metadata
+            ):
+                for file_nr in all_file_nrs:
+                    filename = extra_filename.format(file_nr=file_nr)
+                    for ptype in reads_for_type:
+                        for dataset in property_names[ptype]:
+                            if dataset in file_metadata[ptype]:
+                                if file_nr in reads_for_type[ptype]:
+                                    for (
+                                        file_offset,
+                                        mem_offset,
+                                        count,
+                                    ) in reads_for_type[ptype][file_nr]:
+                                        all_tasks.append(
+                                            ReadTask(
+                                                filename,
+                                                ptype,
+                                                dataset,
+                                                file_offset,
+                                                mem_offset,
+                                                count,
+                                            )
                                         )
-                                    )
 
         if comm_io != MPI.COMM_NULL:
             # Make one task queue per MPI rank reading
@@ -578,10 +606,10 @@ class SWIFTCellGrid:
 
                     # Get metadata for array to allocate in memory
                     if (
-                        self.extra_filename is not None
-                        and name in self.extra_metadata[ptype]
+                        (self.extra_filenames is not None)
+                        and (name in self.extra_metadata_combined[ptype])
                     ):
-                        units, dtype, shape = self.extra_metadata[ptype][name]
+                        units, dtype, shape = self.extra_metadata_combined[ptype][name]
                     elif name in self.snap_metadata[ptype]:
                         units, dtype, shape = self.snap_metadata[ptype][name]
                     else:
@@ -628,7 +656,7 @@ class SWIFTCellGrid:
                     data[ptype][name] = shared_array.SharedArray(
                         local_shape, dtype, comm, units
                     )
-                for name, (units, dtype, shape) in self.extra_metadata_ref[
+                for name, (units, dtype, shape) in self.extra_metadata_ref_combined[
                     ptype
                 ].items():
                     local_shape = (0,) + shape

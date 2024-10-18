@@ -2887,7 +2887,10 @@ class ApertureParticleData:
             self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
         ]
         nMg = self.star_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Magnesium")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "ElementMassFractions", "Magnesium"
+            ),
         ]
         return nMg / (24.305 * nH)
 
