@@ -236,7 +236,13 @@ def get_vmax(
 
 
 def get_inertia_tensor(
-    mass, position, sphere_radius, search_radius=None, reduced=False, max_iterations=20, min_particles=20
+    mass,
+    position,
+    sphere_radius,
+    search_radius=None,
+    reduced=False,
+    max_iterations=20,
+    min_particles=20,
 ):
     """
     Get the inertia tensor of the given particle distribution, computed as 
