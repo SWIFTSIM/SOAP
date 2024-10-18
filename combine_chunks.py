@@ -140,7 +140,8 @@ def combine_chunks(
             # Write parameters
             params = outfile.create_group("Parameters")
             params.attrs["swift_filename"] = args.swift_filename
-            params.attrs["membership_filename"] = args.extra_input
+            params.attrs["membership_filename"] = args.extra_input[-1]
+            params.attrs["extra_input"] = args.extra_input[:-1]
             params.attrs["halo_basename"] = args.halo_basename
             params.attrs["halo_format"] = args.halo_format
             params.attrs["snapshot_nr"] = args.snapshot_nr
