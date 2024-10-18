@@ -118,6 +118,10 @@ class PropertyTable:
             "kappa_corot_star",
             "kappa_corot_baryons",
         ],
+        "footnote_disc_fraction.tex": [
+            "DtoTstar",
+            "DtoTgas",
+        ],
         "footnote_SF.tex": [
             "SFR",
             "gasFefrac_SF",
