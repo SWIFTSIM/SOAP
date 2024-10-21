@@ -144,24 +144,26 @@ class SWIFTCellGrid:
     def __init__(
         self,
         snap_filename,
-        extra_filenames=None,
+        extra_filenames,
         snap_filename_ref=None,
         extra_filenames_ref=None,
     ):
 
+        # Since we require membership files to be passed when running SOAP, the
+        # extra_filenames list will always have at least one entry
         self.snap_filename = snap_filename
-
-        # Option format string to generate name of file(s) with extra datasets
         self.extra_filenames = extra_filenames
+
+        # Create the SnapshotsDataset object. This is needed for aliases of column
+        # names, and also for accessing named columns.
+        if snap_filename_ref is None:
+            self.snapshot_datasets = SnapshotDatasets([snap_filename] + extra_filenames)
+        else:
+            self.snapshot_datasets = SnapshotDatasets([snap_filename_ref] + extra_filenames_ref)
+
 
         # Open the input file
         with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
-
-            if snap_filename_ref is None:
-                self.snapshot_datasets = SnapshotDatasets(infile)
-            else:
-                with h5py.File(snap_filename_ref.format(file_nr=0), "r") as ref_file:
-                    self.snapshot_datasets = SnapshotDatasets(ref_file)
 
             # Get the snapshot unit system
             self.snap_unit_registry = swift_units.unit_registry_from_snapshot(infile)
@@ -412,7 +414,7 @@ class SWIFTCellGrid:
                     for k, v in full_property_list.items():
                         if dataset in v[8]:
                             print(f"  {v[0]}")
-                    raise Exception(
+                    raise KeyError(
                         f"Can't find required dataset {dataset} in input file(s)!"
                     )
 
