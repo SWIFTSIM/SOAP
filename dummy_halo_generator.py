@@ -170,6 +170,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Temperatures",
                 "LastAGNFeedbackScaleFactors",
                 "StarFormationRates",
+                "AveragedStarFormationRates",
                 "XrayLuminosities",
                 "XrayPhotonLuminosities",
                 "ComptonYParameters",
@@ -233,6 +234,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
             "N_O_sun": 0.138 * unyt.dimensionless,
             "O_H_sun": 4.9e-04 * unyt.dimensionless,
             "Fe_H_sun": 2.82e-5 * unyt.dimensionless,
+            "Mg_H_sun": 3.98e-5 * unyt.dimensionless,
         }
 
         self.named_columns = {
@@ -1036,6 +1038,12 @@ class DummyHaloGenerator:
             # limited by the highest value at z=0.1
             data["PartType0"]["StarFormationRates"] = unyt.unyt_array(
                 300.0 * np.random.random(Ngas) - 1.0 / 1.1,
+                dtype=np.float32,
+                units="snap_mass/snap_time",
+                registry=reg,
+            )
+            data["PartType0"]["AveragedStarFormationRates"] = unyt.unyt_array(
+                300.0 * np.random.random((Ngas, 2)),
                 dtype=np.float32,
                 units="snap_mass/snap_time",
                 registry=reg,
