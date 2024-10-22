@@ -7,6 +7,7 @@ import h5py
 from mpi4py import MPI
 import unyt
 import scipy.spatial
+import virgo.mpi.parallel_hdf5 as phdf5
 
 import swift_units
 import task_queue
@@ -396,6 +397,43 @@ class SWIFTCellGrid:
                             self.extra_metadata_ref_combined[ptype].update(
                                 file_metadata[ptype]
                             )
+
+    def verify_extra_input(self, comm):
+        comm_rank = comm.Get_rank()
+        comm_size = comm.Get_size()
+        if comm_rank == 0:
+            pass
+            # TODO: Check the units
+
+        # Loop over the different extra-input files, checking they have the
+        # same number of particles as are in the snapshot
+        files_on_rank = phdf5.assign_files(self.nr_files, comm_size)
+        first_file = np.cumsum(files_on_rank) - files_on_rank
+        for file_nr in range(
+            first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
+        ):
+            npart_snapshot = {}
+            with h5py.File(self.snap_filename.format(file_nr=file_nr), 'r') as snap_file:
+                for parttype in self.snap_metadata:
+                    # Skip if this particle type is not present in the snapshot
+                    if len(self.snap_metadata[parttype]) == 0:
+                        continue
+                    # Pick the first dataset, assume all others are the same size
+                    dset = list(self.snap_metadata[parttype].keys())[0]
+                    npart_snapshot[parttype] = snap_file[f'{parttype}/{dset}'].shape[0]
+
+            for extra_filename, extra_metadata in zip(self.extra_filenames, self.extra_metadata):
+                with h5py.File(extra_filename.format(file_nr=file_nr), 'r') as extra_file:
+                    for parttype in self.snap_metadata:
+                        # Skip if this particle type is not present in the extra files
+                        if len(extra_metadata[parttype]) == 0:
+                            continue
+                        # Check the first dataset has the correct size
+                        dset = list(extra_metadata[parttype].keys())[0]
+                        npart_extra = extra_file[f'{parttype}/{dset}'].shape[0]
+                        if npart_snapshot[parttype] != npart_extra:
+                            print(f'Incorrect number of {parttype} in {extra_filename}')
+                            comm.Abort()
 
     def check_datasets_exist(self, required_datasets):
         # Check we have all the fields needed for each property

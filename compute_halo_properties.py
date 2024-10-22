@@ -135,6 +135,9 @@ def compute_halo_properties():
         (cellgrid, parsec_cgs, solar_mass_cgs, a)
     )
 
+    # Check that the extra-input files are valid
+    cellgrid.verify_extra_input(comm_world)
+
     # Process parameter file
     if args.snipshot is None:
         args.snipshot = cellgrid.snipshot
