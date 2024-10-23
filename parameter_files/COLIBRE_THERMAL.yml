@@ -570,6 +570,24 @@ SOProperties:
     SpectroscopicLikeTemperatureCoreExcision: false
     SpectroscopicLikeTemperatureWithoutRecentAGNHeating: true
     SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: false
+    DarkMatterMassFlowRate: true
+    GasMassFlowRate: false
+    ColdGasMassFlowRate: true
+    CoolGasMassFlowRate: true
+    WarmGasMassFlowRate: true
+    HotGasMassFlowRate: true
+    HIMassFlowRate: true
+    H2MassFlowRate: true
+    MetalMassFlowRate: true
+    StellarMassFlowRate: true
+    ColdGasEnergyFlowRate: true
+    CoolGasEnergyFlowRate: true
+    WarmGasEnergyFlowRate: true
+    HotGasEnergyFlowRate: true
+    ColdGasMomentumFlowRate: true
+    CoolGasMomentumFlowRate: true
+    WarmGasMomentumFlowRate: true
+    HotGasMomentumFlowRate: true
   variations:
     200_crit:
       type: crit
