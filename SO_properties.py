@@ -2444,44 +2444,43 @@ class SOParticleData:
         mask = self.radius < 0.3 * self.SO_r
         return (self.mass_fraction[mask, None] * self.velocity[mask]).sum(axis=0)
 
-    def calculate_flow_rate(self, flow_type, positions, masses, velocities, internal_energies=None, fast_outflows=False) -> unyt.unyt_array:
-        no_pseudo = self._calculate_flow_rate(flow_type, positions, masses, velocities, internal_energies=internal_energies, fast_outflows=fast_outflows, pseudo_evolve=False)
-        pseudo = self._calculate_flow_rate(flow_type, positions, masses, velocities, internal_energies=internal_energies, fast_outflows=fast_outflows, pseudo_evolve=True)
-        pseudo_no_hubble = self._calculate_flow_rate(flow_type, positions, masses, velocities, internal_energies=internal_energies, fast_outflows=fast_outflows, pseudo_evolve=True, hubble=False)
-        return np.concatenate([no_pseudo, pseudo, pseudo_no_hubble])
-
-    def _calculate_flow_rate(self, flow_type, positions, masses, velocities, internal_energies=None, fast_outflows=False, pseudo_evolve=False, hubble=True) -> unyt.unyt_array:
+    def calculate_flow_rate(self, flow_type, positions, masses, velocities, internal_energies=None, fast_outflows=False, pseudo_evolve=True, hubble=False) -> unyt.unyt_array:
         '''
         Calculate the flowrate through 3 spherical shells with radius 0.1R_SO, 0.3R_SO,
-        and 0.95R_SO. Three flow types can be calculated: mass, energy, or momentum.
-        We do not consider a spherical shells with R = R_SO, as this would
-        require particle information which may not be loaded. We include the Hubble flow
-        when calculating the flow rates.
+        and R_SO. Three flow types can be calculated: mass, energy, or momentum.
 
         Inflow and outflow rates are computed separately. If fast_outflows=True then
         fast outflows rates are also computed.
 
         Internal energies are required if the flow_type is 'energy' or 'momentum'.
+
+        This function can raise a SearchRadiusTooSmallError since the spherical shell
+        centered at R_SO extends beyond R_SO.
         '''
         # Calculate particle radii
         radii = np.sqrt(np.sum(positions ** 2, axis=1))
 
-        # Initialise a list for saving the results since the units will depend on flow_type
-        flow_rates = 6 * [0]
-        if fast_outflows:
-            flow_rates += 3 * [0]
+        # Specify radii to calculate flow rates for
+        R_fracs = [0.1, 0.3, 1]
 
-        for i_R, R_frac in enumerate([0.1, 0.3, 0.95]):
+        # Initialise a list for saving the results since the units will depend on flow_type
+        flow_rates = 2 * len(R_fracs) * [0]
+        if fast_outflows:
+            flow_rates += len(R_fracs) * [0]
+
+        for i_R, R_frac in enumerate(R_fracs):
             # Remove particles outside spherical shell
             R = R_frac * self.SO_r
             dR = 0.1 * R
+            if R + (dR / 2) > self.search_radius:
+                raise SearchRadiusTooSmallError
             r_mask = (R - (dR / 2) < radii) & (radii < R + (dR / 2))
 
             # Use CoM velocity of all particles with R_frac * self.SO_r
             vcom = {
                 0.1: self.vcom_ten_percent,
                 0.3: self.vcom_thirty_percent,
-                0.95: self.vcom,
+                1: self.vcom,
             }[R_frac]
 
             # Calculate radial velocity by subtracting CoM velocity and
@@ -2491,6 +2490,7 @@ class SOParticleData:
             # Adding Hubble flow term
             if hubble:
                 v_r += radii[r_mask] * self.cosmology['H']
+            # Account for expansion of R_SO
             if pseudo_evolve:
                 G = unyt.Unit("newton_G", registry=masses.units.registry)
                 R_dot = (2/3) * (G * self.SO_mass * self.cosmology['H'] / 100) ** (1/3)
@@ -2503,9 +2503,8 @@ class SOParticleData:
             if flow_type == 'mass':
                 flow_rate = masses[r_mask] * np.abs(v_r)
             elif flow_type == 'energy':
-                # TODO: Do we want hubble flow here?
-                # Subtract CoM velocity, then add Hubble flow
-                proper_vel = (velocities[r_mask] - vcom[None, :]) + positions[r_mask] * self.cosmology['H']
+                # Subtract CoM velocity
+                proper_vel = (velocities[r_mask] - vcom[None, :])
                 kinetic = 0.5 * np.sqrt(np.sum(proper_vel**2, axis=1)) ** 2
                 flow_rate = masses[r_mask] * np.abs(v_r) * (kinetic + internal_energies[r_mask])
             elif flow_type == 'momentum':
@@ -2519,13 +2518,13 @@ class SOParticleData:
             inflow = np.sum(flow_rate[v_r < 0]) / dR
             outflow = np.sum(flow_rate[v_r > 0]) / dR
             flow_rates[i_R] = inflow
-            flow_rates[i_R+3] = outflow
+            flow_rates[i_R+len(R_fracs)] = outflow
 
             # Save fast outflow rates
             if fast_outflows:
                 fast_mask = v_r > 0.25 * self.Vmax_soft
                 fast_outflow = np.sum(flow_rate[fast_mask]) / dR
-                flow_rates[i_R+6] = fast_outflow
+                flow_rates[i_R+2*len(R_fracs)] = fast_outflow
 
         return unyt.unyt_array(flow_rates)
 
@@ -2536,98 +2535,14 @@ class SOParticleData:
         '''
         if (self.Ndm == 0) or (not self.virial_definition):
             return None
-        return self.calculate_flow_rate('mass', self.dm_pos, self.dm_masses, self.dm_vel)
 
-    @lazy_property
-    def ColdGasMassFlowRate(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flow rate of cold gas through 3 spherical shells
-        '''
-        if (self.Ngas == 0) or (not self.virial_definition):
-            return None
-        mask = self.gas_temperatures < 1.0e3 * unyt.K
-        return self.calculate_flow_rate(
-            "mass",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            fast_outflows=True,
-        )
+        # Particles outside the SO radius are required to calculate the
+        # flow through the SO radius
+        mass = self.get_dataset("PartType1/Masses")
+        pos = self.get_dataset(f"PartType1/Coordinates") - self.centre[None, :]
+        vel = self.get_dataset("PartType1/Velocities")
 
-    @lazy_property
-    def CoolGasMassFlowRate(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flow rate of cool gas through 3 spherical shells
-        '''
-        if (self.Ngas == 0) or (not self.virial_definition):
-            return None
-        mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
-        return self.calculate_flow_rate(
-            "mass",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            fast_outflows=True,
-        )
-
-    @lazy_property
-    def WarmGasMassFlowRate(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flow rate of warm gas through 3 spherical shells
-        '''
-        if (self.Ngas == 0) or (not self.virial_definition):
-            return None
-        mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
-        return self.calculate_flow_rate(
-            "mass",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            fast_outflows=True,
-        )
-
-    @lazy_property
-    def HotGasMassFlowRate(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flow rate of hot gas through 3 spherical shells
-        '''
-        if (self.Ngas == 0) or (not self.virial_definition):
-            return None
-        mask = 1.0e7 * unyt.K < self.gas_temperatures
-        return self.calculate_flow_rate(
-            "mass",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            fast_outflows=True,
-        )
-
-    @lazy_property
-    def HIMassFlowRate(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flow rate of HI through 3 spherical shells
-        '''
-        if (self.Ngas == 0) or (not self.virial_definition):
-            return None
-        return self.calculate_flow_rate('mass', self.gas_pos, self.gas_mass_HI, self.gas_vel)
-
-    @lazy_property
-    def H2MassFlowRate(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flow rate of H2 through 3 spherical shells
-        '''
-        if (self.Ngas == 0) or (not self.virial_definition):
-            return None
-        return self.calculate_flow_rate('mass', self.gas_pos, self.gas_mass_H2, self.gas_vel)
-
-    @lazy_property
-    def MetalMassFlowRate(self) -> unyt.unyt_array:
-        '''
-        Calculate the mass flow rate of metals through 3 spherical shells
-        '''
-        if (self.Ngas == 0) or (not self.virial_definition):
-            return None
-        return self.calculate_flow_rate('mass', self.gas_pos, self.gas_metal_masses, self.gas_vel)
+        return self.calculate_flow_rate('mass', pos, mass, vel)
 
     @lazy_property
     def StellarMassFlowRate(self) -> unyt.unyt_array:
@@ -2636,7 +2551,149 @@ class SOParticleData:
         '''
         if (self.Nstar == 0) or (not self.virial_definition):
             return None
-        return self.calculate_flow_rate('mass', self.star_pos, self.star_masses, self.star_vel)
+
+        # Particles outside the SO radius are required to calculate the
+        # flow through the SO radius
+        mass = self.get_dataset("PartType4/Masses")
+        pos = self.get_dataset(f"PartType4/Coordinates") - self.centre[None, :]
+        vel = self.get_dataset("PartType4/Velocities")
+
+        return self.calculate_flow_rate('mass', pos, mass, vel)
+
+    @lazy_property
+    def HIMassFlowRate(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flow rate of HI through 3 spherical shells
+        '''
+        if (self.Ngas == 0) or (not self.virial_definition):
+            return None
+
+        # Particles outside the SO radius are required to calculate the
+        # flow through the SO radius
+        pos = self.get_dataset(f"PartType0/Coordinates") - self.centre[None, :]
+        vel = self.get_dataset("PartType0/Velocities")
+        mass = self.get_dataset("PartType0/Masses") 
+        i_H = self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen")
+        mass *= self.get_dataset("PartType0/ElementMassFractions")[:, i_H]
+        i_HI = self.snapshot_datasets.get_column_index("SpeciesFractions", "HI")
+        mass *= self.get_dataset("PartType0/SpeciesFractions")[:, i_HI]
+
+        return self.calculate_flow_rate('mass', pos, mass, vel)
+
+    @lazy_property
+    def H2MassFlowRate(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flow rate of H2 through 3 spherical shells
+        '''
+        if (self.Ngas == 0) or (not self.virial_definition):
+            return None
+
+        # Particles outside the SO radius are required to calculate the
+        # flow through the SO radius
+        pos = self.get_dataset(f"PartType0/Coordinates") - self.centre[None, :]
+        vel = self.get_dataset("PartType0/Velocities")
+        mass = self.get_dataset("PartType0/Masses") 
+        i_H = self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen")
+        mass *= self.get_dataset("PartType0/ElementMassFractions")[:, i_H]
+        i_H2 = self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
+        # Factor of two needed since we want mass fraction not number
+        mass *= self.get_dataset("PartType0/SpeciesFractions")[:, i_HI] * 2
+
+        return self.calculate_flow_rate('mass', pos, mass, vel)
+
+    @lazy_property
+    def MetalMassFlowRate(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flow rate of metals through 3 spherical shells
+        '''
+        if (self.Ngas == 0) or (not self.virial_definition):
+            return None
+
+        # Particles outside the SO radius are required to calculate the
+        # flow through the SO radius
+        pos = self.get_dataset(f"PartType0/Coordinates") - self.centre[None, :]
+        vel = self.get_dataset("PartType0/Velocities")
+        mass = self.get_dataset("PartType0/Masses")
+        mass *= self.get_dataset("PartType0/MetalMassFractions")
+
+        return self.calculate_flow_rate('mass', pos, mass, vel)
+
+    def _calculate_temperature_constrained_gas_flow_rate(self, flow_type, Tmin=None, Tmax=None):
+        '''
+        Helper function for calculating the flow rate of gas particles 
+        masked based on their temperature.
+        '''
+
+        # Particles outside the SO radius are required to calculate the
+        # flow through the SO radius
+        mass = self.get_dataset("PartType0/Masses")
+        pos = self.get_dataset(f"PartType0/Coordinates") - self.centre[None, :]
+        vel = self.get_dataset("PartType0/Velocities")
+        temp = self.get_dataset("PartType0/Temperatures")
+        internal_energies = None
+        if flow_type in ['energy', "momentum"]:
+            internal_energies = self.get_dataset("PartType0/InternalEnergies")
+
+        mask = temp > 0 * unyt.K  # Initialise mask with all true
+        if Tmin is not None:
+            mask &= temp > Tmin
+        if Tmax is not None:
+            mask &= temp < Tmax
+
+        return self.calculate_flow_rate(
+            flow_type,
+            pos[mask],
+            mass[mask],
+            vel[mask],
+            fast_outflows=True,
+            internal_energies=internal_energies,
+        )
+
+    @lazy_property
+    def ColdGasMassFlowRate(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flow rate of cold gas through 3 spherical shells
+        '''
+        if (self.Ngas == 0) or (not self.virial_definition):
+            return None
+
+        Tmax = 1.0e3 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('mass', Tmax=Tmax)
+
+    @lazy_property
+    def CoolGasMassFlowRate(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flow rate of cool gas through 3 spherical shells
+        '''
+        if (self.Ngas == 0) or (not self.virial_definition):
+            return None
+
+        Tmin = 1.0e3 * unyt.K
+        Tmax = 1.0e5 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('mass', Tmin=Tmin, Tmax=Tmax)
+
+    @lazy_property
+    def WarmGasMassFlowRate(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flow rate of warm gas through 3 spherical shells
+        '''
+        if (self.Ngas == 0) or (not self.virial_definition):
+            return None
+
+        Tmin = 1.0e5 * unyt.K
+        Tmax = 1.0e7 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('mass', Tmin=Tmin, Tmax=Tmax)
+
+    @lazy_property
+    def HotGasMassFlowRate(self) -> unyt.unyt_array:
+        '''
+        Calculate the mass flow rate of hot gas through 3 spherical shells
+        '''
+        if (self.Ngas == 0) or (not self.virial_definition):
+            return None
+
+        Tmin = 1.0e7 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('mass', Tmin=Tmin)
 
     @lazy_property
     def ColdGasEnergyFlowRate(self) -> unyt.unyt_array:
@@ -2645,15 +2702,9 @@ class SOParticleData:
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        mask = self.gas_temperatures < 1.0e3 * unyt.K
-        return self.calculate_flow_rate(
-            "energy",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
-            fast_outflows=True,
-        )
+
+        Tmax = 1.0e3 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('energy', Tmax=Tmax)
 
     @lazy_property
     def CoolGasEnergyFlowRate(self) -> unyt.unyt_array:
@@ -2662,15 +2713,10 @@ class SOParticleData:
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
-        return self.calculate_flow_rate(
-            "energy",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
-            fast_outflows=True,
-        )
+
+        Tmin = 1.0e3 * unyt.K
+        Tmax = 1.0e5 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('energy', Tmin=Tmin, Tmax=Tmax)
 
     @lazy_property
     def WarmGasEnergyFlowRate(self) -> unyt.unyt_array:
@@ -2679,15 +2725,10 @@ class SOParticleData:
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
-        return self.calculate_flow_rate(
-            "energy",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
-            fast_outflows=True,
-        )
+
+        Tmin = 1.0e5 * unyt.K
+        Tmax = 1.0e7 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('energy', Tmin=Tmin, Tmax=Tmax)
 
     @lazy_property
     def HotGasEnergyFlowRate(self) -> unyt.unyt_array:
@@ -2696,15 +2737,9 @@ class SOParticleData:
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        mask = 1.0e7 * unyt.K < self.gas_temperatures
-        return self.calculate_flow_rate(
-            "energy",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
-            fast_outflows=True,
-        )
+
+        Tmin = 1.0e7 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('energy', Tmin=Tmin)
 
     @lazy_property
     def ColdGasMomentumFlowRate(self) -> unyt.unyt_array:
@@ -2713,15 +2748,9 @@ class SOParticleData:
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        mask = self.gas_temperatures < 1.0e3 * unyt.K
-        return self.calculate_flow_rate(
-            "momentum",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
-            fast_outflows=True,
-        )
+
+        Tmax = 1.0e3 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('momentum', Tmax=Tmax)
 
     @lazy_property
     def CoolGasMomentumFlowRate(self) -> unyt.unyt_array:
@@ -2730,15 +2759,10 @@ class SOParticleData:
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        mask = (1.0e3 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e5 * unyt.K)
-        return self.calculate_flow_rate(
-            "momentum",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
-            fast_outflows=True,
-        )
+
+        Tmin = 1.0e3 * unyt.K
+        Tmax = 1.0e5 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('momentum', Tmin=Tmin, Tmax=Tmax)
 
     @lazy_property
     def WarmGasMomentumFlowRate(self) -> unyt.unyt_array:
@@ -2747,15 +2771,10 @@ class SOParticleData:
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        mask = (1.0e5 * unyt.K < self.gas_temperatures) & (self.gas_temperatures < 1.0e7 * unyt.K)
-        return self.calculate_flow_rate(
-            "momentum",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
-            fast_outflows=True,
-        )
+
+        Tmin = 1.0e5 * unyt.K
+        Tmax = 1.0e7 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('momentum', Tmin=Tmin, Tmax=Tmax)
 
     @lazy_property
     def HotGasMomentumFlowRate(self) -> unyt.unyt_array:
@@ -2764,15 +2783,9 @@ class SOParticleData:
         '''
         if (self.Ngas == 0) or (not self.virial_definition):
             return None
-        mask = 1.0e7 * unyt.K < self.gas_temperatures
-        return self.calculate_flow_rate(
-            "momentum",
-            self.gas_pos[mask],
-            self.gas_masses[mask],
-            self.gas_vel[mask],
-            internal_energies=self.gas_internal_energies[mask],
-            fast_outflows=True,
-        )
+
+        Tmin = 1.0e7 * unyt.K
+        return _calculate_temperature_constrained_gas_flow_rate('momentum', Tmin=Tmin)
 
     @lazy_property
     def gas_internal_energies(self) -> unyt.unyt_array:
@@ -2874,7 +2887,7 @@ class SOProperties(HaloProperty):
             "Nstar",
             "Nbh",
             "Nnu",
-            # Calculate inertia tensors first as they can throw SearchRadiusTooSmallError
+            # Calculate inertia tensors and flow rates first as they can throw a SearchRadiusTooSmallError
             "GasInertiaTensor",
             "DarkMatterInertiaTensor",
             "StellarInertiaTensor",
@@ -2891,6 +2904,23 @@ class SOProperties(HaloProperty):
             "DarkMatterInertiaTensorReducedNoniterative",
             "StellarInertiaTensorReducedNoniterative",
             "TotalInertiaTensorReducedNoniterative",
+            "DarkMatterMassFlowRate",
+            "ColdGasMassFlowRate",
+            "CoolGasMassFlowRate",
+            "WarmGasMassFlowRate",
+            "HotGasMassFlowRate",
+            "HIMassFlowRate",
+            "H2MassFlowRate",
+            "MetalMassFlowRate",
+            "StellarMassFlowRate",
+            "ColdGasEnergyFlowRate",
+            "CoolGasEnergyFlowRate",
+            "WarmGasEnergyFlowRate",
+            "HotGasEnergyFlowRate",
+            "ColdGasMomentumFlowRate",
+            "CoolGasMomentumFlowRate",
+            "WarmGasMomentumFlowRate",
+            "HotGasMomentumFlowRate",
             "com",
             "vcom",
             "Vmax_soft",
@@ -2961,23 +2991,6 @@ class SOProperties(HaloProperty):
             "concentration_soft",
             "concentration_dmo_unsoft",
             "concentration_dmo_soft",
-            "DarkMatterMassFlowRate",
-            "ColdGasMassFlowRate",
-            "CoolGasMassFlowRate",
-            "WarmGasMassFlowRate",
-            "HotGasMassFlowRate",
-            "HIMassFlowRate",
-            "H2MassFlowRate",
-            "MetalMassFlowRate",
-            "StellarMassFlowRate",
-            "ColdGasEnergyFlowRate",
-            "CoolGasEnergyFlowRate",
-            "WarmGasEnergyFlowRate",
-            "HotGasEnergyFlowRate",
-            "ColdGasMomentumFlowRate",
-            "CoolGasMomentumFlowRate",
-            "WarmGasMomentumFlowRate",
-            "HotGasMomentumFlowRate",
         ]
     ]
 
