@@ -118,10 +118,7 @@ class PropertyTable:
             "kappa_corot_star",
             "kappa_corot_baryons",
         ],
-        "footnote_disc_fraction.tex": [
-            "DtoTstar",
-            "DtoTgas",
-        ],
+        "footnote_disc_fraction.tex": ["DtoTstar", "DtoTgas"],
         "footnote_SF.tex": [
             "SFR",
             "gasFefrac_SF",
@@ -2820,7 +2817,7 @@ class PropertyTable:
             True,
             0,
         ),
-                "DarkMatterMassFlowRate": (
+        "DarkMatterMassFlowRate": (
             "DarkMatterMassFlowRate",
             6,
             np.float32,
@@ -2829,11 +2826,7 @@ class PropertyTable:
             "general",
             "FMantissa9",
             True,
-            [
-                "PartType1/Coordinates",
-                "PartType1/Masses",
-                "PartType1/Velocities",
-            ],
+            ["PartType1/Coordinates", "PartType1/Masses", "PartType1/Velocities"],
             True,
             0,
         ),
@@ -2974,11 +2967,7 @@ class PropertyTable:
             "general",
             "FMantissa9",
             False,
-            [
-                "PartType4/Coordinates",
-                "PartType4/Masses",
-                "PartType4/Velocities",
-            ],
+            ["PartType4/Coordinates", "PartType4/Masses", "PartType4/Velocities"],
             True,
             0,
         ),
