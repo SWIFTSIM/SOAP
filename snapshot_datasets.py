@@ -89,6 +89,20 @@ class SnapshotDatasets:
                     ][:]
                 except KeyError:
                     pass
+        
+        # Repeat for extra file
+        extra_filename = filenames[1].format(file_nr=0)
+        with h5py.File(extra_filename, 'r') as file_handle:
+            for name in file_handle["SubgridScheme"]["NamedColumns"]:
+                column_names = file_handle["SubgridScheme"]["NamedColumns"][name][:]
+                self.named_columns[name] = {}
+                # turn the list into a dictionary that maps a column name to
+                # a colum index
+                for iname, colname in enumerate(column_names):
+                    self.named_columns[name][colname.decode("utf-8")] = iname
+
+        print(self.named_columns,flush=True)
+
 
     def setup_aliases(self, aliases: Dict):
         """
