@@ -1438,7 +1438,9 @@ class SubhaloParticleData:
         """
         if self.Ngas == 0:
             return None
-        avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[self.gas_mask_all]
+        avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[
+            self.gas_mask_all
+        ]
         return np.sum(avg_SFR, axis=0)
 
     @lazy_property

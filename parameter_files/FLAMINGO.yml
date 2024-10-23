@@ -433,6 +433,23 @@ SOProperties:
     XRayPhotonLuminosityInRestframeCoreExcision: true
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: true
+    DarkMatterMassFlowRate: false
+    ColdGasMassFlowRate: false
+    CoolGasMassFlowRate: false
+    WarmGasMassFlowRate: false
+    HotGasMassFlowRate: false
+    HIMassFlowRate: false
+    H2MassFlowRate: false
+    MetalMassFlowRate: false
+    StellarMassFlowRate: false
+    ColdGasEnergyFlowRate: false
+    CoolGasEnergyFlowRate: false
+    WarmGasEnergyFlowRate: false
+    HotGasEnergyFlowRate: false
+    ColdGasMomentumFlowRate: false
+    CoolGasMomentumFlowRate: false
+    WarmGasMomentumFlowRate: false
+    HotGasMomentumFlowRate: false
   variations:
     200_crit:
       type: crit
@@ -611,7 +628,7 @@ defined_constants:
   Fe_H_sun: 2.82e-5
 calculations:
   recalculate_xrays: true
-  xray_table_path: /snap8/scratch/dp004/dc-bras1/cloudy/X_Ray_table_metals_full.hdf5
+  xray_table_path: /cosma8/data/dp004/flamingo/Tables/Xray/X_Ray_table_metals_full.hdf5
   min_read_radius_cmpc: 5
   calculate_missing_properties: true
   reduced_snapshots:
