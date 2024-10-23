@@ -577,6 +577,19 @@ class ApertureParticleData:
             return None
         return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
             self.star_mask_ap].sum(axis=0)
+    
+    @lazy_property
+    def CorrectedStellarLuminosityWithDust(self) -> unyt.unyt_array:
+        """
+        Total IMF-corrected luminosity of star particles, dust attenuation included.
+
+        Note that this returns an array with total luminosities in multiple
+        bands.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/CorrectedLuminositiesWithDust")[self.star_mask_all][
+            self.star_mask_ap].sum(axis=0)
 
     @lazy_property
     def starmetalfrac(self) -> unyt.unyt_quantity:
