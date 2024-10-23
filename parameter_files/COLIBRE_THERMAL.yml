@@ -571,7 +571,6 @@ SOProperties:
     SpectroscopicLikeTemperatureWithoutRecentAGNHeating: true
     SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: false
     DarkMatterMassFlowRate: true
-    GasMassFlowRate: false
     ColdGasMassFlowRate: true
     CoolGasMassFlowRate: true
     WarmGasMassFlowRate: true
