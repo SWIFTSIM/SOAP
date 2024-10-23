@@ -2209,7 +2209,20 @@ class SOParticleData:
         return self.get_dataset("PartType4/Luminosities")[self.star_selection].sum(
             axis=0
         )
+    
+    @lazy_property
+    def CorrectedStellarLuminosity(self) -> unyt.unyt_array:
+        """
+        Total IMF-corrected luminosity of star particles.
 
+        Note that this is an array, since there are multiple luminosity bands.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_selection].sum(
+            axis=0
+        )
+    
     @lazy_property
     def Ekin_star(self) -> unyt.unyt_quantity:
         """

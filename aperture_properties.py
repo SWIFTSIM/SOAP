@@ -493,6 +493,14 @@ class ApertureParticleData:
         Total mass of star particles.
         """
         return self.mass_star.sum()
+    
+    @lazy_property
+    def ChabrierInferredMstar(self) -> unyt.unyt_quantity:
+        """
+        Total mass of star particles, modified for a Chabrier IMF.
+        """
+        return self.get_dataset("PartType4/ChabrierMasses")[self.star_mask_all][
+            self.star_mask_ap].sum()
 
     @lazy_property
     def Mbh_dynamical(self) -> unyt.unyt_quantity:
@@ -556,6 +564,19 @@ class ApertureParticleData:
         if self.Nstar == 0:
             return None
         return self.stellar_luminosities.sum(axis=0)
+    
+    @lazy_property
+    def CorrectedStellarLuminosity(self) -> unyt.unyt_array:
+        """
+        Total IMF-corrected luminosity of star particles.
+
+        Note that this returns an array with total luminosities in multiple
+        bands.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
+            self.star_mask_ap].sum(axis=0)
 
     @lazy_property
     def starmetalfrac(self) -> unyt.unyt_quantity:
@@ -704,7 +725,7 @@ class ApertureParticleData:
     @lazy_property
     def stellar_age_lw(self) -> unyt.unyt_quantity:
         """
-        Luminosity-weighted average stellar age.
+        (r-band) Luminosity-weighted average stellar age.
         """
         if self.Nstar == 0:
             return None
@@ -715,6 +736,21 @@ class ApertureParticleData:
         if Lrtot == 0:
             return None
         return ((Lr / Lrtot) * self.stellar_ages).sum()
+    
+    @lazy_property
+    def stellar_age_uvlw(self) -> unyt.unyt_quantity:
+        """
+        FUV corrected luminosity-weighted average stellar age.
+        """
+        if self.Nstar == 0:
+            return None
+        Luv = self.stellar_luminosities[
+            :, self.snapshot_datasets.get_column_index("CorrectedLuminosities", "GALEX_FUV")
+        ]
+        Luvtot = Luv.sum()
+        if Luvtot == 0:
+            return None
+        return ((Luv / Luvtot) * self.stellar_ages).sum()
 
     @lazy_property
     def TotalSNIaRate(self) -> unyt.unyt_quantity:
@@ -3074,6 +3110,7 @@ class ApertureProperties(HaloProperty):
             "Tgas_no_agn",
             "SFR",
             "StellarLuminosity",
+            "CorrectedStellarLuminosity",
             "starmetalfrac",
             "HalfMassRadiusGas",
             "HalfMassRadiusDM",

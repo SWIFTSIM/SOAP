@@ -252,7 +252,7 @@ if __name__ == "__main__":
                 infile["Header"].attrs["NumPart_Total_HighWord"].astype(np.int64) << 32
             )
             for i in range(nr_types):
-                if numpart_total[i] > 0:
+                if numpart_total[i] > 0 or i == 4 or i == 5: # keeps stars and BHs record even if none have formed yet
                     ptypes.append("PartType%d" % i)
     else:
         ptypes = None

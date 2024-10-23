@@ -389,6 +389,17 @@ class SubhaloParticleData:
         return self.stellar_luminosities.sum(axis=0)
 
     @lazy_property
+    def CorrectedStellarLuminosity(self) -> unyt.unyt_array:
+        """
+        Total stellar luminosity of star particles in the subhalo.
+
+        Note that this is an array, since there are multiple luminosity bands.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all].sum(axis=0)
+
+    @lazy_property
     def starmetalfrac(self) -> unyt.unyt_quantity:
         """
         Total metal mass fraction in star particles in the subhalo.

@@ -409,6 +409,19 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Nstar == 0:
             return None
         return self.stellar_luminosities.sum(axis=0)
+    
+    @lazy_property
+    def CorrectedStellarLuminosity(self) -> unyt.unyt_array:
+        """
+        IMF-corrected Total luminosity of star particles.
+
+        Note that this returns an array with total luminosities in multiple
+        bands.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.part_props.get_dataset("PartType4/CorrectedLuminosities")[
+            self.star_mask_all][self.star_mask_ap].sum(axis=0)
 
     @lazy_property
     def bh_mask_all(self) -> NDArray[bool]:
