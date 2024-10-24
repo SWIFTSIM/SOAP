@@ -160,8 +160,9 @@ class SWIFTCellGrid:
         if snap_filename_ref is None:
             self.snapshot_datasets = SnapshotDatasets([snap_filename] + extra_filenames)
         else:
-            self.snapshot_datasets = SnapshotDatasets([snap_filename_ref] + extra_filenames_ref)
-
+            self.snapshot_datasets = SnapshotDatasets(
+                [snap_filename_ref] + extra_filenames_ref
+            )
 
         # Open the input file
         with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
@@ -413,26 +414,32 @@ class SWIFTCellGrid:
             first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
         ):
             npart_snapshot = {}
-            with h5py.File(self.snap_filename.format(file_nr=file_nr), 'r') as snap_file:
+            with h5py.File(
+                self.snap_filename.format(file_nr=file_nr), "r"
+            ) as snap_file:
                 for parttype in self.snap_metadata:
                     # Skip if this particle type is not present in the snapshot
                     if len(self.snap_metadata[parttype]) == 0:
                         continue
                     # Pick the first dataset, assume all others are the same size
                     dset = list(self.snap_metadata[parttype].keys())[0]
-                    npart_snapshot[parttype] = snap_file[f'{parttype}/{dset}'].shape[0]
+                    npart_snapshot[parttype] = snap_file[f"{parttype}/{dset}"].shape[0]
 
-            for extra_filename, extra_metadata in zip(self.extra_filenames, self.extra_metadata):
-                with h5py.File(extra_filename.format(file_nr=file_nr), 'r') as extra_file:
+            for extra_filename, extra_metadata in zip(
+                self.extra_filenames, self.extra_metadata
+            ):
+                with h5py.File(
+                    extra_filename.format(file_nr=file_nr), "r"
+                ) as extra_file:
                     for parttype in self.snap_metadata:
                         # Skip if this particle type is not present in the extra files
                         if len(extra_metadata[parttype]) == 0:
                             continue
                         # Check the first dataset has the correct size
                         dset = list(extra_metadata[parttype].keys())[0]
-                        npart_extra = extra_file[f'{parttype}/{dset}'].shape[0]
+                        npart_extra = extra_file[f"{parttype}/{dset}"].shape[0]
                         if npart_snapshot[parttype] != npart_extra:
-                            print(f'Incorrect number of {parttype} in {extra_filename}')
+                            print(f"Incorrect number of {parttype} in {extra_filename}")
                             comm.Abort()
 
     def check_datasets_exist(self, required_datasets):
@@ -645,9 +652,8 @@ class SWIFTCellGrid:
                 for name in property_names[ptype]:
 
                     # Get metadata for array to allocate in memory
-                    if (
-                        (self.extra_filenames is not None)
-                        and (name in self.extra_metadata_combined[ptype])
+                    if (self.extra_filenames is not None) and (
+                        name in self.extra_metadata_combined[ptype]
                     ):
                         units, dtype, shape = self.extra_metadata_combined[ptype][name]
                     elif name in self.snap_metadata[ptype]:
