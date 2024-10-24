@@ -2743,6 +2743,8 @@ class SOProperties(HaloProperty):
             "Mstar_init",
             "starmetalfrac",
             "StellarLuminosity",
+            "CorrectedStellarLuminosity",
+            "CorrectedStellarLuminosityWithDust",
             "Ekin_star",
             "Lbaryons",
             "Mbh_dynamical",

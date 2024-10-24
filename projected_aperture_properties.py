@@ -1444,6 +1444,8 @@ class ProjectedApertureProperties(HaloProperty):
             "vcom",
             "SFR",
             "StellarLuminosity",
+            "CorrectedStellarLuminosity",
+            "CorrectedStellarLuminosityWithDust",
             "HalfMassRadiusGas",
             "HalfMassRadiusDM",
             "HalfMassRadiusStar",

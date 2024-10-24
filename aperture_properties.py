@@ -499,8 +499,11 @@ class ApertureParticleData:
         """
         Total mass of star particles, modified for a Chabrier IMF.
         """
+        if self.Nstar == 0:
+            return None
         return self.get_dataset("PartType4/ChabrierMasses")[self.star_mask_all][
-            self.star_mask_ap].sum()
+            self.star_mask_ap
+        ].sum()
 
     @lazy_property
     def Mbh_dynamical(self) -> unyt.unyt_quantity:
@@ -763,6 +766,7 @@ class ApertureParticleData:
         Luvtot = Luv.sum()
         if Luvtot == 0:
             return None
+        
         return ((Luv / Luvtot) * self.stellar_ages).sum()
 
     @lazy_property
@@ -3124,6 +3128,7 @@ class ApertureProperties(HaloProperty):
             "SFR",
             "StellarLuminosity",
             "CorrectedStellarLuminosity",
+            "ChabrierInferredMstar",
             "starmetalfrac",
             "HalfMassRadiusGas",
             "HalfMassRadiusDM",
@@ -3136,6 +3141,7 @@ class ApertureProperties(HaloProperty):
             "starFefrac",
             "stellar_age_mw",
             "stellar_age_lw",
+            "stellar_age_uvlw",
             "TotalSNIaRate",
             "HydrogenMass",
             "HeliumMass",

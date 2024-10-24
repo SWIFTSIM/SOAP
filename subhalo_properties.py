@@ -1867,6 +1867,8 @@ class SubhaloProperties(HaloProperty):
             "Tgas_no_cool_no_agn",
             "SFR",
             "StellarLuminosity",
+            "CorrectedStellarLuminosity",
+            "CorrectedStellarLuminosityWithDust",
             "starmetalfrac",
             "Vmax_unsoft",
             "Vmax_soft",
