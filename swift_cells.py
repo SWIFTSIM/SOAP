@@ -386,7 +386,7 @@ class SWIFTCellGrid:
                     for k, v in full_property_list.items():
                         if dataset in v[8]:
                             print(f"  {v[0]}")
-                    raise Exception(
+                    raise KeyError(
                         f"Can't find required dataset {dataset} in input file(s)!"
                     )
 

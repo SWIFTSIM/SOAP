@@ -192,7 +192,11 @@ class ChunkTask:
                         )
                 for ptype in properties:
                     properties[ptype] = list(properties[ptype])
-                cellgrid.check_datasets_exist(properties)
+                try:
+                    cellgrid.check_datasets_exist(properties)
+                except KeyError as err_msg:
+                    print(err_msg)
+                    comm.Abort()
             else:
                 properties = None
             properties = comm.bcast(properties)
