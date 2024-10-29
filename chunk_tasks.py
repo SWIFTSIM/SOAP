@@ -74,7 +74,6 @@ class ChunkTask:
         timings,
         max_ranks_reading,
         scratch_file_format,
-        xray_calculator,
     ):
 
         # Get communicator size and rank within this compute node
@@ -278,7 +277,6 @@ class ChunkTask:
                 boxsize,
                 self.halo_arrays,
                 results,
-                xray_calculator,
             )
             t1_halos = time.time()
             task_time_all_iterations += task_time

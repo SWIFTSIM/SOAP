@@ -36,8 +36,6 @@ from category_filter import CategoryFilter
 from parameter_file import ParameterFile
 from mpi_timer import MPITimer
 
-from xray_calculator import XrayCalculator
-
 
 # Set numpy to raise divide by zero, overflow and invalid operation errors as exceptions
 np.seterr(divide="raise", over="raise", invalid="raise")
@@ -402,56 +400,12 @@ def compute_halo_properties():
             print("Running in snipshot mode")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties()
-        if parameter_file.recalculate_xrays():
-            print(
-                f"Recalculating xray properties using table: {parameter_file.get_xray_table_path()}"
-            )
         category_filter.print_filters()
 
     # Ensure output dir exists
     if comm_world_rank == 0:
         lustre.ensure_output_dir(args.output_file)
     comm_world.barrier()
-
-    if comm_world_rank == 0:
-        xray_bands = [
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-        ]
-        observing_types = [
-            "energies_intrinsic",
-            "energies_intrinsic",
-            "energies_intrinsic",
-            "photons_intrinsic",
-            "photons_intrinsic",
-            "photons_intrinsic",
-            "energies_intrinsic_restframe",
-            "energies_intrinsic_restframe",
-            "energies_intrinsic_restframe",
-            "photons_intrinsic_restframe",
-            "photons_intrinsic_restframe",
-            "photons_intrinsic_restframe",
-        ]
-        xray_calculator = XrayCalculator(
-            cellgrid.z,
-            parameter_file.get_xray_table_path(),
-            xray_bands,
-            observing_types,
-            parameter_file.recalculate_xrays(),
-        )
-    else:
-        xray_calculator = None
-    xray_calculator = comm_world.bcast(xray_calculator)
 
     # Read in the halo catalogue:
     # All ranks read the file(s) in then gather to rank 0. Also computes search radius for each halo.
@@ -521,7 +475,6 @@ def compute_halo_properties():
         timings,
         args.max_ranks_reading,
         scratch_file_format,
-        xray_calculator,
     )
     metadata = task_queue.execute_tasks(
         tasks,

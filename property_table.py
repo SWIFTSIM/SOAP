@@ -2391,12 +2391,7 @@ class PropertyTable:
             # Can't include PartType0/XrayLuminositiesRestframe as it is
             # calculated by SOAP. The following properties are required
             # for the Xray calculator (which computes restframe quantities).
-            [
-                "PartType0/XrayLuminosities",
-                "PartType0/Densities",
-                "PartType0/Temperatures",
-                "PartType0/ElementMassFractions",
-            ],
+            ["PartType0/XrayLuminositiesRestframe"],
             True,
             0,
         ),
@@ -2427,10 +2422,7 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
-                "PartType0/XrayLuminosities",
-                "PartType0/Densities",
-                "PartType0/Temperatures",
-                "PartType0/ElementMassFractions",
+                "PartType0/XrayLuminositiesRestframe",
                 "PartType0/LastAGNFeedbackScaleFactors",
                 "PartType0/Temperatures",
             ],
@@ -2459,12 +2451,7 @@ class PropertyTable:
             "general",
             "DMantissa9",
             False,
-            [
-                "PartType0/Densities",
-                "PartType0/Temperatures",
-                "PartType0/ElementMassFractions",
-                "PartType0/Coordinates",
-            ],
+            ["PartType0/XrayLuminositiesRestframe", "PartType0/Coordinates"],
             True,
             0,
         ),
@@ -2496,10 +2483,9 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
-                "PartType0/Densities",
-                "PartType0/Temperatures",
-                "PartType0/ElementMassFractions",
+                "PartType0/XrayLuminositiesRestframe",
                 "PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/Temperatures",
                 "PartType0/Coordinates",
             ],
             True,
@@ -2527,12 +2513,7 @@ class PropertyTable:
             "general",
             "DMantissa9",
             False,
-            [
-                "PartType0/XrayPhotonLuminosities",
-                "PartType0/Densities",
-                "PartType0/Temperatures",
-                "PartType0/ElementMassFractions",
-            ],
+            ["PartType0/XrayPhotonLuminositiesRestframe"],
             True,
             0,
         ),
@@ -2563,11 +2544,9 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
-                "PartType0/XrayPhotonLuminosities",
-                "PartType0/Densities",
-                "PartType0/Temperatures",
-                "PartType0/ElementMassFractions",
+                "PartType0/XrayPhotonLuminositiesRestframe",
                 "PartType0/LastAGNFeedbackScaleFactors",
+                "PartType0/Temperatures",
             ],
             True,
             0,
@@ -2582,8 +2561,7 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
-                "PartType0/Densities",  # To compute X-rays
-                "PartType0/ElementMassFractions",  # To compute X-rays
+                "PartType0/XrayPhotonLuminosities",
                 "PartType0/Temperatures",
                 "PartType0/Coordinates",
             ],
@@ -2600,8 +2578,7 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
-                "PartType0/Densities",
-                "PartType0/Temperatures",
+                "PartType0/XrayPhotonLuminositiesRestframe",
                 "PartType0/ElementMassFractions",
                 "PartType0/Coordinates",
             ],
@@ -2636,8 +2613,7 @@ class PropertyTable:
             "DMantissa9",
             False,
             [
-                "PartType0/Densities",
-                "PartType0/ElementMassFractions",
+                "PartType0/XrayPhotonLuminositiesRestframe",
                 "PartType0/Temperatures",
                 "PartType0/LastAGNFeedbackScaleFactors",
                 "PartType0/Coordinates",

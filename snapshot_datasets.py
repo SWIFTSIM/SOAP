@@ -94,7 +94,6 @@ class SnapshotDatasets:
                         ][:]
                     except KeyError:
                         pass
-        print(self.named_columns)
 
     def setup_aliases(self, aliases: Dict):
         """
