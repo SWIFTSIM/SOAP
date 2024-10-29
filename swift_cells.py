@@ -361,8 +361,9 @@ class SWIFTCellGrid:
                                 f"Using {ptype}/{name} from extra-input files instead of snapshot"
                             )
                         if name in self.extra_metadata_combined[ptype]:
-                            # TODO Throw error (& test)
-                            pass
+                            raise Exception(
+                                f"{ptype}/{name} is present in multiple extra-input files"
+                            )
                     self.extra_metadata_combined[ptype].update(file_metadata[ptype])
 
         # Scan reference snapshot for missing particle types (e.g. stars or black holes at high z)
@@ -393,8 +394,6 @@ class SWIFTCellGrid:
                         for ptype in file_metadata:
                             if ptype not in self.extra_metadata_ref_combined:
                                 self.extra_metadata_ref_combined[ptype] = {}
-                            # TODO Check datasets do not appear in multiple extra-input files, because in
-                            # that case we wouldn't know which one to use
                             self.extra_metadata_ref_combined[ptype].update(
                                 file_metadata[ptype]
                             )
@@ -404,7 +403,6 @@ class SWIFTCellGrid:
         comm_size = comm.Get_size()
         if comm_rank == 0:
             pass
-            # TODO: Check the units
 
         # Loop over the different extra-input files, checking they have the
         # same number of particles as are in the snapshot

@@ -118,9 +118,13 @@ def compute_halo_properties():
         else:
             swift_filename_ref = None
             extra_input_ref = None
-        cellgrid = swift_cells.SWIFTCellGrid(
-            swift_filename, extra_input, swift_filename_ref, extra_input_ref
-        )
+        try:
+            cellgrid = swift_cells.SWIFTCellGrid(
+                swift_filename, extra_input, swift_filename_ref, extra_input_ref
+            )
+        except Exception:
+            # Thrown if there are issues with the input files
+            comm.Abort()
         parsec_cgs = cellgrid.constants["parsec"]
         solar_mass_cgs = cellgrid.constants["solar_mass"]
         a = cellgrid.a
