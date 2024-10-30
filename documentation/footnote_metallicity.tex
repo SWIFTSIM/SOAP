@@ -1,0 +1,15 @@
+\paragraph{$^{$FOOTNOTE_NUMBER$}$Metallicity} values are calculated using two different ways to average over the particles being considered.
+
+LinearMassWeighted properties, $Z_{\mathrm{lin}}$, are calculated as (using O/H as an example)
+\begin{equation}
+Z_{\mathrm{lin,O/H}} = \frac{1}{\sum_i m_i} \sum_i m_i \frac{n_{\mathrm{O},i}}{n_{\mathrm{H},i}} 
+\end{equation}
+where $m_i$ is the particle mass, $n_{O,i}$ is the number density of oxygen for particle $i$, and $n_{H,i}$ is the number density of hydrogen for particle $i$.
+
+LogarithmicMassWeighted properties, $Z_{\mathrm{log}}$, are calculated as
+\begin{equation}
+\log_{10}Z_{\mathrm{log,O/H}} = \frac{1}{\sum_i m_i} \sum_i m_i \: \log_{10} \left[ \max \left( \frac{n_{O,i}}{n_{H,i}}, \frac{f n_{O,\odot}}{n_{H,\odot}} \right) \right]
+\end{equation}
+where $\frac{n_{O,\odot}}{n_{H,\odot}}$ is the solar ratio of oxygen to hydrogen, and $f$ is either $10^{-3}$ (high limit) or $10^{-4}$ (low limit). The max function is required to stop us getting infinities for particles with no oxygen.
+
+When calculating gas metallicity we only use particles which are cold ($T < 10^{4.5}$K) and dense ($n_H > 0.1\mathrm{cm}^{-3}$). 
