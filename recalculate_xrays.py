@@ -265,4 +265,4 @@ if __name__ == "__main__":
     comm.barrier()
     if comm_rank == 0:
         runtime = datetime.datetime.now() - start
-        print(f"Done in {int(delta.total_seconds())}s")
+        print(f"Done in {int(runtime.total_seconds())}s")

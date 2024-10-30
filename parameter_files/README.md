@@ -22,6 +22,13 @@ This section defines the format and location of the SWIFT simulation snapshots. 
 - **filename**: Template for the snapshot files. Use `{snap_nr:04d}` for the snapshot number and `{file_nr}` for the file number, e.g. `"{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"`
 - **fof_filename**: Optional. Path to snapshots with FOF (Friends-of-Friends) IDs if FOF has been re-run. This is only used by the `group_membership.py` script as the values are then stored in the membership files.
 
+### Extra input
+
+This section is optional. If you wish to run SOAP with datasets not present in the original snapshots, you can pass them as extra input files.
+If a dataset is present in both the snapshot and the extra input files, the values from the extra input will be used. Multiple extra input files can be passed.
+
+- **extra_input**: Template for extra input file paths, e.g. `"{sim_dir}/{sim_name}/recalculated_xray/xray_{snap_nr:04d}/xray_{snap_nr:04d}.{file_nr}.hdf5"`
+
 ### Halo Finder
 
 Settings for the halo finding algorithm and output file locations.

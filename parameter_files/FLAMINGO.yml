@@ -30,6 +30,9 @@ GroupMembership:
   # Where to write the group membership files
   filename: "{sim_dir}/{sim_name}/SOAP-HBT/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
 
+ExtraInput:
+  xray_filename: "{output_dir}/{sim_name}/recalculated_xray/xray_{snap_nr:04d}/xray_{snap_nr:04d}.{file_nr}.hdf5"
+
 HaloProperties:
   # Where to write the halo properties file
   filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/halo_properties_{snap_nr:04d}.hdf5"

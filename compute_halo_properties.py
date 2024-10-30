@@ -122,9 +122,10 @@ def compute_halo_properties():
             cellgrid = swift_cells.SWIFTCellGrid(
                 swift_filename, extra_input, swift_filename_ref, extra_input_ref
             )
-        except Exception:
+        except Exception as err_msg:
+            print(err_msg)
             # Thrown if there are issues with the input files
-            comm.Abort()
+            comm_world.Abort()
         parsec_cgs = cellgrid.constants["parsec"]
         solar_mass_cgs = cellgrid.constants["solar_mass"]
         a = cellgrid.a
