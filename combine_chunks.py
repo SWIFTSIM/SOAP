@@ -193,7 +193,7 @@ def combine_chunks(
             n_part_type = cellgrid.swift_header_group["NumPartTypes"][0]
             header.attrs["NumPart_ThisFile"] = np.zeros(n_part_type, dtype="int32")
             header.attrs["NumPart_Total"] = np.zeros(n_part_type, dtype="uint32")
-            header.attrs["NumPart_Total_Highword"] = np.zeros(
+            header.attrs["NumPart_Total_HighWord"] = np.zeros(
                 n_part_type, dtype="uint32"
             )
             header.attrs["OutputType"] = "SOAP"
