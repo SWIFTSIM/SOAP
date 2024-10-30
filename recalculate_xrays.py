@@ -163,6 +163,9 @@ def recalculate_xrays(snap_file, output_filename, units, xray_calculator):
 #
 if __name__ == "__main__":
 
+    import datetime
+    start = datetime.datetime.now()
+
     # Read parameters from command line and config file
     from virgo.mpi.util import MPIArgumentParser
 
@@ -261,4 +264,5 @@ if __name__ == "__main__":
 
     comm.barrier()
     if comm_rank == 0:
-        print("Done.")
+        runtime = datetime.datetime.now() - start
+        print(f"Done in {int(delta.total_seconds())}s")
