@@ -248,12 +248,9 @@ if __name__ == "__main__":
         ptypes = []
         with h5py.File(swift_filename.format(file_nr=0), "r") as infile:
             nr_types = infile["Header"].attrs["NumPartTypes"][0]
-            numpart_total = infile["Header"].attrs["NumPart_Total"].astype(np.int64) + (
-                infile["Header"].attrs["NumPart_Total_HighWord"].astype(np.int64) << 32
-            )
             for i in range(nr_types):
-                if numpart_total[i] > 0:
-                    ptypes.append("PartType%d" % i)
+                if f"PartType{i}" in infile:
+                    ptypes.append(f"PartType{i}")
     else:
         ptypes = None
     ptypes = comm.bcast(ptypes)
