@@ -1,5 +1,7 @@
 #!/bin/env python
 
+import time
+import socket
 import numpy as np
 import h5py
 
@@ -97,7 +99,6 @@ def process_particle_type(
     # Determine if we need to create a new output file set
     if create_file:
         mode = "w"
-        create_file = False
     else:
         mode = "r+"
 
@@ -152,7 +153,6 @@ def process_particle_type(
         attrs=attrs,
     )
 
-
 if __name__ == "__main__":
 
     # Read parameters from command line and config file
@@ -178,6 +178,11 @@ if __name__ == "__main__":
     halo_format = args["HaloFinder"]["type"]
     halo_basename = args["HaloFinder"]["filename"]
     output_file = args["GroupMembership"]["filename"]
+
+    if comm_rank == 0:
+        print(f'Input snapshot is {swift_filename}')
+        print(f'Halo basename is {halo_basename}')
+        print(f'Snapshot number is {snap_nr}')
 
     # Substitute in the snapshot number where necessary
     pf = PartialFormatter()
@@ -244,9 +249,12 @@ if __name__ == "__main__":
         print(
             f"Number of group particle IDs per rank min={min_nr_parts_local}, max={max_nr_parts_local}"
         )
-        # Determine SWIFT particle types which exist in the snapshot
+
+        # Read snapshot attributes
+        header = {}
         ptypes = []
         with h5py.File(swift_filename.format(file_nr=0), "r") as infile:
+            # Determine SWIFT particle types which exist in the snapshot
             nr_types = infile["Header"].attrs["NumPartTypes"][0]
             numpart_total = infile["Header"].attrs["NumPart_Total"].astype(np.int64) + (
                 infile["Header"].attrs["NumPart_Total_HighWord"].astype(np.int64) << 32
@@ -254,9 +262,36 @@ if __name__ == "__main__":
             for i in range(nr_types):
                 if numpart_total[i] > 0:
                     ptypes.append("PartType%d" % i)
+
+            for attr in [
+                "BoxSize",
+                "Dimension",
+                "NumFilesPerSnapshot",
+                "NumPartTypes",
+                "NumPart_ThisFile",
+                "NumPart_Total",
+                "NumPart_Total_HighWord",
+                "Redshift",
+                "RunName",
+                "Scale-factor",
+            ]:
+                header[attr] = infile["Header"].attrs[attr]
+
+        header["Code"] = "SOAP"
+        header["OutputType"] = "Membership"
+        snapshot_date = time.strftime("%H:%M:%S %Y-%m-%d GMT", time.gmtime())
+        header["SnapshotDate"] = snapshot_date
+        header["System"] = socket.gethostname()
+        header["halo_basename"] = halo_basename
+        header["halo_format"] = halo_format
+        header["snapshot_nr"] = snap_nr
+        header["swift_filename"] = swift_filename
+        header["fof_filename"] = fof_filename
     else:
         ptypes = None
+        header = None
     ptypes = comm.bcast(ptypes)
+    header = comm.bcast(header)
 
     # Open the snapshot
     snap_file = phdf5.MultiFile(
@@ -296,6 +331,19 @@ if __name__ == "__main__":
             create_file,
         )
         create_file = False
+    comm.barrier()
+
+    # Write header
+    n_files = header["NumFilesPerSnapshot"][0]
+    files_on_rank = phdf5.assign_files(n_files, comm_size)
+    first_file = np.cumsum(files_on_rank) - files_on_rank
+    for file_nr in range(
+        first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
+    ):
+        with h5py.File(output_file.format(file_nr=file_nr), "r+") as infile:
+            group = infile.create_group('Header')
+            for k, v in header.items():
+                group.attrs[k] = v
 
     comm.barrier()
     if comm_rank == 0:

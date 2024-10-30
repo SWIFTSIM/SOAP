@@ -93,5 +93,8 @@ membership="${output_filename}.{file_nr}.hdf5"
 virtual="${outbase}/colibre_with_SOAP_membership_${snapnum}.hdf5"
 python make_virtual_snapshot.py $snapshot $membership $virtual
 
+echo "Setting virtual file to be read-only"
+chmod a=r "${virtual}"
+
 echo "Job complete!"
 
