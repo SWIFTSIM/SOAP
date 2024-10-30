@@ -1428,7 +1428,7 @@ class ApertureParticleData:
     @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
         """
-        Star formation rates of star particles.
+        Star formation rates of gas particles.
 
         Note that older versions of SWIFT would hijack this dataset to also encode
         other information, so that negative SFR values (which are unphysical) would
@@ -1443,6 +1443,19 @@ class ApertureParticleData:
         # Negative SFR are not SFR at all!
         raw_SFR[raw_SFR < 0] = 0
         return raw_SFR
+
+    @lazy_property
+    def AveragedStarFormationRate(self) -> unyt.unyt_array:
+        """
+        Averaged star formation rates of gas particles. Averaging times are
+        set by the value of 'recording_triggers' in the SWIFT parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+        return np.sum(avg_SFR, axis=0)
 
     @lazy_property
     def is_SFR(self) -> NDArray[bool]:
@@ -3073,6 +3086,7 @@ class ApertureProperties(HaloProperty):
             "Tgas",
             "Tgas_no_agn",
             "SFR",
+            "AveragedStarFormationRate",
             "StellarLuminosity",
             "starmetalfrac",
             "HalfMassRadiusGas",

@@ -238,6 +238,9 @@ ApertureProperties:
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
+    AveragedStarFormationRate:
+      snapshot: true
+      snipshot: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInIron:
       snapshot: true
@@ -396,6 +399,9 @@ ProjectedApertureProperties:
     ProjectedStellarInertiaTensorNoniterative: false
     ProjectedStellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
+    AveragedStarFormationRate:
+      snapshot: true
+      snipshot: false
     StarFormingGasMassFractionInMetals: true
     StellarInitialMass: true
     StellarLuminosity: true
@@ -521,6 +527,9 @@ SOProperties:
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
+    AveragedStarFormationRate:
+      snapshot: true
+      snipshot: false
     StarFormingGasMassFractionInMetals: true
     StellarCentreOfMass: true
     StellarCentreOfMassVelocity: true
@@ -692,6 +701,9 @@ SubhaloProperties:
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
+    AveragedStarFormationRate:
+      snapshot: true
+      snipshot: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInMetals: true
     StellarInitialMass: true

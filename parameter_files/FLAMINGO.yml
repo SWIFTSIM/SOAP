@@ -148,6 +148,7 @@ ApertureProperties:
     NumberOfStarParticles: true
     SpinParameter: true
     StarFormationRate: true
+    AveragedStarFormationRate: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInIron: true
     StarFormingGasMassFractionInMetals: true
@@ -281,6 +282,7 @@ ProjectedApertureProperties:
     ProjectedStellarInertiaTensorNoniterative: true
     ProjectedStellarInertiaTensorReducedNoniterative: true
     StarFormationRate: true
+    AveragedStarFormationRate: false
     StarFormingGasMassFractionInMetals: false
     StellarInitialMass: true
     StellarLuminosity: true
@@ -386,6 +388,7 @@ SOProperties:
     SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: true
     SpinParameter: true
     StarFormationRate: true
+    AveragedStarFormationRate: false
     StarFormingGasMassFractionInMetals: true
     StellarCentreOfMass: true
     StellarCentreOfMassVelocity: true
@@ -560,6 +563,7 @@ SubhaloProperties:
     StellarInertiaTensorReducedNoniterative: true
     SpinParameter: true
     StarFormationRate: true
+    AveragedStarFormationRate: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInMetals: true
     StellarInitialMass: true
