@@ -5,6 +5,7 @@ LinearMassWeighted properties, $Z_{\mathrm{lin}}$, are calculated as (using O/H 
 Z_{\mathrm{lin,O/H}} = \frac{1}{\sum_i m_i} \sum_i m_i \frac{n_{\mathrm{O},i}}{n_{\mathrm{H},i}} 
 \end{equation}
 where $m_i$ is the particle mass, $n_{O,i}$ is the number density of oxygen for particle $i$, and $n_{H,i}$ is the number density of hydrogen for particle $i$.
+When calculating gas metallicity we only sum over particles which are cold ($T_i < 10^{4.5}$K) and dense ($\frac{\rho_i}{m_{\mathrm{H}}} > 0.1 \mathrm{cm}^{-3}$).
 
 LogarithmicMassWeighted properties, $Z_{\mathrm{log}}$, are calculated as
 \begin{equation}
@@ -12,4 +13,3 @@ LogarithmicMassWeighted properties, $Z_{\mathrm{log}}$, are calculated as
 \end{equation}
 where $\frac{n_{O,\odot}}{n_{H,\odot}}$ is the solar ratio of oxygen to hydrogen, and $f$ is either $10^{-3}$ (high limit) or $10^{-4}$ (low limit). The max function is required to stop us getting infinities for particles with no oxygen.
 
-When calculating gas metallicity we only use particles which are cold ($T < 10^{4.5}$K) and dense ($n_H > 0.1\mathrm{cm}^{-3}$). 
