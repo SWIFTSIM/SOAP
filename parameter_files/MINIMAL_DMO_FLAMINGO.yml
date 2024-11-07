@@ -100,5 +100,4 @@ filters:
     properties:
       - BoundSubhalo/NumberOfStarParticles
 calculations:
-  recalculate_xrays: false
   calculate_missing_properties: false

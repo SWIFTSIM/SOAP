@@ -74,7 +74,6 @@ class ChunkTask:
         timings,
         max_ranks_reading,
         scratch_file_format,
-        xray_calculator,
     ):
 
         # Get communicator size and rank within this compute node
@@ -192,7 +191,11 @@ class ChunkTask:
                         )
                 for ptype in properties:
                     properties[ptype] = list(properties[ptype])
-                cellgrid.check_datasets_exist(properties)
+                try:
+                    cellgrid.check_datasets_exist(properties)
+                except KeyError as err_msg:
+                    print(err_msg)
+                    comm.Abort(1)
             else:
                 properties = None
             properties = comm.bcast(properties)
@@ -274,7 +277,6 @@ class ChunkTask:
                 boxsize,
                 self.halo_arrays,
                 results,
-                xray_calculator,
             )
             t1_halos = time.time()
             task_time_all_iterations += task_time

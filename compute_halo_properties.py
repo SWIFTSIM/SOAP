@@ -36,8 +36,6 @@ from category_filter import CategoryFilter
 from parameter_file import ParameterFile
 from mpi_timer import MPITimer
 
-from xray_calculator import XrayCalculator
-
 
 # Set numpy to raise divide by zero, overflow and invalid operation errors as exceptions
 np.seterr(divide="raise", over="raise", invalid="raise")
@@ -106,18 +104,28 @@ def compute_halo_properties():
     # Open the snapshot and read SWIFT cell structure, units etc
     if comm_world_rank == 0:
         swift_filename = sub_snapnum(args.swift_filename, args.snapshot_nr)
-        extra_input = sub_snapnum(args.extra_input, args.snapshot_nr)
+        extra_input = [
+            sub_snapnum(filename, args.snapshot_nr) for filename in args.extra_input
+        ]
         if args.reference_snapshot is not None:
             swift_filename_ref = sub_snapnum(
                 args.swift_filename, args.reference_snapshot
             )
-            extra_input_ref = sub_snapnum(args.extra_input, args.reference_snapshot)
+            extra_input_ref = [
+                sub_snapnum(filename, args.reference_snapshot)
+                for filename in args.extra_input
+            ]
         else:
             swift_filename_ref = None
             extra_input_ref = None
-        cellgrid = swift_cells.SWIFTCellGrid(
-            swift_filename, extra_input, swift_filename_ref, extra_input_ref
-        )
+        try:
+            cellgrid = swift_cells.SWIFTCellGrid(
+                swift_filename, extra_input, swift_filename_ref, extra_input_ref
+            )
+        except Exception as err_msg:
+            print(err_msg)
+            # Thrown if there are issues with the input files
+            comm_world.Abort(1)
         parsec_cgs = cellgrid.constants["parsec"]
         solar_mass_cgs = cellgrid.constants["solar_mass"]
         a = cellgrid.a
@@ -129,6 +137,9 @@ def compute_halo_properties():
     cellgrid, parsec_cgs, solar_mass_cgs, a = comm_world.bcast(
         (cellgrid, parsec_cgs, solar_mass_cgs, a)
     )
+
+    # Check that the extra-input files are valid
+    cellgrid.verify_extra_input(comm_world)
 
     # Process parameter file
     if args.snipshot is None:
@@ -394,56 +405,12 @@ def compute_halo_properties():
             print("Running in snipshot mode")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties()
-        if parameter_file.recalculate_xrays():
-            print(
-                f"Recalculating xray properties using table: {parameter_file.get_xray_table_path()}"
-            )
         category_filter.print_filters()
 
     # Ensure output dir exists
     if comm_world_rank == 0:
         lustre.ensure_output_dir(args.output_file)
     comm_world.barrier()
-
-    if comm_world_rank == 0:
-        xray_bands = [
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-        ]
-        observing_types = [
-            "energies_intrinsic",
-            "energies_intrinsic",
-            "energies_intrinsic",
-            "photons_intrinsic",
-            "photons_intrinsic",
-            "photons_intrinsic",
-            "energies_intrinsic_restframe",
-            "energies_intrinsic_restframe",
-            "energies_intrinsic_restframe",
-            "photons_intrinsic_restframe",
-            "photons_intrinsic_restframe",
-            "photons_intrinsic_restframe",
-        ]
-        xray_calculator = XrayCalculator(
-            cellgrid.z,
-            parameter_file.get_xray_table_path(),
-            xray_bands,
-            observing_types,
-            parameter_file.recalculate_xrays(),
-        )
-    else:
-        xray_calculator = None
-    xray_calculator = comm_world.bcast(xray_calculator)
 
     # Read in the halo catalogue:
     # All ranks read the file(s) in then gather to rank 0. Also computes search radius for each halo.
@@ -513,7 +480,6 @@ def compute_halo_properties():
         timings,
         args.max_ranks_reading,
         scratch_file_format,
-        xray_calculator,
     )
     metadata = task_queue.execute_tasks(
         tasks,

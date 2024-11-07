@@ -41,45 +41,59 @@ class SnapshotDatasets:
     # constants defined in the parameter file
     defined_constants: Dict
 
-    def __init__(self, file_handle: h5py.File):
+    def __init__(self, filenames: list):
         """
         Constructor.
 
         Read dataset names and named column metadata from
-        the given snapshot file handle.
+        the filenames given.
 
         Parameters:
-         - file_handle: h5py.File
-           Open snapshot file handle.
+         - filenames: list
+           Filenames of the snapshot and extra-input files.
+           The snapshot filename must be the first element.
         """
+
+        # Loop through all the files provided and record the datasets present
         self.datasets_in_file = {}
-        for group in file_handle:
-            if group.startswith("PartType"):
-                self.datasets_in_file[group] = []
-                for dset in file_handle[group]:
-                    self.datasets_in_file[group].append(dset)
-
-        # Read named columns
         self.named_columns = {}
-        for name in file_handle["SubgridScheme"]["NamedColumns"]:
-            column_names = file_handle["SubgridScheme"]["NamedColumns"][name][:]
-            self.named_columns[name] = {}
-            # turn the list into a dictionary that maps a column name to
-            # a colum index
-            for iname, colname in enumerate(column_names):
-                self.named_columns[name][colname.decode("utf-8")] = iname
+        for filename in filenames:
+            with h5py.File(filename.format(file_nr=0), "r") as file_handle:
+                for group in file_handle:
+                    if not group.startswith("PartType"):
+                        continue
+                    if group not in self.datasets_in_file:
+                        self.datasets_in_file[group] = set()
+                    for dset in file_handle[group]:
+                        self.datasets_in_file[group].add(dset)
 
-        try:
-            self.dust_grain_composition = file_handle["SubgridScheme"][
-                "GrainToElementMapping"
-            ][:]
-        except KeyError:
-            try:
-                self.dust_grain_composition = file_handle["SubgridScheme"][
-                    "DustMassFractionsToElementMassFractionsMapping"
-                ][:]
-            except KeyError:
-                pass
+                # Try to read named columns
+                if ("SubgridScheme" not in file_handle) or (
+                    "NamedColumns" not in file_handle["SubgridScheme"]
+                ):
+                    continue
+                # As the snapshot filename is done first, if one of the extra-input
+                # files has a named column entry in common with the snapshot then
+                # we use then one from the extra-input file.
+                for name in file_handle["SubgridScheme"]["NamedColumns"]:
+                    column_names = file_handle["SubgridScheme"]["NamedColumns"][name][:]
+                    self.named_columns[name] = {}
+                    # turn the list into a dictionary that maps a column name to
+                    # a colum index
+                    for iname, colname in enumerate(column_names):
+                        self.named_columns[name][colname.decode("utf-8")] = iname
+
+                try:
+                    self.dust_grain_composition = file_handle["SubgridScheme"][
+                        "GrainToElementMapping"
+                    ][:]
+                except KeyError:
+                    try:
+                        self.dust_grain_composition = file_handle["SubgridScheme"][
+                            "DustMassFractionsToElementMassFractionsMapping"
+                        ][:]
+                    except KeyError:
+                        pass
 
     def setup_aliases(self, aliases: Dict):
         """
@@ -109,7 +123,7 @@ class SnapshotDatasets:
         """
         self.dataset_map = {}
         for ptype in self.datasets_in_file:
-            for dset in self.datasets_in_file[ptype] + ["GroupNr_all", "GroupNr_bound"]:
+            for dset in self.datasets_in_file[ptype]:
                 snap_name = f"{ptype}/{dset}"
                 self.dataset_map[snap_name] = (ptype, dset)
         for alias in aliases:

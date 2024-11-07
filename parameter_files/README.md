@@ -22,6 +22,13 @@ This section defines the format and location of the SWIFT simulation snapshots. 
 - **filename**: Template for the snapshot files. Use `{snap_nr:04d}` for the snapshot number and `{file_nr}` for the file number, e.g. `"{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"`
 - **fof_filename**: Optional. Path to snapshots with FOF (Friends-of-Friends) IDs if FOF has been re-run. This is only used by the `group_membership.py` script as the values are then stored in the membership files.
 
+### Extra input
+
+This section is optional. If you wish to run SOAP with datasets not present in the original snapshots, you can pass them as extra input files.
+If a dataset is present in both the snapshot and the extra input files, the values from the extra input will be used. Multiple extra input files can be passed.
+
+- **extra_input**: Template for extra input file paths, e.g. `"{sim_dir}/{sim_name}/recalculated_xray/xray_{snap_nr:04d}/xray_{snap_nr:04d}.{file_nr}.hdf5"`
+
 ### Halo Finder
 
 Settings for the halo finding algorithm and output file locations.
@@ -182,8 +189,6 @@ defined_constants:
 
 Contains information about how to run SOAP
 
-- **recalculate_xrays**: Boolen value. The xrays values in FLAMINGO were incorrect, and so SOAP is able to recompute the values if required.
-- **xray_table_path**: The path to the xray tables to use when recomputing xrays.
 - **min_read_radius_cmpc**: SOAP makes an initial guess of the radius around each halo to read in. 
 - **calculate_missing_properties**: Boolen value. If set to true then SOAP will calculate any properties which are not listed in the parameter file. If set to false then SOAP will ignore these properties 
 - **reduced_snapshots**: Optional. We create reduced snapshots where we keep the particles within the virial radius of certain objects. The values here determine which halos to keep.

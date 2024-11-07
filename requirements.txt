@@ -1,5 +1,5 @@
 h5py
-numpy<2
+numpy
 unyt>=3
 astropy
 numba

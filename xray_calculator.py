@@ -5,11 +5,9 @@ from unyt import g, cm, mp, erg, s
 
 
 class XrayCalculator:
-    def __init__(self, redshift, table_path, bands, observing_types, recalculate):
+    def __init__(self, redshift, table_path, bands, observing_types):
         self.z_now = redshift
-        self.recalculate = recalculate
-        if not recalculate:
-            return
+        self.table_path = table_path
 
         if bands == None:
             print(

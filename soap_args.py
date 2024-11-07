@@ -115,7 +115,6 @@ def get_soap_args(comm):
     args.output_file = all_args["HaloProperties"]["filename"]
     args.snapshot_nr = all_args["Parameters"]["snap_nr"]
     args.chunks = all_args["Parameters"]["chunks"]
-    args.extra_input = all_args["GroupMembership"]["filename"]
     args.centrals_only = all_args["Parameters"]["centrals_only"]
     args.dmo = all_args["Parameters"]["dmo"]
     args.max_halos = all_args["Parameters"]["max_halos"]
@@ -127,6 +126,14 @@ def get_soap_args(comm):
     args.git_hash = all_args["git_hash"]
     args.min_read_radius_cmpc = all_args["calculations"]["min_read_radius_cmpc"]
     args.calculations = all_args["calculations"]
+
+    # Extra-input files which are optionally passed in the parameter file are
+    # processed the same way as the membership files
+    if "ExtraInput" in all_args:
+        args.extra_input = list(all_args["ExtraInput"].values())
+    else:
+        args.extra_input = []
+    args.extra_input.append(all_args["GroupMembership"]["filename"])
 
     # The default behaviour is to determine whether to run in snipshot mode
     # by looking at the value of "SelectOutut" in the snapshot header.
