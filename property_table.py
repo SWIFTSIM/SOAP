@@ -2427,9 +2427,6 @@ class PropertyTable:
             "general",
             "DMantissa9",
             False,
-            # Can't include PartType0/XrayLuminositiesRestframe as it is
-            # calculated by SOAP. The following properties are required
-            # for the Xray calculator (which computes restframe quantities).
             ["PartType0/XrayLuminositiesRestframe"],
             True,
             0,

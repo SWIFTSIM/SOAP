@@ -195,7 +195,7 @@ class ChunkTask:
                     cellgrid.check_datasets_exist(properties)
                 except KeyError as err_msg:
                     print(err_msg)
-                    comm.Abort()
+                    comm.Abort(1)
             else:
                 properties = None
             properties = comm.bcast(properties)

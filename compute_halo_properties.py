@@ -125,7 +125,7 @@ def compute_halo_properties():
         except Exception as err_msg:
             print(err_msg)
             # Thrown if there are issues with the input files
-            comm_world.Abort()
+            comm_world.Abort(1)
         parsec_cgs = cellgrid.constants["parsec"]
         solar_mass_cgs = cellgrid.constants["solar_mass"]
         a = cellgrid.a
