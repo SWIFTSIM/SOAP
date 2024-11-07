@@ -140,7 +140,8 @@ def combine_chunks(
             # Write parameters
             params = outfile.create_group("Parameters")
             params.attrs["swift_filename"] = args.swift_filename
-            params.attrs["membership_filename"] = args.extra_input
+            params.attrs["membership_filename"] = args.extra_input[-1]
+            params.attrs["extra_input"] = args.extra_input[:-1]
             params.attrs["halo_basename"] = args.halo_basename
             params.attrs["halo_format"] = args.halo_format
             params.attrs["snapshot_nr"] = args.snapshot_nr
@@ -192,7 +193,7 @@ def combine_chunks(
             n_part_type = cellgrid.swift_header_group["NumPartTypes"][0]
             header.attrs["NumPart_ThisFile"] = np.zeros(n_part_type, dtype="int32")
             header.attrs["NumPart_Total"] = np.zeros(n_part_type, dtype="uint32")
-            header.attrs["NumPart_Total_Highword"] = np.zeros(
+            header.attrs["NumPart_Total_HighWord"] = np.zeros(
                 n_part_type, dtype="uint32"
             )
             header.attrs["OutputType"] = "SOAP"
@@ -375,7 +376,12 @@ def combine_chunks(
             fof_file.read("Groups/Centres"), indices, comm=comm_world
         )
         props = PropertyTable.full_property_list[f"FOF/Centres"]
-        fof_com = (fof_com * fof_com_unit).to(cellgrid.get_unit(props[3]))
+        soap_com_unit = cellgrid.get_unit(props[3])
+        physical = props[9]
+        a_exponent = props[10]
+        if not physical:
+            soap_com_unit = soap_com_unit * cellgrid.get_unit('a') ** a_exponent
+        fof_com = (fof_com * fof_com_unit).to(soap_com_unit)
         phdf5.collective_write(
             outfile,
             "InputHalos/FOF/Centres",
@@ -389,7 +395,12 @@ def combine_chunks(
             fof_file.read("Groups/Masses"), indices, comm=comm_world
         )
         props = PropertyTable.full_property_list[f"FOF/Masses"]
-        fof_mass = (fof_mass * fof_mass_unit).to(cellgrid.get_unit(props[3]))
+        soap_mass_unit = cellgrid.get_unit(props[3])
+        physical = props[9]
+        a_exponent = props[10]
+        if not physical:
+            soap_mass_unit = soap_mass_unit * cellgrid.get_unit('a') ** a_exponent
+        fof_mass = (fof_mass * fof_mass_unit).to(soap_mass_unit)
         phdf5.collective_write(
             outfile,
             "InputHalos/FOF/Masses",

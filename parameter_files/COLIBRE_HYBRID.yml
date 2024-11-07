@@ -772,7 +772,6 @@ defined_constants:
   C_O_sun: 0.549
   Mg_H_sun: 3.98e-5
 calculations:
-  recalculate_xrays: false
   min_read_radius_cmpc: 0.5
   calculate_missing_properties: true
   recently_heated_gas_filter:

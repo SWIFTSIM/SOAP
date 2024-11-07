@@ -2119,7 +2119,7 @@ class SubhaloProperties(HaloProperty):
             )
         elif Ntot > Nexpected:
             # This would indicate a bug somewhere
-            raise RuntimeError("Found more particles than expected!")
+            raise RuntimeError(f'Found more particles than expected for halo {input_halo["index"]}')
 
         # Add these properties to the output
         for prop in self.property_list:
