@@ -147,7 +147,7 @@ class SOCatalogue:
 
         if (self.nr_halos == 0) and (comm_rank == 0):
             print("No halos found, aborting run")
-            exit(1)
+            comm.Abort(1)
 
         # Reduce the number of chunks if necessary so that all chunks have at least one halo
         nr_chunks = min(nr_chunks, self.nr_halos)
