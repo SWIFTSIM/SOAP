@@ -3128,6 +3128,7 @@ class ApertureProperties(HaloProperty):
             "SFR",
             "StellarLuminosity",
             "CorrectedStellarLuminosity",
+            "CorrectedStellarLuminosityWithDust",
             "ChabrierInferredMstar",
             "starmetalfrac",
             "HalfMassRadiusGas",
