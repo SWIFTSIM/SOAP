@@ -632,8 +632,8 @@ class PropertyTable:
             "FMantissa9",
             False,
             ["PartType5/SubgridMasses", "PartType5/Velocities"],
-            False,
-            1,
+            True,
+            0,
         ),
         "DarkMatterInertiaTensor": (
             "DarkMatterInertiaTensor",
@@ -1043,7 +1043,7 @@ class PropertyTable:
             False,
             ["PartType0/Masses", "PartType0/Velocities"],
             True,
-            -2,
+            0,
         ),
         "Ekin_star": (
             "KineticEnergyStars",
@@ -1056,7 +1056,7 @@ class PropertyTable:
             False,
             ["PartType4/Masses", "PartType4/Velocities"],
             True,
-            -2,
+            0,
         ),
         "Etherm_gas": (
             "ThermalEnergyGas",
@@ -1297,7 +1297,7 @@ class PropertyTable:
                 "PartType4/Velocities",
             ],
             True,
-            2,
+            1,
         ),
         "Ldm": (
             "AngularMomentumDarkMatter",
@@ -1310,7 +1310,7 @@ class PropertyTable:
             True,
             ["PartType1/Coordinates", "PartType1/Masses", "PartType1/Velocities"],
             True,
-            2,
+            1,
         ),
         "Lgas": (
             "AngularMomentumGas",
@@ -1323,7 +1323,7 @@ class PropertyTable:
             False,
             ["PartType0/Coordinates", "PartType0/Masses", "PartType0/Velocities"],
             True,
-            2,
+            1,
         ),
         "MedianStellarBirthDensity": (
             "MedianStellarBirthDensity",
@@ -1375,7 +1375,7 @@ class PropertyTable:
             False,
             ["PartType4/Coordinates", "PartType4/Masses", "PartType4/Velocities"],
             True,
-            2,
+            1,
         ),
         "MaximumStellarBirthDensity": (
             "MaximumStellarBirthDensity",
@@ -3022,7 +3022,7 @@ class PropertyTable:
             True,
             ["PartType1/Velocities"],
             True,
-            1,
+            0,
         ),
         "proj_veldisp_gas": (
             "GasProjectedVelocityDispersion",
@@ -3035,7 +3035,7 @@ class PropertyTable:
             False,
             ["PartType0/Velocities"],
             True,
-            1,
+            0,
         ),
         "proj_veldisp_star": (
             "StellarProjectedVelocityDispersion",
@@ -3048,7 +3048,7 @@ class PropertyTable:
             False,
             ["PartType4/Velocities"],
             True,
-            1,
+            0,
         ),
         "r": (
             "SORadius",
@@ -3198,8 +3198,8 @@ class PropertyTable:
                 "PartType5/DynamicalMasses",
                 "PartType5/Velocities",
             ],
-            False,
-            1,
+            True,
+            0,
         ),
         "vcom_gas": (
             "GasCentreOfMassVelocity",
@@ -3211,8 +3211,8 @@ class PropertyTable:
             "DScale1",
             False,
             ["PartType0/Masses", "PartType0/Velocities"],
-            False,
-            1,
+            True,
+            0,
         ),
         "vcom_star": (
             "StellarCentreOfMassVelocity",
@@ -3224,8 +3224,8 @@ class PropertyTable:
             "DScale1",
             False,
             ["PartType4/Masses", "PartType4/Velocities"],
-            False,
-            1,
+            True,
+            0,
         ),
         "veldisp_matrix_dm": (
             "DarkMatterVelocityDispersionMatrix",
@@ -3238,7 +3238,7 @@ class PropertyTable:
             True,
             ["PartType1/Masses", "PartType1/Velocities"],
             True,
-            2,
+            0,
         ),
         "veldisp_matrix_gas": (
             "GasVelocityDispersionMatrix",
@@ -3251,7 +3251,7 @@ class PropertyTable:
             False,
             ["PartType0/Masses", "PartType0/Velocities"],
             True,
-            2,
+            0,
         ),
         "veldisp_matrix_star": (
             "StellarVelocityDispersionMatrix",
@@ -3264,7 +3264,7 @@ class PropertyTable:
             False,
             ["PartType4/Masses", "PartType4/Velocities"],
             True,
-            2,
+            0,
         ),
         "LinearMassWeightedOxygenOverHydrogenOfGas": (
             "LinearMassWeightedOxygenOverHydrogenOfGas",
