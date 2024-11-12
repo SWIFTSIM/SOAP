@@ -632,8 +632,8 @@ class PropertyTable:
             "FMantissa9",
             False,
             ["PartType5/SubgridMasses", "PartType5/Velocities"],
-            False,
-            1,
+            True,
+            0,
         ),
         "DarkMatterInertiaTensor": (
             "DarkMatterInertiaTensor",
@@ -3198,8 +3198,8 @@ class PropertyTable:
                 "PartType5/DynamicalMasses",
                 "PartType5/Velocities",
             ],
-            False,
-            1,
+            True,
+            0,
         ),
         "vcom_gas": (
             "GasCentreOfMassVelocity",
@@ -3211,8 +3211,8 @@ class PropertyTable:
             "DScale1",
             False,
             ["PartType0/Masses", "PartType0/Velocities"],
-            False,
-            1,
+            True,
+            0,
         ),
         "vcom_star": (
             "StellarCentreOfMassVelocity",
@@ -3224,8 +3224,8 @@ class PropertyTable:
             "DScale1",
             False,
             ["PartType4/Masses", "PartType4/Velocities"],
-            False,
-            1,
+            True,
+            0,
         ),
         "veldisp_matrix_dm": (
             "DarkMatterVelocityDispersionMatrix",
