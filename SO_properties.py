@@ -3886,9 +3886,12 @@ def test_SO_properties_random_halo():
             # in the SO calculation)
             # non-centrals don't fail, since we do not calculate any SO
             # properties and simply return zeros in this case
-            # TODO change back to previous assert
-            if not ((Npart == 1) or input_halo["is_central"] == 0 or fail):
-                print('Fail due to neutrinos')
+
+            # TODO: This can fail due to how we calculate the SO if the
+            # first particle is a neutrino with negative mass. In that case
+            # we linearly interpolate the mass of the first non-negative particle
+            # outwards.
+            assert (Npart == 1) or input_halo["is_central"] == 0 or fail
 
         # force the radius multiple to trip over not having computed the
         # required radius
