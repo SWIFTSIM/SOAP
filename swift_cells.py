@@ -440,7 +440,7 @@ class SWIFTCellGrid:
                             print(f"Incorrect number of {parttype} in {extra_filename}")
                             comm.Abort()
 
-    def check_datasets_exist(self, required_datasets):
+    def check_datasets_exist(self, required_datasets, halo_prop_list):
         # Check we have all the fields needed for each property
         # Doing it at this point rather than in masked cells since we want
         # to output a list of properties that require the missing fields
@@ -455,8 +455,14 @@ class SWIFTCellGrid:
                     print(f"The following properties require {dataset}:")
                     full_property_list = property_table.PropertyTable.full_property_list
                     for k, v in full_property_list.items():
-                        if dataset in v[8]:
-                            print(f"  {v[0]}")
+                        # Skip property if it doesn't require this dataset
+                        if dataset not in v[8]:
+                            continue
+                        # Only print if the property is being calculated for some halo type
+                        for halo_prop in halo_prop_list:
+                            if halo_prop.property_mask.get(v[0], False):
+                                print(f"  {v[0]}")
+                                break
                     raise KeyError(
                         f"Can't find required dataset {dataset} in input file(s)!"
                     )

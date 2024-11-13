@@ -526,6 +526,7 @@ SOProperties:
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
+    MaximumCircularVelocity: true
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true
@@ -575,8 +576,12 @@ SOProperties:
     CoolGasMassFlowRate: true
     WarmGasMassFlowRate: true
     HotGasMassFlowRate: true
-    HIMassFlowRate: true
-    H2MassFlowRate: true
+    HIMassFlowRate:
+      snapshot: true
+      snipshot: false
+    H2MassFlowRate:
+      snapshot: true
+      snipshot: false
     MetalMassFlowRate: true
     StellarMassFlowRate: true
     ColdGasEnergyFlowRate: true
