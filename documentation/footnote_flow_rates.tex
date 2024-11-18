@@ -5,21 +5,23 @@ spherical shell is given by $dR = 0.1 R$.
 For each particle $i$ within the shell we calculate their radial velocity as
 
 \begin{equation}
-    v_{r,i} = (\underline{v_i} - \underline{v_{COM}}) \cdot \underline{\hat{r}} + \dot{R}
+    v_{r,i} = (\underline{v_i} - \underline{v_{COM}}) \cdot \underline{\hat{r}} - \dot{R}
 \end{equation}
-where $\underline{v_i}$ is the velocity of the particle, $\underline{v_{COM}}$ is the centre of mass velocity of all particles within $R$ (therefore we use a different value for each spherical shell). Note that $v_{r,i}$ does not include the Hubble flow relative to the halo centre. The final term is given by
+where $\underline{v_i}$ is the velocity of the particle, $\underline{v_{COM}}$ is the centre of mass velocity of all particles within $R$ (therefore we use a different value for each spherical shell). The final term accounts for the "pseudo-evolution" of the halo radius and is given by
 
 \begin{equation}
     \dot{R} = f \frac{2}{3} \left(\frac{GHM_{SO}}{100}\right)^\frac{1}{3} \left( 2 \Omega_\gamma + \frac{3}{2} \Omega_m \right)
 \end{equation}
 
-This is required since accretion rates are often measured by subtracting the halo mass between consecutive snapshots and dividing by the time interval. To be consistent with this method we must consider that the virial radius is defined w.r.t background density (which decreases in time). Hence, the virial radius actually moves
+This is required since accretion rates are often measured by subtracting the halo mass between consecutive snapshots and dividing by the time interval.
+To be consistent with this method we must consider that the virial radius is defined w.r.t background density (which decreases in time). Hence, the virial radius actually moves
 outward with a velocity that we can compute analytically. This means that static
 particles at the virial radius actually become inflowing. The expression is derived by taking the partial differential of the analytic expression for $R_{200}$ w.r.t. time.
+Note that $v_{r,i}$ does not include the Hubble flow relative to the halo centre.
 
 To calculate the mass inflow (outflow) rate
 we compute the following sum over particles within the spherical shell which satisfy
-$v_r < 0$ ($v_r > 0$),
+$v_{r,i} < 0$ ($v_{r,i} > 0$),
 
 \begin{equation}
     \frac{1}{dR} \sum_{i} m_i v_{r, i},
@@ -39,4 +41,4 @@ relative to the center of mass velocity. For momentum flow rates the sum is
 \end{equation}
 
 where $c_s$ is the sound speed and $\gamma$ = 5/3 (the second term accounts for pressure). For the gas phases we also calculate "fast outflow" rates. These are calculated by using the equations above, but only for particles that satisfy $v_{r,i} > V_{max} / 4$, where $V_{max}$ is the maximum circular velocity of the halo. The flow rates are always positive, so to compute the net rate you must subtract the inflow rate from the outflow rate. Flow rates are only calculated for the
-following SO definitions: $200_{c}$, $200_{m}$, $BN98$.
+following SO definitions: $200_{c}$, $200_{m}$, $BN98$. To calculate the total gas flow rate the individual phases should be summed together.
