@@ -34,13 +34,14 @@ def process_single_halo(
 ):
     """
     This computes properties for one halo and runs on a single
-    MPI rank. Result is a dict of properties of the form
+    MPI rank. The first output is a dict of properties of the form
 
     halo_result[property_name] = (unyt_array, description)
 
     where the property_name will be used as the HDF5 dataset name
     in the output and the units of the unyt_array determine the unit
-    attributes.
+    attributes. The second output contains information about how long
+    it took to process the halo.
 
     Two radii are passed in:
 
@@ -50,7 +51,7 @@ def process_single_halo(
     the density within read_radius is above the threshold, then we
     didn't read in a large enough region.
 
-    Returns None if we need to try again with a larger region.
+    Returns halo_result=None if we need to try again with a larger region.
     """
 
     swift_mpc = unyt.Unit("swift_mpc", registry=unit_registry)
@@ -64,9 +65,15 @@ def process_single_halo(
     # Dict to store the results
     halo_result = {}
 
+    # Dict to store timing information for this iteration of
+    # attempting to process this halo
+    t0_halo = time.time()
+    timings = {'n_process': 1}
+
     # Loop until we fall below the required density
     current_radius = input_halo["search_radius"]
     while True:
+        timings['n_loop'] = timings.get('n_loop', 0) + 1
 
         # Sanity checks on the radius
         assert current_radius <= input_halo["read_radius"]
@@ -116,6 +123,7 @@ def process_single_halo(
                     # Already have the result for this one
                     continue
                 try:
+                    t0_halo_prop = time.time()
                     halo_prop.calculate(
                         input_halo, current_radius, particle_data, halo_result
                     )
@@ -124,6 +132,7 @@ def process_single_halo(
                     max_physical_radius_mpc = max(
                         max_physical_radius_mpc, halo_prop.physical_radius_mpc
                     )
+                    timings[f'{halo_prop.name}_total_time'] = timings.get(f'{halo_prop.name}_total_time', 0) + time.time() - t0_halo_prop
                     break
                 except FloatingPointError as fpe:
                     # Calculation cause a floating point exception.
@@ -135,6 +144,11 @@ def process_single_halo(
                 else:
                     # The property calculation worked!
                     halo_prop_done[prop_nr] = True
+                    # The total_time value stored in timings will include all previous failed attempts to
+                    # calculate this halo prop, so we also store how long the successful attempt took
+                    timings[f'{halo_prop.name}_total_time'] = timings.get(f'{halo_prop.name}_total_time', 0) + time.time() - t0_halo_prop
+                    if f'{halo_prop.name}_final_time' in input_halo:
+                        input_halo[f'{halo_prop.name}_final_time'] += time.time() - t0_halo_prop
 
             # If we computed all of the properties, we're done with this halo
             if np.all(halo_prop_done):
@@ -148,12 +162,14 @@ def process_single_halo(
             # which we read in, so we can't process the halo on this iteration regardless
             # of the current radius.
             input_halo["search_radius"] = max(search_radius, required_radius)
-            return None
+            timings['process_time'] = time.time() - t0_halo
+            return None, timings
         elif current_radius >= input_halo["read_radius"]:
             # The current radius has exceeded the region read in. Will need to redo this
             # halo using current_radius as the starting point for the next iteration.
             input_halo["search_radius"] = max(search_radius, current_radius)
-            return None
+            timings['process_time'] = time.time() - t0_halo
+            return None, timings
         else:
             # We still have a large enough region in memory that we can try a larger radius
             current_radius = min(
@@ -161,9 +177,12 @@ def process_single_halo(
             )
             current_radius = max(current_radius, required_radius)
 
-    # In case we're not doing any calculations with a target density
-    if target_density is None:
-        target_density = density * 0.0
+    # Store timings
+    for k in timings:
+        if k in input_halo:
+            input_halo[k] += timings[k]
+    if 'process_time' in input_halo:
+        input_halo['process_time'] += time.time() - t0_halo
 
     # Store input halo quantites
     for name in input_halo:
@@ -184,7 +203,7 @@ def process_single_halo(
                 a_exponent = prop[10]
                 if not physical:
                     unit = unit * unyt.Unit("a", registry=unit_registry) ** a_exponent
-                # unyt_array.to outputs a float64 array, which is dangerous for integers
+                # unyt_array.to() outputs a float64 array, which is dangerous for integers
                 # so don't allow this to happen
                 if np.issubdtype(input_halo[name].dtype, np.integer) or np.issubdtype(
                     dtype, np.integer
@@ -193,14 +212,15 @@ def process_single_halo(
                     assert input_halo[name].units == unit
                 else:
                     arr = input_halo[name].to(unit).astype(dtype)
-            # Property not present in PropertyTable. We log this fact to the output
-            # within combine_chunks, rather than here.
+            # This property not present in PropertyTable. We log this fact
+            # to stdout during combine_chunks, rather than doing it here.
             except KeyError:
                 dataset_name = name
                 arr = input_halo[name]
                 description = "No description available"
                 physical = True
                 a_exponent = None
+            # Store the value
             halo_result[f"InputHalos/{dataset_name}"] = (
                 arr,
                 description,
@@ -208,7 +228,7 @@ def process_single_halo(
                 a_exponent,
             )
 
-    return halo_result
+    return halo_result, None
 
 
 def process_halos(
@@ -294,13 +314,13 @@ def process_halos(
             # Skip halos we already did
             if halo_arrays["done"].full[task_to_do].value == 0:
 
-                # Extract this halo's VR information (centre, radius, index etc)
+                # Extract the halofinder information for this object (centre, radius, index etc)
                 input_halo = {}
                 for name in halo_arrays:
                     input_halo[name] = halo_arrays[name].full[task_to_do, ...].copy()
 
                 # Fetch the results for this particular halo
-                halo_result = process_single_halo(
+                halo_result, timings = process_single_halo(
                     mesh,
                     unit_registry,
                     data,
@@ -309,13 +329,14 @@ def process_halos(
                     mean_density,
                     boxsize,
                     input_halo,
-                    target_density,
+                    target_density if input_halo['is_central'] == 1 else None,
                 )
                 if halo_result is not None:
                     # Store results and flag this halo as done
                     results.append(halo_result)
                     nr_done_this_rank += 1
                     halo_arrays["done"].full[task_to_do] = 1
+                    # No need to store timing information, it is contained in halo_result
                 else:
                     # We didn't read in a large enough region. Update the shared radius
                     # arrays so that we read a larger region next time and start the
@@ -330,6 +351,10 @@ def process_halos(
                     halo_arrays["search_radius"].full[task_to_do] = input_halo[
                         "search_radius"
                     ]
+                    # Store the timing information for the next rank that picks up this halo
+                    for k in timings:
+                        if k in input_halo:
+                            halo_arrays[k].full[task_to_do] += timings[k]
 
             t1_task = time.time()
             task_time += t1_task - t0_task

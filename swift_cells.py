@@ -438,7 +438,7 @@ class SWIFTCellGrid:
                         npart_extra = extra_file[f"{parttype}/{dset}"].shape[0]
                         if npart_snapshot[parttype] != npart_extra:
                             print(f"Incorrect number of {parttype} in {extra_filename}")
-                            comm.Abort()
+                            comm.Abort(1)
 
     def check_datasets_exist(self, required_datasets):
         # Check we have all the fields needed for each property

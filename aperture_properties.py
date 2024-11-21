@@ -3214,10 +3214,6 @@ class ApertureProperties(HaloProperty):
         self.snapshot_datasets = cellgrid.snapshot_datasets
         self.halo_filter = halo_filter
 
-        # no density criterion for these properties
-        self.mean_density_multiple = None
-        self.critical_density_multiple = None
-
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.001 * physical_radius_kpc
 

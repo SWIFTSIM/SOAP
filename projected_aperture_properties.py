@@ -1524,10 +1524,6 @@ class ProjectedApertureProperties(HaloProperty):
             "ProjectedApertureProperties", [prop[1] for prop in self.property_list]
         )
 
-        # No density criterion
-        self.mean_density_multiple = None
-        self.critical_density_multiple = None
-
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.001 * physical_radius_kpc
 

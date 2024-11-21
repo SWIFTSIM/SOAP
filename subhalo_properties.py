@@ -1954,10 +1954,6 @@ class SubhaloProperties(HaloProperty):
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
 
-        # This specifies how large a sphere is read in:
-        self.mean_density_multiple = None
-        self.critical_density_multiple = None
-
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.0
 
@@ -1965,7 +1961,7 @@ class SubhaloProperties(HaloProperty):
         # Save mask metadata and name of group in the final output file
         if bound_only:
             self.grnr = "GroupNr_bound"
-            self.name = "bound_subhalo_properties"
+            self.name = "bound_subhalo"
             self.group_name = "BoundSubhalo"
         else:
             self.grnr = "GroupNr_all"

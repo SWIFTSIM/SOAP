@@ -403,6 +403,8 @@ def compute_halo_properties():
             print("for central and satellite halos")
         if args.snipshot:
             print("Running in snipshot mode")
+        if args.record_times:
+            print("Storing processing time for each halo")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties()
         category_filter.print_filters()
@@ -417,17 +419,11 @@ def compute_halo_properties():
     halo_basename = sub_snapnum(args.halo_basename, args.snapshot_nr)
     so_cat = halo_centres.SOCatalogue(
         comm_world,
-        halo_basename,
-        args.halo_format,
         cellgrid.a_unit,
         cellgrid.snap_unit_registry,
         cellgrid.boxsize,
-        args.max_halos,
-        args.centrals_only,
-        args.halo_indices,
         halo_prop_list,
-        args.chunks,
-        args.min_read_radius_cmpc,
+        args,
     )
     so_cat.start_request_thread()
 

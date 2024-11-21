@@ -17,6 +17,7 @@ import read_vr
 import read_hbtplus
 import read_subfind
 import read_rockstar
+from combine_chunks import sub_snapnum
 
 from mpi_tags import HALO_REQUEST_TAG, HALO_RESPONSE_TAG
 from sleepy_recv import sleepy_recv
@@ -26,17 +27,11 @@ class SOCatalogue:
     def __init__(
         self,
         comm,
-        halo_basename,
-        halo_format,
         a_unit,
         registry,
         boxsize,
-        max_halos,
-        centrals_only,
-        halo_indices,
         halo_prop_list,
-        nr_chunks,
-        min_read_radius_cmpc,
+        args,
     ):
         """
         This reads in the halo catalogue and stores the halo properties in a
@@ -75,19 +70,20 @@ class SOCatalogue:
             "nr_bound_part",
             "nr_unbound_part",
         )
-        if halo_format == "VR":
+        halo_basename = sub_snapnum(args.halo_basename, args.snapshot_nr)
+        if args.halo_format == "VR":
             halo_data = read_vr.read_vr_catalogue(
                 comm, halo_basename, a_unit, registry, boxsize
             )
-        elif halo_format == "HBTplus":
+        elif args.halo_format == "HBTplus":
             halo_data = read_hbtplus.read_hbtplus_catalogue(
                 comm, halo_basename, a_unit, registry, boxsize
             )
-        elif halo_format == "Subfind":
+        elif args.halo_format == "Subfind":
             halo_data = read_subfind.read_gadget4_catalogue(
                 comm, halo_basename, a_unit, registry, boxsize
             )
-        elif halo_format == "Rockstar":
+        elif args.halo_format == "Rockstar":
             halo_data = read_rockstar.read_rockstar_catalogue(
                 comm, halo_basename, a_unit, registry, boxsize
             )
@@ -101,12 +97,12 @@ class SOCatalogue:
             if name in common_props:
                 local_halo[name] = halo_data[name]
             else:
-                local_halo[f"{halo_format}/{name}"] = halo_data[name]
+                local_halo[f"{args.halo_format}/{name}"] = halo_data[name]
         del halo_data
 
         # Only keep halos in the supplied list of halo IDs.
-        if (halo_indices is not None) and (local_halo["index"].shape[0]):
-            halo_indices = np.asarray(halo_indices, dtype=np.int64)
+        if (args.halo_indices is not None) and (local_halo["index"].shape[0]):
+            halo_indices = np.asarray(args.halo_indices, dtype=np.int64)
             keep = np.zeros_like(local_halo["index"], dtype=bool)
             matching_index = virgo.util.match.match(halo_indices, local_halo["index"])
             have_match = matching_index >= 0
@@ -115,16 +111,16 @@ class SOCatalogue:
                 local_halo[name] = local_halo[name][keep, ...]
 
         # Discard satellites, if necessary
-        if centrals_only:
+        if args.centrals_only:
             keep = local_halo["is_central"] == 1
             for name in local_halo:
                 local_halo[name] = local_halo[name][keep, ...]
 
         # For testing: limit number of halos processed
-        if max_halos > 0:
+        if args.max_halos > 0:
             nr_halos_local = len(local_halo["index"])
             nr_halos_prev = comm.scan(nr_halos_local) - nr_halos_local
-            nr_keep_local = max_halos - nr_halos_prev
+            nr_keep_local = args.max_halos - nr_halos_prev
             if nr_keep_local < 0:
                 nr_keep_local = 0
             if nr_keep_local > nr_halos_local:
@@ -150,7 +146,7 @@ class SOCatalogue:
             comm.Abort(1)
 
         # Reduce the number of chunks if necessary so that all chunks have at least one halo
-        nr_chunks = min(nr_chunks, self.nr_halos)
+        nr_chunks = min(args.chunks, self.nr_halos)
         self.nr_chunks = nr_chunks
 
         # Assign halos to chunk tasks:
@@ -161,7 +157,7 @@ class SOCatalogue:
 
         # Compute initial radius to read in about each halo
         local_halo["read_radius"] = local_halo["search_radius"].copy()
-        min_radius = min_read_radius_cmpc * swift_cmpc
+        min_radius = args.min_read_radius_cmpc * swift_cmpc
         local_halo["read_radius"] = local_halo["read_radius"].clip(min=min_radius)
 
         # Find minimum physical radius to read in
@@ -176,6 +172,33 @@ class SOCatalogue:
             physical_radius_mpc = unyt.unyt_quantity(
                 physical_radius_mpc, units=swift_pmpc
             )
+
+        if args.record_times:
+            # Total amount of time spent processing this halo
+            local_halo["process_time"] = unyt.unyt_array(
+                np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+            )
+            # Number of loops before target density was reached
+            local_halo["n_loop"] = unyt.unyt_array(
+                np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+            )
+            # Number of times this halo was processed (a halo will have to be
+            # reprocessed if it's target density is not reached with the region
+            # currently loaded in memory)
+            local_halo["n_process"] = unyt.unyt_array(
+                np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+            )
+            for halo_prop in halo_prop_list:
+                # Total time taken for this halo prop
+                local_halo[f'{halo_prop.name}_total_time'] = unyt.unyt_array(
+                    np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+                )
+                # Time taken the final time we calculated this halo_prop. This is needed
+                # certain halo_prop can throw exceptions which require them to be reprocessed,
+                # and so we want to know how often that happens
+                local_halo[f'{halo_prop.name}_final_time'] = unyt.unyt_array(
+                    np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+                )
 
         # Ensure that both the initial search radius and the radius to read in
         # are >= the minimum physical radius required by property calculations
