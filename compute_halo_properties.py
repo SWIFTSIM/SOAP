@@ -155,6 +155,7 @@ def compute_halo_properties():
     cellgrid.snapshot_datasets.setup_defined_constants(
         parameter_file.get_defined_constants()
     )
+    parameter_file.record_property_timings = args.record_property_timings
 
     recently_heated_params = args.calculations["recently_heated_gas_filter"]
     if (not args.dmo) and (recently_heated_params["use_AGN_delta_T"]):
@@ -403,8 +404,10 @@ def compute_halo_properties():
             print("for central and satellite halos")
         if args.snipshot:
             print("Running in snipshot mode")
-        if args.record_times:
+        if args.record_halo_timings:
             print("Storing processing time for each halo")
+        if args.record_property_timings:
+            print("Storing processing time for each property")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties()
         category_filter.print_filters()

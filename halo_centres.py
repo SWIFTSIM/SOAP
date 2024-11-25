@@ -173,7 +173,7 @@ class SOCatalogue:
                 physical_radius_mpc, units=swift_pmpc
             )
 
-        if args.record_times:
+        if args.record_halo_timings:
             # Total amount of time spent processing this halo
             local_halo["process_time"] = unyt.unyt_array(
                 np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry

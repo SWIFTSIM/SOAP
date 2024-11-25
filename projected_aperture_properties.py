@@ -19,6 +19,7 @@ SingleProjectionProjectedApertureParticleData object to deal with individual
 projections. Besides this difference, the approach is very similar.
 """
 
+import time
 import numpy as np
 import unyt
 
@@ -1530,6 +1531,7 @@ class ProjectedApertureProperties(HaloProperty):
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
         self.halo_filter = halo_filter
+        self.record_timings = parameters.record_property_timings
 
         self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
         self.group_name = f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc"
@@ -1593,6 +1595,8 @@ class ProjectedApertureProperties(HaloProperty):
         registry = input_halo["cofp"].units.registry
 
         projected_aperture = {}
+        timings = {}
+
         # loop over the different projections
         for projname in ["projx", "projy", "projz"]:
             projected_aperture[projname] = {}
@@ -1663,6 +1667,7 @@ class ProjectedApertureProperties(HaloProperty):
                     if not physical:
                         unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
                     if do_calculation[category]:
+                        t0_calc = time.time()
                         val = getattr(proj_part_props, name)
                         if val is not None:
                             assert (
@@ -1686,32 +1691,51 @@ class ProjectedApertureProperties(HaloProperty):
                                     "inf"
                                 ), err
                                 projected_aperture[projname][name] += val
+                            # Include the time from previous projection calculations
+                            timings[name] = timings.get(name, 0) + time.time() - t0_calc
 
-        for projname in ["projx", "projy", "projz"]:
-            # add the new properties to the halo_result dictionary
-            prefix = (
-                f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc/{projname}"
-            )
-            for prop in self.property_list:
-                outputname = prop[1]
-                # skip properties that are masked
-                if not self.property_mask[outputname]:
-                    continue
-                # skip non-DMO properties in DMO run mode
-                is_dmo = prop[8]
-                if self.category_filter.dmo and not is_dmo:
-                    continue
-                name = prop[0]
-                description = prop[5]
-                physical = prop[10]
-                a_exponent = prop[11]
+        for prop in self.property_list:
+            outputname = prop[1]
+            # skip properties that are masked
+            if not self.property_mask[outputname]:
+                continue
+            # skip non-DMO properties in DMO run mode
+            is_dmo = prop[8]
+            if self.category_filter.dmo and not is_dmo:
+                continue
+            name = prop[0]
+            description = prop[5]
+            physical = prop[10]
+            a_exponent = prop[11]
+
+            for projname in ["projx", "projy", "projz"]:
+                # add the new properties to the halo_result dictionary
                 halo_result.update(
                     {
-                        f"{prefix}/{outputname}": (
+                        f"{self.group_name}/{projname}/{outputname}": (
                             projected_aperture[projname][name],
                             description,
                             physical,
                             a_exponent,
+                        )
+                    }
+                )
+
+            # Storing total time for each calculation over the three projections
+            if self.record_timings:
+                arr = unyt.unyt_array(
+                        [timings.get(name, 0)],
+                        dtype=np.float32,
+                        units=unyt.dimensionless,
+                        registry=registry,
+                    )
+                halo_result.update(
+                    {
+                        f"{self.group_name}/{outputname}_time": (
+                            arr,
+                            'Time taken in seconds',
+                            True,
+                            None,
                         )
                     }
                 )

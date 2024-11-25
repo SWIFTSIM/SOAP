@@ -356,8 +356,7 @@ def process_halos(
                         if k in input_halo:
                             halo_arrays[k].full[task_to_do] += timings[k]
 
-            t1_task = time.time()
-            task_time += t1_task - t0_task
+            task_time += time.time() - t0_task
         else:
             # We ran out of halos to do
             break

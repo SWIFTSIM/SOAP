@@ -55,7 +55,10 @@ def get_soap_args(comm):
         "--centrals-only", action="store_true", help="Only process central halos"
     )
     parser.add_argument(
-        "--record-times", action="store_true", help="Record time taken to process each halo"
+        "--record-halo-timings", action="store_true", help="Record time taken to process each halo"
+    )
+    parser.add_argument(
+        "--record-property-timings", action="store_true", help="Record time taken to process each property"
     )
     parser.add_argument(
         "--max-halos",
@@ -119,7 +122,8 @@ def get_soap_args(comm):
     args.snapshot_nr = all_args["Parameters"]["snap_nr"]
     args.chunks = all_args["Parameters"]["chunks"]
     args.centrals_only = all_args["Parameters"]["centrals_only"]
-    args.record_times = all_args["Parameters"]["record_times"]
+    args.record_halo_timings = all_args["Parameters"]["record_halo_timings"]
+    args.record_property_timings = all_args["Parameters"]["record_property_timings"]
     args.dmo = all_args["Parameters"]["dmo"]
     args.max_halos = all_args["Parameters"]["max_halos"]
     args.halo_indices = all_args["Parameters"]["halo_indices"]

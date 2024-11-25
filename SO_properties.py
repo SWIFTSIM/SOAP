@@ -21,6 +21,7 @@ calculated for central halos. SO properties are also only calculated if
 an SO radius could be determined.
 """
 
+import time
 import numpy as np
 import unyt
 from scipy.optimize import brentq
@@ -2831,6 +2832,7 @@ class SOProperties(HaloProperty):
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
         self.halo_filter = halo_filter
+        self.record_timings = parameters.record_property_timings
 
         self.observer_position = cellgrid.observer_position
 
@@ -2989,6 +2991,8 @@ class SOProperties(HaloProperty):
         registry = input_halo["cofp"].units.registry
 
         SO = {}
+        timings = {}
+
         # declare all the variables we will compute
         # we set them to 0 in case a particular variable cannot be computed
         # all variables are defined with physical units and an appropriate dtype
@@ -3073,6 +3077,7 @@ class SOProperties(HaloProperty):
                     if not physical:
                         unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
                     if do_calculation[category]:
+                        t0_calc = time.time()
                         val = getattr(part_props, name)
                         if val is not None:
                             assert (
@@ -3096,6 +3101,7 @@ class SOProperties(HaloProperty):
                                     "inf"
                                 ), err
                                 SO[name] += val
+                            timings[name] = time.time() - t0_calc
 
         # Return value should be a dict containing unyt_arrays and descriptions.
         # The dict keys will be used as HDF5 dataset names in the output.
@@ -3114,7 +3120,7 @@ class SOProperties(HaloProperty):
             a_exponent = prop[11]
             halo_result.update(
                 {
-                    f"SO/{self.SO_name}/{outputname}": (
+                    f"{self.group_name}/{outputname}": (
                         SO[name],
                         description.format(
                             label=self.label, core_excision=self.core_excision_string
@@ -3124,6 +3130,23 @@ class SOProperties(HaloProperty):
                     )
                 }
             )
+            if self.record_timings:
+                arr = unyt.unyt_array(
+                        [timings.get(name, 0)],
+                        dtype=np.float32,
+                        units=unyt.dimensionless,
+                        registry=registry,
+                    )
+                halo_result.update(
+                    {
+                        f"{self.group_name}/{outputname}_time": (
+                            arr,
+                            'Time taken in seconds',
+                            True,
+                            None,
+                        )
+                    }
+                )
 
         return
 
