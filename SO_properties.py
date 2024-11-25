@@ -2665,7 +2665,7 @@ class SOParticleData:
         Centre of mass velocity of all particles within 0.1 R_SO.
         """
         mask = self.radius < 0.1 * self.SO_r
-        return (self.mass_fraction[mask, None] * self.velocity[mask]).sum(axis=0)
+        return (self.mass[mask, None] * self.velocity[mask]).sum(axis=0) / self.mass[mask].sum()
 
     @lazy_property
     def vcom_thirty_percent(self) -> unyt.unyt_array:
@@ -2673,7 +2673,7 @@ class SOParticleData:
         Centre of mass velocity of all particles within 0.3 R_SO.
         """
         mask = self.radius < 0.3 * self.SO_r
-        return (self.mass_fraction[mask, None] * self.velocity[mask]).sum(axis=0)
+        return (self.mass[mask, None] * self.velocity[mask]).sum(axis=0) / self.mass[mask].sum()
 
     def calculate_flow_rate(
         self,
