@@ -309,7 +309,7 @@ def process_halos(
                     mean_density,
                     boxsize,
                     input_halo,
-                    target_density,
+                    target_density if input_halo['is_central'] == 1 else None,
                 )
                 if halo_result is not None:
                     # Store results and flag this halo as done
