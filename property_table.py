@@ -4050,7 +4050,8 @@ class PropertyTable:
                     self.footnotes.append(fnote)
                 footnotes.append(i + 1)
         if len(footnotes) > 0:
-            return f'$^{{{",".join([f"{i}" for i in footnotes])}}}$'
+            footnote_links = [f'\\hyperref[footnote:{i}]{{{i}}}' for i in footnotes]
+            return f'$^{{{",".join(footnote_links)}}}$'
         else:
             return ""
 

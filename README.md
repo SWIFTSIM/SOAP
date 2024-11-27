@@ -262,7 +262,7 @@ There are corresponding datasets with `1` and `2` reversed with information abou
 
 ### PDF document
 
-A pdf describing the SOAP output can be generated. First run `property_table.py` passing the parameter file used to run SOAP, e.g. `python property_table.py parameter_files/FLAMINGO.yml`. This will generate a table containing all the properties which are enabled in the parameter file. To create the pdf run `pdflatex documentation/SOAP.tex`.
+A pdf describing the SOAP output can be generated. First run `property_table.py` passing the parameter file used to run SOAP (to get the properties and halo types to include) and a snapshot (to get the units), e.g. `python property_table.py parameter_files/COLIBRE_THERMAL.yml /cosma8/data/dp004/colibre/Runs/L0100N0752/Thermal_non_equilibrium/snapshots/colibre_0127/colibre_0127.hdf5`. This will generate a table containing all the properties which are enabled in the parameter file. To create the pdf run `cd documentation; pdflatex SOAP.tex`.
 
 ### API reference
 
