@@ -459,7 +459,9 @@ class SOParticleData:
         if SO_exists:
             # Estimate DMO mass fraction found at SO_r
             # This is used when computing concentration_dmo
-            outside_radius = dm_r > SO_r
+            dm_r = self.radius[self.types == 1]
+            dm_m = self.mass[self.types == 1]
+            outside_radius = dm_r > self.SO_r
             if np.any(outside_radius):
                 inside_radius = np.logical_not(outside_radius)
                 if np.any(inside_radius):
@@ -467,7 +469,7 @@ class SOParticleData:
                     i = np.argmin(dm_r[outside_radius])
                     r2 = dm_r[outside_radius][i]
                     m2 = dm_m[outside_radius][i]
-                    dm_missed_mass = m2 * (SO_r - r1) / (r2 - r1)
+                    dm_missed_mass = m2 * (self.SO_r - r1) / (r2 - r1)
 
             # Removing particles outside SO radius
             self.all_selection = self.radius < self.SO_r
