@@ -125,11 +125,11 @@ def process_single_halo(
                         max_physical_radius_mpc, halo_prop.physical_radius_mpc
                     )
                     break
-                except FloatingPointError as fpe:
-                    # Calculation cause a floating point exception.
+                except Exception as e:
+                    # Calculation caused an unexpected error.
                     # Output the halo ID so we can debug this.
                     print(
-                        f"Halo ID={input_halo['index']} encountered a floating point error"
+                        f"Object with HaloCatalogueIndex={input_halo['index']} encountered an error"
                     )
                     raise
                 else:
