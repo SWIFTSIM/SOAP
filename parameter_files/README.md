@@ -195,9 +195,9 @@ Contains information about how to run SOAP
   - **min_halo_mass**: The minimumum M200 halo mass to keep
   - **halo_bin_size_dex**: The size of the halo mass bins
   - **halos_per_bin**: The number of objects we want in each halo mass bin.
-- **recently_heated_gas_filter**: How to determine which gas particles count as being recently heated.
+- **recently_heated_gas_filter**: Optional. How to determine which gas particles count as being recently heated.
   - **delta_time_myr**: For particles to be recently heated they must have experienced an AGN event the past x Myr.
   - **use_AGN_delta_T**: If set to true then for particles to be considered recently heated they must have a temperature close to AGN_delta_T
-- **cold_dense_gas_filter**: How to determine which gas particles count as being cold & dense
+- **cold_dense_gas_filter**: Optional. How to determine which gas particles count as being cold & dense
   - **maximum_temperature_K**: Value above which gas is not considered to be cold
   - **minimum_hydrogen_number_density_cm3**: Value below which gas gas is not considered to be dense
