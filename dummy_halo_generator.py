@@ -168,6 +168,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "FOFGroupIDs",
                 "MetalMassFractions",
                 "Temperatures",
+                "InternalEnergies",
                 "LastAGNFeedbackScaleFactors",
                 "StarFormationRates",
                 "AveragedStarFormationRates",
@@ -399,7 +400,7 @@ class DummyCellGrid:
     the HaloProperty and RecentlyHeatedGasFilter constructors.
     """
 
-    def get_unit(self, name: str, reg: unyt.UnitRegistry) -> unyt.Unit:
+    def get_unit(self, name: str) -> unyt.Unit:
         """
         Static method that creates a new unit using the given unit
         registry.
@@ -412,7 +413,7 @@ class DummyCellGrid:
 
         Returns the corresponding unyt.Unit.
         """
-        return unyt.Unit(name, registry=reg)
+        return unyt.Unit(name, registry=self.snap_unit_registry)
 
     def __init__(self, reg: unyt.UnitRegistry, snap: h5py.File):
         """
@@ -424,17 +425,17 @@ class DummyCellGrid:
          - snap: h5py.File (or DummySnapshot)
            Snapshot from which metadata is read.
         """
-        self.a_unit = self.get_unit("a", reg)
+        self.snap_unit_registry = reg
+        self.a_unit = self.get_unit("a")
         self.a = self.a_unit.base_value
         self.z = 1.0 / self.a - 1.0
         self.cosmology = {}
         cosmology_attrs = snap["Cosmology"].attrs
         for name in cosmology_attrs:
             self.cosmology[name] = cosmology_attrs[name][0]
-        self.snap_unit_registry = reg
         critical_density = float(self.cosmology["Critical density [internal units]"])
-        internal_density_unit = self.get_unit("code_mass", reg) / (
-            self.get_unit("code_length", reg) ** 3
+        internal_density_unit = self.get_unit("code_mass") / (
+            self.get_unit("code_length") ** 3
         )
         self.critical_density = unyt.unyt_quantity(
             critical_density, units=internal_density_unit
@@ -452,7 +453,7 @@ class DummyCellGrid:
             raise RuntimeError("Invalid value for virBN98!")
 
         # Get the box size. Assume it's comoving with no h factors.
-        comoving_length_unit = self.get_unit("snap_length", reg) * self.a_unit
+        comoving_length_unit = self.get_unit("snap_length") * self.a_unit
         self.boxsize = unyt.unyt_quantity(100.0, units=comoving_length_unit)
         self.observer_position = unyt.unyt_array([50.0] * 3, units=comoving_length_unit)
 
@@ -465,15 +466,15 @@ class DummyCellGrid:
         self.dark_matter_softening = min(
             float(self.parameters.get("Gravity:comoving_DM_softening", 0)) * self.a,
             float(self.parameters.get("Gravity:max_physical_DM_softening", 0)),
-        ) * self.get_unit("code_length", reg)
+        ) * self.get_unit("code_length")
         self.baryon_softening = min(
             float(self.parameters.get("Gravity:comoving_baryon_softening", 0)) * self.a,
             float(self.parameters.get("Gravity:max_physical_baryon_softening", 0)),
-        ) * self.get_unit("code_length", reg)
+        ) * self.get_unit("code_length")
         self.nu_softening = min(
             float(self.parameters.get("Gravity:comoving_nu_softening", 0)) * self.a,
             float(self.parameters.get("Gravity:max_physical_nu_softening", 0)),
-        ) * self.get_unit("code_length", reg)
+        ) * self.get_unit("code_length")
 
 
 class DummyHaloGenerator:
@@ -1052,6 +1053,12 @@ class DummyHaloGenerator:
                 10.0 ** (10.0 * np.random.random(Ngas)),
                 dtype=np.float32,
                 units="snap_temperature",
+                registry=reg,
+            )
+            data["PartType0"]["InternalEnergies"] = unyt.unyt_array(
+                10.0 ** (1 + 6.0 * np.random.random(Ngas)),
+                dtype=np.float32,
+                units="snap_length**2/snap_time**2",
                 registry=reg,
             )
             data["PartType0"]["Velocities"] = vs[gas_mask]
