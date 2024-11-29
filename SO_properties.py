@@ -21,6 +21,7 @@ calculated for central halos. SO properties are also only calculated if
 an SO radius could be determined.
 """
 
+import time
 import numpy as np
 import unyt
 from scipy.optimize import brentq
@@ -460,20 +461,20 @@ class SOParticleData:
         )
 
         if SO_exists:
-            # Calculate DMO mass fraction found at SO_r
+            # Estimate DMO mass fraction found at SO_r
             # This is used when computing concentration_dmo
             dm_r = self.radius[self.types == 1]
             dm_m = self.mass[self.types == 1]
-            order = np.argsort(dm_r)
-            ordered_dm_r = dm_r[order]
-            outside_radius = ordered_dm_r > self.SO_r
+            outside_radius = dm_r > self.SO_r
             self.dm_missed_mass = 0 * self.mass.units
             if np.any(outside_radius):
-                i = np.argmax(outside_radius)
-                if i != 0:  # We have DM particles inside the SO radius
-                    r1 = ordered_dm_r[i - 1]
-                    r2 = ordered_dm_r[i]
-                    self.dm_missed_mass = (self.SO_r - r1) / (r2 - r1) * dm_m[order][i]
+                inside_radius = np.logical_not(outside_radius)
+                if np.any(inside_radius):
+                    r1 = np.max(dm_r[inside_radius])
+                    i = np.argmin(dm_r[outside_radius])
+                    r2 = dm_r[outside_radius][i]
+                    m2 = dm_m[outside_radius][i]
+                    self.dm_missed_mass = m2 * (self.SO_r - r1) / (r2 - r1)
 
             # Removing particles outside SO radius
             self.all_selection = self.radius < self.SO_r
@@ -3272,6 +3273,7 @@ class SOProperties(HaloProperty):
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
         self.halo_filter = halo_filter
+        self.record_timings = parameters.record_property_timings
         self.observer_position = cellgrid.observer_position
 
         self.cosmology = {}
@@ -3435,6 +3437,8 @@ class SOProperties(HaloProperty):
         registry = input_halo["cofp"].units.registry
 
         SO = {}
+        timings = {}
+
         # declare all the variables we will compute
         # we set them to 0 in case a particular variable cannot be computed
         # all variables are defined with physical units and an appropriate dtype
@@ -3519,6 +3523,7 @@ class SOProperties(HaloProperty):
                     if not physical:
                         unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
                     if do_calculation[category]:
+                        t0_calc = time.time()
                         val = getattr(part_props, name)
                         if val is not None:
                             assert (
@@ -3542,6 +3547,7 @@ class SOProperties(HaloProperty):
                                     "inf"
                                 ), err
                                 SO[name] += val
+                            timings[name] = time.time() - t0_calc
 
         # Return value should be a dict containing unyt_arrays and descriptions.
         # The dict keys will be used as HDF5 dataset names in the output.
@@ -3560,7 +3566,7 @@ class SOProperties(HaloProperty):
             a_exponent = prop[11]
             halo_result.update(
                 {
-                    f"SO/{self.SO_name}/{outputname}": (
+                    f"{self.group_name}/{outputname}": (
                         SO[name],
                         description.format(
                             label=self.label, core_excision=self.core_excision_string
@@ -3570,6 +3576,23 @@ class SOProperties(HaloProperty):
                     )
                 }
             )
+            if self.record_timings:
+                arr = unyt.unyt_array(
+                        [timings.get(name, 0)],
+                        dtype=np.float32,
+                        units=unyt.dimensionless,
+                        registry=registry,
+                    )
+                halo_result.update(
+                    {
+                        f"{self.group_name}/{outputname}_time": (
+                            arr,
+                            'Time taken in seconds',
+                            True,
+                            None,
+                        )
+                    }
+                )
 
         return
 

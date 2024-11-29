@@ -46,6 +46,7 @@ class StellarAgeCalculator:
         scale factor and time.
         Precomputes the current simulation time as set by the current scale
         factor.
+        Creates a lookup table rather than calling astropy for every particle
 
         Parameters:
          - cellgrid: SWIFTCellGrid
@@ -80,7 +81,7 @@ class StellarAgeCalculator:
 
         Tcmb0 = (Omega_r * critical_density_0.value / a_B_c2) ** (1.0 / 4.0)
 
-        self.cosmology = w0waCDM(
+        cosmology = w0waCDM(
             H0=H0.to_astropy(),
             Om0=Omega_m,
             Ode0=Omega_lambda,
@@ -90,9 +91,18 @@ class StellarAgeCalculator:
             Ob0=Omega_b,
         )
 
-        self.t_now = unyt.unyt_quantity.from_astropy(
-            self.cosmology.lookback_time(z_now)
+        t_now = unyt.unyt_quantity.from_astropy(
+            cosmology.lookback_time(z_now)
         ).to("Myr")
+
+        # Create a lookup table for z=49 to z=0
+        self.a_lookup = np.linspace(1/50, 1, 1000)
+        z = (1.0 / self.a_lookup) - 1.0
+        # Remember that lookback time runs backwards
+        self.age_lookup = unyt.unyt_array.from_astropy(
+            cosmology.lookback_time(z)
+        ).to('Myr') - t_now
+
 
     def stellar_age(self, birth_a: unyt.unyt_array) -> unyt.unyt_array:
         """
@@ -104,9 +114,4 @@ class StellarAgeCalculator:
 
         Returns the corresponding stellar ages in physical time.
         """
-        birth_z = 1.0 / birth_a - 1.0
-        t_birth = unyt.unyt_array.from_astropy(
-            self.cosmology.lookback_time(birth_z.value)
-        ).to("Myr")
-        # remember: we use lookback time, which runs backwards!
-        return t_birth - self.t_now
+        return np.interp(birth_a, self.a_lookup, self.age_lookup)

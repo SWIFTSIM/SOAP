@@ -221,18 +221,18 @@ ApertureProperties:
     NumberOfGasParticles: true
     NumberOfStarParticles: true
     SpinParameter: true
-    TotalInertiaTensor: true
-    GasInertiaTensor: true
-    DarkMatterInertiaTensor: true
-    StellarInertiaTensor: true
+    TotalInertiaTensor: false
+    GasInertiaTensor: false
+    DarkMatterInertiaTensor: false
+    StellarInertiaTensor: false
     TotalInertiaTensorReduced: false
     GasInertiaTensorReduced: false
     DarkMatterInertiaTensorReduced: false
     StellarInertiaTensorReduced: false
-    TotalInertiaTensorNoniterative: false
-    GasInertiaTensorNoniterative: false
-    DarkMatterInertiaTensorNoniterative: false
-    StellarInertiaTensorNoniterative: false
+    TotalInertiaTensorNoniterative: true
+    GasInertiaTensorNoniterative: true
+    DarkMatterInertiaTensorNoniterative: true
+    StellarInertiaTensorNoniterative: true
     TotalInertiaTensorReducedNoniterative: false
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
@@ -386,17 +386,17 @@ ProjectedApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    ProjectedTotalInertiaTensor: true
+    ProjectedTotalInertiaTensor: false
     ProjectedTotalInertiaTensorReduced: false
-    ProjectedTotalInertiaTensorNoniterative: false
+    ProjectedTotalInertiaTensorNoniterative: true
     ProjectedTotalInertiaTensorReducedNoniterative: false
-    ProjectedGasInertiaTensor: true
+    ProjectedGasInertiaTensor: false
     ProjectedGasInertiaTensorReduced: false
-    ProjectedGasInertiaTensorNoniterative: false
+    ProjectedGasInertiaTensorNoniterative: true
     ProjectedGasInertiaTensorReducedNoniterative: false
-    ProjectedStellarInertiaTensor: true
+    ProjectedStellarInertiaTensor: false
     ProjectedStellarInertiaTensorReduced: false
-    ProjectedStellarInertiaTensorNoniterative: false
+    ProjectedStellarInertiaTensorNoniterative: true
     ProjectedStellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
     AveragedStarFormationRate:
@@ -510,18 +510,18 @@ SOProperties:
     RawNeutrinoMass: false
     SORadius: true
     SpinParameter: true
-    TotalInertiaTensor: true
-    GasInertiaTensor: true
-    DarkMatterInertiaTensor: true
-    StellarInertiaTensor: true
+    TotalInertiaTensor: false
+    GasInertiaTensor: false
+    DarkMatterInertiaTensor: false
+    StellarInertiaTensor: false
     TotalInertiaTensorReduced: false
     GasInertiaTensorReduced: false
     DarkMatterInertiaTensorReduced: false
     StellarInertiaTensorReduced: false
-    TotalInertiaTensorNoniterative: false
-    GasInertiaTensorNoniterative: false
-    DarkMatterInertiaTensorNoniterative: false
-    StellarInertiaTensorNoniterative: false
+    TotalInertiaTensorNoniterative: true
+    GasInertiaTensorNoniterative: true
+    DarkMatterInertiaTensorNoniterative: true
+    StellarInertiaTensorNoniterative: true
     TotalInertiaTensorReducedNoniterative: false
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
@@ -706,18 +706,18 @@ SubhaloProperties:
     NumberOfGasParticles: true
     NumberOfStarParticles: true
     SpinParameter: true
-    TotalInertiaTensor: true
-    GasInertiaTensor: true
-    DarkMatterInertiaTensor: true
-    StellarInertiaTensor: true
+    TotalInertiaTensor: false
+    GasInertiaTensor: false
+    DarkMatterInertiaTensor: false
+    StellarInertiaTensor: false
     TotalInertiaTensorReduced: false
     GasInertiaTensorReduced: false
     DarkMatterInertiaTensorReduced: false
     StellarInertiaTensorReduced: false
-    TotalInertiaTensorNoniterative: false
-    GasInertiaTensorNoniterative: false
-    DarkMatterInertiaTensorNoniterative: false
-    StellarInertiaTensorNoniterative: false
+    TotalInertiaTensorNoniterative: true
+    GasInertiaTensorNoniterative: true
+    DarkMatterInertiaTensorNoniterative: true
+    StellarInertiaTensorNoniterative: true
     TotalInertiaTensorReducedNoniterative: false
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false

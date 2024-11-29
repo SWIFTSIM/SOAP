@@ -55,6 +55,12 @@ def get_soap_args(comm):
         "--centrals-only", action="store_true", help="Only process central halos"
     )
     parser.add_argument(
+        "--record-halo-timings", action="store_true", help="Record time taken to process each halo"
+    )
+    parser.add_argument(
+        "--record-property-timings", action="store_true", help="Record time taken to process each property"
+    )
+    parser.add_argument(
         "--max-halos",
         metavar="N",
         type=int,
@@ -116,6 +122,8 @@ def get_soap_args(comm):
     args.snapshot_nr = all_args["Parameters"]["snap_nr"]
     args.chunks = all_args["Parameters"]["chunks"]
     args.centrals_only = all_args["Parameters"]["centrals_only"]
+    args.record_halo_timings = all_args["Parameters"]["record_halo_timings"]
+    args.record_property_timings = all_args["Parameters"]["record_property_timings"]
     args.dmo = all_args["Parameters"]["dmo"]
     args.max_halos = all_args["Parameters"]["max_halos"]
     args.halo_indices = all_args["Parameters"]["halo_indices"]
@@ -165,7 +173,7 @@ def get_soap_args(comm):
                 snap_nr=args.snapshot_nr, file_nr=0
             )
             if not os.path.exists(fof_filename):
-                print("FOF group catalogues do not exist")
+                print(f"Could not find FOF group catalogue: {fof_filename}")
                 comm.Abort(1)
 
     return args

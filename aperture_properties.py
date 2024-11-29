@@ -133,6 +133,7 @@ method will never be called in that case. That is why the implementation looks
 very messy and complex. But it is in fact quite neat and powerful.
 """
 
+import time
 import numpy as np
 import unyt
 
@@ -3213,10 +3214,7 @@ class ApertureProperties(HaloProperty):
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
         self.halo_filter = halo_filter
-
-        # no density criterion for these properties
-        self.mean_density_multiple = None
-        self.critical_density_multiple = None
+        self.record_timings = parameters.record_property_timings
 
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.001 * physical_radius_kpc
@@ -3286,6 +3284,8 @@ class ApertureProperties(HaloProperty):
         """
 
         aperture_sphere = {}
+        timings = {}
+
         # declare all the variables we will compute
         # we set them to 0 in case a particular variable cannot be computed
         # all variables are defined with physical units and an appropriate dtype
@@ -3359,6 +3359,7 @@ class ApertureProperties(HaloProperty):
                 if not physical:
                     unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
                 if do_calculation[category]:
+                    t0_calc = time.time()
                     val = getattr(part_props, name)
                     if val is not None:
                         assert (
@@ -3382,6 +3383,7 @@ class ApertureProperties(HaloProperty):
                                 "inf"
                             ), err
                             aperture_sphere[name] += val
+                        timings[name] = time.time() - t0_calc
 
         # add the new properties to the halo_result dictionary
         for prop in self.property_list:
@@ -3407,6 +3409,23 @@ class ApertureProperties(HaloProperty):
                     )
                 }
             )
+            if self.record_timings:
+                arr = unyt.unyt_array(
+                        [timings.get(name, 0)],
+                        dtype=np.float32,
+                        units=unyt.dimensionless,
+                        registry=registry,
+                    )
+                halo_result.update(
+                    {
+                        f"{self.group_name}/{outputname}_time": (
+                            arr,
+                            'Time taken in seconds',
+                            True,
+                            None,
+                        )
+                    }
+                )
 
         return
 

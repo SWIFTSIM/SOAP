@@ -156,6 +156,7 @@ def compute_halo_properties():
     cellgrid.snapshot_datasets.setup_defined_constants(
         parameter_file.get_defined_constants()
     )
+    parameter_file.record_property_timings = args.record_property_timings
 
     # Try to load parameters for RecentlyHeatedGasFilter. If a property that uses the
     # filter is calculated when the parameters could not be found, the code will
@@ -416,6 +417,10 @@ def compute_halo_properties():
             print("for central and satellite halos")
         if args.snipshot:
             print("Running in snipshot mode")
+        if args.record_halo_timings:
+            print("Storing processing time for each halo")
+        if args.record_property_timings:
+            print("Storing processing time for each property")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties()
         category_filter.print_filters()
@@ -430,17 +435,11 @@ def compute_halo_properties():
     halo_basename = sub_snapnum(args.halo_basename, args.snapshot_nr)
     so_cat = halo_centres.SOCatalogue(
         comm_world,
-        halo_basename,
-        args.halo_format,
         cellgrid.a_unit,
         cellgrid.snap_unit_registry,
         cellgrid.boxsize,
-        args.max_halos,
-        args.centrals_only,
-        args.halo_indices,
         halo_prop_list,
-        args.chunks,
-        args.min_read_radius_cmpc,
+        args,
     )
     so_cat.start_request_thread()
 

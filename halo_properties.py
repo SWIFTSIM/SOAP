@@ -29,3 +29,9 @@ class HaloProperty:
             "PartType5": cellgrid.baryon_softening,
             "PartType6": cellgrid.nu_softening,
         }  # Softening length of each particle type
+
+        # No density criterion by default
+        self.mean_density_multiple = None
+        self.critical_density_multiple = None
+
+

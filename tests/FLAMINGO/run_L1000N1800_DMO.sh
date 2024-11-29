@@ -31,4 +31,6 @@ mpirun -np 8 python3 -u -m mpi4py ./compute_halo_properties.py \
        ./tests/FLAMINGO/test_parameters.yml \
        --halo-indices ${halo_indices} \
        --dmo \
+       --record-halo-timings \
+       --record-property-timings \
        --sim-name=${sim} --snap-nr=${snapnum} --chunks=1

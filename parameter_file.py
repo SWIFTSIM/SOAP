@@ -26,6 +26,9 @@ class ParameterFile:
     # parameter dictionary
     parameters: Dict
 
+    # Whether to record timings for calculations
+    record_property_timings: bool = False
+
     def __init__(
         self,
         file_name: Union[None, str] = None,

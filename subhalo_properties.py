@@ -23,6 +23,7 @@ properties is done lazily: only calculations that are actually needed are
 performed. See aperture_properties.py for a fully documented example.
 """
 
+import time
 import numpy as np
 import unyt
 
@@ -1955,10 +1956,7 @@ class SubhaloProperties(HaloProperty):
         self.stellar_ages = stellar_age_calculator
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
-
-        # This specifies how large a sphere is read in:
-        self.mean_density_multiple = None
-        self.critical_density_multiple = None
+        self.record_timings = parameters.record_property_timings
 
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.0
@@ -1967,7 +1965,7 @@ class SubhaloProperties(HaloProperty):
         # Save mask metadata and name of group in the final output file
         if bound_only:
             self.grnr = "GroupNr_bound"
-            self.name = "bound_subhalo_properties"
+            self.name = "bound_subhalo"
             self.group_name = "BoundSubhalo"
         else:
             self.grnr = "GroupNr_all"
@@ -2050,6 +2048,7 @@ class SubhaloProperties(HaloProperty):
             do_calculation = self.category_filter.get_do_calculation(halo_result)
 
         subhalo = {}
+        timings = {}
         # declare all the variables we will compute
         # we set them to 0 in case a particular variable cannot be computed
         # all variables are defined with physical units and an appropriate dtype
@@ -2082,6 +2081,7 @@ class SubhaloProperties(HaloProperty):
                 val, dtype=dtype, units=unit, registry=registry
             )
             if do_calculation[category]:
+                t0_calc = time.time()
                 val = getattr(part_props, name)
                 if val is not None:
                     assert (
@@ -2103,9 +2103,12 @@ class SubhaloProperties(HaloProperty):
                         err += f"calculating {name} in subhalo_properties"
                         assert np.max(np.abs(val.to(unit).value)) < float("inf"), err
                         subhalo[name] += val
+                    timings[name] = time.time() - t0_calc
 
         # Check that we found the expected number of halo member particles:
         # If not, we need to try again with a larger search radius.
+        # For HBT this should not happen since we use the radius of the most distant
+        # bound particle.
         Ntot = part_props.Ngas + part_props.Ndm + part_props.Nstar + part_props.Nbh
         if self.bound_only:
             Nexpected = input_halo["nr_bound_part"]
@@ -2144,6 +2147,23 @@ class SubhaloProperties(HaloProperty):
                     )
                 }
             )
+            if self.record_timings:
+                arr = unyt.unyt_array(
+                        [timings.get(name, 0)],
+                        dtype=np.float32,
+                        units=unyt.dimensionless,
+                        registry=registry,
+                    )
+                halo_result.update(
+                    {
+                        f"{self.group_name}/{outputname}_time": (
+                            arr,
+                            'Time taken in seconds',
+                            True,
+                            None,
+                        )
+                    }
+                )
 
 
 def test_subhalo_properties():
