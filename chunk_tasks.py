@@ -192,7 +192,7 @@ class ChunkTask:
                 for ptype in properties:
                     properties[ptype] = list(properties[ptype])
                 try:
-                    cellgrid.check_datasets_exist(properties)
+                    cellgrid.check_datasets_exist(properties, self.halo_prop_list)
                 except KeyError as err_msg:
                     print(err_msg)
                     comm.Abort(1)

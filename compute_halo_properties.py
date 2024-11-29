@@ -13,6 +13,7 @@ comm_world_size = comm_world.Get_size()
 import os
 import os.path
 import time
+import traceback
 import numpy as np
 import unyt
 
@@ -157,16 +158,28 @@ def compute_halo_properties():
     )
     parameter_file.record_property_timings = args.record_property_timings
 
-    recently_heated_params = args.calculations["recently_heated_gas_filter"]
-    if (not args.dmo) and (recently_heated_params["use_AGN_delta_T"]):
-        assert cellgrid.AGN_delta_T.value != 0, "Invalid value for AGN_delta_T"
-    recently_heated_gas_filter = RecentlyHeatedGasFilter(
-        cellgrid,
-        float(recently_heated_params["delta_time_myr"]) * unyt.Myr,
-        float(recently_heated_params["use_AGN_delta_T"]),
-        delta_logT_min=-1.0,
-        delta_logT_max=0.3,
-    )
+    # Try to load parameters for RecentlyHeatedGasFilter. If a property that uses the
+    # filter is calculated when the parameters could not be found, the code will
+    # crash.
+    try:
+        recently_heated_params = args.calculations["recently_heated_gas_filter"]
+        if (not args.dmo) and (recently_heated_params["use_AGN_delta_T"]):
+            assert cellgrid.AGN_delta_T.value != 0, "Invalid value for AGN_delta_T"
+        recently_heated_gas_filter = RecentlyHeatedGasFilter(
+            cellgrid,
+            float(recently_heated_params["delta_time_myr"]) * unyt.Myr,
+            float(recently_heated_params["use_AGN_delta_T"]),
+            True,
+            delta_logT_min=-1.0,
+            delta_logT_max=0.3,
+        )
+    except KeyError:
+        recently_heated_gas_filter = RecentlyHeatedGasFilter(
+            cellgrid,
+            0 * unyt.Myr,
+            False,
+            False,
+        )
 
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
 
@@ -480,13 +493,18 @@ def compute_halo_properties():
         args.max_ranks_reading,
         scratch_file_format,
     )
-    metadata = task_queue.execute_tasks(
-        tasks,
-        args=task_args,
-        comm_all=comm_world,
-        comm_master=comm_inter_node,
-        comm_workers=comm_intra_node,
-    )
+    # Catch any errors so we can call MPI_ABORT
+    try:
+        metadata = task_queue.execute_tasks(
+            tasks,
+            args=task_args,
+            comm_all=comm_world,
+            comm_master=comm_inter_node,
+            comm_workers=comm_intra_node,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        comm_world.Abort(1)
 
     # Can stop the halo request thread now that all chunk tasks have executed
     so_cat.stop_request_thread()

@@ -134,11 +134,11 @@ def process_single_halo(
                     )
                     timings[f'{halo_prop.name}_total_time'] = timings.get(f'{halo_prop.name}_total_time', 0) + time.time() - t0_halo_prop
                     break
-                except FloatingPointError as fpe:
-                    # Calculation cause a floating point exception.
+                except Exception as e:
+                    # Calculation caused an unexpected error.
                     # Output the halo ID so we can debug this.
                     print(
-                        f"Halo ID={input_halo['index']} encountered a floating point error"
+                        f"Object with HaloCatalogueIndex={input_halo['index']} encountered an error"
                     )
                     raise
                 else:

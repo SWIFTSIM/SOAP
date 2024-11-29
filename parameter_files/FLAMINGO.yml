@@ -436,6 +436,23 @@ SOProperties:
     XRayPhotonLuminosityInRestframeCoreExcision: true
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: true
+    DarkMatterMassFlowRate: false
+    ColdGasMassFlowRate: false
+    CoolGasMassFlowRate: false
+    WarmGasMassFlowRate: false
+    HotGasMassFlowRate: false
+    HIMassFlowRate: false
+    H2MassFlowRate: false
+    MetalMassFlowRate: false
+    StellarMassFlowRate: false
+    ColdGasEnergyFlowRate: false
+    CoolGasEnergyFlowRate: false
+    WarmGasEnergyFlowRate: false
+    HotGasEnergyFlowRate: false
+    ColdGasMomentumFlowRate: false
+    CoolGasMomentumFlowRate: false
+    WarmGasMomentumFlowRate: false
+    HotGasMomentumFlowRate: false
   variations:
     200_crit:
       type: crit
@@ -564,6 +581,7 @@ SubhaloProperties:
     GasInertiaTensorReducedNoniterative: true
     DarkMatterInertiaTensorReducedNoniterative: true
     StellarInertiaTensorReducedNoniterative: true
+    MaximumCircularVelocity: true
     SpinParameter: true
     StarFormationRate: true
     AveragedStarFormationRate: false
