@@ -72,9 +72,6 @@ SubhaloProperties:
     MaximumCircularVelocityRadiusUnsoftened: true
     SpinParameter: true
     TotalMass: true
-  variations:
-    Bound:
-      bound_only: true
 filters:
   general:
     limit: 100

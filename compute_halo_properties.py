@@ -233,36 +233,21 @@ def compute_halo_properties():
     # Similarly, things like SO 5xR500_crit can only be done after
     # SO 500_crit for obvious reasons
     halo_prop_list = []
-    # Make sure BoundSubhalo is always first, since it's used for filters
-    subhalo_variations = parameter_file.get_halo_type_variations(
-        "SubhaloProperties", {"Bound": {"bound_only": True}}
+
+    # We require BoundSubhalo since it's used for filters
+    if comm_world_rank == 0:
+        if "SubhaloProperties" not in parameter_file.parameters:
+            print('SubhaloProperties must be in the parameter file')
+            comm_world.Abort(1)
+    halo_prop_list.append(
+        subhalo_properties.SubhaloProperties(
+            cellgrid,
+            parameter_file,
+            recently_heated_gas_filter,
+            stellar_age_calculator,
+            category_filter,
+        )
     )
-    for variation in subhalo_variations:
-        if subhalo_variations[variation]["bound_only"]:
-            halo_prop_list.append(
-                subhalo_properties.SubhaloProperties(
-                    cellgrid,
-                    parameter_file,
-                    recently_heated_gas_filter,
-                    stellar_age_calculator,
-                    category_filter,
-                    bound_only=subhalo_variations[variation]["bound_only"],
-                )
-            )
-    assert len(halo_prop_list) > 0, "BoundSubhalo must be calculated"
-    # Adding FOFSubhaloProperties if present
-    for variation in subhalo_variations:
-        if not subhalo_variations[variation]["bound_only"]:
-            halo_prop_list.append(
-                subhalo_properties.SubhaloProperties(
-                    cellgrid,
-                    parameter_file,
-                    recently_heated_gas_filter,
-                    stellar_age_calculator,
-                    category_filter,
-                    bound_only=subhalo_variations[variation]["bound_only"],
-                )
-            )
 
     SO_variations = parameter_file.get_halo_type_variations(
         "SOProperties",

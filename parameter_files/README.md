@@ -119,20 +119,13 @@ SOProperties:
 
 ### SubhaloProperties
 
-Define which properties to compute for the bound subhalos.
+Define which properties to compute for the subhalos.
 
 - **properties**: The same as for ApertureProperties.
 
-Unless using VR catalogues, add the following for variations
-```
-variations:
-  Bound:
-    bound_only: true
-```
-
 ### Aliases
 
-Used if field names in the snapshots do not agree with what SOAP expects, e.g.
+Optional. Used if field names in the snapshots do not agree with what SOAP expects, e.g.
 ```
 aliases:
   PartType0/ElementMassFractions: PartType0/SmoothedElementMassFractions
@@ -177,7 +170,7 @@ filters:
 
 ### Defined constants
 
-Constants used when running SOAP
+Optional. Constants used when running SOAP
 
 ```
 defined_constants:

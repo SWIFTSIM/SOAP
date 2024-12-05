@@ -735,9 +735,6 @@ SubhaloProperties:
     StellarMassInMetals: true
     StellarVelocityDispersionMatrix: true
     TotalMass: true
-  variations:
-    Bound:
-      bound_only: true
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent

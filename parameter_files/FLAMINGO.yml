@@ -410,9 +410,6 @@ SubhaloProperties:
     StellarMassFractionInMetals: basic
     StellarVelocityDispersionMatrix: star
     TotalMass: basic
-  variations:
-    Bound:
-      bound_only: true
 aliases:
   PartType0/ElementMassFractions: PartType0/SmoothedElementMassFractions
   PartType4/ElementMassFractions: PartType4/SmoothedElementMassFractions

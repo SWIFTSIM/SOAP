@@ -3,20 +3,12 @@
 """
 subhalo_properties.py
 
-Halo properties for VR subhalo groups.
-
-Subhalos are identified by VR as substructures of 3D FOF groups. They are found
-by first running a 3D FOF algorithm and then subdividing the resulting 3D FOF
-groups using a 6D phase space FOF algorithm. The 6D FOF subhalo groups come in
-two flavours: a version that includes all the particles within the 6D FOF group
-(simply called the FOFSubhalo), and a version that only includes the particles
-that are also gravitationally bound to the subhalo (the BoundSubhalo). The union
-of all the FOFSubhalo groups is the original 3D FOF group (which can be useful
-to recover e.g. the FOF mass or CoM of the 3D FOF group).
+Calculate subhalo properties using all the particles deemed to be
+a member of that subhalo.
 
 Note that all the membership information used to determine which particles are
-a member of the FOFSubhalo and the BoundSubhalo comes directly from VR, i.e. we
-do not perform any FOF algorithm or boundedness calculation in SOAP.
+a member of a subhalo comes directly from the halo finder, SOAP does not
+perform any FOF algorithm or boundedness calculations.
 
 Just like the other HaloProperty implementations, the calculation of the
 properties is done lazily: only calculations that are actually needed are
@@ -70,7 +62,6 @@ class SubhaloParticleData:
         input_halo: Dict,
         data: Dict,
         types_present: List[str],
-        grnr: int,
         stellar_age_calculator: StellarAgeCalculator,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         snapshot_datasets: SnapshotDatasets,
@@ -87,9 +78,6 @@ class SubhaloParticleData:
          - types_present: List
            List of all particle types (e.g. 'PartType0') that are present in the data
            dictionary.
-         - grnr: int
-           VR index of this particular subhalo. Used to match particles to this
-           subhalo.
          - stellar_age_calculator: StellarAgeCalculator
            Object used to compute stellar ages from the current cosmological scale factor
            and the birth scale factors of star particles.
@@ -103,7 +91,6 @@ class SubhaloParticleData:
         self.input_halo = input_halo
         self.data = data
         self.types_present = types_present
-        self.grnr = grnr
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
         self.snapshot_datasets = snapshot_datasets
@@ -131,7 +118,7 @@ class SubhaloParticleData:
         types = []
         softening = []
         for ptype in self.types_present:
-            grnr = self.get_dataset(f"{ptype}/{self.grnr}")
+            grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
             in_halo = grnr == self.index
             mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
             pos = (
@@ -349,7 +336,7 @@ class SubhaloParticleData:
         """
         if self.Nstar == 0:
             return None
-        return self.get_dataset(f"PartType4/{self.grnr}") == self.index
+        return self.get_dataset(f"PartType4/GroupNr_bound") == self.index
 
     @lazy_property
     def mass_star_init(self) -> unyt.unyt_array:
@@ -450,7 +437,7 @@ class SubhaloParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset(f"PartType5/{self.grnr}") == self.index
+        return self.get_dataset(f"PartType5/GroupNr_bound") == self.index
 
     @lazy_property
     def Mbh_subgrid(self) -> unyt.unyt_quantity:
@@ -1405,7 +1392,7 @@ class SubhaloParticleData:
         Mask that can be used to filter out gas particles that belong to this
         subhalo in raw particle arrays, like PartType0/Masses.
         """
-        return self.get_dataset(f"PartType0/{self.grnr}") == self.index
+        return self.get_dataset(f"PartType0/GroupNr_bound") == self.index
 
     @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
@@ -1918,7 +1905,6 @@ class SubhaloProperties(HaloProperty):
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         stellar_age_calculator: StellarAgeCalculator,
         category_filter: CategoryFilter,
-        bound_only: bool = True,
     ):
         """
         Construct a SubhaloProperties object.
@@ -1940,9 +1926,6 @@ class SubhaloProperties(HaloProperty):
            Filter used to determine which properties can be calculated for this halo.
            This depends on the number of particles in the subhalo and the category
            of each property.
-         - bound_only: bool
-           Should properties include all particles in the 6DFOF group, or only
-           gravitationally bound particles?
         """
 
         super().__init__(cellgrid)
@@ -1951,7 +1934,6 @@ class SubhaloProperties(HaloProperty):
             "SubhaloProperties", [prop.name for prop in self.property_list.values()]
         )
 
-        self.bound_only = bound_only
         self.filter = recently_heated_gas_filter
         self.stellar_ages = stellar_age_calculator
         self.category_filter = category_filter
@@ -1963,14 +1945,8 @@ class SubhaloProperties(HaloProperty):
 
         # Give this calculation a name so we can select it on the command line
         # Save mask metadata and name of group in the final output file
-        if bound_only:
-            self.grnr = "GroupNr_bound"
-            self.name = "bound_subhalo"
-            self.group_name = "BoundSubhalo"
-        else:
-            self.grnr = "GroupNr_all"
-            self.name = "fof_subhalo_properties"
-            self.group_name = "FOFSubhalo"
+        self.name = "bound_subhalo"
+        self.group_name = "BoundSubhalo"
         self.mask_metadata = {"Masked": False}
         self.halo_filter = "basic"
 
@@ -1983,10 +1959,10 @@ class SubhaloProperties(HaloProperty):
         # read if that particular property is actually requested
         # Some basic properties are always required; these are added below
         self.particle_properties = {
-            "PartType0": ["Coordinates", "Masses", "Velocities", self.grnr],
-            "PartType1": ["Coordinates", "Masses", "Velocities", self.grnr],
-            "PartType4": ["Coordinates", "Masses", "Velocities", self.grnr],
-            "PartType5": ["Coordinates", "DynamicalMasses", "Velocities", self.grnr],
+            "PartType0": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
+            "PartType1": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
+            "PartType4": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
+            "PartType5": ["Coordinates", "DynamicalMasses", "Velocities", "GroupNr_bound"],
         }
 
         # add additional particle properties based on the selected halo
@@ -2028,27 +2004,23 @@ class SubhaloProperties(HaloProperty):
             input_halo,
             data,
             types_present,
-            self.grnr,
             self.stellar_ages,
             self.filter,
             self.snapshot_datasets,
             self.softening_of_parttype,
         )
 
-        if self.bound_only:
-            # this is the halo type that we use for the filter particle numbers,
-            # so we have to pass the numbers for the category filters manually
-            do_calculation = self.category_filter.get_do_calculation(
-                halo_result,
-                {
-                    "BoundSubhalo/NumberOfDarkMatterParticles": part_props.Ndm,
-                    "BoundSubhalo/NumberOfGasParticles": part_props.Ngas,
-                    "BoundSubhalo/NumberOfStarParticles": part_props.Nstar,
-                    "BoundSubhalo/NumberOfBlackHoleParticles": part_props.Nbh,
-                },
-            )
-        else:
-            do_calculation = self.category_filter.get_do_calculation(halo_result)
+        # this is the halo type that we use for the filter particle numbers,
+        # so we have to pass the numbers for the category filters manually
+        do_calculation = self.category_filter.get_do_calculation(
+            halo_result,
+            {
+                "BoundSubhalo/NumberOfDarkMatterParticles": part_props.Ndm,
+                "BoundSubhalo/NumberOfGasParticles": part_props.Ngas,
+                "BoundSubhalo/NumberOfStarParticles": part_props.Nstar,
+                "BoundSubhalo/NumberOfBlackHoleParticles": part_props.Nbh,
+            },
+        )
 
         subhalo = {}
         timings = {}
@@ -2111,10 +2083,7 @@ class SubhaloProperties(HaloProperty):
         # For HBT this should not happen since we use the radius of the most distant
         # bound particle.
         Ntot = part_props.Ngas + part_props.Ndm + part_props.Nstar + part_props.Nbh
-        if self.bound_only:
-            Nexpected = input_halo["nr_bound_part"]
-        else:
-            Nexpected = input_halo["nr_bound_part"] + input_halo["nr_unbound_part"]
+        Nexpected = input_halo["nr_bound_part"]
         if Ntot < Nexpected:
             # Try again with a larger search radius
             # print(f"Ntot = {Ntot}, Nexpected = {Nexpected}, search_radius = {search_radius}")
@@ -2196,7 +2165,7 @@ def test_subhalo_properties():
     )
     parameters.get_halo_type_variations(
         "SubhaloProperties",
-        {"FOF": {"bound_only": False}, "Bound": {"bound_only": True}},
+        {},
     )
 
     recently_heated_gas_filter = dummy_halos.get_recently_heated_gas_filter()
@@ -2226,7 +2195,6 @@ def test_subhalo_properties():
         halo_result = {}
         for subhalo_name, prop_calc in [
             ("BoundSubhalo", property_calculator_bound),
-            # ("FOFSubhaloProperties", property_calculator_both),
         ]:
             input_data = {}
             for ptype in prop_calc.particle_properties:
@@ -2290,7 +2258,6 @@ def test_subhalo_properties():
         )
         halo_result = {}
         for subhalo_name, prop_calc in [
-            # ("FOFSubhaloProperties", property_calculator_both),
             ("BoundSubhalo", property_calculator_bound)
         ]:
             input_data = {}
