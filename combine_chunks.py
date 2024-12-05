@@ -85,21 +85,22 @@ def combine_chunks(
     # Get metadata for derived quantities: these don't exist in the chunk
     # output but will be computed by combining other halo properties.
     soap_metadata = []
-    for soapkey in PropertyTable.soap_properties:
-        props = PropertyTable.full_property_list[f"{soapkey}"]
-        name = f"SOAP/{soapkey}"
-        size = props[1]
+    for key, prop in PropertyTable.full_property_list.items():
+        if not key.startswith('SOAP/'):
+            continue
+        name = prop.name
+        size = prop.shape
         if size == 1:
             # Scalar quantity
             size = ()
         else:
             # Vector quantity
             size = (size,)
-        dtype = props[2]
-        unit = cellgrid.get_unit(props[3])
-        description = props[4]
-        physical = props[9]
-        a_exponent = props[10]
+        dtype = prop.dtype
+        unit = cellgrid.get_unit(prop.unit)
+        description = prop.description
+        physical = prop.output_physical
+        a_exponent = prop.a_scale_exponent
         if not physical:
             unit = unit * cellgrid.get_unit("a") ** a_exponent
         soap_metadata.append(
@@ -110,20 +111,20 @@ def combine_chunks(
     fof_metadata = []
     if (args.fof_group_filename != "") and (args.halo_format == "HBTplus"):
         for fofkey in ["Centres", "Masses", "Sizes"]:
-            props = PropertyTable.full_property_list[f"FOF/{fofkey}"]
-            name = f"InputHalos/FOF/{fofkey}"
-            size = props[1]
+            prop = PropertyTable.full_property_list[f"FOF/{fofkey}"]
+            name = f"InputHalos/{prop.name}"
+            size = prop.shape
             if size == 1:
                 # Scalar quantity
                 size = ()
             else:
                 # Vector quantity
                 size = (size,)
-            dtype = props[2]
-            unit = cellgrid.get_unit(props[3])
-            description = props[4]
-            physical = props[9]
-            a_exponent = props[10]
+            dtype = prop.dtype
+            unit = cellgrid.get_unit(prop.unit)
+            description = prop.description
+            physical = prop.output_physical
+            a_exponent = prop.a_scale_exponent
             if not physical:
                 unit = unit * cellgrid.get_unit("a") ** a_exponent
             fof_metadata.append(
@@ -238,6 +239,10 @@ def combine_chunks(
                 name, size, unit, dtype, description, physical, a_exponent = metadata
                 if description == "No description available":
                     print(f"{name} not found in property table")
+                    compression_metadata = {"Lossy compression filter": "None", "Is Compressed": False}
+                else:
+                    compression_metadata = category_filter.get_compression_metadata(name)
+
                 shape = (total_nr_halos,) + size
                 dataset = outfile.create_dataset(
                     name, shape=shape, dtype=dtype, fillvalue=None
@@ -245,9 +250,10 @@ def combine_chunks(
                 # Add units and description
                 attrs = swift_units.attributes_from_units(unit, physical, a_exponent)
                 attrs["Description"] = description
-                mask_metadata = category_filter.get_filter_metadata_for_property(name)
-                attrs.update(mask_metadata)
-                compression_metadata = category_filter.get_compression_metadata(name)
+                # TODO: Figure how to calculate mask_metadata
+                # Merge soap_rescue if I'm going to be adding filter_name to the metadata
+                # mask_metadata = category_filter.get_filter_metadata_for_property(name)
+                # attrs.update(mask_metadata)
                 attrs.update(compression_metadata)
                 for attr_name, attr_value in attrs.items():
                     dataset.attrs[attr_name] = attr_value
@@ -375,10 +381,10 @@ def combine_chunks(
         fof_com[keep] = psort.fetch_elements(
             fof_file.read("Groups/Centres"), indices, comm=comm_world
         )
-        props = PropertyTable.full_property_list[f"FOF/Centres"]
-        soap_com_unit = cellgrid.get_unit(props[3])
-        physical = props[9]
-        a_exponent = props[10]
+        prop = PropertyTable.full_property_list[f"FOF/Centres"]
+        soap_com_unit = cellgrid.get_unit(prop.unit)
+        physical = prop.output_physical
+        a_exponent = prop.a_scale_exponent
         if not physical:
             soap_com_unit = soap_com_unit * cellgrid.get_unit('a') ** a_exponent
         fof_com = (fof_com * fof_com_unit).to(soap_com_unit)
@@ -394,10 +400,10 @@ def combine_chunks(
         fof_mass[keep] = psort.fetch_elements(
             fof_file.read("Groups/Masses"), indices, comm=comm_world
         )
-        props = PropertyTable.full_property_list[f"FOF/Masses"]
-        soap_mass_unit = cellgrid.get_unit(props[3])
-        physical = props[9]
-        a_exponent = props[10]
+        prop = PropertyTable.full_property_list[f"FOF/Masses"]
+        soap_mass_unit = cellgrid.get_unit(prop.unit)
+        physical = prop.output_physical
+        a_exponent = prop.a_scale_exponent
         if not physical:
             soap_mass_unit = soap_mass_unit * cellgrid.get_unit('a') ** a_exponent
         fof_mass = (fof_mass * fof_mass_unit).to(soap_mass_unit)

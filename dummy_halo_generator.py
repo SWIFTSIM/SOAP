@@ -166,6 +166,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Masses",
                 "Velocities",
                 "FOFGroupIDs",
+                "GroupNr_bound",
                 "MetalMassFractions",
                 "Temperatures",
                 "InternalEnergies",
@@ -185,12 +186,13 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "ElementMassFractionsDiffuse",
                 "SmoothedElementMassFractions",
             ],
-            "PartType1": ["Coordinates", "Masses", "Velocities", "FOFGroupIDs"],
+            "PartType1": ["Coordinates", "GroupNr_bound", "Masses", "Velocities", "FOFGroupIDs"],
             "PartType4": [
                 "Coordinates",
                 "Masses",
                 "Velocities",
                 "FOFGroupIDs",
+                "GroupNr_bound",
                 "InitialMasses",
                 "Luminosities",
                 "MetalMassFractions",
@@ -206,6 +208,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "DynamicalMasses",
                 "Velocities",
                 "FOFGroupIDs",
+                "GroupNr_bound",
                 "SubgridMasses",
                 "LastAGNFeedbackScaleFactors",
                 "ParticleIDs",
@@ -513,6 +516,7 @@ class DummyHaloGenerator:
             self.dummy_cellgrid,
             0 * unyt.Myr,
             False,
+            True,
             delta_logT_min=-1.0,
             delta_logT_max=0.3,
         )
@@ -527,42 +531,42 @@ class DummyHaloGenerator:
         Return a halo_result object which only contains the number of each particle type.
         """
         return {
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Ngas'].name}": (
                 unyt.unyt_array(
                     particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
+                    dtype=PropertyTable.full_property_list["Ngas"].dtype,
                     units="dimensionless",
                 ),
                 "Dummy Ngas for filter",
             ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Ndm'].name}": (
                 unyt.unyt_array(
                     particle_numbers["PartType1"],
-                    dtype=PropertyTable.full_property_list["Ndm"][2],
+                    dtype=PropertyTable.full_property_list["Ndm"].dtype,
                     units="dimensionless",
                 ),
                 "Dummy Ndm for filter",
             ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Nstar'].name}": (
                 unyt.unyt_array(
                     particle_numbers["PartType4"],
-                    dtype=PropertyTable.full_property_list["Nstar"][2],
+                    dtype=PropertyTable.full_property_list["Nstar"].dtype,
                     units="dimensionless",
                 ),
                 "Dummy Nstar for filter",
             ),
-            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'][0]}": (
+            f"BoundSubhalo/{PropertyTable.full_property_list['Nbh'].name}": (
                 unyt.unyt_array(
                     particle_numbers["PartType5"],
-                    dtype=PropertyTable.full_property_list["Nbh"][2],
+                    dtype=PropertyTable.full_property_list["Nbh"].dtype,
                     units="dimensionless",
                 ),
                 "Dummy Nbh for filter",
             ),
-            f"SO/200_crit/{PropertyTable.full_property_list['Ngas'][0]}": (
+            f"SO/200_crit/{PropertyTable.full_property_list['Ngas'].name}": (
                 unyt.unyt_array(
                     particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"][2],
+                    dtype=PropertyTable.full_property_list["Ngas"].dtype,
                     units="dimensionless",
                 ),
                 "Dummy SO Ngas for filter",

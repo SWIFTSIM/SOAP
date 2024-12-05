@@ -79,11 +79,14 @@ class ParameterFile:
         with open(file_name, "w") as handle:
             yaml.safe_dump(self.parameters, handle)
 
-    def get_property_mask(self, halo_type: str, full_list: List[str]) -> Dict:
+    def get_property_filters(self, halo_type: str, full_list: List[str]) -> Dict:
         """
-        Get a dictionary with True/False values indicating which properties
-        should actually be computed for the given halo type. The dictionary
-        keys are based on the contents of the given list of properties. If
+        Get a dictionary with the filter that should be applied to each
+        property for the given halo type. If a property should be not be
+        computed for this halo type then False is return. The dictionary
+        keys are based on the contents of the given list of properties. 
+
+        If
         a property in the list is missing from the parameter file, it is
         assumed that this property needs to be calculated.
 
@@ -100,41 +103,51 @@ class ParameterFile:
            particular halo type (as defined in the corresponding HaloProperty
            specialisation).
 
-        Returns a dictionary with True or False for each property in full_list.
+        Returns a dictionary with st or False for each property in full_list.
+        # TODO: Finish writing
         """
+        # TODO: Can this happen? Surely we shouldn't create the object
+        # if it's not in the parameter file
         if not halo_type in self.parameters:
             self.parameters[halo_type] = {}
+        # Handle the case where no properties are listed for the halo type
         if not "properties" in self.parameters[halo_type]:
             self.parameters[halo_type]["properties"] = {}
             for property in full_list:
                 self.parameters[halo_type]["properties"][
                     property
                 ] = self.calculate_missing_properties()
-        mask = {}
+        filters = {}
         for property in full_list:
-            # Property is listed in the parameter file for this halo_type
+            # Check if property is listed in the parameter file for this halo_type
             if property in self.parameters[halo_type]["properties"]:
-                should_calculate = self.parameters[halo_type]["properties"][property]
-                # should_calculate is a dict if we want different behaviour for snapshots/snipshots
-                if isinstance(should_calculate, dict):
+                filter_name = self.parameters[halo_type]["properties"][property]
+                # filter_name will a dict if we want different behaviour 
+                # for snapshots/snipshots
+                if isinstance(filter_name, dict):
                     if self.snipshot:
-                        mask[property] = should_calculate["snipshot"]
+                        filter_name = filter_name["snipshot"]
                     else:
-                        mask[property] = should_calculate["snapshot"]
-                # otherwise should_calculate is a bool
-                else:
-                    mask[property] = should_calculate
+                        filter_name = filter_name["snapshot"]
+                # if a filter is not specified in the snapshots
+                # then we default to "basic"
+                if filter_name == True:
+                    filter_name = 'basic'
+                filters[property] = filter_name
             # Property is not listed in the parameter file for this halo_type
             else:
                 if self.calculate_missing_properties():
-                    mask[property] = True
-                    self.parameters[halo_type]["properties"][property] = True
+                    filters[property] = 'basic'
+                    self.parameters[halo_type]["properties"][property] = 'basic'
                     if self.unregistered_parameters is not None:
                         self.unregistered_parameters.add((halo_type, property))
                 else:
-                    mask[property] = False
-            assert isinstance(mask[property], bool)
-        return mask
+                    filters[property] = False
+            if isinstance(filters[property], str):
+                assert (filters[property] in self.parameters['filters']) or (filters[property] == 'basic')
+            else:
+                assert filters[property] == False
+        return filters
 
     def print_unregistered_properties(self) -> None:
         """
@@ -159,7 +172,7 @@ class ParameterFile:
         """
         invalid_properties = []
         full_property_list = property_table.PropertyTable.full_property_list
-        valid_properties = [prop[0] for prop in full_property_list.values()]
+        valid_properties = [prop.name for prop in full_property_list.values()]
         for key in self.parameters:
             # Skip keys which aren't halo types
             if "properties" not in self.parameters[key]:

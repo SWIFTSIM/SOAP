@@ -105,7 +105,7 @@ configuration that requires at least 20 particles for a satellite subhalo.
 However, even for those particle numbers, a lot of the properties computed by SOAP will be zero (e.g. 
 the gas mass within a 10 kpc aperture), or have values that are outliers compared to the full halo population 
 because of undersampling. We can save a lot of disk space by filtering these out by applying appropriate cuts. 
-Filtering means setting the value of the property to \verb+NaN+; HDF5 file compression then very effectively 
+Filtering means setting the value of the property to zero; HDF5 file compression then very effectively 
 reduces the data storage required to store these properties, while the size of the arrays that the end user 
 sees remains unchanged. Evidently, we can also save on computing time by not computing properties that are 
 filtered out.

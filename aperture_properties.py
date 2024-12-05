@@ -3023,9 +3023,9 @@ class ApertureProperties(HaloProperty):
     Each property should have a corresponding method/property/lazy_property in
     the ApertureParticleData class above.
     """
-    property_list: List[Tuple] = [
-        (prop, *PropertyTable.full_property_list[prop])
-        for prop in [
+    property_list = {
+        name: PropertyTable.full_property_list[name]
+        for name in [
             "Mtot",
             "Mgas",
             "Mdm",
@@ -3153,7 +3153,7 @@ class ApertureProperties(HaloProperty):
             "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit",
             "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
         ]
-    ]
+    }
 
     def __init__(
         self,
@@ -3204,8 +3204,8 @@ class ApertureProperties(HaloProperty):
 
         super().__init__(cellgrid)
 
-        self.property_mask = parameters.get_property_mask(
-            "ApertureProperties", [prop[1] for prop in self.property_list]
+        self.property_filters = parameters.get_property_filters(
+            "ApertureProperties", [prop.name for prop in self.property_list.values()]
         )
 
         self.recently_heated_gas_filter = recently_heated_gas_filter
@@ -3245,14 +3245,15 @@ class ApertureProperties(HaloProperty):
         }
         # add additional particle properties based on the selected halo
         # properties in the parameter file
-        for prop in self.property_list:
-            outputname = prop[1]
-            if not self.property_mask[outputname]:
+        for prop in self.property_list.values():
+            outputname = prop.name
+            # Skip if this property is disabled in the parameter file
+            if not self.property_filters[outputname]:
                 continue
-            is_dmo = prop[8]
-            if self.category_filter.dmo and not is_dmo:
+            # Skip non-DMO properties for DMO runs
+            if self.category_filter.dmo and not prop.dmo_property:
                 continue
-            partprops = prop[9]
+            partprops = prop.particle_properties
             for partprop in partprops:
                 pgroup, dset = parameters.get_particle_property(partprop)
                 if not pgroup in self.particle_properties:
@@ -3292,21 +3293,20 @@ class ApertureProperties(HaloProperty):
         # we need to use the custom unit registry so that everything can be converted
         # back to snapshot units in the end
         registry = input_halo["cofp"].units.registry
-        for prop in self.property_list:
-            outputname = prop[1]
-            # skip properties that are masked
-            if not self.property_mask[outputname]:
+        for name, prop in self.property_list.items():
+            outputname = prop.name
+            # Skip if this property is disabled in the parameter file
+            filter_name = self.property_filters[outputname]
+            if not filter_name:
                 continue
-            # skip non-DMO properties in DMO run mode
-            is_dmo = prop[8]
-            if self.category_filter.dmo and not is_dmo:
+            # Skip non-DMO properties when in DMO run mode
+            if self.category_filter.dmo and not prop.dmo_property:
                 continue
-            name = prop[0]
-            shape = prop[2]
-            dtype = prop[3]
-            unit = unyt.Unit(prop[4], registry=registry)
-            physical = prop[10]
-            a_exponent = prop[11]
+            shape = prop.shape
+            dtype = prop.dtype
+            unit = unyt.Unit(prop.unit, registry=registry)
+            physical = prop.output_physical
+            a_exponent = prop.a_scale_exponent
             if shape > 1:
                 val = [0] * shape
             else:
@@ -3340,25 +3340,23 @@ class ApertureProperties(HaloProperty):
                 self.softening_of_parttype,
             )
 
-            for prop in self.property_list:
-                outputname = prop[1]
-                # skip properties that are masked
-                if not self.property_mask[outputname]:
+            for name, prop in self.property_list.items():
+                outputname = prop.name
+                # Skip if this property is disabled in the parameter file
+                filter_name = self.property_filters[outputname]
+                if not filter_name:
                     continue
-                # skip non-DMO properties in DMO run mode
-                is_dmo = prop[8]
-                if do_calculation["DMO"] and not is_dmo:
+                # Skip non-DMO properties when in DMO run mode
+                if self.category_filter.dmo and not prop.dmo_property:
                     continue
-                name = prop[0]
-                shape = prop[2]
-                dtype = prop[3]
-                unit = unyt.Unit(prop[4], registry=registry)
-                category = prop[6]
-                physical = prop[10]
-                a_exponent = prop[11]
+                shape = prop.shape
+                dtype = prop.dtype
+                unit = unyt.Unit(prop.unit, registry=registry)
+                physical = prop.output_physical
+                a_exponent = prop.a_scale_exponent
                 if not physical:
                     unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
-                if do_calculation[category]:
+                if do_calculation[filter_name]:
                     t0_calc = time.time()
                     val = getattr(part_props, name)
                     if val is not None:
@@ -3386,19 +3384,17 @@ class ApertureProperties(HaloProperty):
                         timings[name] = time.time() - t0_calc
 
         # add the new properties to the halo_result dictionary
-        for prop in self.property_list:
-            outputname = prop[1]
-            # skip properties that are masked
-            if not self.property_mask[outputname]:
+        for name, prop in self.property_list.items():
+            outputname = prop.name
+            # Skip if this property is disabled in the parameter file
+            if not self.property_filters[outputname]:
                 continue
-            # skip non-DMO properties in DMO run mode
-            is_dmo = prop[8]
-            if self.category_filter.dmo and not is_dmo:
+            # Skip non-DMO properties when in DMO run mode
+            if self.category_filter.dmo and not prop.dmo_property:
                 continue
-            name = prop[0]
-            description = prop[5]
-            physical = prop[10]
-            a_exponent = prop[11]
+            description = prop.description
+            physical = prop.output_physical
+            a_exponent = prop.a_scale_exponent
             halo_result.update(
                 {
                     f"{self.group_name}/{outputname}": (
@@ -3668,13 +3664,13 @@ def test_aperture_properties():
             assert input_data == input_data_copy
 
             # check that the calculation returns the correct values
-            for prop in pc_calc.property_list:
-                outputname = prop[1]
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
-                physical = prop[10]
-                a_exponent = prop[11]
+            for prop in pc_calc.property_list.values():
+                outputname = prop.name
+                size = prop.shape
+                dtype = prop.dtype
+                unit_string = prop.unit
+                physical = prop.output_physical
+                a_exponent = prop.a_scale_exponent
                 full_name = f"{pc_type}/50kpc/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]
@@ -3691,9 +3687,9 @@ def test_aperture_properties():
 
             # Check properties were not calculated for filtered halos
             if pc_name == "filter_test":
-                for prop in pc_calc.property_list:
-                    outputname = prop[1]
-                    size = prop[2]
+                for prop in pc_calc.property_list.values():
+                    outputname = prop.name
+                    size = prop.shape
                     full_name = f"{pc_type}/50kpc/{outputname}"
                     assert np.all(halo_result[full_name][0].value == np.zeros(size))
 
@@ -3750,13 +3746,13 @@ def test_aperture_properties():
             assert input_data == input_data_copy
 
             # check that the calculation returns the correct values
-            for prop in pc_calc.property_list:
-                outputname = prop[1]
+            for prop in pc_calc.property_list.values():
+                outputname = prop.name
                 if not outputname == property:
                     continue
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
+                size = prop.shape
+                dtype = prop.dtype
+                unit_string = prop.unit
                 full_name = f"{pc_type}/50kpc/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]

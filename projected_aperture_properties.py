@@ -1414,9 +1414,9 @@ class ProjectedApertureProperties(HaloProperty):
     Each property should have a corresponding method/property/lazy_property in
     the SingleProjectionProjectedApertureParticleData class above.
     """
-    property_list = [
-        (prop, *PropertyTable.full_property_list[prop])
-        for prop in [
+    property_list = {
+        name: PropertyTable.full_property_list[name]
+        for name in [
             "Mtot",
             "Mgas",
             "Mdm",
@@ -1487,7 +1487,7 @@ class ProjectedApertureProperties(HaloProperty):
             "gasmetalfrac",
             "gasmetalfrac_SF",
         ]
-    ]
+    }
 
     def __init__(
         self,
@@ -1521,8 +1521,8 @@ class ProjectedApertureProperties(HaloProperty):
         """
         super().__init__(cellgrid)
 
-        self.property_mask = parameters.get_property_mask(
-            "ProjectedApertureProperties", [prop[1] for prop in self.property_list]
+        self.property_filters = parameters.get_property_filters(
+            "ProjectedApertureProperties", [prop.name for prop in self.property_list.values()]
         )
 
         # Minimum physical radius to read in (pMpc)
@@ -1553,15 +1553,15 @@ class ProjectedApertureProperties(HaloProperty):
         }
         # add additional particle properties based on the selected halo
         # properties in the parameter file
-        for prop in self.property_list:
-            outputname = prop[1]
-            if not self.property_mask[outputname]:
+        for name, prop in self.property_list.items():
+            outputname = prop.name
+            # Skip if this property is disabled in the parameter file
+            if not self.property_filters[outputname]:
                 continue
-            is_dmo = prop[8]
-            if self.category_filter.dmo and not is_dmo:
+            # Skip non-DMO properties when in DMO run mode
+            if self.category_filter.dmo and not prop.dmo_property:
                 continue
-            partprops = prop[9]
-            for partprop in partprops:
+            for partprop in prop.particle_properties:
                 pgroup, dset = parameters.get_particle_property(partprop)
                 if not pgroup in self.particle_properties:
                     self.particle_properties[pgroup] = []
@@ -1605,21 +1605,19 @@ class ProjectedApertureProperties(HaloProperty):
             # all variables are defined with physical units and an appropriate dtype
             # we need to use the custom unit registry so that everything can be converted
             # back to snapshot units in the end
-            for prop in self.property_list:
-                outputname = prop[1]
-                # skip properties that are masked
-                if not self.property_mask[outputname]:
+            for name, prop in self.property_list.items():
+                outputname = prop.name
+                # Skip if this property is disabled in the parameter file
+                if not self.property_filters[outputname]:
                     continue
-                # skip non-DMO properties in DMO run mode
-                is_dmo = prop[8]
-                if self.category_filter.dmo and not is_dmo:
+                # Skip non-DMO properties when in DMO run mode
+                if self.category_filter.dmo and not prop.dmo_property:
                     continue
-                name = prop[0]
-                shape = prop[2]
-                dtype = prop[3]
-                unit = unyt.Unit(prop[4], registry=registry)
-                physical = prop[10]
-                a_exponent = prop[11]
+                shape = prop.shape
+                dtype = prop.dtype
+                unit = unyt.Unit(prop.unit, registry=registry)
+                physical = prop.output_physical
+                a_exponent = prop.a_scale_exponent
                 if shape > 1:
                     val = [0] * shape
                 else:
@@ -1648,25 +1646,23 @@ class ProjectedApertureProperties(HaloProperty):
                 proj_part_props = SingleProjectionProjectedApertureParticleData(
                     part_props, projname
                 )
-                for prop in self.property_list:
-                    outputname = prop[1]
-                    # skip properties that are masked
-                    if not self.property_mask[outputname]:
+                for name, prop in self.property_list.items():
+                    outputname = prop.name
+                    # Skip if this property is disabled in the parameter file
+                    filter_name = self.property_filters[outputname]
+                    if not filter_name:
                         continue
-                    # skip non-DMO properties in DMO run mode
-                    is_dmo = prop[8]
-                    if do_calculation["DMO"] and not is_dmo:
+                    # Skip non-DMO properties when in DMO run mode
+                    if self.category_filter.dmo and not prop.dmo_property:
                         continue
-                    name = prop[0]
-                    shape = prop[2]
-                    dtype = prop[3]
-                    unit = unyt.Unit(prop[4], registry=registry)
-                    category = prop[6]
-                    physical = prop[10]
-                    a_exponent = prop[11]
+                    shape = prop.shape
+                    dtype = prop.dtype
+                    unit = unyt.Unit(prop.unit, registry=registry)
+                    physical = prop.output_physical
+                    a_exponent = prop.a_scale_exponent
                     if not physical:
                         unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
-                    if do_calculation[category]:
+                    if do_calculation[filter_name]:
                         t0_calc = time.time()
                         val = getattr(proj_part_props, name)
                         if val is not None:
@@ -1694,19 +1690,14 @@ class ProjectedApertureProperties(HaloProperty):
                             # Include the time from previous projection calculations
                             timings[name] = timings.get(name, 0) + time.time() - t0_calc
 
-        for prop in self.property_list:
-            outputname = prop[1]
-            # skip properties that are masked
-            if not self.property_mask[outputname]:
+        for name, prop in self.property_list.items():
+            outputname = prop.name
+            # Skip if this property is disabled in the parameter file
+            if not self.property_filters[outputname]:
                 continue
-            # skip non-DMO properties in DMO run mode
-            is_dmo = prop[8]
-            if self.category_filter.dmo and not is_dmo:
+            # Skip non-DMO properties when in DMO run mode
+            if self.category_filter.dmo and not prop.dmo_property:
                 continue
-            name = prop[0]
-            description = prop[5]
-            physical = prop[10]
-            a_exponent = prop[11]
 
             for projname in ["projx", "projy", "projz"]:
                 # add the new properties to the halo_result dictionary
@@ -1714,9 +1705,9 @@ class ProjectedApertureProperties(HaloProperty):
                     {
                         f"{self.group_name}/{projname}/{outputname}": (
                             projected_aperture[projname][name],
-                            description,
-                            physical,
-                            a_exponent,
+                            prop.description,
+                            prop.output_physical,
+                            prop.a_scale_exponent,
                         )
                     }
                 )

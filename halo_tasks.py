@@ -189,18 +189,17 @@ def process_single_halo(
         if name not in ("done", "task_id", "read_radius", "search_radius"):
             try:
                 prop = PropertyTable.full_property_list[name]
-                # Don't remove halo finder prefix
-                # e.g. don't want "VR/ID" replaced with "ID"
+                dataset_name = prop.name
+                # We want to store halo finder properties within the InputHalos group
+                # Identify them using the fact that they have a prefix
                 if "/" in name:
-                    group = name.split("/")[0]
-                    dataset_name = f"{group}/{prop[0]}"
-                else:
-                    dataset_name = prop[0]
-                dtype = prop[2]
-                unit = unyt.Unit(prop[3], registry=unit_registry)
-                description = prop[4]
-                physical = prop[9]
-                a_exponent = prop[10]
+                    dataset_name = f'InputHalos/{dataset_name}'
+
+                dtype = prop.dtype
+                unit = unyt.Unit(prop.unit, registry=unit_registry)
+                description = prop.description
+                physical = prop.output_physical
+                a_exponent = prop.a_scale_exponent
                 if not physical:
                     unit = unit * unyt.Unit("a", registry=unit_registry) ** a_exponent
                 # unyt_array.to() outputs a float64 array, which is dangerous for integers
@@ -212,16 +211,18 @@ def process_single_halo(
                     assert input_halo[name].units == unit
                 else:
                     arr = input_halo[name].to(unit).astype(dtype)
+
+
             # This property not present in PropertyTable. We log this fact
             # to stdout during combine_chunks, rather than doing it here.
             except KeyError:
-                dataset_name = name
+                dataset_name = f'InputHalos/{name}'
                 arr = input_halo[name]
                 description = "No description available"
                 physical = True
                 a_exponent = None
             # Store the value
-            halo_result[f"InputHalos/{dataset_name}"] = (
+            halo_result[dataset_name] = (
                 arr,
                 description,
                 physical,

@@ -1805,8 +1805,8 @@ class SubhaloProperties(HaloProperty):
     Each property should have a corresponding method/property/lazy_property in
     the SubhaloParticleData class above.
     """
-    property_list = [
-        (prop, *PropertyTable.full_property_list[prop])
+    property_list = {
+        prop: PropertyTable.full_property_list[prop]
         for prop in [
             "Mtot",
             "Mgas",
@@ -1909,7 +1909,7 @@ class SubhaloProperties(HaloProperty):
             "LastSupernovaEventMaximumGasDensity",
             "EncloseRadius",
         ]
-    ]
+    }
 
     def __init__(
         self,
@@ -1947,8 +1947,8 @@ class SubhaloProperties(HaloProperty):
 
         super().__init__(cellgrid)
 
-        self.property_mask = parameters.get_property_mask(
-            "SubhaloProperties", [prop[1] for prop in self.property_list]
+        self.property_filters = parameters.get_property_filters(
+            "SubhaloProperties", [prop.name for prop in self.property_list.values()]
         )
 
         self.bound_only = bound_only
@@ -1989,14 +1989,17 @@ class SubhaloProperties(HaloProperty):
             "PartType5": ["Coordinates", "DynamicalMasses", "Velocities", self.grnr],
         }
 
-        for prop in self.property_list:
-            outputname = prop[1]
-            if not self.property_mask[outputname]:
+        # add additional particle properties based on the selected halo
+        # properties in the parameter file
+        for name, prop in self.property_list.items():
+            outputname = prop.name
+            # Skip if this property is disabled in the parameter file
+            if not self.property_filters[outputname]:
                 continue
-            is_dmo = prop[8]
-            if self.category_filter.dmo and not is_dmo:
+            # Skip non-DMO properties when in DMO run mode
+            if self.category_filter.dmo and not prop.dmo_property:
                 continue
-            partprops = prop[9]
+            partprops = prop.particle_properties
             for partprop in partprops:
                 pgroup, dset = parameters.get_particle_property(partprop)
                 if not pgroup in self.particle_properties:
@@ -2055,22 +2058,20 @@ class SubhaloProperties(HaloProperty):
         # we need to use the custom unit registry so that everything can be converted
         # back to snapshot units in the end
         registry = part_props.mass.units.registry
-        for prop in self.property_list:
-            outputname = prop[1]
-            # skip properties that are masked
-            if not self.property_mask[outputname]:
+        for name, prop in self.property_list.items():
+            outputname = prop.name
+            # Skip if this property is disabled in the parameter file
+            filter_name = self.property_filters[outputname]
+            if not filter_name:
                 continue
-            # skip non-DMO properties in DMO run mode
-            is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            # Skip non-DMO properties when in DMO run mode
+            if self.category_filter.dmo and not prop.dmo_property:
                 continue
-            name = prop[0]
-            shape = prop[2]
-            dtype = prop[3]
-            unit = unyt.Unit(prop[4], registry=registry)
-            category = prop[6]
-            physical = prop[10]
-            a_exponent = prop[11]
+            shape = prop.shape
+            dtype = prop.dtype
+            unit = unyt.Unit(prop.unit, registry=registry)
+            physical = prop.output_physical
+            a_exponent = prop.a_scale_exponent
             if shape > 1:
                 val = [0] * shape
             else:
@@ -2080,7 +2081,7 @@ class SubhaloProperties(HaloProperty):
             subhalo[name] = unyt.unyt_array(
                 val, dtype=dtype, units=unit, registry=registry
             )
-            if do_calculation[category]:
+            if do_calculation[filter_name]:
                 t0_calc = time.time()
                 val = getattr(part_props, name)
                 if val is not None:
@@ -2125,25 +2126,23 @@ class SubhaloProperties(HaloProperty):
             raise RuntimeError(f'Found more particles than expected for halo {input_halo["index"]}')
 
         # Add these properties to the output
-        for prop in self.property_list:
-            outputname = prop[1]
-            # skip properties that are masked
-            if not self.property_mask[outputname]:
+        for name, prop in self.property_list.items():
+            outputname = prop.name
+            # Skip if this property is disabled in the parameter file
+            filter_name = self.property_filters[outputname]
+            if not filter_name:
                 continue
-            is_dmo = prop[8]
-            if do_calculation["DMO"] and not is_dmo:
+            # Skip non-DMO properties when in DMO run mode
+            if self.category_filter.dmo and not prop.dmo_property:
                 continue
-            name = prop[0]
-            description = prop[5]
-            physical = prop[10]
-            a_exponent = prop[11]
+            # Add data array and metadata to halo_result
             halo_result.update(
                 {
                     f"{self.group_name}/{outputname}": (
                         subhalo[name],
-                        description,
-                        physical,
-                        a_exponent,
+                        prop.description,
+                        prop.output_physical,
+                        prop.a_scale_exponent,
                     )
                 }
             )
@@ -2242,13 +2241,13 @@ def test_subhalo_properties():
             assert input_data == input_data_copy
 
             # check that the calculation returns the correct values
-            for prop in prop_calc.property_list:
-                outputname = prop[1]
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
-                physical = prop[10]
-                a_exponent = prop[11]
+            for prop in prop_calc.property_list.values():
+                outputname = prop.name
+                size = prop.shape
+                dtype = prop.dtype
+                unit_string = prop.unit
+                physical = prop.output_physical
+                a_exponent = prop.a_scale_exponent
                 full_name = f"{subhalo_name}/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]
@@ -2307,13 +2306,13 @@ def test_subhalo_properties():
             assert input_data == input_data_copy
 
             # check that the calculation returns the correct values
-            for prop in prop_calc.property_list:
-                outputname = prop[1]
+            for prop in prop_calc.property_list.values():
+                outputname = prop.name
                 if not outputname == property:
                     continue
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
+                size = prop.shape
+                dtype = prop.dtype
+                unit_string = prop.unit
                 full_name = f"{subhalo_name}/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]

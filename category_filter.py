@@ -79,7 +79,7 @@ class CategoryFilter:
 
         Returns a dictionary containing True/False for each filter category.
         """
-        do_calculation = {"basic": True, "DMO": self.dmo}
+        do_calculation = {"basic": True}
         if self.dmo:
             precomputed_properties["BoundSubhalo/NumberOfGasParticles"] = 0
             precomputed_properties["BoundSubhalo/NumberOfStarParticles"] = 0
@@ -106,6 +106,8 @@ class CategoryFilter:
     def get_compression_metadata(self, property_output_name: str) -> Dict:
         """
         Get the dictionary with compression metadata for a particular property.
+        This function should only be called for properties that exist in the
+        property table.
 
         Parameters:
          - property_output_name: str
@@ -120,16 +122,15 @@ class CategoryFilter:
            actually applied to the data. Currently, this is always "False", since
            the lossy compression is done by a post-processing script.
         """
-        base_output_name = property_output_name.split("/")[-1]
-        compression = None
-        for _, prop in PropertyTable.full_property_list.items():
-            if prop[0] == base_output_name:
-                compression = prop[6]
-        if compression is None:
-
-            return {"Lossy compression filter": "None", "Is Compressed": False}
-        else:
-            return {"Lossy compression filter": compression, "Is Compressed": False}
+        # Output names can have / in them (for halo finder properties), so
+        # we need to loop over that case
+        split_name = property_output_name.split("/")
+        for i in range(len(split_name)):
+            output_name = '/'.join(split_name[-1-i:])
+            for _, prop in PropertyTable.full_property_list.items():
+                if prop.name == output_name:
+                    return {"Lossy compression filter": prop.lossy_compression_filter, "Is Compressed": False}
+        raise RuntimeError(f"Compression filter not found for {split_name}")
 
     def get_filter_metadata_for_property(self, property_output_name: str) -> Dict:
         """
