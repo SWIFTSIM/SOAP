@@ -1,7 +1,8 @@
 #!/bin/env python
 
-import unyt
+import h5py
 import numpy as np
+import unyt
 
 import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
@@ -301,6 +302,48 @@ class ResultSet:
             return ref_metadata
         else:
             return None
+
+def get_metadata_from_chunk_file(filename, halo_prop_list, reg):
+    metadata = []
+    with h5py.File(filename, 'r') as file:
+        # Get the names of the datasets
+        datasets = []
+        for halo_prop in halo_prop_list:
+            if 'ProjectedAperture' in halo_prop.group_name:
+                for proj_name in ["projx", "projy", "projz"]:
+                    group_name = f'{halo_prop.group_name}/{proj_name}'
+                    for key in file[group_name]:
+                        name = f'{group_name}/{key}'
+                        datasets.append(name)
+            else:
+                for key in file[halo_prop.group_name]:
+                    name = f'{halo_prop.group_name}/{key}'
+                    datasets.append(name)
+        for key in file['InputHalos']:
+            name = f'InputHalos/{key}'
+            if isinstance(file[name], h5py.Group):
+                for group_key in file[name]:
+                    datasets.append(f'{name}/{group_key}')
+            else:
+                datasets.append(name)
+
+        # We need the metadata to be sorted for comparing with the metadata from other chunks
+        for name in sorted(datasets):
+            if len(file[name].shape) == 1:
+                size = ()
+            else:
+                size = (file[name].shape[1],)
+            unit = swift_units.units_from_attributes(file[name].attrs, reg)
+            dtype = file[name].dtype
+            description = file[name].attrs['Description']
+            physical = file[name].attrs['Value stored as physical'][0] == 1
+            a_exponent = file[name].attrs['a-scale exponent'][0]
+            if not file[name].attrs['Property can be converted to comoving']:
+                a_exponent = None
+            metadata.append(
+                (name, size, unit, dtype, description, physical, a_exponent)
+            )
+    return metadata
 
 
 def check_metadata(metadata, comm_inter_node, comm_world):

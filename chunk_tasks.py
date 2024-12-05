@@ -1,9 +1,11 @@
 #!/bin/env python
 
+import os
 import time
+
+import h5py
 import numpy as np
 import unyt
-import h5py
 
 import shared_mesh
 import shared_array
@@ -93,9 +95,13 @@ class ChunkTask:
                     )
                 )
 
-        # The first rank on this node imports the halos to be processed
+
+        # The first rank on this node import the halos to be processed.
+        # It also checks if this chunk has already been processed (by
+        # a previous SOAP run that crashed).
         comm.barrier()
         t0_halos = time.time()
+        result_metadata = None
         if comm_rank == 0:
             # Receive arrays
             self.halo_arrays = so_cat.request_chunk(self.chunk_nr)
@@ -106,10 +112,44 @@ class ChunkTask:
             )
             # Will need to broadcast names of the halo properties
             names = list(self.halo_arrays.keys())
+
+            chunk_file_already_exists = False
+            # Check if the chunk file exists, was fully written, and has the correct objects
+            filename = scratch_file_format % {"file_nr": self.chunk_nr}
+            if os.path.exists(filename):
+                try:
+                    with h5py.File(filename, 'r') as outfile:
+                        chunk_file_already_exists = outfile.attrs.get('Write complete', False)
+                        index = np.sort(outfile['InputHalos/HaloCatalogueIndex'][:])
+                        file_calc_names = sorted(outfile.attrs["calc_names"].tolist())
+                    # Check we have the correct halo indices
+                    if not np.all(index == np.sort(self.halo_arrays['index'].value)):
+                        chunk_file_already_exists = False
+                    # Check halo properties are the same
+                    calc_names = sorted([hp.name for hp in self.halo_prop_list])
+                    if len(calc_names) != len(file_calc_names):
+                        chunk_file_already_exists = False
+                    for name1, name2 in zip(calc_names, file_calc_names):
+                        if name1 != name2:
+                            chunk_file_already_exists = False
+                except Exception as e:
+                    # Blanket catch in case there are i/o issues with the chunk file
+                    chunk_file_already_exists = False
+
+            # File is valid, let's extracting the metadata from it
+            if chunk_file_already_exists:
+                result_metadata = result_set.get_metadata_from_chunk_file(filename, self.halo_prop_list, cellgrid.snap_unit_registry)
+
         else:
+            chunk_file_already_exists = None
             names = None
             self.halo_arrays = {}
         names = comm.bcast(names)
+
+        chunk_file_already_exists = comm.bcast(chunk_file_already_exists)
+        if chunk_file_already_exists:
+            message(f'Using pre-existing file for chunk')
+            return result_metadata
 
         # Then we copy the halo arrays into shared memory
         for name in names:
@@ -328,6 +368,16 @@ class ChunkTask:
 
         # Store time taken for this task
         timings.append(task_time_all_iterations)
+
+        # Write metadata in case this file is used for restarts
+        if comm_rank == 0:
+            with h5py.File(filename, 'a') as outfile:
+                units = outfile.create_group("Units")
+                for name, value in cellgrid.swift_units_group.items():
+                    units.attrs[name] = [value]
+                calc_names = sorted([hp.name for hp in self.halo_prop_list])
+                outfile.attrs["calc_names"] = calc_names
+                outfile.attrs['Write complete'] = True
 
         # Return the names, dimensions and units of the quantities we computed
         # so that we can check they're consistent between chunks
