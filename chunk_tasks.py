@@ -117,20 +117,24 @@ class ChunkTask:
             # Check if the chunk file exists, was fully written, and has the correct objects
             filename = scratch_file_format % {"file_nr": self.chunk_nr}
             if os.path.exists(filename):
-                with h5py.File(filename, 'r') as outfile:
-                    chunk_file_already_exists = outfile.attrs.get('Write complete', False)
-                    index = np.sort(outfile['InputHalos/HaloCatalogueIndex'][:])
-                    file_calc_names = sorted(outfile.attrs["calc_names"].tolist())
-                # Check we have the correct halo indices
-                if not np.all(index == np.sort(self.halo_arrays['index'].value)):
-                    chunk_file_already_exists = False
-                # Check halo properties are the same
-                calc_names = sorted([hp.name for hp in self.halo_prop_list])
-                if len(calc_names) != len(file_calc_names):
-                    chunk_file_already_exists = False
-                for name1, name2 in zip(calc_names, file_calc_names):
-                    if name1 != name2:
+                try:
+                    with h5py.File(filename, 'r') as outfile:
+                        chunk_file_already_exists = outfile.attrs.get('Write complete', False)
+                        index = np.sort(outfile['InputHalos/HaloCatalogueIndex'][:])
+                        file_calc_names = sorted(outfile.attrs["calc_names"].tolist())
+                    # Check we have the correct halo indices
+                    if not np.all(index == np.sort(self.halo_arrays['index'].value)):
                         chunk_file_already_exists = False
+                    # Check halo properties are the same
+                    calc_names = sorted([hp.name for hp in self.halo_prop_list])
+                    if len(calc_names) != len(file_calc_names):
+                        chunk_file_already_exists = False
+                    for name1, name2 in zip(calc_names, file_calc_names):
+                        if name1 != name2:
+                            chunk_file_already_exists = False
+                except Exception as e:
+                    # Blanket catch in case there are i/o issues with the chunk file
+                    chunk_file_already_exists = False
 
             # File is valid, let's extracting the metadata from it
             if chunk_file_already_exists:
