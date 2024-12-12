@@ -28,7 +28,6 @@ def process_particle_type(
     ids_bound,
     grnr_bound,
     rank_bound,
-    ids_unbound,
     fof_ptypes,
     fof_file,
     create_file,
@@ -81,21 +80,6 @@ def process_particle_type(
     del ptr
     del matched
 
-    if ids_unbound is not None:
-        if comm_rank == 0:
-            print("  Matching SWIFT particle IDs to unbound IDs")
-        ptr = psort.parallel_match(swift_ids, ids_unbound)
-
-        if comm_rank == 0:
-            print("  Assigning unbound group membership to SWIFT particles")
-        matched = ptr >= 0
-        swift_grnr_unbound = np.ndarray(len(swift_ids), dtype=grnr_unbound.dtype)
-        swift_grnr_unbound[matched] = psort.fetch_elements(grnr_unbound, ptr[matched])
-        swift_grnr_unbound[matched == False] = -1
-        swift_grnr_all = np.maximum(swift_grnr_bound, swift_grnr_unbound)
-        del ptr
-        del matched
-
     # Determine if we need to create a new output file set
     if create_file:
         mode = "w"
@@ -121,16 +105,12 @@ def process_particle_type(
         "Rank_bound": {
             "Description": "Ranking by binding energy of the bound particles (first in halo=0), or -1 if not bound"
         },
-        "GroupNr_all": {
-            "Description": "Index of halo in which this particle is a member (bound or unbound), or -1 if none"
-        },
         "FOFGroupIDs": {
             "Description": "Friends-Of-Friends ID of the group in which this particle is a member, of -1 if none"
         },
     }
     attrs["GroupNr_bound"].update(unit_attrs)
     attrs["Rank_bound"].update(unit_attrs)
-    attrs["GroupNr_all"].update(unit_attrs)
     attrs["FOFGroupIDs"].update(unit_attrs)
 
     # Write these particles out with the same layout as the input snapshot
@@ -140,8 +120,6 @@ def process_particle_type(
     output = {"GroupNr_bound": swift_grnr_bound}
     if rank_bound is not None:
         output["Rank_bound"] = swift_rank_bound
-    if ids_unbound is not None:
-        output["GroupNr_all"] = swift_grnr_all
     if ptype in fof_ptypes:
         output["FOFGroupIDs"] = swift_fof_group_ids
     snap_file.write(
@@ -212,31 +190,23 @@ if __name__ == "__main__":
             ids_bound,
             grnr_bound,
             rank_bound,
-            ids_unbound,
-            grnr_unbound,
         ) = read_vr.read_vr_groupnr(halo_basename)
     elif halo_format == "HBTplus":
         # Read HBTplus output
         total_nr_halos, ids_bound, grnr_bound, rank_bound = read_hbtplus.read_hbtplus_groupnr(
             halo_basename
         )
-        ids_unbound = None  # HBTplus does not output unbound particles
-        grnr_unbound = None
     elif halo_format == "Subfind":
         # Read Gadget-4 subfind output
         total_nr_halos, ids_bound, grnr_bound = read_subfind.read_gadget4_groupnr(
             halo_basename
         )
-        ids_unbound = None
-        grnr_unbound = None
         rank_bound = None
     elif halo_format == "Rockstar":
         # Read Rockstar output
         total_nr_halos, ids_bound, grnr_bound = read_rockstar.read_rockstar_groupnr(
             halo_basename
         )
-        ids_unbound = None
-        grnr_unbound = None
         rank_bound = None
     else:
         raise RuntimeError(f"Unrecognised halo finder name: {halo_format}")
@@ -322,7 +292,6 @@ if __name__ == "__main__":
             ids_bound,
             grnr_bound,
             rank_bound,
-            ids_unbound,
             fof_ptypes,
             fof_file,
             create_file,

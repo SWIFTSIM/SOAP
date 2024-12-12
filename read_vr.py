@@ -207,7 +207,7 @@ def read_vr_groupnr(basename):
     local_nr_halos = len(offset_bound)
     total_nr_halos = comm.allreduce(local_nr_halos)
 
-    return total_nr_halos, ids_bound, grnr_bound, rank_bound, ids_unbound, grnr_unbound
+    return total_nr_halos, ids_bound, grnr_bound, rank_bound
 
 
 def read_vr_catalogue(comm, basename, a_unit, registry, boxsize):
