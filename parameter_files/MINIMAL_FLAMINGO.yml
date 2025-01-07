@@ -63,6 +63,7 @@ SubhaloProperties:
   properties:
     CentreOfMass: true
     CentreOfMassVelocity: true
+    EncloseRadius: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true

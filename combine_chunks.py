@@ -240,7 +240,8 @@ def combine_chunks(
                 if description == "No description available":
                     print(f"{name} not found in property table")
                     compression_metadata = {"Lossy compression filter": "None", "Is Compressed": False}
-                elif description == "Time taken in seconds":
+                elif description.startswith("Time taken in seconds") or name in ['InputHalos/n_loop', 'InputHalos/n_process']:
+                    # Timing information
                     compression_metadata = {"Lossy compression filter": "None", "Is Compressed": False}
                 else:
                     compression_metadata = category_filter.get_compression_metadata(name)

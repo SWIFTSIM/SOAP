@@ -26,6 +26,9 @@ halo_indices="1938 1850 1907 1150 1947 1234 436621 1056 1900 1858 1988 1212 1564
 # Create parameters files
 python tests/COLIBRE/create_parameters_file.py
 
+# Remove tmp directory (so we don't load chunks if they already exist)
+rm -r output/SOAP-tmp
+
 # Run SOAP on eight cores processing the selected halos. Use 'python3 -m pdb' to start in the debugger.
 mpirun -np 8 python3 -u -m mpi4py ./compute_halo_properties.py \
        ./tests/COLIBRE/test_parameters.yml \

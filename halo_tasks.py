@@ -186,7 +186,37 @@ def process_single_halo(
 
     # Store input halo quantites
     for name in input_halo:
-        if name not in ("done", "task_id", "read_radius", "search_radius"):
+        # Skip internal properties we don't need to output
+        if name in ("done", "task_id", "read_radius", "search_radius"):
+            continue
+
+        # Timing information
+        if ("_time" in name) or (name in ['n_loop', 'n_process']):
+            dataset_name = f'InputHalos/{name}'
+            arr = input_halo[name]
+            physical = True
+            a_exponent = None
+            if '_total_time' in name:
+                description = f"Time taken in seconds spent on {name.replace('_total_time', '')}"
+            elif '_final_time' in name:
+                description = (
+                    f"Time taken in seconds spent on {name.replace('_final_time', '')}"
+                    "the final time it was calculated"
+                )
+            else:
+                description = {
+                    'process_time': 'Time taken in seconds in total processing this halo',
+                    'n_loop': 'Number of loops before target density was reached',
+                    'n_process': (
+                        "Number of times this halo was processed (a halo "
+                         "will have to be reprocessed if it's target density "
+                         "is not reached with the region currently loaded "
+                         "in memory)"
+                    ),
+                }[name]
+
+        # Check the property table
+        else:
             try:
                 prop = PropertyTable.full_property_list[name]
                 dataset_name = prop.name
@@ -212,7 +242,6 @@ def process_single_halo(
                 else:
                     arr = input_halo[name].to(unit).astype(dtype)
 
-
             # This property not present in PropertyTable. We log this fact
             # to stdout during combine_chunks, rather than doing it here.
             except KeyError:
@@ -221,13 +250,14 @@ def process_single_halo(
                 description = "No description available"
                 physical = True
                 a_exponent = None
-            # Store the value
-            halo_result[dataset_name] = (
-                arr,
-                description,
-                physical,
-                a_exponent,
-            )
+
+        # Store the value
+        halo_result[dataset_name] = (
+            arr,
+            description,
+            physical,
+            a_exponent,
+        )
 
     return halo_result, None
 

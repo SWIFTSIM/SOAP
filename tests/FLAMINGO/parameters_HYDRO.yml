@@ -9,7 +9,7 @@ Snapshots:
 HaloFinder:
   type: HBTplus
   filename: "{sim_dir}/{sim_name}/HBT/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
-  fof_filename: "/cosma8/data/dp004/jlvc76/FLAMINGO/FOF/{sim_name}/fof_catalog/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
+  fof_filename: "{sim_dir}/{sim_name}/fof_HBT/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
 
 GroupMembership:
   # Use the pre-existing membership files

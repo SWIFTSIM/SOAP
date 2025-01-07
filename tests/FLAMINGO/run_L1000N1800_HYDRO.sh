@@ -26,6 +26,9 @@ halo_indices="17254 18469 22841 42946 42950 63135 76467 93390 95879 109700 11015
 # Create parameter file
 python tests/FLAMINGO/create_parameters_file.py tests/FLAMINGO/parameters_HYDRO.yml
 
+# Remove tmp directory (so we don't load chunks if they already exist)
+rm -r output/SOAP-tmp
+
 # Run SOAP on eight cores processing the selected halos. Use 'python3 -m pdb' to start in the debugger.
 mpirun -np 8 python3 -u -m mpi4py ./compute_halo_properties.py \
        ./tests/FLAMINGO/test_parameters.yml \
