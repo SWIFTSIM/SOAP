@@ -113,6 +113,13 @@ class ChunkTask:
             # Will need to broadcast names of the halo properties
             names = list(self.halo_arrays.keys())
 
+            # Sort halos based on their number of bound particles
+            # We do this since larger halos will take longer to process
+            # and so we want to do them first
+            order = np.argsort(self.halo_arrays['nr_bound_part'])[::-1]
+            for name in names:
+                self.halo_arrays[name] = self.halo_arrays[name][order]
+
             chunk_file_already_exists = False
             # Check if the chunk file exists, was fully written, and has the correct objects
             filename = scratch_file_format % {"file_nr": self.chunk_nr}
