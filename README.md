@@ -194,11 +194,9 @@ pip install snakeviz --user
 snakeviz -b "firefox -no-remote %s" ./profile.0.dat
 ```
 
-## Matching halos between VR outputs
+## Matching halos between outputs
 
-Note that this requires the latest version of https://github.com/jchelly/VirgoDC 
-
-This repository also contains a program to find halos which contain the same
+This repository also contains a script to find halos which contain the same
 particle IDs between two outputs. It can be used to find the same halos between
 different snapshots or between hydro and dark matter only simulations.
 
@@ -207,36 +205,12 @@ determine which halo in the second output contains the largest number of these
 IDs. This matching process is then repeated in the opposite direction and we
 check for cases were we have consistent matches in both directions.
 
-### Running the program
-
-It can be run as follows:
-```
-vr_basename1="./vr/catalogue_0012/vr_catalogue_0012"
-vr_basename2="./vr/catalogue_0013/vr_catalogue_0013"
-
-outfile="halo_matching_0012_to_0013.hdf5"
-nr_particles=10
-
-mpirun python3 -u -m mpi4py \
-    ./match_vr_halos.py ${vr_basename1} ${vr_basename2} \
-    ${nr_particles} ${outfile} --use-types 0 1 2 3 4 5
-```
-Here `nr_particles` is the number of most bound particles to use for matching.
-
-### Matching using only specified particle types
-
-The `--use-types` flag specifies which particle types to use for matching using
-the type numbering scheme from Swift. Only the specified types are included in
-the most bound particles used to match halos between snapshots. For example,
-`--use-types 1` will cause the code to track the `nr_particles` most bound dark
-matter particles from each halo.
-
 ### Matching to field halos only
 
-The `--to-field-halos-only` flag can be used to match field halos (those with
-hostHaloID=-1 in the VR output) between outputs. If it is set we follow the
+The `--to-field-halos-only` flag can be used to match central halos
+between outputs. If it is set we follow the
 first `nr_particles` most bound particles from each halo as usual, but when
-locating them in the other output any particles in halos with hostHaloID>=0
+locating them in the other output any particles in satellite subhalos
 are treated as belonging to the host halo.
 
 In this mode field halos in one catalogue will only ever be matched to field
