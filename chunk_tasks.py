@@ -155,7 +155,7 @@ class ChunkTask:
 
         chunk_file_already_exists = comm.bcast(chunk_file_already_exists)
         if chunk_file_already_exists:
-            message(f'Using pre-existing file for chunk')
+            message(f'using pre-existing file for chunk')
             return result_metadata
 
         # Then we copy the halo arrays into shared memory
@@ -301,19 +301,16 @@ class ChunkTask:
                 mesh[ptype] = shared_mesh.SharedMesh(comm, pos, resolution)
             comm.barrier()
             t1_mesh = time.time()
-            message("constructing shared mesh took %.1fs" % (t1_mesh - t0_mesh))
 
-            # Report remaining memory after particles have been read in and mesh has been built
+            msg = f"constructing shared mesh took {t1_mesh - t0_mesh:.1f}s"
             total_mem_gb, free_mem_gb = memory_use.get_memory_use()
             if total_mem_gb is not None:
-                message(
-                    "node has %.1fGB of %.1fGB memory free"
-                    % (free_mem_gb, total_mem_gb)
-                )
+                msg += f', node has {free_mem_gb:.1f}GB of {total_mem_gb:.1f}GB memory free'
+            message(msg)
 
             # Calculate the halo properties
             t0_halos = time.time()
-            total_time, task_time, nr_left, nr_done = process_halos(
+            total_time, task_time, nr_left, nr_done, min_free_mem_gb = process_halos(
                 comm,
                 cellgrid.snap_unit_registry,
                 data,
@@ -340,6 +337,15 @@ class ChunkTask:
                     dead_time_fraction,
                 )
             )
+
+            # Report peak memory usage
+            total_mem_gb, free_mem_gb = memory_use.get_memory_use()
+            if total_mem_gb is not None:
+                message(
+                    "at peak memory usage node had %.1fGB of %.1fGB memory free"
+                    % (min_free_mem_gb, total_mem_gb)
+                )
+
             # Free the shared particle data
             for ptype in data:
                 for name in data[ptype]:

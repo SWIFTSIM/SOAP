@@ -65,8 +65,12 @@ def get_rank_and_size(comm):
 
 def compute_halo_properties():
 
+    # Start the clock
+    t0 = time.time()
+
     # Read command line parameters
     args = soap_args.get_soap_args(comm_world)
+    comm_world.barrier()
 
     # Enable profiling, if requested
     if args.profile == 2 or (args.profile == 1 and comm_world_rank == 0):
@@ -74,10 +78,6 @@ def compute_halo_properties():
 
         pr = cProfile.Profile()
         pr.enable()
-
-    # Start the clock
-    comm_world.barrier()
-    t0 = time.time()
 
     # Split MPI ranks according to which node they are on.
     # Only the first rank on each node belongs to comm_inter_node.
@@ -438,15 +438,6 @@ def compute_halo_properties():
     else:
         tasks = None
 
-    # Report initial set-up time
-    comm_world.barrier()
-    t1 = time.time()
-    if comm_world_rank == 0:
-        print(
-            "Reading %d input halos and setting up %d chunk(s) took %.1fs"
-            % (so_cat.nr_halos, len(tasks), t1 - t0)
-        )
-
     # Make a format string to generate the name of the file each chunk task will write to
     scratch_file_format = (
         args.scratch_dir
@@ -464,6 +455,15 @@ def compute_halo_properties():
             except OSError:
                 pass
     comm_world.barrier()
+
+    # Report initial set-up time
+    comm_world.barrier()
+    t1 = time.time()
+    if comm_world_rank == 0:
+        print(
+            "Reading %d input halos and setting up %d chunk(s) took %.1fs"
+            % (so_cat.nr_halos, len(tasks), t1 - t0)
+        )
 
     # Execute the chunk tasks. This writes one file per chunk with the halo properties.
     # For each chunk it returns a list with (name, size, units, description) for each
@@ -499,6 +499,8 @@ def compute_halo_properties():
     ref_metadata = result_set.check_metadata(metadata, comm_inter_node, comm_world)
 
     # Combine chunks into a single output file
+    comm_world.barrier()
+    t0_combine = time.time()
     combine_chunks(
         args,
         cellgrid,
@@ -513,7 +515,6 @@ def compute_halo_properties():
     )
 
     # Delete scratch files
-    comm_world.barrier()
     if comm_world_rank == 0:
         for file_nr in range(nr_chunks):
             os.remove(scratch_file_format % {"file_nr": file_nr})
@@ -521,16 +522,8 @@ def compute_halo_properties():
     comm_world.barrier()
 
     # Stop the clock
-    comm_world.barrier()
+    combine_time_local = time.time() - t0_combine
     t1 = time.time()
-
-    # Find total time spent running tasks
-    if len(timings) > 0:
-        task_time_local = sum(timings)
-    else:
-        task_time_local = 0.0
-    task_time_total = comm_world.allreduce(task_time_local)
-    task_time_fraction = task_time_total / (comm_world_size * (t1 - t0))
 
     # Save profiling results for each MPI rank
     if args.profile == 2 or (args.profile == 1 and comm_world_rank == 0):
@@ -545,10 +538,30 @@ def compute_halo_properties():
         with open("./profile.%d.txt" % comm_world_rank, "w") as profile_file:
             profile_file.write(s.getvalue())
 
+    # Find total time spent running tasks
+    if len(timings) > 0:
+        task_time_local = sum(timings)
+    else:
+        task_time_local = 0.0
+    setup_time_total = comm_world.allreduce(setup_time_local)
+    setup_time_fraction = setup_time_total / (comm_world_size * (t1 - t0))
+    task_time_total = comm_world.allreduce(task_time_local)
+    task_time_fraction = task_time_total / (comm_world_size * (t1 - t0))
+    combine_time_total = comm_world.allreduce(combine_time_local)
+    combine_time_fraction = combine_time_total / (comm_world_size * (t1 - t0))
+
     if comm_world_rank == 0:
+        print(
+            "Fraction of time spent setting up = %.2f"
+            % setup_time_fraction
+        )
         print(
             "Fraction of time spent calculating halo properties = %.2f"
             % task_time_fraction
+        )
+        print(
+            "Fraction of time spent combining chunks = %.2f"
+            % combine_time_fraction
         )
         print("Total elapsed time: %.1f seconds" % (t1 - t0))
         print("Done.")

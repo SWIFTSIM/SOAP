@@ -9,6 +9,7 @@ from dataset_names import mass_dataset, ptypes_for_so_masses
 from halo_properties import SearchRadiusTooSmallError
 import shared_array
 from property_table import PropertyTable
+import memory_use
 
 
 # Factor by which to increase search radius when looking for density threshold
@@ -318,6 +319,7 @@ def process_halos(
     # Start the clock
     comm.barrier()
     t0_all = time.time()
+    min_free_mem_gb = float('inf')
 
     # Count halos to do
     nr_halos_left = comm.allreduce(np.sum(halo_arrays["done"].local.value == 0))
@@ -328,6 +330,13 @@ def process_halos(
     nr_halos_this_rank_guess = int(nr_halos_left / comm.Get_size() * 1.5)
     task_time = 0.0
     while True:
+
+        # Check memory usage
+        if comm.Get_rank() == 0:
+            _, free_mem_gb = memory_use.get_memory_use()
+            if free_mem_gb is not None:
+                min_free_mem_gb = min(min_free_mem_gb, free_mem_gb)
+
 
         # Get a task by atomic incrementing the counter. Don't know how to do
         # an atomic fetch and add in python, so will use MPI RMA calls!
@@ -403,4 +412,4 @@ def process_halos(
     comm.barrier()
     t1_all = time.time()
 
-    return t1_all - t0_all, task_time, nr_halos_left, comm.allreduce(nr_done_this_rank)
+    return t1_all - t0_all, task_time, nr_halos_left, comm.allreduce(nr_done_this_rank), min_free_mem_gb
