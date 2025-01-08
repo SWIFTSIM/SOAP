@@ -220,7 +220,6 @@ ApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    SpinParameter: true
     TotalInertiaTensor: false
     GasInertiaTensor: false
     DarkMatterInertiaTensor: false
@@ -289,48 +288,30 @@ ApertureProperties:
     exclusive_100_kpc:
       inclusive: false
       radius_in_kpc: 100.0
-    #exclusive_300kpc:
-      #inclusive: false
-      #radius_in_kpc: 300.0
-      #filter: general
-    #exclusive_1000_kpc:
-      #inclusive: false
-      #radius_in_kpc: 1000.0
-      #filter: general
-    #exclusive_3000kpc:
-      #inclusive: false
-      #radius_in_kpc: 3000.0
-      #filter: general
     inclusive_1_kpc:
       inclusive: true
       radius_in_kpc: 1.0
+      skip_gt_enclose_radius: true
     inclusive_3_kpc:
       inclusive: true
       radius_in_kpc: 3.0
+      skip_gt_enclose_radius: true
     inclusive_10_kpc:
       inclusive: true
       radius_in_kpc: 10.0
+      skip_gt_enclose_radius: true
     inclusive_30_kpc:
       inclusive: true
       radius_in_kpc: 30.0
+      skip_gt_enclose_radius: true
     inclusive_50_kpc:
       inclusive: true
       radius_in_kpc: 50.0
+      skip_gt_enclose_radius: true
     inclusive_100_kpc:
       inclusive: true
       radius_in_kpc: 100.0
-    #inclusive_300kpc:
-      #inclusive: true
-      #radius_in_kpc: 300.0
-      #filter: general
-    #inclusive_1000_kpc:
-      #inclusive: true
-      #radius_in_kpc: 1000.0
-      #filter: general
-    #inclusive_3000kpc:
-      #inclusive: true
-      #radius_in_kpc: 3000.0
-      #filter: general
+      skip_gt_enclose_radius: true
 ProjectedApertureProperties:
   properties:
     AtomicHydrogenMass:
@@ -776,6 +757,7 @@ defined_constants:
 calculations:
   min_read_radius_cmpc: 0.5
   calculate_missing_properties: true
+  stict_halo_copy: false
   recently_heated_gas_filter:
     delta_time_myr: 15
     use_AGN_delta_T: false

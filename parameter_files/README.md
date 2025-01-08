@@ -55,7 +55,7 @@ Settings for writing the output SOAP catalogues properties, and for handling tem
 Define which fixed spherical apertures to compute, and what properties to compute within them.
 
 - **properties**: A list of properties to compute. Each property can be passed a boolean, which simply flags whether to enable or disable calculation. Alternatively a dictionary can be passed with two entries: `snapshot` and `snipshot`. In this case the behaviour will be determined based on whether the `--snipshot` flag is passed when running SOAP.
-- **variations**: A list of which apertures to compute. Each aperture must have a name, a boolean key `inclusive` to indicate whether to include unbound particles, and a key `radius_in_kpc` to indicate the **physical size** of the aperture. Each aperture can optionally be passed the `filter` key. If the filter key is set then the aperture will only be computed for subhalos that fulfill the filter criteria. If no `filter` key is passed then the aperture will be computed for all halos.
+- **variations**: A list of which apertures to compute. Each aperture must have a name, a boolean key `inclusive` to indicate whether to include unbound particles, and a key `radius_in_kpc` to indicate the **physical size** of the aperture. Each aperture can optionally be passed the `filter` key. If the filter key is set then the aperture will only be computed for subhalos that fulfill the filter criteria. If no `filter` key is passed then the aperture will be computed for all halos. For inclusive apertures the boolean flag `skip_gt_enclose_radius` can be set (defaults to False). If it is set then properties will not be calculated for any halos where all bound particles are within the aperture radius.
 
 An example is as follows
 ```
@@ -73,6 +73,7 @@ ApertureProperties:
       inclusive: true
       radius_in_kpc: 50.0
       filter: general
+      skip_gt_enclose_radius: false
 ```
 
 ### ProjectedApertureProperties
@@ -183,7 +184,7 @@ defined_constants:
 Contains information about how to run SOAP
 
 - **min_read_radius_cmpc**: SOAP makes an initial guess of the radius around each halo to read in. 
-- **calculate_missing_properties**: Boolen value. If set to true then SOAP will calculate any properties which are not listed in the parameter file. If set to false then SOAP will ignore these properties 
+- **calculate_missing_properties**: Optional, default True. If set to true then SOAP will calculate any properties which are not listed in the parameter file. If set to false then SOAP will ignore these properties 
 - **reduced_snapshots**: Optional. We create reduced snapshots where we keep the particles within the virial radius of certain objects. The values here determine which halos to keep.
   - **min_halo_mass**: The minimumum M200 halo mass to keep
   - **halo_bin_size_dex**: The size of the halo mass bins
@@ -194,3 +195,4 @@ Contains information about how to run SOAP
 - **cold_dense_gas_filter**: Optional. How to determine which gas particles count as being cold & dense
   - **maximum_temperature_K**: Value above which gas is not considered to be cold
   - **minimum_hydrogen_number_density_cm3**: Value below which gas gas is not considered to be dense
+- **strict_halo_copy**: Optional, default False. When a halo has multiple ExclusiveSphere/ProjectedAperture halo types which encompass all the bound particles then we just copy across the values rather than recomputing them. There are a small number of properties for which this is not correct. If this flag is set then these properties are set to zero for the larger apertures instead of being copied across.

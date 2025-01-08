@@ -80,7 +80,6 @@ ApertureProperties:
     NumberOfDarkMatterParticles: basic
     NumberOfGasParticles: basic
     NumberOfStarParticles: basic
-    SpinParameter: general
     StarFormationRate: basic
     StarFormingGasMass: general
     StarFormingGasMassFractionInIron: general

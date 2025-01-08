@@ -338,8 +338,30 @@ def compute_halo_properties():
             "exclusive_3000_kpc": {"radius_in_kpc": 3000.0, "inclusive": False},
         },
     )
+
+    # Sort the aperture variations based on their radii, and create a list
+    # of all apertures. This is required since we can skip some of the larger
+    # apertures if all the particles were already included in the previous aperture
+    aperture_variations = dict(sorted(aperture_variations.items(), key=lambda x: x[1]['radius_in_kpc']))
+    inclusive_radii_kpc = []
+    exclusive_radii_kpc = []
     for variation in aperture_variations:
         if aperture_variations[variation]["inclusive"]:
+            inclusive_radii_kpc.append(aperture_variations[variation]["radius_in_kpc"])
+        else:
+            exclusive_radii_kpc.append(aperture_variations[variation]["radius_in_kpc"])
+    assert inclusive_radii_kpc == sorted(inclusive_radii_kpc)
+    assert exclusive_radii_kpc == sorted(exclusive_radii_kpc)
+
+    for variation in aperture_variations:
+        if aperture_variations[variation]["inclusive"]:
+            # If skip_gt_enclose_radius is False (which is the default) then
+            # we always want to calculate its properties, regardless of the
+            # size of the next smallest aperture.
+            radii_kpc = [aperture_variations[variation]["radius_in_kpc"]]
+            if aperture_variations[variation].get('skip_gt_enclose_radius', False):
+                radii_kpc = inclusive_radii_kpc
+
             halo_prop_list.append(
                 aperture_properties.InclusiveSphereProperties(
                     cellgrid,
@@ -350,6 +372,7 @@ def compute_halo_properties():
                     cold_dense_gas_filter,
                     category_filter,
                     aperture_variations[variation].get("filter", "basic"),
+                    radii_kpc
                 )
             )
         else:
@@ -363,8 +386,10 @@ def compute_halo_properties():
                     cold_dense_gas_filter,
                     category_filter,
                     aperture_variations[variation].get("filter", "basic"),
+                    exclusive_radii_kpc
                 )
             )
+
     projected_aperture_variations = parameter_file.get_halo_type_variations(
         "ProjectedApertureProperties",
         {
@@ -374,6 +399,14 @@ def compute_halo_properties():
             "100_kpc": {"radius_in_kpc": 100.0},
         },
     )
+    # Sort the aperture variations based on their radii, and create a list
+    # of all apertures. This is required since we can skip some of the larger
+    # apertures if all the particles were already included in the previous aperture
+    projected_aperture_variations = dict(sorted(projected_aperture_variations.items(), key=lambda x: x[1]['radius_in_kpc']))
+    projected_radii_kpc = []
+    for variation in projected_aperture_variations:
+        projected_radii_kpc.append(projected_aperture_variations[variation]["radius_in_kpc"])
+    assert projected_radii_kpc == sorted(projected_radii_kpc)
     for variation in projected_aperture_variations:
         halo_prop_list.append(
             projected_aperture_properties.ProjectedApertureProperties(
@@ -382,6 +415,7 @@ def compute_halo_properties():
                 projected_aperture_variations[variation]["radius_in_kpc"],
                 category_filter,
                 projected_aperture_variations[variation].get("filter", "basic"),
+                projected_radii_kpc,
             )
         )
 
@@ -457,7 +491,7 @@ def compute_halo_properties():
     comm_world.barrier()
 
     # Report initial set-up time
-    comm_world.barrier()
+    setup_time_local = time.time() - t0
     t1 = time.time()
     if comm_world_rank == 0:
         print(

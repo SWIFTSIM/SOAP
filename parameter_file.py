@@ -305,3 +305,11 @@ class ParameterFile:
         """
         calculations = self.parameters.get("calculations", {})
         return calculations.get("calculate_missing_properties", True)
+
+    def strict_halo_copy(self) -> bool:
+        """
+        Returns a bool indicating if approximate properties should be copied
+        over from small ExclusiveSphere/ProjectedApertures. Defaults to false
+        """
+        calculations = self.parameters.get("calculations", {})
+        return calculations.get("strict_halo_copy", False)

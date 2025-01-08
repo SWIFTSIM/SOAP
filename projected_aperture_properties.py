@@ -1409,84 +1409,85 @@ class ProjectedApertureProperties(HaloProperty):
     the halo along the projection axis.
     """
 
-    """
-    List of properties from the table that we want to compute.
-    Each property should have a corresponding method/property/lazy_property in
-    the SingleProjectionProjectedApertureParticleData class above.
-    """
+    # Properties to calculate. The key is the name of the property,
+    # the value indicates the property has a direct dependence on aperture size.
+    # This is needed since for larger apertures we sometimes copy across the
+    # values computed by the previous aperture (if the number of particles was
+    # the same for both apertures), but we can't do this for all properties
+    property_names = {
+        "Mtot": False,
+        "Mgas": False,
+        "Mdm": False,
+        "Mstar": False,
+        "Mstar_init": False,
+        "Mbh_dynamical": False,
+        "Mbh_subgrid": False,
+        "Ngas": False,
+        "Ndm": False,
+        "Nstar": False,
+        "Nbh": False,
+        "com": False,
+        "vcom": False,
+        "SFR": False,
+        "AveragedStarFormationRate": False,
+        "StellarLuminosity": False,
+        "HalfMassRadiusGas": False,
+        "HalfMassRadiusDM": False,
+        "HalfMassRadiusStar": False,
+        "HalfMassRadiusBaryon": False,
+        "proj_veldisp_gas": False,
+        "proj_veldisp_dm": False,
+        "proj_veldisp_star": False,
+        "BHmaxAR": False,
+        "BHmaxM": False,
+        "BHmaxID": False,
+        "BHmaxpos": False,
+        "BHmaxvel": False,
+        "BHlasteventa": False,
+        "BHmaxlasteventa": False,
+        "BlackHolesTotalInjectedThermalEnergy": False,
+        "BlackHolesTotalInjectedJetEnergy": False,
+        "MostMassiveBlackHoleAveragedAccretionRate": False,
+        "MostMassiveBlackHoleNumberOfAGNEvents": False,
+        "MostMassiveBlackHoleAccretionMode": False,
+        "MostMassiveBlackHoleGWMassLoss": False,
+        "MostMassiveBlackHoleInjectedJetEnergyByMode": False,
+        "MostMassiveBlackHoleLastJetEventScalefactor": False,
+        "MostMassiveBlackHoleNumberOfAGNJetEvents": False,
+        "MostMassiveBlackHoleNumberOfMergers": False,
+        "MostMassiveBlackHoleRadiatedEnergyByMode": False,
+        "MostMassiveBlackHoleTotalAccretedMassesByMode": False,
+        "MostMassiveBlackHoleWindEnergyByMode": False,
+        "MostMassiveBlackHoleInjectedThermalEnergy": False,
+        "MostMassiveBlackHoleSpin": False,
+        "MostMassiveBlackHoleTotalAccretedMass": False,
+        "MostMassiveBlackHoleFormationScalefactor": False,
+        "ProjectedTotalInertiaTensor": True,
+        "ProjectedGasInertiaTensor": True,
+        "ProjectedStellarInertiaTensor": True,
+        "ProjectedTotalInertiaTensorReduced": True,
+        "ProjectedGasInertiaTensorReduced": True,
+        "ProjectedStellarInertiaTensorReduced": True,
+        "ProjectedTotalInertiaTensorNoniterative": False,
+        "ProjectedGasInertiaTensorNoniterative": False,
+        "ProjectedStellarInertiaTensorNoniterative": False,
+        "ProjectedTotalInertiaTensorReducedNoniterative": False,
+        "ProjectedGasInertiaTensorReducedNoniterative": False,
+        "ProjectedStellarInertiaTensorReducedNoniterative": False,
+        "HydrogenMass": False,
+        "HeliumMass": False,
+        "MolecularHydrogenMass": False,
+        "AtomicHydrogenMass": False,
+        "starFefrac": False,
+        "starMgfrac": False,
+        "starOfrac": False,
+        "starmetalfrac": False,
+        "gasmetalfrac": False,
+        "gasmetalfrac_SF": False,
+    }
     property_list = {
         name: PropertyTable.full_property_list[name]
-        for name in [
-            "Mtot",
-            "Mgas",
-            "Mdm",
-            "Mstar",
-            "Mstar_init",
-            "Mbh_dynamical",
-            "Mbh_subgrid",
-            "Ngas",
-            "Ndm",
-            "Nstar",
-            "Nbh",
-            "com",
-            "vcom",
-            "SFR",
-            "AveragedStarFormationRate",
-            "StellarLuminosity",
-            "HalfMassRadiusGas",
-            "HalfMassRadiusDM",
-            "HalfMassRadiusStar",
-            "HalfMassRadiusBaryon",
-            "proj_veldisp_gas",
-            "proj_veldisp_dm",
-            "proj_veldisp_star",
-            "BHmaxAR",
-            "BHmaxM",
-            "BHmaxID",
-            "BHmaxpos",
-            "BHmaxvel",
-            "BHlasteventa",
-            "BHmaxlasteventa",
-            "BlackHolesTotalInjectedThermalEnergy",
-            "BlackHolesTotalInjectedJetEnergy",
-            "MostMassiveBlackHoleAveragedAccretionRate",
-            "MostMassiveBlackHoleNumberOfAGNEvents",
-            "MostMassiveBlackHoleAccretionMode",
-            "MostMassiveBlackHoleGWMassLoss",
-            "MostMassiveBlackHoleInjectedJetEnergyByMode",
-            "MostMassiveBlackHoleLastJetEventScalefactor",
-            "MostMassiveBlackHoleNumberOfAGNJetEvents",
-            "MostMassiveBlackHoleNumberOfMergers",
-            "MostMassiveBlackHoleRadiatedEnergyByMode",
-            "MostMassiveBlackHoleTotalAccretedMassesByMode",
-            "MostMassiveBlackHoleWindEnergyByMode",
-            "MostMassiveBlackHoleInjectedThermalEnergy",
-            "MostMassiveBlackHoleSpin",
-            "MostMassiveBlackHoleTotalAccretedMass",
-            "MostMassiveBlackHoleFormationScalefactor",
-            "ProjectedTotalInertiaTensor",
-            "ProjectedGasInertiaTensor",
-            "ProjectedStellarInertiaTensor",
-            "ProjectedTotalInertiaTensorReduced",
-            "ProjectedGasInertiaTensorReduced",
-            "ProjectedStellarInertiaTensorReduced",
-            "ProjectedTotalInertiaTensorNoniterative",
-            "ProjectedGasInertiaTensorNoniterative",
-            "ProjectedStellarInertiaTensorNoniterative",
-            "ProjectedTotalInertiaTensorReducedNoniterative",
-            "ProjectedGasInertiaTensorReducedNoniterative",
-            "ProjectedStellarInertiaTensorReducedNoniterative",
-            "HydrogenMass",
-            "HeliumMass",
-            "MolecularHydrogenMass",
-            "AtomicHydrogenMass",
-            "starFefrac",
-            "starMgfrac",
-            "starOfrac",
-            "starmetalfrac",
-            "gasmetalfrac",
-            "gasmetalfrac_SF",
-        ]
+        for name in property_names
     }
 
     def __init__(
@@ -1496,6 +1497,7 @@ class ProjectedApertureProperties(HaloProperty):
         physical_radius_kpc: float,
         category_filter: CategoryFilter,
         halo_filter: str,
+        all_radii_kpc: list,
     ):
         """
         Construct an ProjectedApertureProperties object with the given physical
@@ -1518,6 +1520,9 @@ class ProjectedApertureProperties(HaloProperty):
          - halo_filter: str
            The filter to apply to this halo type. Halos which do not fulfil the
            filter requirements will be skipped.
+         - all_radii_kpc: list
+           A list of all the radii for which we compute a ProjectedAperture. This
+           can allow us to skip the property calculation for larger apertures
         """
         super().__init__(cellgrid)
 
@@ -1532,6 +1537,8 @@ class ProjectedApertureProperties(HaloProperty):
         self.snapshot_datasets = cellgrid.snapshot_datasets
         self.halo_filter = halo_filter
         self.record_timings = parameters.record_property_timings
+        self.all_radii_kpc = all_radii_kpc
+        self.strict_halo_copy = parameters.strict_halo_copy()
 
         self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
         self.group_name = f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc"
@@ -1597,6 +1604,16 @@ class ProjectedApertureProperties(HaloProperty):
         projected_aperture = {}
         timings = {}
 
+        skip_gt_enclose_radius = False
+        # Determine if the previous aperture already enclosed
+        # all the bound particles of the subhalo
+        r_enclose = halo_result['BoundSubhalo/EncloseRadius'][0]
+        i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
+        if i_radius != 0:
+            r_previous_kpc = self.all_radii_kpc[i_radius - 1]
+            if r_previous_kpc * unyt.kpc > r_enclose:
+                skip_gt_enclose_radius = True
+
         # loop over the different projections
         for projname in ["projx", "projy", "projz"]:
             projected_aperture[projname] = {}
@@ -1613,6 +1630,7 @@ class ProjectedApertureProperties(HaloProperty):
                 # Skip non-DMO properties when in DMO run mode
                 if self.category_filter.dmo and not prop.dmo_property:
                     continue
+
                 shape = prop.shape
                 dtype = prop.dtype
                 unit = unyt.Unit(prop.unit, registry=registry)
@@ -1628,8 +1646,18 @@ class ProjectedApertureProperties(HaloProperty):
                     val, dtype=dtype, units=unit, registry=registry
                 )
 
-        # Determine whether to skip halo
-        if do_calculation[self.halo_filter]:
+                if skip_gt_enclose_radius:
+                    prev_group_name = f"ProjectedAperture/{r_previous_kpc:.0f}kpc"
+                    prev_prop = f"{prev_group_name}/{projname}/{outputname}"
+                    # Skip if this property has a direct dependence on
+                    # aperture size (and so would have a different value)
+                    if self.strict_halo_copy and self.property_names[name]:
+                        continue
+                    projected_aperture[projname][name] = halo_result[prev_prop][0]
+
+        # Determine whether to skip this halo (because of the filter or because we
+        # have copied over the values from the previous aperture)
+        if do_calculation[self.halo_filter] and (not skip_gt_enclose_radius):
             # For projected apertures we are only using bound particles
             # Therefore we don't need to check if the serach_radius is large enough,
             # because all particles will have been loaded

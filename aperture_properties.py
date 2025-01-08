@@ -1074,26 +1074,6 @@ class ApertureParticleData:
         return (self.mass_fraction[:, None] * self.velocity).sum(axis=0)
 
     @lazy_property
-    def spin_parameter(self) -> unyt.unyt_quantity:
-        """
-        Spin parameter of all particles in the aperture.
-
-        Computed as in Bullock et al. (2021):
-          lambda = |Ltot| / (sqrt(2) * M * v_max * R)
-        """
-        if self.Mtot == 0:
-            return None
-        soft_r = np.maximum(self.softening, self.radius)
-        _, vmax_soft = get_vmax(self.mass, soft_r)
-        if vmax_soft > 0:
-            vrel = self.velocity - self.vcom[None, :]
-            Ltot = np.linalg.norm(
-                (self.mass[:, None] * np.cross(self.position, vrel)).sum(axis=0)
-            )
-            return Ltot / (np.sqrt(2.0) * self.Mtot * self.aperture_radius * vmax_soft)
-        return None
-
-    @lazy_property
     def gas_mass_fraction(self) -> unyt.unyt_array:
         """
         Fractional mass of gas particles. See the documentation of star_mass_fraction
@@ -3018,141 +2998,142 @@ class ApertureProperties(HaloProperty):
     are bound to the halo.
     """
 
-    """
-    List of properties from the table that we want to compute.
-    Each property should have a corresponding method/property/lazy_property in
-    the ApertureParticleData class above.
-    """
+    # Properties to calculate for ApertureProperties. Key is the name of the property.
+    # The value indicates the property has a direct dependence on aperture size.
+    # This is needed since for larger apertures we sometimes copy across the
+    # values computed by the previous aperture (if the number of particles was
+    # the same for both apertures), but we can't do this for all properties
+    property_names = {
+            "Mtot": False,
+            "Mgas": False,
+            "Mdm": False,
+            "Mstar": False,
+            "Mstar_init": False,
+            "Mbh_dynamical": False,
+            "Mbh_subgrid": False,
+            "Ngas": False,
+            "Ndm": False,
+            "Nstar": False,
+            "Nbh": False,
+            "BHlasteventa": False,
+            "BHmaxM": False,
+            "BHmaxID": False,
+            "BHmaxpos": False,
+            "BHmaxvel": False,
+            "BHmaxAR": False,
+            "BHmaxlasteventa": False,
+            "BlackHolesTotalInjectedThermalEnergy": False,
+            "BlackHolesTotalInjectedJetEnergy": False,
+            "MostMassiveBlackHoleAveragedAccretionRate": False,
+            "MostMassiveBlackHoleInjectedThermalEnergy": False,
+            "MostMassiveBlackHoleNumberOfAGNEvents": False,
+            "MostMassiveBlackHoleAccretionMode": False,
+            "MostMassiveBlackHoleGWMassLoss": False,
+            "MostMassiveBlackHoleInjectedJetEnergyByMode": False,
+            "MostMassiveBlackHoleLastJetEventScalefactor": False,
+            "MostMassiveBlackHoleNumberOfAGNJetEvents": False,
+            "MostMassiveBlackHoleNumberOfMergers": False,
+            "MostMassiveBlackHoleRadiatedEnergyByMode": False,
+            "MostMassiveBlackHoleTotalAccretedMassesByMode": False,
+            "MostMassiveBlackHoleWindEnergyByMode": False,
+            "MostMassiveBlackHoleSpin": False,
+            "MostMassiveBlackHoleTotalAccretedMass": False,
+            "MostMassiveBlackHoleFormationScalefactor": False,
+            "com": False,
+            "com_star": False,
+            "vcom": False,
+            "vcom_star": False,
+            "Lgas": False,
+            "Ldm": False,
+            "Lstar": False,
+            "kappa_corot_gas": False,
+            "kappa_corot_star": False,
+            "Lbaryons": False,
+            "kappa_corot_baryons": False,
+            "veldisp_matrix_gas": False,
+            "veldisp_matrix_dm": False,
+            "veldisp_matrix_star": False,
+            "Ekin_gas": False,
+            "Ekin_star": False,
+            "Mgas_SF": False,
+            "gasmetalfrac": False,
+            "gasmetalfrac_SF": False,
+            "gasOfrac": False,
+            "gasOfrac_SF": False,
+            "gasFefrac": False,
+            "gasFefrac_SF": False,
+            "Tgas": False,
+            "Tgas_no_agn": False,
+            "SFR": False,
+            "AveragedStarFormationRate": False,
+            "StellarLuminosity": False,
+            "starmetalfrac": False,
+            "HalfMassRadiusGas": False,
+            "HalfMassRadiusDM": False,
+            "HalfMassRadiusStar": False,
+            "HalfMassRadiusBaryon": False,
+            "DtoTgas": False,
+            "DtoTstar": False,
+            "starOfrac": False,
+            "starFefrac": False,
+            "stellar_age_mw": False,
+            "stellar_age_lw": False,
+            "TotalSNIaRate": False,
+            "HydrogenMass": False,
+            "HeliumMass": False,
+            "MolecularHydrogenMass": False,
+            "AtomicHydrogenMass": False,
+            "starMgfrac": False,
+            "DustGraphiteMass": False,
+            "DustGraphiteMassInAtomicGas": False,
+            "DustGraphiteMassInMolecularGas": False,
+            "DustGraphiteMassInColdDenseGas": False,
+            "DustLargeGrainMass": False,
+            "DustLargeGrainMassInMolecularGas": False,
+            "DustLargeGrainMassInColdDenseGas": False,
+            "DustSilicatesMass": False,
+            "DustSilicatesMassInAtomicGas": False,
+            "DustSilicatesMassInMolecularGas": False,
+            "DustSilicatesMassInColdDenseGas": False,
+            "DustSmallGrainMass": False,
+            "DustSmallGrainMassInMolecularGas": False,
+            "DustSmallGrainMassInColdDenseGas": False,
+            "GasMassInColdDenseGas": False,
+            "DiffuseCarbonMass": False,
+            "DiffuseOxygenMass": False,
+            "DiffuseMagnesiumMass": False,
+            "DiffuseSiliconMass": False,
+            "DiffuseIronMass": False,
+            "LinearMassWeightedOxygenOverHydrogenOfGas": False,
+            "LinearMassWeightedNitrogenOverOxygenOfGas": False,
+            "LinearMassWeightedCarbonOverOxygenOfGas": False,
+            "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas": False,
+            "LinearMassWeightedDiffuseNitrogenOverOxygenOfGas": False,
+            "LinearMassWeightedDiffuseCarbonOverOxygenOfGas": False,
+            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit": False,
+            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit": False,
+            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit": False,
+            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit": False,
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit": False,
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit": False,
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit": False,
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit": False,
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit": False,
+            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit": False,
+            "LinearMassWeightedMagnesiumOverHydrogenOfStars": False,
+            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit": False,
+            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit": False,
+            "LinearMassWeightedIronOverHydrogenOfStars": False,
+            "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit": False,
+            "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit": False,
+            "GasMassInColdDenseDiffuseMetals": False,
+            "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit": False,
+            "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": False,
+    }
+
     property_list = {
         name: PropertyTable.full_property_list[name]
-        for name in [
-            "Mtot",
-            "Mgas",
-            "Mdm",
-            "Mstar",
-            "Mstar_init",
-            "Mbh_dynamical",
-            "Mbh_subgrid",
-            "Ngas",
-            "Ndm",
-            "Nstar",
-            "Nbh",
-            "BHlasteventa",
-            "BHmaxM",
-            "BHmaxID",
-            "BHmaxpos",
-            "BHmaxvel",
-            "BHmaxAR",
-            "BHmaxlasteventa",
-            "BlackHolesTotalInjectedThermalEnergy",
-            "BlackHolesTotalInjectedJetEnergy",
-            "MostMassiveBlackHoleAveragedAccretionRate",
-            "MostMassiveBlackHoleInjectedThermalEnergy",
-            "MostMassiveBlackHoleNumberOfAGNEvents",
-            "MostMassiveBlackHoleAccretionMode",
-            "MostMassiveBlackHoleGWMassLoss",
-            "MostMassiveBlackHoleInjectedJetEnergyByMode",
-            "MostMassiveBlackHoleLastJetEventScalefactor",
-            "MostMassiveBlackHoleNumberOfAGNJetEvents",
-            "MostMassiveBlackHoleNumberOfMergers",
-            "MostMassiveBlackHoleRadiatedEnergyByMode",
-            "MostMassiveBlackHoleTotalAccretedMassesByMode",
-            "MostMassiveBlackHoleWindEnergyByMode",
-            "MostMassiveBlackHoleSpin",
-            "MostMassiveBlackHoleTotalAccretedMass",
-            "MostMassiveBlackHoleFormationScalefactor",
-            "com",
-            "com_star",
-            "vcom",
-            "vcom_star",
-            "Lgas",
-            "Ldm",
-            "Lstar",
-            "kappa_corot_gas",
-            "kappa_corot_star",
-            "Lbaryons",
-            "kappa_corot_baryons",
-            "veldisp_matrix_gas",
-            "veldisp_matrix_dm",
-            "veldisp_matrix_star",
-            "Ekin_gas",
-            "Ekin_star",
-            "Mgas_SF",
-            "gasmetalfrac",
-            "gasmetalfrac_SF",
-            "gasOfrac",
-            "gasOfrac_SF",
-            "gasFefrac",
-            "gasFefrac_SF",
-            "Tgas",
-            "Tgas_no_agn",
-            "SFR",
-            "AveragedStarFormationRate",
-            "StellarLuminosity",
-            "starmetalfrac",
-            "HalfMassRadiusGas",
-            "HalfMassRadiusDM",
-            "HalfMassRadiusStar",
-            "HalfMassRadiusBaryon",
-            "spin_parameter",
-            "DtoTgas",
-            "DtoTstar",
-            "starOfrac",
-            "starFefrac",
-            "stellar_age_mw",
-            "stellar_age_lw",
-            "TotalSNIaRate",
-            "HydrogenMass",
-            "HeliumMass",
-            "MolecularHydrogenMass",
-            "AtomicHydrogenMass",
-            "starMgfrac",
-            "DustGraphiteMass",
-            "DustGraphiteMassInAtomicGas",
-            "DustGraphiteMassInMolecularGas",
-            "DustGraphiteMassInColdDenseGas",
-            "DustLargeGrainMass",
-            "DustLargeGrainMassInMolecularGas",
-            "DustLargeGrainMassInColdDenseGas",
-            "DustSilicatesMass",
-            "DustSilicatesMassInAtomicGas",
-            "DustSilicatesMassInMolecularGas",
-            "DustSilicatesMassInColdDenseGas",
-            "DustSmallGrainMass",
-            "DustSmallGrainMassInMolecularGas",
-            "DustSmallGrainMassInColdDenseGas",
-            "GasMassInColdDenseGas",
-            "DiffuseCarbonMass",
-            "DiffuseOxygenMass",
-            "DiffuseMagnesiumMass",
-            "DiffuseSiliconMass",
-            "DiffuseIronMass",
-            "LinearMassWeightedOxygenOverHydrogenOfGas",
-            "LinearMassWeightedNitrogenOverOxygenOfGas",
-            "LinearMassWeightedCarbonOverOxygenOfGas",
-            "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas",
-            "LinearMassWeightedDiffuseNitrogenOverOxygenOfGas",
-            "LinearMassWeightedDiffuseCarbonOverOxygenOfGas",
-            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit",
-            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit",
-            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit",
-            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit",
-            "LinearMassWeightedMagnesiumOverHydrogenOfStars",
-            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit",
-            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit",
-            "LinearMassWeightedIronOverHydrogenOfStars",
-            "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit",
-            "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit",
-            "GasMassInColdDenseDiffuseMetals",
-            "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit",
-            "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
-        ]
+        for name in property_names
     }
 
     def __init__(
@@ -3165,7 +3146,8 @@ class ApertureProperties(HaloProperty):
         cold_dense_gas_filter: ColdDenseGasFilter,
         category_filter: CategoryFilter,
         halo_filter: str,
-        inclusive: bool = False,
+        inclusive: bool,
+        all_radii_kpc: list,
     ):
         """
         Construct an ApertureProperties object with the given physical
@@ -3198,8 +3180,11 @@ class ApertureProperties(HaloProperty):
            The filter to apply to this halo type. Halos which do not fulfil the
            filter requirements will be skipped.
          - inclusive: bool
-           Should properties include particles that are not gravitationally bound to the
-           subhalo?
+           Should properties include particles that are not gravitationally bound 
+           to the subhalo?
+         - all_radii_kpc: list
+           A list of all the radii for which we are computing an ApertureProperties.
+           This can allow us to skip property calculation for larger apertures
         """
 
         super().__init__(cellgrid)
@@ -3215,6 +3200,8 @@ class ApertureProperties(HaloProperty):
         self.snapshot_datasets = cellgrid.snapshot_datasets
         self.halo_filter = halo_filter
         self.record_timings = parameters.record_property_timings
+        self.all_radii_kpc = all_radii_kpc
+        self.strict_halo_copy = parameters.strict_halo_copy()
 
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.001 * physical_radius_kpc
@@ -3317,10 +3304,45 @@ class ApertureProperties(HaloProperty):
                 val, dtype=dtype, units=unit, registry=registry
             )
 
+
         do_calculation = self.category_filter.get_do_calculation(halo_result)
 
-        # Determine whether to skip this halo because of filter
-        if do_calculation[self.halo_filter]:
+        skip_gt_enclose_radius = False
+        # Determine if the previous aperture already enclosed all 
+        # the bound particles of the subhalo
+        r_enclose = halo_result['BoundSubhalo/EncloseRadius'][0]
+        i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
+        if i_radius != 0:
+            r_previous_kpc = self.all_radii_kpc[i_radius - 1]
+            if r_previous_kpc * unyt.kpc > r_enclose:
+                # Skip if inclusive, don't copy over any values. Note this is
+                # never hit if skip_gt_enclose_radius=False in the parameter
+                # file, since in that case all_radii_kpc is not passed
+                if self.inclusive:
+                    skip_gt_enclose_radius = True
+                else:
+                    skip_gt_enclose_radius = True
+                    # Skip if this halo has a filter
+                    if do_calculation[self.halo_filter]:
+                        prev_group_name = f"ExclusiveSphere/{r_previous_kpc:.0f}kpc"
+                        for name, prop in self.property_list.items():
+                            outputname = prop.name
+                            # Skip if this property is disabled in the parameter file
+                            if not self.property_filters[outputname]:
+                                continue
+                            # Skip non-DMO properties when in DMO run mode
+                            if self.category_filter.dmo and not prop.dmo_property:
+                                continue
+                            # Skip if this property has a direct dependence on aperture
+                            # size (and so would have a different value)
+                            if self.strict_halo_copy and self.property_names[name]:
+                                continue
+                            aperture_sphere[name] = halo_result[f'{prev_group_name}/{outputname}'][0]
+
+
+        # Determine whether to skip this halo (because of the filter or because we
+        # have copied over the values from the previous aperture)
+        if do_calculation[self.halo_filter] and (not skip_gt_enclose_radius):
             if search_radius < self.physical_radius_mpc * unyt.Mpc:
                 raise SearchRadiusTooSmallError(
                     "Search radius is smaller than aperture"
@@ -3443,6 +3465,7 @@ class ExclusiveSphereProperties(ApertureProperties):
         cold_dense_gas_filter: ColdDenseGasFilter,
         category_filter: CategoryFilter,
         halo_filter: str,
+        all_radii_kpc: list,
     ):
         """
         Construct an ExclusiveSphereProperties object with the given physical
@@ -3474,6 +3497,9 @@ class ExclusiveSphereProperties(ApertureProperties):
          - halo_filter: str
            The filter to apply to this halo type. Halos which do not fulfil the
            filter requirements will be skipped.
+         - all_radii_kpc: list
+           A list of all the radii for which we compute an ExclusiveSphere. This
+           can allow us to skip property calculation for larger apertures
         """
         super().__init__(
             cellgrid,
@@ -3485,6 +3511,7 @@ class ExclusiveSphereProperties(ApertureProperties):
             category_filter,
             halo_filter,
             False,
+            all_radii_kpc,
         )
 
 
@@ -3505,6 +3532,7 @@ class InclusiveSphereProperties(ApertureProperties):
         cold_dense_gas_filter: ColdDenseGasFilter,
         category_filter: CategoryFilter,
         halo_filter: str,
+        all_radii_kpc: list,
     ):
         """
         Construct an InclusiveSphereProperties object with the given physical
@@ -3536,6 +3564,9 @@ class InclusiveSphereProperties(ApertureProperties):
          - halo_filter: str
            The filter to apply to this halo type. Halos which do not fulfil the
            filter requirements will be skipped.
+         - all_radii_kpc: list
+           A list of all the radii for which we compute an InclusiveSphere. This
+           can allow us to skip property calculation for larger apertures
         """
         super().__init__(
             cellgrid,
@@ -3547,6 +3578,7 @@ class InclusiveSphereProperties(ApertureProperties):
             category_filter,
             halo_filter,
             True,
+            all_radii_kpc,
         )
 
 
