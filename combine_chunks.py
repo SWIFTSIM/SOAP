@@ -240,23 +240,22 @@ def combine_chunks(
                 if description == "No description available":
                     print(f"{name} not found in property table")
                     compression_metadata = {"Lossy compression filter": "None", "Is Compressed": False}
+                    mask_metadata = category_filter.get_filter_metadata(None)
                 elif description.startswith("Time taken in seconds") or name in ['InputHalos/n_loop', 'InputHalos/n_process']:
                     # Timing information
                     compression_metadata = {"Lossy compression filter": "None", "Is Compressed": False}
+                    mask_metadata = category_filter.get_filter_metadata(None)
                 else:
                     compression_metadata = category_filter.get_compression_metadata(name)
+                    mask_metadata = category_filter.get_filter_metadata_for_property(name)
 
                 shape = (total_nr_halos,) + size
                 dataset = outfile.create_dataset(
                     name, shape=shape, dtype=dtype, fillvalue=None
                 )
-                # Add units and description
                 attrs = swift_units.attributes_from_units(unit, physical, a_exponent)
                 attrs["Description"] = description
-                # TODO: Figure how to calculate mask_metadata
-                # Merge soap_rescue if I'm going to be adding filter_name to the metadata
-                # mask_metadata = category_filter.get_filter_metadata_for_property(name)
-                # attrs.update(mask_metadata)
+                attrs.update(mask_metadata)
                 attrs.update(compression_metadata)
                 for attr_name, attr_value in attrs.items():
                     dataset.attrs[attr_name] = attr_value

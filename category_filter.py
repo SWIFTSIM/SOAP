@@ -35,7 +35,7 @@ class CategoryFilter:
     and requires the calculation of BoundSubhalo for each halo.
     """
 
-    def __init__(self, filters: Dict, dmo: bool = False):
+    def __init__(self, filters: Dict, dmo: bool = False, parameters=None):
         """
         Construct the filter with the requested filter thresholds.
 
@@ -60,9 +60,20 @@ class CategoryFilter:
          - dmo: bool
            Whether or not SOAP is run in DMO mode, in which case only properties that
            are marked for DMO calculation are actually computed.
+         - parameters
+           SOAP parameter file object to obtain the filter for each property
         """
         self.filters = filters
         self.dmo = dmo
+
+        # Get filters for each (property, halo type) combination
+        if parameters is not None:
+            full_prop_list = [prop.name for _, prop in PropertyTable.full_property_list.items()]
+            self.property_filters = {}
+            for base_halo_type in ['Subhalo', 'ProjectedAperture', 'SO', 'Aperture']:
+                self.property_filters[f'{base_halo_type}Properties'] = parameters.get_property_filters(
+                    f'{base_halo_type}Properties', full_prop_list
+                )
 
     def get_do_calculation(
         self, halo_result: Dict, precomputed_properties: Dict = {}
@@ -138,18 +149,27 @@ class CategoryFilter:
 
         Parameters:
          - property_output_name: str
-           Name of a halo property as it appears in the output file.
+           Full path to halo property as it appears in the output file.
 
         Returns a dictionary with the same format as those output
         by get_filter_metadata
         """
-        base_output_name = property_output_name.split("/")[-1]
-        category = None
-        for _, prop in PropertyTable.full_property_list.items():
-            if prop[0] == base_output_name:
-                category = prop[5]
-        # category=None corresponds to quantities outside the table
-        # (e.g. "density_in_search_radius")
+        # Convert from output file group name to parameter file name
+        # Return None for groups (e.g. InputHalos) which are never masked
+        base_halo_type = {
+            'BoundSubhalo': 'SubhaloProperties',
+            'ProjectedAperture': 'ProjectedApertureProperties',
+            'SO': 'SOProperties',
+            'ExclusiveSphere': 'ApertureProperties',
+            'InclusiveSphere': 'ApertureProperties',
+        }.get(property_output_name.split('/')[0], None)
+
+        if base_halo_type is not None:
+            output_name = property_output_name.split("/")[-1]
+            category = self.property_filters[base_halo_type][output_name]
+        else:
+            category = None
+
         return self.get_filter_metadata(category)
 
     def get_filter_metadata(self, category: str) -> Dict:

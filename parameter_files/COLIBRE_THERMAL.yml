@@ -31,10 +31,10 @@ HaloProperties:
 
 ApertureProperties:
   properties:
-    AngularMomentumBaryons: true
-    AngularMomentumDarkMatter: true
-    AngularMomentumGas: true
-    AngularMomentumStars: true
+    AngularMomentumBaryons: general
+    AngularMomentumDarkMatter: general
+    AngularMomentumGas: general
+    AngularMomentumStars: general
     AtomicHydrogenMass:
       snapshot: true
       snipshot: false
@@ -46,7 +46,7 @@ ApertureProperties:
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
-    DarkMatterVelocityDispersionMatrix: true
+    DarkMatterVelocityDispersionMatrix: general
     DiffuseCarbonMass:
       snapshot: true
       snipshot: false
@@ -62,8 +62,8 @@ ApertureProperties:
     DiffuseSiliconMass:
       snapshot: true
       snipshot: false
-    DiscToTotalGasMassFraction: true
-    DiscToTotalStellarMassFraction: true
+    DiscToTotalGasMassFraction: general
+    DiscToTotalStellarMassFraction: general
     DustGraphiteMass:
       snapshot: true
       snipshot: false
@@ -115,13 +115,12 @@ ApertureProperties:
       snapshot: true
       snipshot: false
     GasMassInColdDenseGas: true
-    GasMassInMetals: true
     GasTemperature: true
     GasTemperatureWithoutRecentAGNHeating: true
-    GasVelocityDispersionMatrix: true
-    HalfMassRadiusBaryons: true
-    HalfMassRadiusDarkMatter: true
-    HalfMassRadiusGas: true
+    GasVelocityDispersionMatrix: general
+    HalfMassRadiusBaryons: general
+    HalfMassRadiusDarkMatter: general
+    HalfMassRadiusGas: general
     HalfMassRadiusStars: true
     HeliumMass:
       snapshot: true
@@ -129,11 +128,11 @@ ApertureProperties:
     HydrogenMass:
       snapshot: true
       snipshot: false
-    KappaCorotBaryons: true
-    KappaCorotGas: true
-    KappaCorotStars: true
-    KineticEnergyGas: true
-    KineticEnergyStars: true
+    KappaCorotBaryons: general
+    KappaCorotGas: general
+    KappaCorotStars: general
+    KineticEnergyGas: general
+    KineticEnergyStars: general
     LinearMassWeightedDiffuseOxygenOverHydrogenOfGas:
       snapshot: true
       snipshot: false
@@ -220,7 +219,6 @@ ApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    SpinParameter: true
     TotalInertiaTensor: false
     GasInertiaTensor: false
     DarkMatterInertiaTensor: false
@@ -229,10 +227,10 @@ ApertureProperties:
     GasInertiaTensorReduced: false
     DarkMatterInertiaTensorReduced: false
     StellarInertiaTensorReduced: false
-    TotalInertiaTensorNoniterative: true
-    GasInertiaTensorNoniterative: true
-    DarkMatterInertiaTensorNoniterative: true
-    StellarInertiaTensorNoniterative: true
+    TotalInertiaTensorNoniterative: general
+    GasInertiaTensorNoniterative: general
+    DarkMatterInertiaTensorNoniterative: general
+    StellarInertiaTensorNoniterative: general
     TotalInertiaTensorReducedNoniterative: false
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
@@ -251,9 +249,6 @@ ApertureProperties:
     StarFormingGasMassFractionInOxygen:
       snapshot: true
       snipshot: false
-    StarFormingGasMassInMetals:
-      snapshot: true
-      snipshot: false
     StellarCentreOfMass: false
     StellarInitialMass: true
     StellarLuminosity: true
@@ -262,8 +257,7 @@ ApertureProperties:
     StellarMassFractionInMagnesium: true
     StellarMassFractionInMetals: true
     StellarMassFractionInOxygen: true
-    StellarMassInMetals: true
-    StellarVelocityDispersionMatrix: true
+    StellarVelocityDispersionMatrix: general
     TotalMass: true
     TotalSNIaRate: true
     GasMassInColdDenseDiffuseMetals:
@@ -289,48 +283,30 @@ ApertureProperties:
     exclusive_100_kpc:
       inclusive: false
       radius_in_kpc: 100.0
-    #exclusive_300kpc:
-      #inclusive: false
-      #radius_in_kpc: 300.0
-      #filter: general
-    #exclusive_1000_kpc:
-      #inclusive: false
-      #radius_in_kpc: 1000.0
-      #filter: general
-    #exclusive_3000kpc:
-      #inclusive: false
-      #radius_in_kpc: 3000.0
-      #filter: general
     inclusive_1_kpc:
       inclusive: true
       radius_in_kpc: 1.0
+      skip_gt_enclose_radius: true
     inclusive_3_kpc:
       inclusive: true
       radius_in_kpc: 3.0
+      skip_gt_enclose_radius: true
     inclusive_10_kpc:
       inclusive: true
       radius_in_kpc: 10.0
+      skip_gt_enclose_radius: true
     inclusive_30_kpc:
       inclusive: true
       radius_in_kpc: 30.0
+      skip_gt_enclose_radius: true
     inclusive_50_kpc:
       inclusive: true
       radius_in_kpc: 50.0
+      skip_gt_enclose_radius: true
     inclusive_100_kpc:
       inclusive: true
       radius_in_kpc: 100.0
-    #inclusive_300kpc:
-      #inclusive: true
-      #radius_in_kpc: 300.0
-      #filter: general
-    #inclusive_1000_kpc:
-      #inclusive: true
-      #radius_in_kpc: 1000.0
-      #filter: general
-    #inclusive_3000kpc:
-      #inclusive: true
-      #radius_in_kpc: 3000.0
-      #filter: general
+      skip_gt_enclose_radius: true
 ProjectedApertureProperties:
   properties:
     AtomicHydrogenMass:
@@ -344,13 +320,13 @@ ProjectedApertureProperties:
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
-    DarkMatterProjectedVelocityDispersion: true
+    DarkMatterProjectedVelocityDispersion: general
     GasMass: true
     GasMassFractionInMetals: true
-    GasProjectedVelocityDispersion: true
-    HalfMassRadiusBaryons: true
-    HalfMassRadiusDarkMatter: true
-    HalfMassRadiusGas: true
+    GasProjectedVelocityDispersion: general
+    HalfMassRadiusBaryons: general
+    HalfMassRadiusDarkMatter: general
+    HalfMassRadiusGas: general
     HalfMassRadiusStars: true
     HeliumMass:
       snapshot: true
@@ -388,15 +364,15 @@ ProjectedApertureProperties:
     NumberOfStarParticles: true
     ProjectedTotalInertiaTensor: false
     ProjectedTotalInertiaTensorReduced: false
-    ProjectedTotalInertiaTensorNoniterative: true
+    ProjectedTotalInertiaTensorNoniterative: general
     ProjectedTotalInertiaTensorReducedNoniterative: false
     ProjectedGasInertiaTensor: false
     ProjectedGasInertiaTensorReduced: false
-    ProjectedGasInertiaTensorNoniterative: true
+    ProjectedGasInertiaTensorNoniterative: general
     ProjectedGasInertiaTensorReducedNoniterative: false
     ProjectedStellarInertiaTensor: false
     ProjectedStellarInertiaTensorReduced: false
-    ProjectedStellarInertiaTensorNoniterative: true
+    ProjectedStellarInertiaTensorNoniterative: general
     ProjectedStellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
     AveragedStarFormationRate:
@@ -410,7 +386,7 @@ ProjectedApertureProperties:
     StellarMassFractionInMagnesium: true
     StellarMassFractionInMetals: true
     StellarMassFractionInOxygen: true
-    StellarProjectedVelocityDispersion: true
+    StellarProjectedVelocityDispersion: general
     TotalMass: true
   variations:
     1_kpc:
@@ -427,10 +403,10 @@ ProjectedApertureProperties:
       radius_in_kpc: 100.0
 SOProperties:
   properties:
-    AngularMomentumBaryons: true
-    AngularMomentumDarkMatter: true
-    AngularMomentumGas: true
-    AngularMomentumStars: true
+    AngularMomentumBaryons: general
+    AngularMomentumDarkMatter: general
+    AngularMomentumGas: general
+    AngularMomentumStars: general
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -446,11 +422,11 @@ SOProperties:
       snipshot: false
     Concentration: true
     ConcentrationUnsoftened: true
-    DarkMatterConcentration: true
-    DarkMatterConcentrationUnsoftened: true
+    DarkMatterConcentration: general
+    DarkMatterConcentrationUnsoftened: general
     DarkMatterMass: true
-    DiscToTotalGasMassFraction: true
-    DiscToTotalStellarMassFraction: true
+    DiscToTotalGasMassFraction: general
+    DiscToTotalStellarMassFraction: general
     DopplerB: false
     GasCentreOfMass: true
     GasCentreOfMassVelocity: true
@@ -462,7 +438,6 @@ SOProperties:
     GasMassFractionInOxygen:
       snapshot: true
       snipshot: false
-    GasMassInMetals: true
     GasComptonYTemperature: false
     GasComptonYTemperatureCoreExcision: false
     GasComptonYTemperatureWithoutRecentAGNHeating: false
@@ -476,8 +451,8 @@ SOProperties:
     GasTemperatureWithoutCoolGasCoreExcision: false
     GasTemperatureWithoutRecentAGNHeatingCoreExcision: false
     HotGasMass: true
-    KineticEnergyGas: true
-    KineticEnergyStars: true
+    KineticEnergyGas: general
+    KineticEnergyStars: general
     MassFractionSatellites: true
     MassFractionExternal: true
     MostMassiveBlackHoleAccretionRate: true
@@ -509,7 +484,7 @@ SOProperties:
     NumberOfStarParticles: true
     RawNeutrinoMass: false
     SORadius: true
-    SpinParameter: true
+    SpinParameter: general
     TotalInertiaTensor: false
     GasInertiaTensor: false
     DarkMatterInertiaTensor: false
@@ -518,10 +493,10 @@ SOProperties:
     GasInertiaTensorReduced: false
     DarkMatterInertiaTensorReduced: false
     StellarInertiaTensorReduced: false
-    TotalInertiaTensorNoniterative: true
-    GasInertiaTensorNoniterative: true
-    DarkMatterInertiaTensorNoniterative: true
-    StellarInertiaTensorNoniterative: true
+    TotalInertiaTensorNoniterative: general
+    GasInertiaTensorNoniterative: general
+    DarkMatterInertiaTensorNoniterative: general
+    StellarInertiaTensorNoniterative: general
     TotalInertiaTensorReducedNoniterative: false
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
@@ -540,7 +515,6 @@ SOProperties:
     StellarMassFractionInIron: true
     StellarMassFractionInMetals: true
     StellarMassFractionInOxygen: true
-    StellarMassInMetals: true
     ThermalEnergyGas: true
     TotalMass: true
     XRayLuminosity:
@@ -571,68 +545,47 @@ SOProperties:
     SpectroscopicLikeTemperatureCoreExcision: false
     SpectroscopicLikeTemperatureWithoutRecentAGNHeating: true
     SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: false
-    DarkMatterMassFlowRate: true
-    ColdGasMassFlowRate: true
-    CoolGasMassFlowRate: true
-    WarmGasMassFlowRate: true
-    HotGasMassFlowRate: true
+    DarkMatterMassFlowRate: general
+    ColdGasMassFlowRate: general
+    CoolGasMassFlowRate: general
+    WarmGasMassFlowRate: general
+    HotGasMassFlowRate: general
     HIMassFlowRate:
-      snapshot: true
+      snapshot: general
       snipshot: false
     H2MassFlowRate:
-      snapshot: true
+      snapshot: general
       snipshot: false
-    MetalMassFlowRate: true
-    StellarMassFlowRate: true
-    ColdGasEnergyFlowRate: true
-    CoolGasEnergyFlowRate: true
-    WarmGasEnergyFlowRate: true
-    HotGasEnergyFlowRate: true
-    ColdGasMomentumFlowRate: true
-    CoolGasMomentumFlowRate: true
-    WarmGasMomentumFlowRate: true
-    HotGasMomentumFlowRate: true
+    MetalMassFlowRate: general
+    StellarMassFlowRate: general
+    ColdGasEnergyFlowRate: general
+    CoolGasEnergyFlowRate: general
+    WarmGasEnergyFlowRate: general
+    HotGasEnergyFlowRate: general
+    ColdGasMomentumFlowRate: general
+    CoolGasMomentumFlowRate: general
+    WarmGasMomentumFlowRate: general
+    HotGasMomentumFlowRate: general
   variations:
     200_crit:
       type: crit
       value: 200.0
-    #50_crit:
-      #type: crit
-      #value: 50.0
-      #filter: general
-    #100_crit:
-      #type: crit
-      #value: 100.0
-      #filter: general
     200_mean:
       type: mean
       value: 200.0
     500_crit:
       type: crit
       value: 500.0
-    #5xR500_crit:
-      #type: crit
-      #value: 500.0
-      #radius_multiple: 5.0
-      #filter: general
-    #1000_crit:
-      #type: crit
-      #value: 1000.0
-      #filter: general
-    #2500_crit:
-      #type: crit
-      #value: 2500.0
-      #filter: general
     BN98:
       type: BN98
       value: 0.0
       filter: general
 SubhaloProperties:
   properties:
-    AngularMomentumBaryons: true
-    AngularMomentumDarkMatter: true
-    AngularMomentumGas: true
-    AngularMomentumStars: true
+    AngularMomentumBaryons: general
+    AngularMomentumDarkMatter: general
+    AngularMomentumGas: general
+    AngularMomentumStars: general
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -641,26 +594,25 @@ SubhaloProperties:
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
-    DarkMatterVelocityDispersionMatrix: true
-    DiscToTotalGasMassFraction: true
-    DiscToTotalStellarMassFraction: true
+    DarkMatterVelocityDispersionMatrix: general
+    DiscToTotalGasMassFraction: general
+    DiscToTotalStellarMassFraction: general
     GasMass: true
     GasMassFractionInMetals: true
-    GasMassInMetals: true
     GasTemperature: true
     GasTemperatureWithoutCoolGas: true
     GasTemperatureWithoutCoolGasAndRecentAGNHeating: true
     GasTemperatureWithoutRecentAGNHeating: true
-    GasVelocityDispersionMatrix: true
-    HalfMassRadiusBaryons: true
-    HalfMassRadiusDarkMatter: true
-    HalfMassRadiusGas: true
+    GasVelocityDispersionMatrix: general
+    HalfMassRadiusBaryons: general
+    HalfMassRadiusDarkMatter: general
+    HalfMassRadiusGas: general
     HalfMassRadiusStars: true
     HalfMassRadiusTotal: true
     EncloseRadius: true
-    KappaCorotBaryons: true
-    KappaCorotGas: true
-    KappaCorotStars: true
+    KappaCorotBaryons: general
+    KappaCorotGas: general
+    KappaCorotStars: general
     LastSupernovaEventMaximumGasDensity:
       snapshot: true
       snipshot: false
@@ -705,7 +657,7 @@ SubhaloProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    SpinParameter: true
+    SpinParameter: general
     TotalInertiaTensor: false
     GasInertiaTensor: false
     DarkMatterInertiaTensor: false
@@ -714,10 +666,10 @@ SubhaloProperties:
     GasInertiaTensorReduced: false
     DarkMatterInertiaTensorReduced: false
     StellarInertiaTensorReduced: false
-    TotalInertiaTensorNoniterative: true
-    GasInertiaTensorNoniterative: true
-    DarkMatterInertiaTensorNoniterative: true
-    StellarInertiaTensorNoniterative: true
+    TotalInertiaTensorNoniterative: general
+    GasInertiaTensorNoniterative: general
+    DarkMatterInertiaTensorNoniterative: general
+    StellarInertiaTensorNoniterative: general
     TotalInertiaTensorReducedNoniterative: false
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
@@ -732,17 +684,15 @@ SubhaloProperties:
     StellarLuminosity: true
     StellarMass: true
     StellarMassFractionInMetals: true
-    StellarMassInMetals: true
-    StellarVelocityDispersionMatrix: true
+    StellarVelocityDispersionMatrix: general
     TotalMass: true
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/MetalMassFractionsDiffuse: PartType0/MetalMassFractions
 filters:
-  # TODO: The current plan is to set these all to 100 for the production runs, but I don't want to break the pipeline
   general:
-    limit: 0
+    limit: 100
     properties:
       - BoundSubhalo/NumberOfGasParticles
       - BoundSubhalo/NumberOfDarkMatterParticles
@@ -776,6 +726,7 @@ defined_constants:
 calculations:
   min_read_radius_cmpc: 0.5
   calculate_missing_properties: true
+  stict_halo_copy: false
   recently_heated_gas_filter:
     delta_time_myr: 15
     use_AGN_delta_T: false

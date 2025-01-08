@@ -2098,8 +2098,7 @@ class SubhaloProperties(HaloProperty):
         for name, prop in self.property_list.items():
             outputname = prop.name
             # Skip if this property is disabled in the parameter file
-            filter_name = self.property_filters[outputname]
-            if not filter_name:
+            if not self.property_filters[outputname]:
                 continue
             # Skip non-DMO properties when in DMO run mode
             if self.category_filter.dmo and not prop.dmo_property:

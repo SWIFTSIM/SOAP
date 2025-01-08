@@ -223,8 +223,9 @@ def compute_halo_properties():
             "combine_properties": "sum",
         },
     }
+    filters = parameter_file.get_filters(default_filters)
     category_filter = CategoryFilter(
-        parameter_file.get_filters(default_filters), dmo=args.dmo
+        filters, dmo=args.dmo, parameters=parameter_file
     )
 
     # Get the full list of property calculations we can do

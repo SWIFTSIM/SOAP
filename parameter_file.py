@@ -79,22 +79,15 @@ class ParameterFile:
         with open(file_name, "w") as handle:
             yaml.safe_dump(self.parameters, handle)
 
-    def get_property_filters(self, halo_type: str, full_list: List[str]) -> Dict:
+    def get_property_filters(self, base_halo_type: str, full_list: List[str]) -> Dict:
         """
         Get a dictionary with the filter that should be applied to each
         property for the given halo type. If a property should be not be
         computed for this halo type then False is return. The dictionary
         keys are based on the contents of the given list of properties. 
 
-        If
-        a property in the list is missing from the parameter file, it is
-        assumed that this property needs to be calculated.
-
-        Note that we currently do not check for properties in the parameter
-        file that are not in the list.
-
         Parameters:
-         - halo_type: str
+         - base_halo_type: str
            Halo type identifier in the parameter file, can be one of
            ApertureProperties, ProjectedApertureProperties, SOProperties
            or SubhaloProperties.
@@ -103,25 +96,24 @@ class ParameterFile:
            particular halo type (as defined in the corresponding HaloProperty
            specialisation).
 
-        Returns a dictionary with st or False for each property in full_list.
-        # TODO: Finish writing
+        Returns a dictionary where the keys are each property in full_list. The
+        values are either False (if the property should not be calculated) or a
+        string (the name of the filter to apply to the property).
         """
-        # TODO: Can this happen? Surely we shouldn't create the object
-        # if it's not in the parameter file
-        if not halo_type in self.parameters:
-            self.parameters[halo_type] = {}
+        if not base_halo_type in self.parameters:
+            self.parameters[base_halo_type] = {}
         # Handle the case where no properties are listed for the halo type
-        if not "properties" in self.parameters[halo_type]:
-            self.parameters[halo_type]["properties"] = {}
+        if not "properties" in self.parameters[base_halo_type]:
+            self.parameters[base_halo_type]["properties"] = {}
             for property in full_list:
-                self.parameters[halo_type]["properties"][
+                self.parameters[base_halo_type]["properties"][
                     property
                 ] = self.calculate_missing_properties()
         filters = {}
         for property in full_list:
-            # Check if property is listed in the parameter file for this halo_type
-            if property in self.parameters[halo_type]["properties"]:
-                filter_name = self.parameters[halo_type]["properties"][property]
+            # Check if property is listed in the parameter file for this base_halo_type
+            if property in self.parameters[base_halo_type]["properties"]:
+                filter_name = self.parameters[base_halo_type]["properties"][property]
                 # filter_name will a dict if we want different behaviour 
                 # for snapshots/snipshots
                 if isinstance(filter_name, dict):
@@ -134,13 +126,13 @@ class ParameterFile:
                 if filter_name == True:
                     filter_name = 'basic'
                 filters[property] = filter_name
-            # Property is not listed in the parameter file for this halo_type
+            # Property is not listed in the parameter file for this base_halo_type
             else:
                 if self.calculate_missing_properties():
                     filters[property] = 'basic'
-                    self.parameters[halo_type]["properties"][property] = 'basic'
+                    self.parameters[base_halo_type]["properties"][property] = 'basic'
                     if self.unregistered_parameters is not None:
-                        self.unregistered_parameters.add((halo_type, property))
+                        self.unregistered_parameters.add((base_halo_type, property))
                 else:
                     filters[property] = False
             if isinstance(filters[property], str):
@@ -161,8 +153,8 @@ class ParameterFile:
             print(
                 "The following properties were not found in the parameter file, but will be calculated:"
             )
-            for halo_type, property in self.unregistered_parameters:
-                print(f"  {halo_type.ljust(30)}{property}")
+            for base_halo_type, property in self.unregistered_parameters:
+                print(f"  {base_halo_type.ljust(30)}{property}")
 
     def print_invalid_properties(self) -> None:
         """
@@ -188,7 +180,7 @@ class ParameterFile:
                 print(f"  {prop}")
 
     def get_halo_type_variations(
-        self, halo_type: str, default_variations: Dict
+        self, base_halo_type: str, default_variations: Dict
     ) -> Dict:
         """
         Get a dictionary of variations for the given halo type.
@@ -200,7 +192,7 @@ class ParameterFile:
         variations are specified, the default variations are used.
 
         Parameters:
-         - halo_type: str
+         - base_halo_type: str
            Halo type identifier in the parameter file, can be one of
            ApertureProperties, ProjectedApertureProperties, SOProperties
            or SubhaloProperties.
@@ -211,15 +203,15 @@ class ParameterFile:
         Returns a dictionary from which different versions of the
         corresponding HaloProperty specialisation can be constructed.
         """
-        if not halo_type in self.parameters:
-            self.parameters[halo_type] = {}
-        if not "variations" in self.parameters[halo_type]:
-            self.parameters[halo_type]["variations"] = {}
+        if not base_halo_type in self.parameters:
+            self.parameters[base_halo_type] = {}
+        if not "variations" in self.parameters[base_halo_type]:
+            self.parameters[base_halo_type]["variations"] = {}
             for variation in default_variations:
-                self.parameters[halo_type]["variations"][variation] = dict(
+                self.parameters[base_halo_type]["variations"][variation] = dict(
                     default_variations[variation]
                 )
-        return dict(self.parameters[halo_type]["variations"])
+        return dict(self.parameters[base_halo_type]["variations"])
 
     def get_particle_property(self, property_name: str) -> Tuple[str, str]:
         """
