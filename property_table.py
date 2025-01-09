@@ -16,26 +16,6 @@ documentation, you need to change the dictionary, so you will automatically
 change the code as well. If you remember to regenerate the documentation, the
 code will hence always be consistent with its documentation. The documentation
 includes a version string to help identify it.
-
-When a specific type of halo wants to implement a property, it should import the
-property table from this file and grab all of the information for the
-corresponding dictionary element, e.g. (taken from aperture_properties.py)
-
-    from property_table import PropertyTable
-    property_list = [
-        (prop, *PropertyTable.full_property_list[prop])
-        for prop in [
-            "Mtot",
-            "Mgas",
-            "Mdm",
-            "Mstar",
-        ]
-    ]
-
-The elements of each row are documented later in this file.
-
-Note that this file contains some code that helps to regenerate the dictionary
-itself. That is useful for adding additional rows to the table.
 """
 
 import numpy as np
@@ -95,6 +75,9 @@ def word_wrap_name(name):
 
 @dataclass
 class Property:
+    """
+    Dataclass which holds the definition of a property
+    """
     name: str
     shape: int
     dtype: np.dtype
@@ -111,11 +94,9 @@ class PropertyTable:
     """
     Auxiliary object to manipulate the property table.
 
-    You should only create a PropertyTable object if you actually want to use
-    it to generate an updated version of the internal property dictionary or
-    to generate the documentation. If you just want to grab the information for
-    a particular property from the table, you should directly access the
-    static table, e.g.
+    The PropertyTable object is only required to generate the documentation.
+    If you just want to grab the information for a particular property from 
+    the table, you should directly access the static table, e.g.
       Mstar_info = PropertyTable.full_property_list["Mstar"]
     """
 
@@ -312,7 +293,7 @@ class PropertyTable:
 
     # List of all properties that can be computed
     # The key for each property is the name that is used internally in SOAP
-    # For each property, we have the following columns:
+    # For each property, we have the following attributes:
     #  - name: Name of the property within the output file
     #  - shape: Shape of this property for a single halo (1: scalar,
     #      3: vector...)
@@ -325,16 +306,15 @@ class PropertyTable:
     #      to reduce the file size. Note that SOAP does not actually compress
     #      the output; this is done by a separate script. We support all lossy
     #      compression filters available in SWIFT.
-    #  - DMO property: Should this property be calculated for a DMO run?
-    #  - Particle properties: Particle fields that are required to compute this
-    #      property. Used to determine which particle fields to read for a
-    #      particular SOAP configuration (as defined in the parameter file).
-    #  - Output physical: Whether to output this value as physical or co-moving.
-    #  - a-scale exponent: What a-scale exponent to set for this property. If set
+    #  - dmo_property: Should this property be calculated for a DMO run?
+    #  - particle_properties: Particle fields that are required to compute this
+    #      property. Used to determine which particle fields to read in
+    #  - output_physical: Whether to output this value as physical or co-moving.
+    #  - a_scale_exponent: What a-scale exponent to set for this property. If set
     #      to None this marks that the property can not be converted to comoving
     #
     # Note that there is no good reason to have a diffent internal name and
-    # output name; this was mostly done for historical reasons. This means that
+    # output name; this was mostly done for historical reasons. It does mean that
     # you can easily change the name in the output without having to change all
     # of the other .py files that use this property.
     full_property_list = {
@@ -3513,12 +3493,15 @@ class PropertyTable:
         ),
     }
 
-    # TODO: Generating pdf of SOAP/InputHalos/HBT
-    # TODO: What if properties have a different filter for different halo types
-
-    # object member variables
-    properties: Dict[str, Dict]
-    footnotes: List[str]
+    def __init__(self, parameters, snipshot_parameters, units_cgs):
+        """
+        Constructor.
+        """
+        self.properties = {}
+        self.footnotes = []
+        self.parameters = parameters
+        self.snipshot_parameters = snipshot_parameters
+        self.units_cgs = units_cgs
 
     def get_footnotes(self, name: str):
         """
@@ -3541,141 +3524,97 @@ class PropertyTable:
         else:
             return ""
 
-    def __init__(self, parameters, snipshot_parameters):
-        """
-        Constructor.
-        """
-        self.properties = {}
-        self.footnotes = []
-        self.parameters = parameters
-        self.snipshot_parameters = snipshot_parameters
-
     def add_properties(self, halo_property: HaloProperty, halo_type: str):
         """
         Add all the properties calculated for a particular halo type to the
         internal dictionary.
         """
-        # Get the property_mask dict, which says whether a property should be included
+        # Get the property_filters dict, which says whether a property should be included,
+        # and what category the property is in
         props = halo_property.property_list
         base_halo_type = halo_type
         if halo_type in ["ExclusiveSphereProperties", "InclusiveSphereProperties"]:
             base_halo_type = "ApertureProperties"
-        property_mask = self.parameters.get_property_mask(
-            base_halo_type, [prop[1] for prop in props]
-        )
-        snipshot_mask = self.snipshot_parameters.get_property_mask(
-            base_halo_type, [prop[1] for prop in props]
-        )
+        if halo_type == 'DummyProperties':
+            property_filters = {prop.name: prop.name.split('/')[0] for prop in props.values()}
+            snipshot_filters = {prop.name: prop.name.split('/')[0] for prop in props.values()}
+        else:
+            property_filters = self.parameters.get_property_filters(
+                base_halo_type, [prop.name for prop in props.values()]
+            )
+            snipshot_filters = self.snipshot_parameters.get_property_filters(
+                base_halo_type, [prop.name for prop in props.values()]
+            )
 
         # Loop through all possible properties for this halo type and add them to the
         # table, skipping those that we shouldn't calculate according to the parameter file
-        for (
-            i,
-            (
-                prop_name,
-                prop_outputname,
-                prop_shape,
-                prop_dtype,
-                prop_units,
-                prop_description,
-                prop_cat,
-                prop_comp,
-                prop_dmo,
-                prop_partprops,
-                prop_physical,
-                prop_a_exponent,
-            ),
-        ) in enumerate(props):
-            if not property_mask[prop_outputname]:
-                continue
+        for name, prop in props.items():
 
-            units = unyt.unyt_quantity(1, units=prop_units)
-            if not prop_physical:
-                units = units * unyt.Unit("a") ** prop_a_exponent
-            prop_units = units.units.latex_repr.replace(
+            if not property_filters[prop.name]:
+                continue
+            prop_cat = property_filters[prop.name]
+            if snipshot_filters.get(prop.name, False):
+                assert prop_cat == snipshot_filters[prop.name]
+
+            units = unyt.unyt_quantity(1, units=prop.unit)
+            if not prop.output_physical:
+                units = units * unyt.Unit("a") ** prop.a_scale_exponent
+            prop_unit = units.units.latex_repr.replace(
                 "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
             ).replace("\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}")
 
-            prop_dtype = prop_dtype.__name__
-            if prop_name in self.properties:
+            prop_dtype = prop.dtype.__name__
+
+            if name in self.properties:
                 # run some checks
-                if prop_shape != self.properties[prop_name]["shape"]:
+                if prop.shape != self.properties[name]["shape"]:
                     print("Shape mismatch!")
-                    print(halo_type, prop_name, prop_shape, self.properties[prop_name])
+                    print(halo_type, name, prop.shape, self.properties[name])
                     exit()
-                if prop_dtype != self.properties[prop_name]["dtype"]:
+                if prop_dtype != self.properties[name]["dtype"]:
                     print("dtype mismatch!")
-                    print(halo_type, prop_name, prop_dtype, self.properties[prop_name])
+                    print(halo_type, name, prop_dtype, self.properties[name])
                     exit()
-                if prop_units != self.properties[prop_name]["units"]:
+                if prop_unit != self.properties[name]["units"]:
                     print("Unit mismatch!")
-                    print(halo_type, prop_name, prop_units, self.properties[prop_name])
+                    print(halo_type, name, prop_unit, self.properties[name])
                     exit()
-                if prop_description != self.properties[prop_name]["description"]:
+                if prop.description != self.properties[name]["description"]:
                     print("Description mismatch!")
                     print(
                         halo_type,
-                        prop_name,
-                        prop_description,
-                        self.properties[prop_name],
+                        name,
+                        prop.description,
+                        self.properties[name],
                     )
                     exit()
-                if prop_cat != self.properties[prop_name]["category"]:
+                if prop_cat != self.properties[name]["category"]:
                     print("Category mismatch!")
-                    print(halo_type, prop_name, prop_cat, self.properties[prop_name])
+                    print(halo_type, name, prop_cat, self.properties[name])
                     exit()
-                assert prop_outputname == self.properties[prop_name]["name"]
+                assert prop.name == self.properties[name]["name"]
 
-                if not snipshot_mask[prop_outputname]:
-                    self.properties[prop_name]["types"].append(
+                if not snipshot_filters[prop.name]:
+                    self.properties[name]["types"].append(
                         "SnapshotOnly" + halo_type
                     )
                 else:
-                    self.properties[prop_name]["types"].append(halo_type)
+                    self.properties[name]["types"].append(halo_type)
             else:
-                self.properties[prop_name] = {
-                    "name": prop_outputname,
-                    "shape": prop_shape,
+                self.properties[name] = {
+                    "name": prop.name,
+                    "shape": prop.shape,
                     "dtype": prop_dtype,
-                    "units": prop_units,
-                    "description": prop_description,
+                    "units": prop_unit,
+                    "description": prop.description,
                     "category": prop_cat,
-                    "compression": prop_comp,
-                    "dmo": prop_dmo,
-                    "raw": props[i],
+                    "compression": prop.lossy_compression_filter,
+                    "dmo": prop.dmo_property,
                 }
-                if not snipshot_mask[prop_outputname]:
-                    self.properties[prop_name]["types"] = ["SnapshotOnly" + halo_type]
+                if not snipshot_filters[prop.name]:
+                    self.properties[name]["types"] = ["SnapshotOnly" + halo_type]
                 else:
-                    self.properties[prop_name]["types"] = [halo_type]
-
-    def print_dictionary(self):
-        """
-        Print the internal list of properties. Useful for regenerating the
-        property dictionary with additional information for each property.
-
-        Note that his will sort the dictionary alphabetically.
-        """
-        names = sorted(list(self.properties.keys()))
-        print("full_property_list = {")
-        for name in names:
-            (
-                raw_name,
-                raw_outputname,
-                raw_shape,
-                raw_dtype,
-                raw_units,
-                raw_description,
-                raw_cat,
-                raw_comp,
-                raw_dmo,
-                raw_partprops,
-            ) = self.properties[name]["raw"]
-            raw_dtype = f"np.{raw_dtype.__name__}"
-            print(
-                f'  "{raw_name}": ("{raw_outputname}", {raw_shape}, {raw_dtype}, "{raw_units}", "{raw_description}", "{raw_cat}", "{raw_comp}", {raw_dmo}, {raw_partprops}),'
-            )
-        print("}")
+                    self.properties[name]["types"] = [halo_type]
 
     def generate_tex_files(self, output_dir: str):
         """
@@ -3730,7 +3669,6 @@ class PropertyTable:
 \\usepackage{xcolor}
 
 \\begin{document}"""
-
         # property table string: table header
         tablestr = """\\begin{landscape}
 \\begin{longtable}{p{15em}llllllllll}
@@ -3825,7 +3763,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
         # standalone table file footer
         tailstr = "\\end{document}"
 
-        # generate the documentation files
+        # generate the auxilary documentation files
         with open(f"{output_dir}/timestamp.tex", "w") as ofile:
             ofile.write(get_version_string())
         with open(f"{output_dir}/table.tex", "w") as ofile:
@@ -3909,11 +3847,26 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         with open(f"{output_dir}/variations_table.tex", "w") as ofile:
             ofile.write(tablestr)
 
+        # Output base units
+        with open(f"{output_dir}/units.tex", "w") as ofile:
+            for name, symbol in [
+                ("length", "L"),
+                ("mass", "M"),
+                ("time", "t"),
+                ("temperature", "T"),
+            ]:
+                value = self.units_cgs[f"Unit {name} in cgs (U_{symbol})"]
+                ofile.write(f'\\newcommand{{\\{name}baseunit}}{{{value:.4g}}}\n')
+            vel_kms = (1 * unyt.snap_length / unyt.snap_time).to("km/s").value
+            ofile.write(f'\\newcommand{{\\velbaseunit}}{{{vel_kms:.4g}}}\n')
+
 
 class DummyProperties:
     """
     Dummy HaloProperty object used to include properties which are not computed 
-    for any halo type (e.g. the 'VR' properties).
+    for any halo type (e.g. the 'VR' properties). These are identified from the
+    property list using the fact that their full output name starts with the 
+    category (e.g. we have 'VR/ID' instead of 'ID')
     """
 
     def __init__(self, halo_finder):
@@ -3921,11 +3874,11 @@ class DummyProperties:
         # Currently FOF properties are only stored for HBT
         if halo_finder == "HBTplus":
             categories += ["FOF"]
-        self.property_list = [
-            (prop, *info)
-            for prop, info in PropertyTable.full_property_list.items()
-            if info[5] in categories
-        ]
+        self.property_list = {
+            name: prop
+            for name, prop in PropertyTable.full_property_list.items()
+            if prop.name.split('/')[0] in categories
+        }
 
 
 if __name__ == "__main__":
@@ -3991,7 +3944,7 @@ if __name__ == "__main__":
     # Define scale factor unit
     unyt.define_unit("a", 1 * unyt.dimensionless, tex_repr="\\rm{a}")
 
-    table = PropertyTable(parameters, snipshot_parameters)
+    table = PropertyTable(parameters, snipshot_parameters, units_cgs)
     # Add standard halo definitions
     table.add_properties(SubhaloProperties, "SubhaloProperties")
     table.add_properties(ExclusiveSphereProperties, "ExclusiveSphereProperties")
@@ -4006,20 +3959,8 @@ if __name__ == "__main__":
         table.add_properties(SOProperties, "SOProperties")
     # Add InputHalos and SOAP properties
     table.add_properties(
-        DummyProperties(parameters.parameters["HaloFinder"]["type"]), ""
+        DummyProperties(parameters.parameters["HaloFinder"]["type"]), "DummyProperties"
     )
 
     table.generate_tex_files("documentation")
 
-    # Output base units
-    with open("documentation/units.tex", "w") as ofile:
-        for name, symbol in [
-            ("length", "L"),
-            ("mass", "M"),
-            ("time", "t"),
-            ("temperature", "T"),
-        ]:
-            value = units_cgs[f"Unit {name} in cgs (U_{symbol})"]
-            ofile.write(f'\\newcommand{{\\{name}baseunit}}{{{value:.4g}}}\n')
-        vel_kms = (1 * unyt.snap_length / unyt.snap_time).to("km/s").value
-        ofile.write(f'\\newcommand{{\\velbaseunit}}{{{vel_kms:.4g}}}\n')
