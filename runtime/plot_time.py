@@ -159,11 +159,31 @@ plt.close()
 
 print('Plotting the time taken on each property for each halo type, splitting results into mass bins')
 # This essentially loads the entire SOAP file, so takes a while to run
-# Also saves the total time spent on calculations, which is needed for the next plot
 
 n_bin = 4
 
-total_prop_calculation time = {}
+# This loop also saves the total time spent on calculations, 
+# which is needed for the next plot
+def get_internal_name(subhalo_type):
+    '''
+    Helper function to convert HDF5 group names to internal SOAP names
+    '''
+    if subhalo_type == 'BoundSubhalo':
+        return 'bound_subhalo'
+    if 'ExclusiveSphere' in subhalo_type:
+        r = subhalo_type.split('/')[1].replace('kpc', '')
+        return f'exclusive_sphere_{r}kpc'
+    if 'InclusiveSphere' in subhalo_type:
+        r = subhalo_type.split('/')[1].replace('kpc', '')
+        return f'inclusive_sphere_{r}kpc'
+    if 'ProjectedAperture' in subhalo_type:
+        r = subhalo_type.split('/')[1].replace('kpc', '')
+        return f'projected_aperture_{r}kpc'
+    if 'SO/' in subhalo_type:
+        return f"SO_{subhalo_type.split('/')[1]}"
+    return None
+total_prop_calculation_time = {}
+
 n_bound_bins = 10**np.linspace(np.log10(xlim_lo), np.log10(xlim_hi), n_bin+1)
 with h5py.File(filename, 'r') as file:
     for group_name in subhalo_types:
@@ -181,6 +201,8 @@ with h5py.File(filename, 'r') as file:
 
             prop_names.append(k.replace('_time', ''))
             arr = file[f'{group_name}/{k}'][:]
+            # TODO: Remove, was previously outputting times as shape (n, 1)
+            arr = arr.reshape(-1)
             for i_bin in range(n_bin):
                 mask = (n_bound_bins[i_bin] < n_bound) & (n_bound <= n_bound_bins[i_bin+1])
                 prop_times[i_bin].append(np.sum(arr[mask]))
@@ -189,7 +211,8 @@ with h5py.File(filename, 'r') as file:
         if len(prop_names) == 0:
             continue
         print(f'Plotting {group_name}')
-        total_prop_calculation_time[group_name] = prop_calcultion_time
+        internal_name = get_internal_name(group_name)
+        total_prop_calculation_time[internal_name] = prop_calculation_time
 
         # ProjectedAperture times are store in the top level group, but the properties
         # themselves are stored in the individual projections. This means we have
@@ -215,14 +238,32 @@ with h5py.File(filename, 'r') as file:
 
 #######################
 
+print('Plotting the time taken to set up for each halo type')
 
+n_bin = 4
 
+n_bound_bins = 10**np.linspace(np.log10(xlim_lo), np.log10(xlim_hi), n_bin+1)
+fig, axs = plt.subplots(n_bin, sharex=True)
+fig.subplots_adjust(hspace=0)
+for i in range(n_bin):
+    mask = (n_bound_bins[i] < n_bound) & (n_bound <= n_bound_bins[i+1])
 
+    fracs = []
+    for halo_prop in halo_props:
+        final_time = halo_prop_times[halo_prop+'_final_time'][mask]
+        sum_calc_time = total_prop_calculation_time[halo_prop][mask]
+        frac = 1 - np.mean(sum_calc_time / final_time)
+        fracs.append(frac)
 
-
-
-
-
+    x = np.arange(len(halo_props))
+    axs[i].bar(x, fracs)
+    label = f'$10^{{{np.log10(n_bound_bins[i]):.2g}}} < N < 10^{{{np.log10(n_bound_bins[i+1]):.2g}}}$'
+    axs[i].set_ylabel(label, fontsize=8)
+axs[n_bin-1].set_xticks(x)
+axs[n_bin-1].set_xticklabels(labels=halo_props, rotation=45, ha='right')
+fig.text(-0.05, 0.5, 'Fraction of time spent setting up', va='center', rotation='vertical', fontsize=14)
+plt.savefig(f'{output_dir}/HaloTypeSetupTime.png', dpi=400, bbox_inches='tight')
+plt.close()
 
 #######################
 

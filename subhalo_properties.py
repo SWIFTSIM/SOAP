@@ -2116,7 +2116,7 @@ class SubhaloProperties(HaloProperty):
             )
             if self.record_timings:
                 arr = unyt.unyt_array(
-                        [timings.get(name, 0)],
+                        timings.get(name, 0),
                         dtype=np.float32,
                         units=unyt.dimensionless,
                         registry=registry,
