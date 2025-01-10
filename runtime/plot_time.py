@@ -5,13 +5,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 filename = '/snap8/scratch/dp004/dc-mcgi1/soap_runtime/L0100N0752_no_filter/Thermal_non_equilibrium/SOAP_uncompressed/halo_properties_0127.hdf5'
-# output_dir = 'z0_L0100N0752_no_filter'
-output_dir = 'test'
+output_dir = 'z0_L0100N0752_no_filter'
+filename = '/snap8/scratch/dp004/dc-mcgi1/soap_runtime/L0100N0752/Thermal_non_equilibrium/SOAP_uncompressed/halo_properties_0127.hdf5'
+output_dir = 'z0_L0100N0752'
+filename = '/snap8/scratch/dp004/dc-mcgi1/soap_runtime/L0100N0752/Thermal_non_equilibrium/SOAP_uncompressed/halo_properties_0064.hdf5'
+output_dir = 'z3_L0100N0752'
 
+print(output_dir)
 os.makedirs(output_dir, exist_ok=True)
 
 with h5py.File(filename, 'r') as file:
-    n_bound = file['InputHalos/NumberOfBoundParticles'][:]
+    n_bound = file['BoundSubhalo/NumberOfGasParticles'][:]
+    n_bound += file['BoundSubhalo/NumberOfDarkMatterParticles'][:]
+    n_bound += file['BoundSubhalo/NumberOfStarParticles'][:]
+    n_bound += file['BoundSubhalo/NumberOfBlackHoleParticles'][:]
     is_central = file['InputHalos/IsCentral'][:] == 1
     host_idx = file['SOAP/HostHaloIndex'][:]
     host_n_bound = n_bound.copy()
@@ -26,31 +33,15 @@ with h5py.File(filename, 'r') as file:
     subhalo_types = file['Header'].attrs['SubhaloTypes'].tolist()
     halo_prop_times = {}
     for k in file['InputHalos'].keys():
+        if k == 'total_time':
+            continue
         if '_time' in k:
             halo_prop_times[k] = file[f'InputHalos/{k}'][:]
         if '_final_time' in k:
             calc_time += file[f'InputHalos/{k}'][:]
 
-
-
-def get_internal_name(subhalo_type):
-    if subhalo_type == 'BoundSubhalo':
-        return 'bound_subhalo'
-    if 'ExclusiveSphere' in subhalo_type:
-        r = subhalo_type.split('/')[1].replace('kpc', '')
-        return f'exclusive_sphere_{r}kpc'
-    if 'InclusiveSphere' in subhalo_type:
-        r = subhalo_type.split('/')[1].replace('kpc', '')
-        return f'inclusive_sphere_{r}kpc'
-    if 'ProjectedAperture' in subhalo_type:
-        if len(subhalo_type.split('/')) == 3:
-            return None
-        r = subhalo_type.split('/')[1].replace('kpc', '')
-        return f'projected_aperture_{r}kpc'
-    if 'SO/' in subhalo_type:
-        return f"SO_{subhalo_type.split('/')[1]}"
-    return None
-
+wallclock = np.sum(process_time) / 128
+print(f'Estimated wallclock time (assuming 128 ranks): {wallclock}s')
 print(f'Max processing time: {np.max(process_time)}s')
 
 xlim_lo = np.min(0.9*n_bound)
@@ -119,6 +110,11 @@ fig.subplots_adjust(hspace=0)
 for i in range(n_bin):
     mask = (n_bound_bins[i] < n_bound) & (n_bound <= n_bound_bins[i+1])
 
+    # TODO: Mask
+    # mask &= is_central
+    # mask &= np.logical_not(is_central)
+    # mask &= host_n_bound > 10**5
+
     final_fracs, total_fracs = [], []
     for halo_prop in halo_props:
         final_time = halo_prop_times[halo_prop+'_final_time'][mask]
@@ -144,16 +140,12 @@ plt.close()
 # This essentially loads the entire SOAP file, so takes a while to run
 n_bin = 4
 n_bound_bins = 10**np.linspace(np.log10(xlim_lo), np.log10(xlim_hi), n_bin+1)
-sum_individual_prop_time = {}
 with h5py.File(filename, 'r') as file:
     for group_name in subhalo_types:
     # for group_name in ['BoundSubhalo']:
-        internal_name = get_internal_name(group_name)
-        if not internal_name:
+        if 'proj' in group_name:
             # We don't store times for individual projections
-            # or for input halo categories
             continue
-        sum_individual_prop_time[internal_name] = 0 * halo_prop_times[internal_name+'_total_time']
 
         prop_times = {i: [] for i in range(n_bin)}
         prop_names = []
@@ -163,12 +155,10 @@ with h5py.File(filename, 'r') as file:
                 continue
 
             prop_names.append(k.replace('_time', ''))
-            # TODO: Is shape of times incorrect?
-            arr = file[f'{group_name}/{k}'][:].reshape(-1)
+            arr = file[f'{group_name}/{k}'][:]
             for i_bin in range(n_bin):
                 mask = (n_bound_bins[i_bin] < n_bound) & (n_bound <= n_bound_bins[i_bin+1])
                 prop_times[i_bin].append(np.sum(arr[mask]))
-                sum_individual_prop_time[internal_name][mask] += arr[mask]
 
         if len(prop_names) == 0:
             continue
@@ -190,31 +180,6 @@ with h5py.File(filename, 'r') as file:
         plt.savefig(f'{output_dir}/{plot_name}.png', dpi=400, bbox_inches='tight')
         plt.close()
 
-
-# Plot time taken for each halo type for different halo mass bins
-n_bin = 4
-n_bound_bins = 10**np.linspace(np.log10(xlim_lo), np.log10(xlim_hi), n_bin+1)
-fig, axs = plt.subplots(n_bin, sharex=True)
-fig.subplots_adjust(hspace=0)
-for i in range(n_bin):
-    mask = (n_bound_bins[i] < n_bound) & (n_bound <= n_bound_bins[i+1])
-
-    fracs = []
-    for halo_prop in halo_props:
-        final_time = halo_prop_times[halo_prop+'_final_time'][mask]
-        sum_calc_time = sum_individual_prop_time[halo_prop][mask]
-        frac = np.mean(sum_calc_time / final_time)
-        fracs.append(frac)
-
-    x = np.arange(len(halo_props))
-    axs[i].bar(x, fracs)
-    label = f'$10^{{{np.log10(n_bound_bins[i]):.2g}}} < N < 10^{{{np.log10(n_bound_bins[i+1]):.2g}}}$'
-    axs[i].set_ylabel(label, fontsize=8)
-axs[n_bin-1].set_xticks(x)
-axs[n_bin-1].set_xticklabels(labels=halo_props, rotation=45, ha='right')
-fig.text(-0.05, 0.5, 'Fraction of time spent on individual properties', va='center', rotation='vertical', fontsize=14)
-plt.savefig(f'{output_dir}/sum_prop_time.png', dpi=400, bbox_inches='tight')
-plt.close()
 
 
 
