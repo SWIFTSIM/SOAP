@@ -224,9 +224,7 @@ def compute_halo_properties():
         },
     }
     filters = parameter_file.get_filters(default_filters)
-    category_filter = CategoryFilter(
-        filters, dmo=args.dmo, parameters=parameter_file
-    )
+    category_filter = CategoryFilter(filters, dmo=args.dmo)
 
     # Get the full list of property calculations we can do
     # Note that the order matters: we need to do the BoundSubhalo first,
@@ -419,6 +417,12 @@ def compute_halo_properties():
                 projected_radii_kpc,
             )
         )
+
+    # The category_filter needs access to the filters for each property
+    # whenever we are writing the final output file. It needs to get this
+    # information from the parmeter file. It would be better to get rid of
+    # the category_filter object, and combine it with the parameter_file
+    category_filter.set_property_filters(parameter_file.property_filters)
 
     if comm_world_rank == 0 and args.output_parameters:
         parameter_file.write_parameters(args.output_parameters)

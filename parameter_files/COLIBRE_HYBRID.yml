@@ -249,7 +249,7 @@ ApertureProperties:
     StarFormingGasMassFractionInOxygen:
       snapshot: true
       snipshot: false
-    StellarCentreOfMass: false
+    StellarCentreOfMass: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
@@ -263,7 +263,7 @@ ApertureProperties:
     GasMassInColdDenseDiffuseMetals:
       snapshot: true
       snipshot: false
-    StellarCentreOfMassVelocity: false
+    StellarCentreOfMassVelocity: true
   variations:
     exclusive_1_kpc:
       inclusive: false

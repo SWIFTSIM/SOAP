@@ -35,7 +35,7 @@ class CategoryFilter:
     and requires the calculation of BoundSubhalo for each halo.
     """
 
-    def __init__(self, filters: Dict, dmo: bool = False, parameters=None):
+    def __init__(self, filters: Dict, dmo: bool = False):
         """
         Construct the filter with the requested filter thresholds.
 
@@ -60,20 +60,10 @@ class CategoryFilter:
          - dmo: bool
            Whether or not SOAP is run in DMO mode, in which case only properties that
            are marked for DMO calculation are actually computed.
-         - parameters
-           SOAP parameter file object to obtain the filter for each property
         """
         self.filters = filters
         self.dmo = dmo
-
-        # Get filters for each (property, halo type) combination
-        if parameters is not None:
-            full_prop_list = [prop.name for _, prop in PropertyTable.full_property_list.items()]
-            self.property_filters = {}
-            for base_halo_type in ['Subhalo', 'ProjectedAperture', 'SO', 'Aperture']:
-                self.property_filters[f'{base_halo_type}Properties'] = parameters.get_property_filters(
-                    f'{base_halo_type}Properties', full_prop_list
-                )
+        self.property_filters = {}
 
     def get_do_calculation(
         self, halo_result: Dict, precomputed_properties: Dict = {}
@@ -142,6 +132,9 @@ class CategoryFilter:
                 if prop.name == output_name:
                     return {"Lossy compression filter": prop.lossy_compression_filter, "Is Compressed": False}
         raise RuntimeError(f"Compression filter not found for {split_name}")
+
+    def set_property_filters(self, property_filters: Dict) -> None:
+        self.property_filters = property_filters
 
     def get_filter_metadata_for_property(self, property_output_name: str) -> Dict:
         """

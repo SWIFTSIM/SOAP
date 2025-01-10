@@ -62,7 +62,10 @@ properties are contained within a group \verb+ExclusiveSphere/XXXkpc+, where
 
 \paragraph{Inclusive sphere quantities (IS)} use a physical aperture radii cut the same as the exclusive sphere 
 quantities. However for the inclusive sphere we include all particles within the radius, regardless of their 
-membership status. They are stored within the group \verb+InclusiveSphere/XXXkpc+.
+membership status. If the aperture radius of an inclusive sphere variation is greater than the EncloseRadius
+(the maximum distance between a bound particle and the halo centre) of a subhalo, then for that subhalo no
+properties are computed for the variation.
+The quantities are stored within the group \verb+InclusiveSphere/XXXkpc+. 
 
 \paragraph{Exclusive projected quantities (EP)} are similar to exclusive sphere quantities, except that their 
 aperture cut is applied in projection. For each radii there are three  independent projections: along the 
@@ -92,8 +95,8 @@ These are stored in a separate group, \verb+SOAP+. This is just done for conveni
 
 \paragraph{The table below lists} all the groups in the output file which containing datasets.
 Note that there will be three groups (\verb+x+, \verb+y+ or \verb+z+) for each \verb+ProjectedAperture+ variation.
-Each halo variation can have a filter applied to it. If a halo does not satisfy the filter then the variation will
-not be calculated for that halo. More information on filters can be found in the next section.
+Each halo variation can have a filter applied to it. If a subhalo does not satisfy the filter then the halo variation
+will be skipped for that subhalo, and all properties will have a value of zero. More information on filters can be found in the next section.
 
 \input{variations_table}
 
@@ -158,9 +161,9 @@ indicates for which halo types the property is computed. If a property is being 
 for a certain halo type it is marked with a \ding{51}. Properties calculated
 for snapshots but not snipshots are indicated with a \ding{36}.
 
-\paragraph{}Note that quantities are given in the base units of the simulation snapshot. 
+\paragraph{}Note that quantities are output in the base units of the simulation snapshot. 
 We therefore recommend that swiftsimio is used to load the catalogues as it has unit handling built in.
-The attributes of each SOAP dataset contains all the relevant meta-data to convert between physical
+However, the attributes of each SOAP dataset do contain all the relevant meta-data to convert between physical
 and co-moving units, i.e. information about how the
 quantity depends on the scale-factor, and what the conversion factor to and from CGS units is. All quantities
 are $h$-free. The conversion of the base units to CGS is given by:
@@ -176,8 +179,8 @@ T & \temperaturebaseunit \hspace{1mm} K \\
 
 For example, a property whose units are listed as L/t will have units of velocity,
 where $1 \, \rm{L/t} = \velbaseunit \, \rm{km/s}$.
-The scale factor is explicitly included for comoving properties (e.g. the units of HaloCentre are aL)
-
+The scale factor is explicitly included for comoving properties (e.g. the units of HaloCentre are
+listed as aL).
 
 \input{table}
 

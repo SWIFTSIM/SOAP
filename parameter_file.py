@@ -62,6 +62,8 @@ class ParameterFile:
 
         self.snipshot = snipshot
 
+        self.property_filters = {}
+
     def get_parameters(self) -> Dict:
         """
         Get a copy of the parameter dictionary.
@@ -100,6 +102,9 @@ class ParameterFile:
         values are either False (if the property should not be calculated) or a
         string (the name of the filter to apply to the property).
         """
+        # Save the filters as they are needed in combine chunks
+        self.property_filters[base_halo_type] = self.property_filters.get(base_halo_type, {})
+
         if not base_halo_type in self.parameters:
             self.parameters[base_halo_type] = {}
         # Handle the case where no properties are listed for the halo type
@@ -139,6 +144,8 @@ class ParameterFile:
                 assert (filters[property] in self.parameters['filters']) or (filters[property] == 'basic')
             else:
                 assert filters[property] == False
+
+            self.property_filters[base_halo_type][property] = filters[property]
         return filters
 
     def print_unregistered_properties(self) -> None:
