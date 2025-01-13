@@ -183,7 +183,7 @@ defined_constants:
 
 Contains information about how to run SOAP
 
-- **min_read_radius_cmpc**: SOAP makes an initial guess of the radius around each halo to read in. 
+- **min_read_radius_cmpc**: Optional. Using the input halo catalogues SOAP makes an initial guess of the radius around each halo to read in. This value can be set so SOAP will read a minimum radius by default, which can be useful if large SOs are being calculated.
 - **calculate_missing_properties**: Optional, default True. If set to true then SOAP will calculate any properties which are not listed in the parameter file. If set to false then SOAP will ignore these properties 
 - **reduced_snapshots**: Optional. We create reduced snapshots where we keep the particles within the virial radius of certain objects. The values here determine which halos to keep.
   - **min_halo_mass**: The minimumum M200 halo mass to keep

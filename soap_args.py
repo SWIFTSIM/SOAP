@@ -132,7 +132,7 @@ def get_soap_args(comm):
     args.max_ranks_reading = all_args["Parameters"]["max_ranks_reading"]
     args.output_parameters = all_args["Parameters"]["output_parameters"]
     args.git_hash = all_args["git_hash"]
-    args.min_read_radius_cmpc = all_args["calculations"]["min_read_radius_cmpc"]
+    args.min_read_radius_cmpc = all_args["calculations"].get("min_read_radius_cmpc", 0)
     args.calculations = all_args["calculations"]
 
     # Extra-input files which are optionally passed in the parameter file are
