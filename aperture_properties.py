@@ -196,6 +196,7 @@ class ApertureParticleData:
         cold_dense_gas_filter: ColdDenseGasFilter,
         snapshot_datasets: SnapshotDatasets,
         softening_of_parttype: unyt.unyt_array,
+        boxsize: unyt.unyt_quantity,
     ):
         """
         Constructor.
@@ -226,6 +227,8 @@ class ApertureParticleData:
            appropriate aliases and column names.
          - softening_of_parttype: unyt.unyt_array
            Softening length of each particle types
+         - boxsize: unyt.unyt_quantity
+           Boxsize for correcting periodic boundary conditions
         """
         self.input_halo = input_halo
         self.data = data
@@ -237,6 +240,7 @@ class ApertureParticleData:
         self.cold_dense_gas_filter = cold_dense_gas_filter
         self.snapshot_datasets = snapshot_datasets
         self.softening_of_parttype = softening_of_parttype
+        self.boxsize = boxsize
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -1062,7 +1066,9 @@ class ApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return (self.mass_fraction[:, None] * self.position).sum(axis=0) + self.centre
+        return ((self.mass_fraction[:, None] * self.position).sum(
+            axis=0
+        ) + self.centre) % self.boxsize
 
     @lazy_property
     def vcom(self) -> unyt.unyt_array:
@@ -1227,9 +1233,9 @@ class ApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return (self.star_mass_fraction[:, None] * self.pos_star).sum(
+        return ((self.star_mass_fraction[:, None] * self.pos_star).sum(
             axis=0
-        ) + self.centre
+        ) + self.centre) % self.boxsize
 
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
@@ -3202,6 +3208,7 @@ class ApertureProperties(HaloProperty):
         self.record_timings = parameters.record_property_timings
         self.all_radii_kpc = all_radii_kpc
         self.strict_halo_copy = parameters.strict_halo_copy()
+        self.boxsize = cellgrid.boxsize
 
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.001 * physical_radius_kpc
@@ -3360,6 +3367,7 @@ class ApertureProperties(HaloProperty):
                 self.cold_dense_gas_filter,
                 self.snapshot_datasets,
                 self.softening_of_parttype,
+                self.boxsize,
             )
 
             for name, prop in self.property_list.items():

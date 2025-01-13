@@ -250,6 +250,7 @@ class SOParticleData:
         virial_definition: bool,
         search_radius: unyt.unyt_quantity,
         cosmology: dict,
+        boxsize: unyt.unyt_quantity,
     ):
         """
         Constructor.
@@ -284,6 +285,8 @@ class SOParticleData:
            this radius.
          - cosmology: dict
            Cosmological parameters required for SO calculation
+         - boxsize: unyt.unyt_quantity
+           Boxsize for correcting periodic boundary conditions
         """
         self.input_halo = input_halo
         self.data = data
@@ -297,6 +300,7 @@ class SOParticleData:
         self.virial_definition = virial_definition
         self.search_radius = search_radius
         self.cosmology = cosmology
+        self.boxsize = boxsize
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -554,7 +558,9 @@ class SOParticleData:
         """
         Centre of mass of all particles in the spherical overdensity.
         """
-        return (self.mass_fraction[:, None] * self.position).sum(axis=0) + self.centre
+        return ((self.mass_fraction[:, None] * self.position).sum(
+            axis=0
+        ) + self.centre) % self.boxsize
 
     @lazy_property
     def vcom(self) -> unyt.unyt_array:
@@ -713,9 +719,9 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return (self.gas_mass_fraction[:, None] * self.gas_pos).sum(
+        return ((self.gas_mass_fraction[:, None] * self.gas_pos).sum(
             axis=0
-        ) + self.centre
+        ) + self.centre) % self.boxsize
 
     @lazy_property
     def vcom_gas(self) -> unyt.unyt_array:
@@ -992,9 +998,9 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return (self.star_mass_fraction[:, None] * self.star_pos).sum(
+        return ((self.star_mass_fraction[:, None] * self.star_pos).sum(
             axis=0
-        ) + self.centre
+        ) + self.centre) % self.boxsize
 
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
@@ -3275,6 +3281,7 @@ class SOProperties(HaloProperty):
         self.halo_filter = halo_filter
         self.record_timings = parameters.record_property_timings
         self.observer_position = cellgrid.observer_position
+        self.boxsize = cellgrid.boxsize
 
         self.cosmology = {}
         # in the neutrino model, the mean neutrino density is implicitly
@@ -3489,6 +3496,7 @@ class SOProperties(HaloProperty):
                 self.virial_definition,
                 search_radius,
                 self.cosmology,
+                self.boxsize,
             )
 
             # we need to make sure the physical radius uses the correct unit

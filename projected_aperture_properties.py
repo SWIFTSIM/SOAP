@@ -54,6 +54,7 @@ class ProjectedApertureParticleData:
         types_present: List[str],
         aperture_radius: unyt.unyt_quantity,
         snapshot_datasets: SnapshotDatasets,
+        boxsize: unyt.unyt_quantity,
     ):
         """
         Constructor.
@@ -71,12 +72,15 @@ class ProjectedApertureParticleData:
          - snapshot_datasets: SnapshotDatasets
            Object containing metadata about the datasets in the snapshot, like
            appropriate aliases and column names.
+         - boxsize: unyt.unyt_quantity
+           Boxsize for correcting periodic boundary conditions
         """
         self.input_halo = input_halo
         self.data = data
         self.types_present = types_present
         self.aperture_radius = aperture_radius
         self.snapshot_datasets = snapshot_datasets
+        self.boxsize = boxsize
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -750,9 +754,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return (self.mass_fraction[:, None] * self.proj_position).sum(
+        return ((self.mass_fraction[:, None] * self.proj_position).sum(
             axis=0
-        ) + self.centre
+        ) + self.centre) % self.part_props.boxsize
 
     @lazy_property
     def vcom(self) -> unyt.unyt_array:
@@ -1539,6 +1543,7 @@ class ProjectedApertureProperties(HaloProperty):
         self.record_timings = parameters.record_property_timings
         self.all_radii_kpc = all_radii_kpc
         self.strict_halo_copy = parameters.strict_halo_copy()
+        self.boxsize = cellgrid.boxsize
 
         self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
         self.group_name = f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc"
@@ -1669,6 +1674,7 @@ class ProjectedApertureProperties(HaloProperty):
                 types_present,
                 self.physical_radius_mpc * unyt.Mpc,
                 self.snapshot_datasets,
+                self.boxsize,
             )
             for projname in ["projx", "projy", "projz"]:
                 proj_part_props = SingleProjectionProjectedApertureParticleData(

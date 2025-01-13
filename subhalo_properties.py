@@ -66,6 +66,7 @@ class SubhaloParticleData:
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         snapshot_datasets: SnapshotDatasets,
         softening_of_parttype: unyt.unyt_array,
+        boxsize: unyt.unyt_quantity,
     ):
         """
         Constructor.
@@ -87,6 +88,8 @@ class SubhaloParticleData:
          - snapshot_datasets: SnapshotDatasets
            Object containing metadata about the datasets in the snapshot, like
            appropriate aliases and column names.
+         - boxsize: unyt.unyt_quantity
+           Boxsize for correcting periodic boundary conditions
         """
         self.input_halo = input_halo
         self.data = data
@@ -95,6 +98,7 @@ class SubhaloParticleData:
         self.recently_heated_gas_filter = recently_heated_gas_filter
         self.snapshot_datasets = snapshot_datasets
         self.softening_of_parttype = softening_of_parttype
+        self.boxsize = boxsize
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -752,9 +756,9 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return (self.total_mass_fraction[:, None] * self.position).sum(
+        return ((self.total_mass_fraction[:, None] * self.position).sum(
             axis=0
-        ) + self.centre
+        ) + self.centre) % self.boxsize
 
     @lazy_property
     def vcom(self) -> unyt.unyt_array:
@@ -1939,6 +1943,7 @@ class SubhaloProperties(HaloProperty):
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
         self.record_timings = parameters.record_property_timings
+        self.boxsize = cellgrid.boxsize
 
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.0
@@ -2008,6 +2013,7 @@ class SubhaloProperties(HaloProperty):
             self.filter,
             self.snapshot_datasets,
             self.softening_of_parttype,
+            self.boxsize,
         )
 
         # this is the halo type that we use for the filter particle numbers,
