@@ -15,7 +15,7 @@
 \input{units}
 
 \title{SOAP -- Spherical Overdensity and Aperture Processor}
-\author{Bert Vandenbroucke, Joop Schaye, John Helly, \\Matthieu Schaller, Rob McGibbon}
+\author{Rob McGibbon, Bert Vandenbroucke, John Helly, \\Joop Schaye, Matthieu Schaller}
 \date{}
 
 \begin{document}
@@ -27,10 +27,16 @@
 \section{Introduction}
 
 SOAP computes properties for different types of halos, which differ in how they decide
-on which particles to included (by radius, in projection...). For all halo types the halo
-centre and the boundedness of the particles are determined by the input subhalo catalogue.
+on which particles to included (by radius, in projection...). SOAP does not identify
+halos itself, instead it uses the halo centre and the boundedness of particles as determined
+by an input subhalo catalogue (such as HBT-HERONS, SubFind, etc...).
+The purpose of this file is to document the catalogues output by SOAP. For information about running
+the code you should refer to the README at \href{https://github.com/SWIFTSIM/SOAP}{https://github.com/SWIFTSIM/SOAP}.
 This documentation is generated using the SOAP parameter file, and so the halo types and properties 
 listed reflect those present in the current run of SOAP, rather than all possible properties.
+If you have any questions regarding the halo types or properties mentioned in the document then
+please send an email to \href{mailto:mcgibbon@strw.leidenuniv.nl}{mcgibbon@strw.leidenuniv.nl}.
+It would be useful for us to know which parts of the document need clarifying.
 
 SOAP catalogues are output as HDF5 files, with the properties being grouped by halo type.
 For loading the catalogues we recommend using the swiftsimio package. A simple example is:
@@ -165,8 +171,8 @@ for snapshots but not snipshots are indicated with a \ding{36}.
 We therefore recommend that swiftsimio is used to load the catalogues as it has unit handling built in.
 However, the attributes of each SOAP dataset do contain all the relevant meta-data to convert between physical
 and co-moving units, i.e. information about how the
-quantity depends on the scale-factor, and what the conversion factor to and from CGS units is. All quantities
-are $h$-free. The conversion of the base units to CGS is given by:
+quantity depends on the scale-factor, and what the conversion factor to and from CGS units is. \textbf{All quantities
+are $h$-free.} The conversion of the base units to CGS is given by:
 
 \begin{longtable}{cl}
 Unit & CGS conversion \\
