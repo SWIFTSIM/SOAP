@@ -1,13 +1,15 @@
-import numpy as np
-import h5py
-import multiprocessing as mp
 import argparse
 import time
 import os
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
 import shutil
+
+import numpy as np
+import h5py
+from mpi4py import MPI
 import yaml
 
-script_folder = os.path.realpath(__file__).removesuffix("/compress_fast_metadata.py")
+script_folder = os.path.realpath(os.path.dirname(__file__))
 
 with open(f"{script_folder}/filters.yml", "r") as ffile:
     filterdict = yaml.safe_load(ffile)
@@ -98,28 +100,22 @@ def create_lossy_dataset(file, name, shape, filter):
     h5py.h5d.create(file.id, name.encode("utf-8"), type, space, new_plist, None).close()
 
 
-def compress_dataset(arguments):
-    input_name, output_name, dset = arguments
+def compress_dataset(input_name, output_name, dset):
 
     # Setting hdf5 version of file
     fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
     fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
-    fid = h5py.h5f.create(
-        output_name.encode("utf-8"), flags=h5py.h5f.ACC_TRUNC, fapl=fapl
-    )
+    fid = h5py.h5f.create(output_name.encode('utf-8'), flags=h5py.h5f.ACC_TRUNC, fapl=fapl)
 
     with h5py.File(input_name, "r") as ifile, h5py.File(output_name, "r+") as ofile:
         group_name = dset.split("/")[0]
-        if group_name == "Cells":
+        if group_name == 'Cells':
             filter = "None"
         else:
             filter = ifile[dset].attrs["Lossy compression filter"]
         dset_name = dset.split("/")[-1]
         if dset_name in compression_fixes:
             filter = compression_fixes[dset_name]
-        # TODO: Remove after removing DMantissa21 from property table
-        if filter == "DMantissa21":
-            filter = "DMantissa9"
         data = ifile[dset][:]
         if filter == "None":
             if len(data.shape) == 1:
@@ -140,99 +136,114 @@ def compress_dataset(arguments):
                 # This is needed if we have used the compression_fixes dictionary
                 if attr == "Lossy compression filter":
                     ofile["data"].attrs[attr] = filter
-                # TODO: Remove, this was only the case for a small number of catalogues
-                elif (
-                    attr
-                    == "Conversion factor to CGS (including cosmological corrections)"
-                ):
-                    ofile["data"].attrs[
-                        "Conversion factor to physical CGS (including cosmological corrections)"
-                    ] = filter
                 else:
                     ofile["data"].attrs[attr] = ifile[dset].attrs[attr]
 
     return dset
 
 
+# Assign datasets to ranks
+def assign_datasets(nr_files, nr_ranks, comm_rank):
+    files_on_rank = np.zeros(nr_ranks, dtype=int)
+    files_on_rank[:] = nr_files // nr_ranks
+    remainder = nr_files % nr_ranks
+    if remainder == 1:
+        files_on_rank[0] += 1
+    elif remainder > 1:
+        for i in range(remainder):
+            files_on_rank[int((nr_ranks - 1) * i/(remainder - 1))] += 1
+    assert np.sum(files_on_rank) == nr_files, f'{nr_files=}, {nr_ranks=}'
+    first_file = np.cumsum(files_on_rank) - files_on_rank
+    return first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
+
+
 if __name__ == "__main__":
 
-    # disable CBLAS threading to avoid problems when spawning
-    # parallel numpy imports
-    os.environ["OPENBLAS_NUM_THREADS"] = "1"
-
-    mp.set_start_method("forkserver")
+    comm = MPI.COMM_WORLD
+    comm_rank = comm.Get_rank()
+    comm_size = comm.Get_size()
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("input")
-    argparser.add_argument("output")
-    argparser.add_argument("scratch")
-    argparser.add_argument("--nproc", "-n", type=int, default=1)
+    argparser.add_argument("input", help="Filename of uncompressed input SOAP catalogue")
+    argparser.add_argument("output", help="Filename of output catalogue")
+    argparser.add_argument("scratch", help="Directory to store temporary files")
     args = argparser.parse_args()
 
-    # Setting hdf5 version of file
-    fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
-    fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
-    fid = h5py.h5f.create(
-        args.output.encode("utf-8"), flags=h5py.h5f.ACC_TRUNC, fapl=fapl
-    )
+    mastertic = time.time()
 
-    print(f"Copying over groups to {args.output} and listing datasets...")
+    if comm_rank == 0:
+        try:
+            print(f'Creating output file at {args.output}')
+            # Setting hdf5 version of file
+            fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
+            fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
+            fid = h5py.h5f.create(args.output.encode('utf-8'), flags=h5py.h5f.ACC_TRUNC, fapl=fapl)
+
+            print(f"Creating groups and datasets in output file")
+            tic = time.time()
+            with h5py.File(args.input, "r") as ifile, h5py.File(args.output, "r+") as ofile:
+                h5copy = H5copier(ifile, ofile)
+                ifile.visititems(h5copy)
+                original_size = h5copy.get_total_size()
+                original_size_bytes = h5copy.get_total_size_bytes()
+                total_time = h5copy.get_total_time()
+            toc = time.time()
+            print(f"File structure copy took {toc-tic:.2f} s.")
+
+            tmp_dir = f"{args.scratch}/{os.path.basename(args.output).removesuffix('.hdf5')}_temp"
+            os.makedirs(tmp_dir, exist_ok=True)
+
+            datasets = h5copy.dsets.copy()
+
+        except Exception as e:
+            print(f'Error: {e}')
+            comm.Abort(1)
+    else:
+        tmp_dir = None
+        datasets = None
+    tmp_dir = comm.bcast(tmp_dir)
+    datasets = comm.bcast(datasets)
+
+    if comm_rank == 0:
+        print(f'Creating compressed datasets in temporary files using {comm_size} ranks')
     tic = time.time()
-    mastertic = tic
-    with h5py.File(args.input, "r") as ifile, h5py.File(args.output, "r+") as ofile:
-        h5copy = H5copier(ifile, ofile)
-        ifile.visititems(h5copy)
-        original_size = h5copy.get_total_size()
-        original_size_bytes = h5copy.get_total_size_bytes()
-        total_time = h5copy.get_total_time()
+    i_start, i_end = assign_datasets(len(datasets), comm_size, comm_rank)
+    for i_dset, dset in enumerate(sorted(datasets)[i_start:i_end]):
+        tmp_output = f"{tmp_dir}/{dset.replace('/','_')}.hdf5"
+        compress_dataset(args.input, tmp_output, dset)
+        print(f"{comm_rank}: [{i_dset+1:04d}/{i_end-i_start:04d}] {dset}")
+
+    comm.barrier()
     toc = time.time()
-    print(f"File structure copy took {1000.*(toc-tic):.2f} ms.")
+    if comm_rank == 0:
+        print(f"Temporary file writing took {toc-tic:.2f} s.")
+        print(f"Copying datasets into {args.output}")
 
-    tmpdir = (
-        f"{args.scratch}/{os.path.basename(args.output).removesuffix('.hdf5')}_temp"
-    )
-    print(
-        f"Copying over datasets to temporary files in {tmpdir} using {args.nproc} processes..."
-    )
+    # Only the first rank writes the final output file
     tic = time.time()
-    os.makedirs(tmpdir, exist_ok=True)
+    if comm_rank == 0:
+        with h5py.File(args.output, 'r+') as ofile:
+            for i_dset, dset in enumerate(datasets):
+                tmp_output = f"{tmp_dir}/{dset.replace('/','_')}.hdf5"
+                with h5py.File(tmp_output, 'r') as ifile:
+                    ifile.copy(ifile['data'], ofile, name=dset)
+                print(f"{comm_rank}: [{i_dset+1:04d}/{len(datasets):04d}] {dset}")
 
-    arguments = []
-    for dset in h5copy.dsets:
-        arguments.append((args.input, f"{tmpdir}/{dset.replace('/','_')}.hdf5", dset))
-
-    pool = mp.Pool(args.nproc)
-    count = 0
-    ntot = len(arguments)
-    for dset in pool.imap_unordered(compress_dataset, arguments):
-        count += 1
-        print(f"[{count:04d}/{ntot:04d}] {dset}".ljust(110), end="\r")
-    toc = time.time()
-    print(f"Temporary file writing took {1000.*(toc-tic):.2f} ms.".ljust(110))
-
-    print(f"Copying datasets into {args.output} and cleaning up temporary files...")
-    tic = time.time()
-    count = 0
-    ntot = len(arguments)
-    with h5py.File(args.output, "r+") as ofile:
-        for _, tmpfile, dset in arguments:
-            count += 1
-            print(f"[{count:04d}/{ntot:04d}] {dset}".ljust(110), end="\r")
-            with h5py.File(tmpfile, "r") as ifile:
-                ifile.copy(ifile["data"], ofile, dset)
-
-    shutil.rmtree(tmpdir)
+    comm.barrier()
     toc = time.time()
     mastertoc = toc
-    print(f"Temporary file copy took {1000.*(toc-tic):.2f} ms.".ljust(110))
+    if comm_rank == 0:
+        print(f"Writing output file took {toc-tic:.2f} s.")
+        print('Removing temporary files')
+        shutil.rmtree(tmp_dir)
 
-    with h5py.File(args.output, "r") as ofile:
-        h5print = H5printer(False)
-        ofile.visititems(h5print)
-        new_size = h5print.get_total_size()
-        new_size_bytes = h5print.get_total_size_bytes()
+        with h5py.File(args.output, "r") as ofile:
+            h5print = H5printer(False)
+            ofile.visititems(h5print)
+            new_size = h5print.get_total_size()
+            new_size_bytes = h5print.get_total_size_bytes()
 
-    print(
-        f"{original_size} -> {new_size} ({100.*new_size_bytes/original_size_bytes:.2f}%)"
-    )
-    print(f"Total writing time: {1000.*(mastertoc-mastertic):.2f} ms.")
+        frac = new_size_bytes/original_size_bytes
+        print(f"{original_size} -> {new_size} ({100.*frac:.2f}%)")
+        print(f"Total writing time: {mastertoc-mastertic:.2f} s.")
+        print("Done")

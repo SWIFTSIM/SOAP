@@ -52,7 +52,7 @@ The first is lossless compression via GZIP, the second is lossy compression.
 For the group membership files we only apply lossless compression. However,
 each property in the final SOAP catalogue has a lossy compression filter
 associated with it, which are set in `property_table.py`. The script 
-`compression/compress_fast_metadata.py` will apply both lossy and
+`compression/compress_soap_catalogue.py` will apply both lossy and
 lossless compression to SOAP catalogues.
 
 ## Usage on COSMA
