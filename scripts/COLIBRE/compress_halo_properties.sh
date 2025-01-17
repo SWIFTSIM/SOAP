@@ -52,4 +52,7 @@ tmp_dir="${scratch_dir}/${sim}/SOAP_compression_tmp/"
 # run the script using all available threads on the node
 mpirun -- python -u ${script} ${input_filename} ${output_filename} ${tmp_dir}
 
+# set the output file to be read-only
+chmod a=r ${output_filename}
+
 echo "Job complete!"
