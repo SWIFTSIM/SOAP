@@ -45,6 +45,8 @@ SOProperties:
     ConcentrationUnsoftened: true
     MassFractionSatellites: true
     MassFractionExternal: true
+    MaximumCircularVelocity: true
+    MaximumCircularVelocityRadius: true
     NumberOfDarkMatterParticles: true
     SORadius: true
     SpinParameter: true

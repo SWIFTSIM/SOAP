@@ -1986,6 +1986,18 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0
         ),
+        "R_vmax_soft": Property(
+            name='MaximumCircularVelocityRadius',
+            shape=1,
+            dtype=np.float32,
+            unit='snap_length',
+            description="Radius at which MaximumCircularVelocity is reached.",
+            lossy_compression_filter='FMantissa9',
+            dmo_property=True,
+            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType1/Coordinates', 'PartType1/Masses', 'PartType4/Coordinates', 'PartType4/Masses', 'PartType5/Coordinates', 'PartType5/DynamicalMasses'],
+            output_physical=False,
+            a_scale_exponent=1
+        ),
         "Vmax_soft": Property(
             name='MaximumCircularVelocity',
             shape=1,

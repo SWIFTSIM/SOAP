@@ -502,6 +502,7 @@ SOProperties:
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
     MaximumCircularVelocity: true
+    MaximumCircularVelocityRadius: true
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true
