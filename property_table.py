@@ -615,8 +615,8 @@ class PropertyTable:
             lossy_compression_filter='FMantissa9',
             dmo_property=False,
             particle_properties=['PartType5/SubgridMasses', 'PartType5/Velocities'],
-            output_physical=False,
-            a_scale_exponent=1
+            output_physical=True,
+            a_scale_exponent=0
         ),
         "DarkMatterInertiaTensor": Property(
             name='DarkMatterInertiaTensor',
@@ -1144,7 +1144,7 @@ class PropertyTable:
             dmo_property=False,
             particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType4/Coordinates', 'PartType4/Masses', 'PartType4/Velocities'],
             output_physical=True,
-            a_scale_exponent=2
+            a_scale_exponent=1
         ),
         "Ldm": Property(
             name='AngularMomentumDarkMatter',
@@ -1156,7 +1156,7 @@ class PropertyTable:
             dmo_property=True,
             particle_properties=['PartType1/Coordinates', 'PartType1/Masses', 'PartType1/Velocities'],
             output_physical=True,
-            a_scale_exponent=2
+            a_scale_exponent=1
         ),
         "Lgas": Property(
             name='AngularMomentumGas',
@@ -1168,7 +1168,7 @@ class PropertyTable:
             dmo_property=False,
             particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities'],
             output_physical=True,
-            a_scale_exponent=2
+            a_scale_exponent=1
         ),
         "MedianStellarBirthDensity": Property(
             name='MedianStellarBirthDensity',
@@ -1216,7 +1216,7 @@ class PropertyTable:
             dmo_property=False,
             particle_properties=['PartType4/Coordinates', 'PartType4/Masses', 'PartType4/Velocities'],
             output_physical=True,
-            a_scale_exponent=2
+            a_scale_exponent=1
         ),
         "MaximumStellarBirthDensity": Property(
             name='MaximumStellarBirthDensity',
@@ -2704,7 +2704,7 @@ class PropertyTable:
             dmo_property=True,
             particle_properties=['PartType1/Velocities'],
             output_physical=True,
-            a_scale_exponent=1
+            a_scale_exponent=0
         ),
         "proj_veldisp_gas": Property(
             name='GasProjectedVelocityDispersion',
@@ -2716,7 +2716,7 @@ class PropertyTable:
             dmo_property=False,
             particle_properties=['PartType0/Velocities'],
             output_physical=True,
-            a_scale_exponent=1
+            a_scale_exponent=0
         ),
         "proj_veldisp_star": Property(
             name='StellarProjectedVelocityDispersion',
@@ -2728,7 +2728,7 @@ class PropertyTable:
             dmo_property=False,
             particle_properties=['PartType4/Velocities'],
             output_physical=True,
-            a_scale_exponent=1
+            a_scale_exponent=0
         ),
         "r": Property(
             name='SORadius',
@@ -2835,8 +2835,8 @@ class PropertyTable:
             lossy_compression_filter='DScale1',
             dmo_property=True,
             particle_properties=['PartType0/Masses', 'PartType0/Velocities', 'PartType1/Masses', 'PartType1/Velocities', 'PartType4/Masses', 'PartType4/Velocities', 'PartType5/DynamicalMasses', 'PartType5/Velocities'],
-            output_physical=False,
-            a_scale_exponent=1
+            output_physical=True,
+            a_scale_exponent=0
         ),
         "vcom_gas": Property(
             name='GasCentreOfMassVelocity',
@@ -2847,8 +2847,8 @@ class PropertyTable:
             lossy_compression_filter='DScale1',
             dmo_property=False,
             particle_properties=['PartType0/Masses', 'PartType0/Velocities'],
-            output_physical=False,
-            a_scale_exponent=1
+            output_physical=True,
+            a_scale_exponent=0
         ),
         "vcom_star": Property(
             name='StellarCentreOfMassVelocity',
@@ -2859,8 +2859,8 @@ class PropertyTable:
             lossy_compression_filter='DScale1',
             dmo_property=False,
             particle_properties=['PartType4/Masses', 'PartType4/Velocities'],
-            output_physical=False,
-            a_scale_exponent=1
+            output_physical=True,
+            a_scale_exponent=0
         ),
         "veldisp_matrix_dm": Property(
             name='DarkMatterVelocityDispersionMatrix',
@@ -2872,7 +2872,7 @@ class PropertyTable:
             dmo_property=True,
             particle_properties=['PartType1/Masses', 'PartType1/Velocities'],
             output_physical=True,
-            a_scale_exponent=2
+            a_scale_exponent=0
         ),
         "veldisp_matrix_gas": Property(
             name='GasVelocityDispersionMatrix',
@@ -2884,7 +2884,7 @@ class PropertyTable:
             dmo_property=False,
             particle_properties=['PartType0/Masses', 'PartType0/Velocities'],
             output_physical=True,
-            a_scale_exponent=2
+            a_scale_exponent=0
         ),
         "veldisp_matrix_star": Property(
             name='StellarVelocityDispersionMatrix',
@@ -2896,7 +2896,7 @@ class PropertyTable:
             dmo_property=False,
             particle_properties=['PartType4/Masses', 'PartType4/Velocities'],
             output_physical=True,
-            a_scale_exponent=2
+            a_scale_exponent=0
         ),
         "LinearMassWeightedOxygenOverHydrogenOfGas": Property(
             name='LinearMassWeightedOxygenOverHydrogenOfGas',
