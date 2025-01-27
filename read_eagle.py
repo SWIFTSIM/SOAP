@@ -29,9 +29,14 @@ snap_nr = 28
 snap_dir = glob.glob(f'{sim_dir}/snapshot_{snap_nr:03}_*')[0]
 z_suffix = os.path.basename(snap_dir).split('_')[2]
 snap_filename = f'{snap_dir}/snap_{snap_nr:03}_{z_suffix}' + '.{file_nr}.hdf5'
-output_filename = f'{output_dir}/{os.path.basename(snap_dir)}'
+
+output_filename = f'{output_dir}/snapshot_{snap_nr:03}'
 os.makedirs(output_filename, exist_ok=True)
-output_filename += f'/snap_{snap_nr:03}_{z_suffix}' + '.{file_nr}.hdf5'
+output_filename += f'/snap_{snap_nr:03}' + '.{file_nr}.hdf5'
+
+membership_filename = f'{output_dir}/membership_{snap_nr:03}'
+os.makedirs(membership_filename, exist_ok=True)
+membership_filename += f'/membership_{snap_nr:03}' + '.{file_nr}.hdf5'
 
 
 
@@ -50,8 +55,6 @@ if comm_rank == 0:
             if nr_parts[i] > 0 or nr_parts_hw[i] > 0:
                 ptypes.append(i)
 
-    # TODO: REMOVE
-    ptypes = [5]
 else:
     n_file = None
     ptypes = None
@@ -70,7 +73,10 @@ if comm_rank == 0:
     with h5py.File(swift_filename, 'r') as file:
         reg = swift_units.unit_registry_from_snapshot(file)
         units_header = dict(file['Units'].attrs)
-        constants_header = dict(file['PhysicalConstants/CGS'].attrs)
+        for k, v in units_header.items():
+            assert file['InternalCodeUnits'].attrs[k] == v
+        const_cgs_header = dict(file['PhysicalConstants/CGS'].attrs)
+        const_internal_header = dict(file['PhysicalConstants/InternalUnits'].attrs)
 else:
     reg = None
 reg = comm.bcast(reg)
@@ -94,10 +100,94 @@ reg = comm.bcast(reg)
 # value blank in the properties dictionary, and read them in directly.
 
 properties = {
+    'PartType0':{
+        'Coordinates': {
+            'swift_name': 'Coordinates',
+            'exponents': {'L': 1, 'M': 0, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+        'Mass': {
+            'swift_name': 'Masses',
+            'exponents': {'L': 0, 'M': 1, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+        'ParticleIDs': {
+            'swift_name': 'ParticleIDs',
+            'exponents': {'L': 0, 'M': 0, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+    },
+    'PartType1':{
+        'Coordinates': {
+            'swift_name': 'Coordinates',
+            'exponents': {'L': 1, 'M': 0, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+        # Note this is different to all other properties
+        'Mass': {
+            'swift_name': 'Masses',
+            'exponents': {'L': 0, 'M': 1, 'T': 0, 't': 0},
+            'a_exponent': 0,
+            'description': 'Particle mass',
+            'conversion_factor': None,
+        },
+        'ParticleIDs': {
+            'swift_name': 'ParticleIDs',
+            'exponents': {'L': 0, 'M': 0, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+    },
+    'PartType4':{
+        'Coordinates': {
+            'swift_name': 'Coordinates',
+            'exponents': {'L': 1, 'M': 0, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+        'Mass': {
+            'swift_name': 'Masses',
+            'exponents': {'L': 0, 'M': 1, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+        'ParticleIDs': {
+            'swift_name': 'ParticleIDs',
+            'exponents': {'L': 0, 'M': 0, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+    },
     'PartType5':{
         'Coordinates': {
             'swift_name': 'Coordinates',
             'exponents': {'L': 1, 'M': 0, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+        'BH_Mass': {
+            'swift_name': 'SubgridMasses',
+            'exponents': {'L': 0, 'M': 1, 'T': 0, 't': 0},
+            'a_exponent': None,
+            'description': None,
+            'conversion_factor': None,
+        },
+        'Mass': {
+            'swift_name': 'DynamicalMasses',
+            'exponents': {'L': 0, 'M': 1, 'T': 0, 't': 0},
             'a_exponent': None,
             'description': None,
             'conversion_factor': None,
@@ -139,16 +229,54 @@ if comm_rank == 0:
                     conversion_factor *= h ** h_exponent
 
                 properties[f'PartType{ptype}'][k]['conversion_factor'] = conversion_factor
+
+        # Load DM mass from mass table
+        if 'Mass' in properties.get(f'PartType1', {}):
+            dm_mass = infile['Header'].attrs['MassTable'][1]
+            properties['PartType1']['Mass']['conversion_factor'] = dm_mass
+
 properties = comm.bcast(properties)
 
-# Create cosmology header for output file
+
+# Extract information required for header of output SWIFT snapshot
 if comm_rank == 0:
     with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
-        cosmology = {
-            'Omega_b': np.array(infile['Header'].attrs['OmegaBaryon']),
-            'Omega_m': np.array(infile['Header'].attrs['Omega0']),
-            'Omega_lambda': np.array(infile['Header'].attrs['OmegaLambda']),
-            'Redshift': np.array(infile['Header'].attrs['Redshift']),
+        runtime = infile['RuntimePars']
+        parameters_header = {
+            "Gravity:comoving_DM_softening": runtime.attrs['SofteningHalo'],
+            "Gravity:max_physical_DM_softening": runtime.attrs['SofteningHaloMaxPhys'],
+            "Gravity:comoving_baryon_softening": runtime.attrs['SofteningGas'],
+            "Gravity:max_physical_baryon_softening": runtime.attrs['SofteningGasMaxPhys'],
+        }
+
+        header = infile['Header']
+        # Check units are indeed what we are assuming below, since HO, 
+        # BoxSize, etc must match with SWIFT internal units
+        snap_L_in_cm = (1 * unyt.Mpc).to('cm').value
+        assert np.isclose(units_header['Unit length in cgs (U_L)'][0], snap_L_in_cm)
+        snap_M_in_g = (10**10 * unyt.Msun).to('g').value
+        assert np.isclose(units_header['Unit mass in cgs (U_M)'][0], snap_M_in_g)
+        snap_V = (1 * unyt.km / unyt.s).to('cm/s').value
+        snap_t_in_s = snap_L_in_cm / snap_V
+        assert np.isclose(units_header['Unit time in cgs (U_t)'][0], snap_t_in_s)
+
+        # TODO: This is z=0, H(z) value in header is wrong
+        H = h*100
+        G = const_internal_header["newton_G"][0]
+        critical_density = 3 * (H ** 2) / (8 * np.pi * G)
+        cosmology_header = {
+            'Omega_b': header.attrs['OmegaBaryon'],
+            'Omega_m': header.attrs['Omega0'],
+            'Omega_k': 0,
+            'Omega_lambda': header.attrs['OmegaLambda'],
+            'Redshift': header.attrs['Redshift'],
+            'H0 [internal units]': h * 100,
+            'Critical density [internal units]': critical_density,
+        }
+        swift_header = {
+            'BoxSize': [box_size_cmpc, box_size_cmpc, box_size_cmpc],
+            'NumFilesPerSnapshot': [n_file],
+            'Scale-factor': [header.attrs['ExpansionFactor']],
         }
 
 # Define cell structure required for SWIFT output
@@ -170,7 +298,8 @@ snap_file = phdf5.MultiFile(
     comm=comm
 )
 
-create_file = True
+create_output_file = True
+create_membership_file = True
 for ptype in ptypes:
 
     # We sort the particles spatially (based on what cell they are in),
@@ -220,9 +349,13 @@ for ptype in ptypes:
             # would have calculated the value of 'conversion_factor'
             continue
 
-        # Load data from file and sort according to cell structure
-        arr = snap_file.read(f"PartType{ptype}/{prop}")
-        arr = psort.fetch_elements(arr, order, comm=comm)
+        # DM particles all have the same mass, so are an exception
+        if (ptype == 1) and (prop == 'Mass'):
+            arr = np.ones(pos.shape[0])
+        else:
+            # Load data from file and sort according to cell structure
+            arr = snap_file.read(f"PartType{ptype}/{prop}")
+            arr = psort.fetch_elements(arr, order, comm=comm)
 
         # Convert to SWIFT internal units
         arr *= prop_info['conversion_factor']
@@ -247,9 +380,9 @@ for ptype in ptypes:
 
         # Write to the output file
         arr = psort.repartition(arr, elements_per_file, comm=comm)
-        if create_file:
+        if create_output_file:
             mode = "w"
-            create_file = False
+            create_output_file = False
         else:
             mode = "r+"
         snap_file.write(
@@ -258,44 +391,77 @@ for ptype in ptypes:
             filenames=output_filename,
             mode=mode,
             group=f'PartType{ptype}',
-            attrs=attrs,
+            attrs={prop_info['swift_name']: attrs},
         )
 
-    # TODO: Write GroupNr_bound to a membership file
+    # Write subhalo membership information to a separate file
+    # Exactly the same as for other properties above, except units are easy
+    arr = snap_file.read(f"PartType{ptype}/SubGroupNumber")
+    arr = psort.fetch_elements(arr, order, comm=comm)
+    # TODO: Replace 0 with -1?
+    arr[arr == 1073741824] = -1
+    units = unyt.Unit('dimensionless', registry=reg)
+    unit_attrs = swift_units.attributes_from_units(units, False, 0)
+    attrs = {
+        'original_name': 'SubGroupNumber',
+        # TODO: Is this ID or index?
+        'Description': 'Pass',
+    }
+    attrs.update(unit_attrs)
+    arr = psort.repartition(arr, elements_per_file, comm=comm)
+    if create_membership_file:
+        mode = "w"
+        create_membership_file = False
+    else:
+        mode = "r+"
+    snap_file.write(
+        {'GroupNr_bound': arr},
+        elements_per_file,
+        filenames=membership_filename,
+        mode=mode,
+        group=f'PartType{ptype}',
+        attrs=attrs,
+    )
 
 
 
+# TODO: Parallel?
 if comm_rank != 0:
     exit()
-
-# TODO: Parallel
 for i_file in range(n_file):
     with h5py.File(output_filename.format(file_nr=i_file), "r+") as outfile:
-        # Write cosmology
+        # Write all file metadata
+        header = outfile.create_group("Header")
+        for name, value in swift_header.items():
+            header.attrs[name] = [value]
+            n_part = np.zeros(max(ptypes)+1)
+            for ptype in ptypes:
+                n_part[ptype] = outfile[f'PartType{ptype}/Coordinates'].shape[0]
+            header.attrs['NumPart_ThisFile'] = n_part
+
         cosmo = outfile.create_group("Cosmology")
-        for name, value in cosmology.items():
+        for name, value in cosmology_header.items():
             cosmo.attrs[name] = [value]
 
-        # Write units
         units = outfile.create_group("Units")
         for name, value in units_header.items():
             units.attrs[name] = value
+        units = outfile.create_group("InternalCodeUnits")
+        for name, value in units_header.items():
+            units.attrs[name] = value
 
-        # Write physical constants
         const = outfile.create_group("PhysicalConstants")
-        const = const.create_group("CGS")
-        for name, value in constants_header.items():
-            const.attrs[name] = value
+        const_cgs = const.create_group("CGS")
+        for name, value in const_cgs_header.items():
+            const_cgs.attrs[name] = value
+        const_internal = const.create_group("InternalUnits")
+        for name, value in const_internal_header.items():
+            const_internal.attrs[name] = value
 
-        # TODO: 
         params = outfile.create_group("Parameters")
-        for name, value in {
-                'Gravity:comoving_DM_softening': 0,
-                'Gravity:max_physical_DM_softening': 0,
-            }.items():
+        for name, value in parameters_header.items():
             params.attrs[name] = value
 
-        # Write cell information
         cells = outfile.create_group("Cells")
         cells_metadata = cells.create_group("Meta-data")
         cells_metadata.attrs["dimension"] = np.array([n_cell, n_cell, n_cell])
