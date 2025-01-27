@@ -166,7 +166,7 @@ def attributes_from_units(units, physical, a_exponent):
         if physical:
             assert a_exponent_in_units == 0
         else:
-            assert a_exponent_in_units == a_exponent
+            assert float(a_exponent_in_units) == a_exponent
 
     # Get h exponent
     h_unit = unyt.Unit("h", registry=units.registry)
