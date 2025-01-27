@@ -37,28 +37,33 @@ output_filename += f'/snap_{snap_nr:03}_{z_suffix}' + '.{file_nr}.hdf5'
 
 # Extract particle types present, hubble param, and box size
 if comm_rank == 0:
-    ptypes = []
     with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
         n_file = infile['Header'].attrs['NumFilesPerSnapshot']
+        h = infile['Header'].attrs['HubbleParam']
+        box_size_cmpc = infile['Header'].attrs['BoxSize'] / h
+
+        ptypes = []
         nr_types = infile["Header"].attrs["NumPart_Total"].shape[0]
         nr_parts = infile["Header"].attrs["NumPart_Total"]
         nr_parts_hw = infile["Header"].attrs["NumPart_Total_HighWord"]
         for i in range(nr_types):
             if nr_parts[i] > 0 or nr_parts_hw[i] > 0:
                 ptypes.append(i)
-        h = infile['Header'].attrs['HubbleParam']
-        box_size_cmpc = infile['Header'].attrs['BoxSize'] / h
 
     # TODO: REMOVE
     ptypes = [5]
 else:
+    n_file = None
     ptypes = None
     h = None
     box_size_cmpc = None
+n_file = comm.bcast(n_file)
 ptypes = comm.bcast(ptypes)
 h = comm.bcast(h)
 box_size_cmpc = comm.bcast(box_size_cmpc)
 
+# TODO: Can we run with less ranks than files?
+assert comm_size == n_file
 
 # Load units from a reference SWIFT snapshot
 if comm_rank == 0:
@@ -79,9 +84,10 @@ reg = comm.bcast(reg)
 #   'a_exponent'  - if this dataset is stored in comoving coordinates
 #                   what is the scale factor exponent
 #   'description' - short description of this dataset
-#   'conversion_factor' - short description of this dataset
-#    if this dataset has factors of little-h what is the
-#                  exponent. The SWIFT output snapshot is h-free
+#   'conversion_factor' - factor required to convert the values of this
+#                         dataset to the snapshot units of the reference
+#                         SWIFT snapshot. Note the resulting units should
+#                         be h-free
 #
 # In the case of EAGLE snapshots most of this information is available
 # in the metadata of the snapshots themselves. We therefore leave those
@@ -149,6 +155,13 @@ if comm_rank == 0:
 n_cell = 16
 cell_size_cmpc = box_size_cmpc / n_cell
 cell_counts = {}
+cell_offsets = {}
+cell_files = {}
+idx = np.arange(n_cell)
+cell_indices = np.meshgrid(idx, idx, idx, indexing='ij')
+cell_indices = np.stack(cell_indices, axis=-1).reshape(-1, 3)
+cell_centres = cell_indices * cell_size_cmpc
+cell_centres += cell_size_cmpc / 2
 
 # Load the snapshot files using multiple ranks
 snap_file = phdf5.MultiFile(
@@ -157,30 +170,50 @@ snap_file = phdf5.MultiFile(
     comm=comm
 )
 
-# Loop though the datasets, sort them spatially, convert their units, and
-# write them to the output file
 create_file = True
 for ptype in ptypes:
 
+    # We sort the particles spatially (based on what cell they are in),
+    # and then by particle ID
     pos = snap_file.read(f"PartType{ptype}/Coordinates") / h
     particle_id = snap_file.read(f"PartType{ptype}/ParticleIDs").astype(np.int64)
 
     cell_indices = (pos // cell_size_cmpc).astype(np.int64)
-    # Sort first based on position, then on particle id
+    assert np.min(cell_indices) >= 0
+    assert np.max(cell_indices) < n_cell
     sort_hash_dtype = [("cell_index", np.int64), ("particle_id", np.int64)]
     sort_hash = np.zeros(cell_indices.shape[0], dtype=sort_hash_dtype)
-    sort_hash["cell_index"] += cell_indices[:, 0] * 3 ** 2
-    sort_hash["cell_index"] += cell_indices[:, 1] * 3
+    sort_hash["cell_index"] += cell_indices[:, 0] * n_cell ** 2
+    sort_hash["cell_index"] += cell_indices[:, 1] * n_cell
     sort_hash["cell_index"] += cell_indices[:, 2]
     sort_hash["particle_id"] = particle_id
     order = psort.parallel_sort(sort_hash, return_index=True, comm=comm)
 
-    # Calculate local count of halos in each cell, and combine on rank 0
+    # Calculate local count of particles in each cell
     local_cell_counts = np.bincount(
         sort_hash["cell_index"], minlength=n_cell**3
     ).astype("int64")
-    cell_counts[ptype] = comm.reduce(local_cell_counts)
+    cell_counts[ptype] = comm.allreduce(local_cell_counts)
 
+    # Calculate how to partition particles
+    cells_per_file = np.zeros(n_file, dtype=int)
+    cells_per_file[:] = cell_counts[ptype].shape[0] // n_file
+    remainder = cell_counts[ptype].shape[0] % n_file
+    cells_per_file[:remainder] += 1
+    assert np.sum(cells_per_file) == n_cell**3
+    i_cell = np.cumsum(cells_per_file) - 1
+    elements_per_file = np.cumsum(cell_counts[ptype])[i_cell]
+    elements_per_file[1:] -= elements_per_file[:-1]
+    assert np.sum(elements_per_file) == np.sum(cell_counts[ptype])
+
+    # Calculate cell offsets
+    cell_files[ptype] = np.repeat(np.arange(n_file), cells_per_file)
+    absolute_offset = np.cumsum(cell_counts[ptype]) - cell_counts[ptype]
+    file_offset = (np.cumsum(elements_per_file) - elements_per_file)[cell_files[ptype]]
+    cell_offsets[ptype] = absolute_offset - file_offset
+
+    # Loop though the datasets, sort them spatially, convert their units,
+    # and write them to the output file
     for prop, prop_info in properties[f'PartType{ptype}'].items():
         if prop_info['conversion_factor'] is None:
             # The property is missing from snapshots, or we 
@@ -213,7 +246,7 @@ for ptype in ptypes:
         attrs.update(unit_attrs)
 
         # Write to the output file
-        elements_per_file = snap_file.get_elements_per_file(f"PartType{ptype}/ParticleIDs")
+        arr = psort.repartition(arr, elements_per_file, comm=comm)
         if create_file:
             mode = "w"
             create_file = False
@@ -265,20 +298,15 @@ for i_file in range(n_file):
         # Write cell information
         cells = outfile.create_group("Cells")
         cells_metadata = cells.create_group("Meta-data")
-        cells_metadata.attrs["dimension"] = 3
+        cells_metadata.attrs["dimension"] = np.array([n_cell, n_cell, n_cell])
         cells_metadata.attrs["nr_cells"] = n_cell ** 3
-        cells_metadata.attrs["size"] = cell_size_cmpc
-        # TODO
-        # cells.create_dataset("Centres", data=cellgrid.cell_centres)
+        cells_metadata.attrs["size"] = np.array([cell_size_cmpc, cell_size_cmpc, cell_size_cmpc])
+        cells.create_dataset("Centres", data=cell_centres)
 
         for ptype in ptypes:
             cells.create_dataset(f"Counts/PartType{ptype}", data=cell_counts[ptype])
-            # TODO: Is this correct since we have multiple files?
-            cells.create_dataset(
-                "Files/PartType{ptype}", data=np.zeros(n_cell ** 3, dtype="int32")
-            )
-            cell_offsets = np.cumsum(cell_counts[ptype]) - cell_counts[ptype]
-            cells.create_dataset(f"OffsetsInFile/PartType{ptype}", data=cell_offsets)
+            cells.create_dataset(f"Files/PartType{ptype}", data=cell_files[ptype])
+            cells.create_dataset(f"OffsetsInFile/PartType{ptype}", data=cell_offsets[ptype])
 
 
 
