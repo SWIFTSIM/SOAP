@@ -16,6 +16,7 @@ import domain_decomposition
 import read_vr
 import read_hbtplus
 import read_subfind
+import read_subfind_eagle
 import read_rockstar
 from combine_chunks import sub_snapnum
 
@@ -83,12 +84,16 @@ class SOCatalogue:
             halo_data = read_subfind.read_gadget4_catalogue(
                 comm, halo_basename, a_unit, registry, boxsize
             )
+        elif args.halo_format == "SubfindEagle":
+            halo_data = read_subfind_eagle.read_subfind_catalogue(
+                comm, halo_basename, a_unit, registry, boxsize
+            )
         elif args.halo_format == "Rockstar":
             halo_data = read_rockstar.read_rockstar_catalogue(
                 comm, halo_basename, a_unit, registry, boxsize
             )
         else:
-            raise RuntimeError(f"Halo format {format} not recognised!")
+            raise RuntimeError(f"Halo format {args.halo_format} not recognised!")
 
         # Add halo finder prefix to halo finder specific quantities:
         # This in case different finders use the same property names.

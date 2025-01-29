@@ -84,6 +84,8 @@ class RecentlyHeatedGasFilter:
            file. If this is false and the filter is called, it will throw an error.
         """
         self.initialised = initialised
+        if not self.initialised:
+            return
 
         H0 = unyt.unyt_quantity(
             cellgrid.cosmology["H0 [internal units]"],

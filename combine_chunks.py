@@ -154,10 +154,11 @@ def combine_chunks(
                 if args.halo_indices is not None
                 else np.ndarray(0, dtype=int)
             )
-            recently_heated_gas_metadata = recently_heated_gas_filter.get_metadata()
-            recently_heated_gas_params = params.create_group("RecentlyHeatedGasFilter")
-            for at, val in recently_heated_gas_metadata.items():
-                recently_heated_gas_params.attrs[at] = val
+            if recently_heated_gas_filter.initialised:
+                recently_heated_gas_metadata = recently_heated_gas_filter.get_metadata()
+                recently_heated_gas_params = params.create_group("RecentlyHeatedGasFilter")
+                for at, val in recently_heated_gas_metadata.items():
+                    recently_heated_gas_params.attrs[at] = val
             if cold_dense_gas_filter.initialised:
                 cold_dense_gas_params = params.create_group("ColdDenseGasFilter")
                 for at, val in cold_dense_gas_filter.get_metadata().items():

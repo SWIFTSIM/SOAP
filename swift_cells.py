@@ -212,7 +212,7 @@ class SWIFTCellGrid:
 
             # Determine if this is a snapshot or snipshot
             self.snipshot = (
-                self.swift_header_group["SelectOutput"].decode() == "Snipshot"
+                self.swift_header_group.get("SelectOutput", b'').decode() == "Snipshot"
             )
 
             # Read the critical density and attach units
@@ -456,12 +456,12 @@ class SWIFTCellGrid:
                     full_property_list = property_table.PropertyTable.full_property_list
                     for k, v in full_property_list.items():
                         # Skip property if it doesn't require this dataset
-                        if dataset not in v[8]:
+                        if dataset not in v.particle_properties:
                             continue
                         # Only print if the property is being calculated for some halo type
                         for halo_prop in halo_prop_list:
-                            if halo_prop.property_mask.get(v[0], False):
-                                print(f"  {v[0]}")
+                            if halo_prop.property_filters.get(v.name, False):
+                                print(f"  {v.name}")
                                 break
                     raise KeyError(
                         f"Can't find required dataset {dataset} in input file(s)!"
