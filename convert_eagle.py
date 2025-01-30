@@ -1,6 +1,49 @@
 #!/bin/env python
 
-# TODO: Document 
+"""
+convert_eagle.py
+
+This script converts EAGLE GADGET snapshots into SWIFT snapshots.
+Usage:
+
+  mpirun -- python convert_eagle.py \
+          --snapshot-basename=SNAPSHOT \
+          --output-basename=OUTPUT \
+          --membership-basename=MEMBERSHIP
+
+where SNAPSHOT is the EAGLE snapshot (use the particledata_*** files,
+since the normal snapshots don't store SubGroupNumber), and OUTPUT &
+MEMBERSHIP are the names of the output files. You must run with
+the same number of ranks as input files.
+
+This script has three mains parts:
+  We first have to determine the units system of the input snapshots,
+  and specify the units system of the output snapshots. This step
+  also includes copying over relevant cosmology information. This
+  is all done by reading the headers of the input snapshots
+
+  The second part is conversion of the datasets in the input snapshot
+  to the units system of the output snapshot. This is done by
+  creating a "properties" dictionary, which contains information
+  about how to convert every property. More information about the
+  structure of the dictionary can be found below in the code comments.
+
+  The third part is to sort the new snapshots spatially based on
+  the SWIFT cell structure. This step requires reading the coordinates
+  and IDs of every particle before we can save all the other properties.
+
+Since there are many different GADGET snapshot formats this script
+is not guaranteed to work for other simulations, but the basic
+structure should be the same.
+
+For EAGLE the information about which subhalo each particle is bound
+to can be found in the particledata_*** files. We therefore use these
+files for this script rather than the full snapshots. This allows us
+to easily output the membership files that are also required to run
+SOAP. If you wanted to use the full snapshots you could obtain the
+the SubGroup number by matching with the particledata_*** files based
+on ParticleID.
+"""
 
 import argparse
 import collections
@@ -81,7 +124,6 @@ a = comm.bcast(a)
 h = comm.bcast(h)
 box_size_cmpc = comm.bcast(box_size_cmpc)
 
-# TODO: Can we run with less ranks than files?
 assert comm_size == n_file
 
 # Specify the unit system of the output SWIFT snapshot
@@ -125,6 +167,61 @@ if comm_rank == 0:
 else:
     reg = None
 reg = comm.bcast(reg)
+
+# Extract information required for headers of output SWIFT snapshot
+if comm_rank == 0:
+    with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
+        runtime = infile['RuntimePars']
+        parameters_header = {
+            "Gravity:comoving_DM_softening": runtime.attrs['SofteningHalo'],
+            "Gravity:max_physical_DM_softening": runtime.attrs['SofteningHaloMaxPhys'],
+            "Gravity:comoving_baryon_softening": runtime.attrs['SofteningGas'],
+            "Gravity:max_physical_baryon_softening": runtime.attrs['SofteningGasMaxPhys'],
+        }
+
+        # Check units are indeed what we are assuming below, since HO,
+        # BoxSize, etc must match with SWIFT internal units
+        snap_L_in_cm = (1 * unyt.Mpc).to('cm').value
+        assert np.isclose(units_header['Unit length in cgs (U_L)'][0], snap_L_in_cm)
+        snap_M_in_g = (10**10 * unyt.Msun).to('g').value
+        assert np.isclose(units_header['Unit mass in cgs (U_M)'][0], snap_M_in_g)
+        snap_V = (1 * unyt.km / unyt.s).to('cm/s').value
+        snap_t_in_s = snap_L_in_cm / snap_V
+        assert np.isclose(units_header['Unit time in cgs (U_t)'][0], snap_t_in_s)
+
+        # Cosmology
+        header = infile['Header']
+        z = header.attrs['Redshift']
+        H = astropy.cosmology.Planck13.H(z).value
+        G = const_internal_header["newton_G"][0]
+        critical_density = 3 * (H ** 2) / (8 * np.pi * G)
+        cosmology_header = {
+            'Omega_b': header.attrs['OmegaBaryon'],
+            'Omega_m': header.attrs['Omega0'],
+            'Omega_k': 0,
+            'Omega_nu_0': 0,
+            'Omega_r': astropy.cosmology.Planck13.Ogamma(z),
+            'Omega_g': astropy.cosmology.Planck13.Ogamma(z),
+            'Omega_lambda': header.attrs['OmegaLambda'],
+            'Redshift': z,
+            'H0 [internal units]': h * 100,
+            'H [internal units]': H,
+            'Critical density [internal units]': critical_density,
+            'Scale-factor': header.attrs['ExpansionFactor'],
+            'h': h,
+            'w': -1,
+            'w_0': -1,
+            'w_a': 0,
+        }
+        swift_header = {
+            'BoxSize': [box_size_cmpc, box_size_cmpc, box_size_cmpc],
+            'NumFilesPerSnapshot': [n_file],
+            'NumPartTypes': [max(ptypes)+1],
+            'Scale-factor': [header.attrs['ExpansionFactor']],
+            'Dimension': [3],
+            'Redshift': [z],
+            'RunName': snap_filename.encode(),
+        }
 
 
 # The information in this dictionary is used to convert the datasets in
@@ -333,65 +430,10 @@ if comm_rank == 0:
 
         # Load DM mass from mass table
         if 'Mass' in properties.get(f'PartType1', {}):
-            dm_mass = infile['Header'].attrs['MassTable'][1]
+            dm_mass = infile['Header'].attrs['MassTable'][1] / h
             properties['PartType1']['Mass']['conversion_factor'] = dm_mass
 properties = comm.bcast(properties)
 
-
-# Extract information required for header of output SWIFT snapshot
-if comm_rank == 0:
-    with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
-        runtime = infile['RuntimePars']
-        parameters_header = {
-            "Gravity:comoving_DM_softening": runtime.attrs['SofteningHalo'],
-            "Gravity:max_physical_DM_softening": runtime.attrs['SofteningHaloMaxPhys'],
-            "Gravity:comoving_baryon_softening": runtime.attrs['SofteningGas'],
-            "Gravity:max_physical_baryon_softening": runtime.attrs['SofteningGasMaxPhys'],
-        }
-
-        # Check units are indeed what we are assuming below, since HO,
-        # BoxSize, etc must match with SWIFT internal units
-        snap_L_in_cm = (1 * unyt.Mpc).to('cm').value
-        assert np.isclose(units_header['Unit length in cgs (U_L)'][0], snap_L_in_cm)
-        snap_M_in_g = (10**10 * unyt.Msun).to('g').value
-        assert np.isclose(units_header['Unit mass in cgs (U_M)'][0], snap_M_in_g)
-        snap_V = (1 * unyt.km / unyt.s).to('cm/s').value
-        snap_t_in_s = snap_L_in_cm / snap_V
-        assert np.isclose(units_header['Unit time in cgs (U_t)'][0], snap_t_in_s)
-
-        # Cosmology
-        header = infile['Header']
-        z = header.attrs['Redshift']
-        H = astropy.cosmology.Planck13.H(z).value
-        G = const_internal_header["newton_G"][0]
-        critical_density = 3 * (H ** 2) / (8 * np.pi * G)
-        cosmology_header = {
-            'Omega_b': header.attrs['OmegaBaryon'],
-            'Omega_m': header.attrs['Omega0'],
-            'Omega_k': 0,
-            'Omega_nu_0': 0,
-            'Omega_r': astropy.cosmology.Planck13.Ogamma(z),
-            'Omega_g': astropy.cosmology.Planck13.Ogamma(z),
-            'Omega_lambda': header.attrs['OmegaLambda'],
-            'Redshift': z,
-            'H0 [internal units]': h * 100,
-            'H [internal units]': H,
-            'Critical density [internal units]': critical_density,
-            'Scale-factor': header.attrs['ExpansionFactor'],
-            'h': h,
-            'w': -1,
-            'w_0': -1,
-            'w_a': 0,
-        }
-        swift_header = {
-            'BoxSize': [box_size_cmpc, box_size_cmpc, box_size_cmpc],
-            'NumFilesPerSnapshot': [n_file],
-            'NumPartTypes': [max(ptypes)+1],
-            'Scale-factor': [header.attrs['ExpansionFactor']],
-            'Dimension': [3],
-            'Redshift': [z],
-            'RunName': snap_filename.encode(),
-        }
 
 # Define cell structure required for SWIFT output
 n_cell = 16

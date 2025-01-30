@@ -62,6 +62,10 @@ def combine_chunks(
         halo_index = scratch_file.read("InputHalos/HaloCatalogueIndex")
         cell_indices = (halo_cofp // cellgrid.cell_size).value.astype("int64")
         assert cellgrid.dimension[0] >= cellgrid.dimension[1] >= cellgrid.dimension[2]
+        # Assert that all halos are within the box
+        assert np.min(cell_indices) >= 0
+        for i_cell in range(3):
+            assert np.max(cell_indices[:, i_cell]) < cellgrid.dimension[i_cell]
         # Sort first based on position, then on catalogue index
         sort_hash_dtype = [("cell_index", np.int64), ("catalogue_index", np.int64)]
         sort_hash = np.zeros(cell_indices.shape[0], dtype=sort_hash_dtype)
@@ -70,7 +74,6 @@ def combine_chunks(
         sort_hash["cell_index"] += cell_indices[:, 2]
         sort_hash["catalogue_index"] = halo_index
         order = psort.parallel_sort(sort_hash, return_index=True, comm=comm_world)
-        del halo_cofp
 
         # Calculate local count of halos in each cell, and combine on rank 0
         local_cell_counts = np.bincount(
@@ -78,6 +81,12 @@ def combine_chunks(
         ).astype("int64")
         assert local_cell_counts.shape[0] == np.prod(cellgrid.dimension)
         cell_counts = comm_world.reduce(local_cell_counts)
+
+        # Free up some memory
+        del halo_cofp
+        del halo_index
+        del cell_indices
+        del sort_hash
 
     # Determine total number of halos
     total_nr_halos = comm_world.allreduce(len(order))

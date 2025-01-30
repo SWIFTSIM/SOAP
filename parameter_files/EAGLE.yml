@@ -1,0 +1,94 @@
+# Values in this section are substituted into the other sections
+# The simulation name (box size and resolution) and snapshot will be appended
+# to these to get the full name of the input/output files/directories
+Parameters:
+  sim_dir: /snap7/scratch/dp004/dc-mcgi1
+  output_dir: /snap7/scratch/dp004/dc-mcgi1
+  scratch_dir: /snap7/scratch/dp004/dc-mcgi1
+
+# Location of the Swift snapshots:
+Snapshots:
+  # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
+  filename: "{sim_dir}/{sim_name}/swift_snapshots/swift_{snap_nr:03d}/snap_{snap_nr:03d}.{file_nr}.hdf5"
+
+# Which halo finder we're using, and base name for halo finder output files
+HaloFinder:
+  type: SubfindEagle
+  filename: "{sim_dir}/{sim_name}/subfind/groups_{snap_nr:03d}/subfind_tab_{snap_nr:03d}"
+
+GroupMembership:
+  # Where to write the group membership files
+  filename: "{sim_dir}/{sim_name}/SOAP_uncompressed/membership_{snap_nr:03d}/membership_{snap_nr:03d}.{file_nr}.hdf5"
+
+HaloProperties:
+  # Where to write the halo properties file
+  filename: "{output_dir}/{sim_name}/SOAP_uncompressed/halo_properties_{snap_nr:04d}.hdf5"
+  # Where to write temporary chunk output
+  chunk_dir: "{scratch_dir}/SOAP-tmp/"
+
+ApertureProperties:
+  properties:
+    StellarMass: true
+    TotalMass: true
+  variations:
+    exclusive_30_kpc:
+      inclusive: false
+      radius_in_kpc: 30.0
+    exclusive_50_kpc:
+      inclusive: false
+      radius_in_kpc: 50.0
+ProjectedApertureProperties:
+  properties:
+    {}
+  variations:
+    {}
+SOProperties:
+  properties:
+    SORadius: true
+    StellarMass: true
+    TotalMass: true
+  variations:
+    200_crit:
+      type: crit
+      value: 200.0
+SubhaloProperties:
+  properties:
+    CentreOfMass: true
+    EncloseRadius: true
+    NumberOfDarkMatterParticles: true
+    NumberOfGasParticles: true
+    NumberOfStarParticles: true
+    NumberOfBlackHoleParticles: true
+    MaximumCircularVelocity: true
+    StellarMass: true
+    TotalMass: true
+filters:
+  general:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfGasParticles
+      - BoundSubhalo/NumberOfDarkMatterParticles
+      - BoundSubhalo/NumberOfStarParticles
+      - BoundSubhalo/NumberOfBlackHoleParticles
+    combine_properties: sum
+  baryon:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfGasParticles
+      - BoundSubhalo/NumberOfStarParticles
+    combine_properties: sum
+  dm:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfDarkMatterParticles
+  gas:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfGasParticles
+  star:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfStarParticles
+calculations:
+  calculate_missing_properties: false
+  min_read_radius_cmpc: 0.5
