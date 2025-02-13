@@ -2438,7 +2438,7 @@ class PropertyTable:
             description="Energy flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
             lossy_compression_filter='FMantissa9',
             dmo_property=False,
-            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies'],
+            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies', 'PartType0/Temperatures'],
             output_physical=True,
             a_scale_exponent=0
         ),
@@ -2450,7 +2450,7 @@ class PropertyTable:
             description="Energy flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
             lossy_compression_filter='FMantissa9',
             dmo_property=False,
-            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies'],
+            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies', 'PartType0/Temperatures'],
             output_physical=True,
             a_scale_exponent=0
         ),
@@ -2462,7 +2462,7 @@ class PropertyTable:
             description="Energy flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
             lossy_compression_filter='FMantissa9',
             dmo_property=False,
-            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies'],
+            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies', 'PartType0/Temperatures'],
             output_physical=True,
             a_scale_exponent=0
         ),
@@ -2474,7 +2474,7 @@ class PropertyTable:
             description="Energy flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
             lossy_compression_filter='FMantissa9',
             dmo_property=False,
-            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies'],
+            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies', 'PartType0/Temperatures'],
             output_physical=True,
             a_scale_exponent=0
         ),
@@ -2486,7 +2486,7 @@ class PropertyTable:
             description="Momentum flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
             lossy_compression_filter='FMantissa9',
             dmo_property=False,
-            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies'],
+            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies', 'PartType0/Temperatures'],
             output_physical=True,
             a_scale_exponent=0
         ),
@@ -2498,7 +2498,7 @@ class PropertyTable:
             description="Momentum flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
             lossy_compression_filter='FMantissa9',
             dmo_property=False,
-            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies'],
+            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies', 'PartType0/Temperatures'],
             output_physical=True,
             a_scale_exponent=0
         ),
@@ -2510,7 +2510,7 @@ class PropertyTable:
             description="Momentum flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
             lossy_compression_filter='FMantissa9',
             dmo_property=False,
-            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies'],
+            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies', 'PartType0/Temperatures'],
             output_physical=True,
             a_scale_exponent=0
         ),
@@ -2522,7 +2522,7 @@ class PropertyTable:
             description="Momentum flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
             lossy_compression_filter='FMantissa9',
             dmo_property=False,
-            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies'],
+            particle_properties=['PartType0/Coordinates', 'PartType0/Masses', 'PartType0/Velocities', 'PartType0/InternalEnergies', 'PartType0/Temperatures'],
             output_physical=True,
             a_scale_exponent=0
         ),

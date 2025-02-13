@@ -1799,13 +1799,13 @@ def test_projected_aperture_properties():
     )
 
     pc_projected = ProjectedApertureProperties(
-        dummy_halos.get_cell_grid(), parameters, 30.0, category_filter, "basic"
+        dummy_halos.get_cell_grid(), parameters, 30.0, category_filter, "basic", [30.0]
     )
 
     # Create a filter that no halos will satisfy
     fail_filter = CategoryFilter(dummy_halos.get_filters({"general": 10000000}))
     pc_filter_test = ProjectedApertureProperties(
-        dummy_halos.get_cell_grid(), parameters, 30.0, fail_filter, "general"
+        dummy_halos.get_cell_grid(), parameters, 30.0, fail_filter, "general", [30.0]
     )
 
     for i in range(100):
@@ -1833,11 +1833,11 @@ def test_projected_aperture_properties():
             assert input_data == input_data_copy
 
             for proj in ["projx", "projy", "projz"]:
-                for prop in pc_calc.property_list:
-                    outputname = prop[1]
-                    size = prop[2]
-                    dtype = prop[3]
-                    unit_string = prop[4]
+                for prop in pc_calc.property_list.values():
+                    outputname = prop.name
+                    size = prop.shape
+                    dtype = prop.dtype
+                    unit_string = prop.unit
                     full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
                     assert full_name in halo_result
                     result = halo_result[full_name][0]
@@ -1851,9 +1851,9 @@ def test_projected_aperture_properties():
             # Check properties were not calculated for filtered halos
             if pc_name == "filter_test":
                 for proj in ["projx", "projy", "projz"]:
-                    for prop in pc_calc.property_list:
-                        outputname = prop[1]
-                        size = prop[2]
+                    for prop in pc_calc.property_list.values():
+                        outputname = prop.name
+                        size = prop.shape
                         full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
                         assert np.all(halo_result[full_name][0].value == np.zeros(size))
 
@@ -1877,6 +1877,7 @@ def test_projected_aperture_properties():
             30.0,
             category_filter,
             "basic",
+            [30.0],
         )
 
         halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
@@ -1901,11 +1902,11 @@ def test_projected_aperture_properties():
                 outputname = prop[1]
                 if not outputname == property:
                     continue
-                size = prop[2]
-                dtype = prop[3]
-                unit_string = prop[4]
-                physical = prop[10]
-                a_exponent = prop[11]
+                size = prop.size
+                dtype = prop.dtype
+                unit_string = prop.unit
+                physical = prop.output_physical
+                a_exponent = prop.a_scale_exponent
                 full_name = f"ProjectedAperture/30kpc/{proj}/{outputname}"
                 assert full_name in halo_result
                 result = halo_result[full_name][0]

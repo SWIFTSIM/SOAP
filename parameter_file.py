@@ -141,7 +141,7 @@ class ParameterFile:
                 else:
                     filters[property] = False
             if isinstance(filters[property], str):
-                assert (filters[property] in self.parameters['filters']) or (filters[property] == 'basic')
+                assert (filters[property] in self.parameters.get('filters', {})) or (filters[property] == 'basic')
             else:
                 assert filters[property] == False
 

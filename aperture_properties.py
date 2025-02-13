@@ -3641,6 +3641,7 @@ def test_aperture_properties():
         cold_dense_gas_filter,
         cat_filter,
         "basic",
+        [50.0],
     )
     pc_inclusive = InclusiveSphereProperties(
         dummy_halos.get_cell_grid(),
@@ -3651,6 +3652,7 @@ def test_aperture_properties():
         cold_dense_gas_filter,
         cat_filter,
         "basic",
+        [50.0],
     )
 
     # Create a filter that no halos will satisfy
@@ -3664,6 +3666,7 @@ def test_aperture_properties():
         cold_dense_gas_filter,
         fail_filter,
         "general",
+        [50.0],
     )
 
     # generate 100 random halos
@@ -3754,6 +3757,7 @@ def test_aperture_properties():
             cold_dense_gas_filter,
             cat_filter,
             "basic",
+            [50.0],
         )
         pc_inclusive = InclusiveSphereProperties(
             dummy_halos.get_cell_grid(),
@@ -3764,6 +3768,7 @@ def test_aperture_properties():
             cold_dense_gas_filter,
             cat_filter,
             "basic",
+            [50.0],
         )
 
         halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)

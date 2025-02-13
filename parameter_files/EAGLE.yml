@@ -28,6 +28,7 @@ HaloProperties:
 
 ApertureProperties:
   properties:
+    HalfMassRadiusStars: true
     StellarMass: true
     TotalMass: true
   variations:

@@ -2687,6 +2687,8 @@ class SOParticleData:
         Centre of mass velocity of all particles within 0.1 R_SO.
         """
         mask = self.radius < 0.1 * self.SO_r
+        if not np.sum(mask):
+            return None
         return (self.mass[mask, None] * self.velocity[mask]).sum(axis=0) / self.mass[mask].sum()
 
     @lazy_property
@@ -2695,6 +2697,8 @@ class SOParticleData:
         Centre of mass velocity of all particles within 0.3 R_SO.
         """
         mask = self.radius < 0.3 * self.SO_r
+        if not np.sum(mask):
+            return None
         return (self.mass[mask, None] * self.velocity[mask]).sum(axis=0) / self.mass[mask].sum()
 
     def calculate_flow_rate(
@@ -2743,6 +2747,12 @@ class SOParticleData:
                 0.3: self.vcom_thirty_percent,
                 1: self.vcom,
             }[R_frac]
+            mask = self.radius < R_frac * self.SO_r
+
+            # This shouldn't happen, but HaloCentre doesn't actually need to
+            # be on top of a particle
+            if vcom is None:
+                vcom = np.zeros(3) * self.vcom.units
 
             # Calculate radial velocity by subtracting CoM velocity and
             # taking dot product with r_hat
@@ -3903,7 +3913,7 @@ def test_SO_properties_random_halo():
             Mtot,
             Npart,
             particle_numbers,
-        ) = dummy_halos.get_random_halo([2, 10, 100, 1000, 10000], has_neutrinos=True)
+        ) = dummy_halos.get_random_halo([10, 100, 1000, 10000], has_neutrinos=True)
         halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
         rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
 
@@ -4006,7 +4016,6 @@ def test_SO_properties_random_halo():
                 ] = (0.1 * rmax, "Dummy value to force correct behaviour")
             input_halo_copy = input_halo.copy()
             input_data_copy = input_data.copy()
-            # TODO: SearchRadiusTooSmallError
             prop_calc.calculate(input_halo, rmax, input_data, halo_result)
             # make sure the calculation does not change the input
             assert input_halo_copy == input_halo

@@ -2183,14 +2183,6 @@ def test_subhalo_properties():
         stellar_age_calculator,
         cat_filter,
     )
-    property_calculator_both = SubhaloProperties(
-        dummy_halos.get_cell_grid(),
-        parameters,
-        recently_heated_gas_filter,
-        stellar_age_calculator,
-        cat_filter,
-        False,
-    )
     # generate 100 random halos
     for i in range(100):
         input_halo, data, _, _, _, _ = dummy_halos.get_random_halo(
@@ -2252,14 +2244,6 @@ def test_subhalo_properties():
             recently_heated_gas_filter,
             stellar_age_calculator,
             cat_filter,
-        )
-        property_calculator_both = SubhaloProperties(
-            dummy_halos.get_cell_grid(),
-            single_parameters,
-            recently_heated_gas_filter,
-            stellar_age_calculator,
-            cat_filter,
-            False,
         )
         halo_result = {}
         for subhalo_name, prop_calc in [

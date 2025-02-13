@@ -571,6 +571,14 @@ class DummyHaloGenerator:
                 ),
                 "Dummy SO Ngas for filter",
             ),
+            f"BoundSubhalo/EncloseRadius": (
+                unyt.unyt_array(
+                    100,
+                    dtype=np.float32,
+                    units=unyt.kpc,
+                ),
+                "Dummy enclose radius for ExclusiveSphere",
+            ),
         }
 
     @staticmethod
