@@ -42,7 +42,7 @@ SOProperties:
     CentreOfMass: true
     CentreOfMassVelocity: true
     Concentration: true
-    ConcentrationSoft: true
+    ConcentrationUnsoftened: true
     MassFractionSatellites: true
     MassFractionExternal: true
     NumberOfDarkMatterParticles: true
@@ -64,9 +64,12 @@ SubhaloProperties:
     CentreOfMass: true
     CentreOfMassVelocity: true
     NumberOfDarkMatterParticles: true
+    NumberOfGasParticles: true
+    NumberOfStarParticles: true
+    NumberOfBlackHoleParticles: true
     MaximumCircularVelocity: true
-    MaximumCircularVelocitySoft: true
-    MaximumCircularVelocityRadius: true
+    MaximumCircularVelocityUnsoftened: true
+    MaximumCircularVelocityRadiusUnsoftened: true
     SpinParameter: true
     TotalMass: true
   variations:
@@ -100,5 +103,8 @@ filters:
     properties:
       - BoundSubhalo/NumberOfStarParticles
 calculations:
-  recalculate_xrays: false
   calculate_missing_properties: false
+  min_read_radius_cmpc: 5
+  recently_heated_gas_filter:
+    delta_time_myr: 15
+    use_AGN_delta_T: true

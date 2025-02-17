@@ -331,7 +331,7 @@ def _test_periodic_box(
             print(f"    OK")
         else:
             print(f"    {nr_failures} of {nr_queries*comm_size} queries FAILED")
-            comm.Abort()
+            comm.Abort(1)
 
 
 @pytest.mark.mpi

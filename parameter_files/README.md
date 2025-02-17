@@ -22,6 +22,13 @@ This section defines the format and location of the SWIFT simulation snapshots. 
 - **filename**: Template for the snapshot files. Use `{snap_nr:04d}` for the snapshot number and `{file_nr}` for the file number, e.g. `"{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"`
 - **fof_filename**: Optional. Path to snapshots with FOF (Friends-of-Friends) IDs if FOF has been re-run. This is only used by the `group_membership.py` script as the values are then stored in the membership files.
 
+### Extra input
+
+This section is optional. If you wish to run SOAP with datasets not present in the original snapshots, you can pass them as extra input files.
+If a dataset is present in both the snapshot and the extra input files, the values from the extra input will be used. Multiple extra input files can be passed.
+
+- **extra_input**: Template for extra input file paths, e.g. `"{sim_dir}/{sim_name}/recalculated_xray/xray_{snap_nr:04d}/xray_{snap_nr:04d}.{file_nr}.hdf5"`
+
 ### Halo Finder
 
 Settings for the halo finding algorithm and output file locations.
@@ -182,17 +189,15 @@ defined_constants:
 
 Contains information about how to run SOAP
 
-- **recalculate_xrays**: Boolen value. The xrays values in FLAMINGO were incorrect, and so SOAP is able to recompute the values if required.
-- **xray_table_path**: The path to the xray tables to use when recomputing xrays.
 - **min_read_radius_cmpc**: SOAP makes an initial guess of the radius around each halo to read in. 
 - **calculate_missing_properties**: Boolen value. If set to true then SOAP will calculate any properties which are not listed in the parameter file. If set to false then SOAP will ignore these properties 
 - **reduced_snapshots**: Optional. We create reduced snapshots where we keep the particles within the virial radius of certain objects. The values here determine which halos to keep.
   - **min_halo_mass**: The minimumum M200 halo mass to keep
   - **halo_bin_size_dex**: The size of the halo mass bins
   - **halos_per_bin**: The number of objects we want in each halo mass bin.
-- **recently_heated_gas_filter**: How to determine which gas particles count as being recently heated.
+- **recently_heated_gas_filter**: Optional. How to determine which gas particles count as being recently heated.
   - **delta_time_myr**: For particles to be recently heated they must have experienced an AGN event the past x Myr.
   - **use_AGN_delta_T**: If set to true then for particles to be considered recently heated they must have a temperature close to AGN_delta_T
-- **cold_dense_gas_filter**: How to determine which gas particles count as being cold & dense
+- **cold_dense_gas_filter**: Optional. How to determine which gas particles count as being cold & dense
   - **maximum_temperature_K**: Value above which gas is not considered to be cold
   - **minimum_hydrogen_number_density_cm3**: Value below which gas gas is not considered to be dense

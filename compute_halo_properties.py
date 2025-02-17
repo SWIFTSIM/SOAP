@@ -13,6 +13,7 @@ comm_world_size = comm_world.Get_size()
 import os
 import os.path
 import time
+import traceback
 import numpy as np
 import unyt
 
@@ -35,8 +36,6 @@ from cold_dense_gas_filter import ColdDenseGasFilter
 from category_filter import CategoryFilter
 from parameter_file import ParameterFile
 from mpi_timer import MPITimer
-
-from xray_calculator import XrayCalculator
 
 
 # Set numpy to raise divide by zero, overflow and invalid operation errors as exceptions
@@ -120,9 +119,14 @@ def compute_halo_properties():
         else:
             swift_filename_ref = None
             extra_input_ref = None
-        cellgrid = swift_cells.SWIFTCellGrid(
-            swift_filename, extra_input, swift_filename_ref, extra_input_ref
-        )
+        try:
+            cellgrid = swift_cells.SWIFTCellGrid(
+                swift_filename, extra_input, swift_filename_ref, extra_input_ref
+            )
+        except Exception as err_msg:
+            print(err_msg)
+            # Thrown if there are issues with the input files
+            comm_world.Abort(1)
         parsec_cgs = cellgrid.constants["parsec"]
         solar_mass_cgs = cellgrid.constants["solar_mass"]
         a = cellgrid.a
@@ -153,16 +157,28 @@ def compute_halo_properties():
         parameter_file.get_defined_constants()
     )
 
-    recently_heated_params = args.calculations["recently_heated_gas_filter"]
-    if (not args.dmo) and (recently_heated_params["use_AGN_delta_T"]):
-        assert cellgrid.AGN_delta_T.value != 0, "Invalid value for AGN_delta_T"
-    recently_heated_gas_filter = RecentlyHeatedGasFilter(
-        cellgrid,
-        float(recently_heated_params["delta_time_myr"]) * unyt.Myr,
-        float(recently_heated_params["use_AGN_delta_T"]),
-        delta_logT_min=-1.0,
-        delta_logT_max=0.3,
-    )
+    # Try to load parameters for RecentlyHeatedGasFilter. If a property that uses the
+    # filter is calculated when the parameters could not be found, the code will
+    # crash.
+    try:
+        recently_heated_params = args.calculations["recently_heated_gas_filter"]
+        if (not args.dmo) and (recently_heated_params["use_AGN_delta_T"]):
+            assert cellgrid.AGN_delta_T.value != 0, "Invalid value for AGN_delta_T"
+        recently_heated_gas_filter = RecentlyHeatedGasFilter(
+            cellgrid,
+            float(recently_heated_params["delta_time_myr"]) * unyt.Myr,
+            float(recently_heated_params["use_AGN_delta_T"]),
+            True,
+            delta_logT_min=-1.0,
+            delta_logT_max=0.3,
+        )
+    except KeyError:
+        recently_heated_gas_filter = RecentlyHeatedGasFilter(
+            cellgrid,
+            0 * unyt.Myr,
+            False,
+            False,
+        )
 
     stellar_age_calculator = StellarAgeCalculator(cellgrid)
 
@@ -402,56 +418,12 @@ def compute_halo_properties():
             print("Running in snipshot mode")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties()
-        if parameter_file.recalculate_xrays():
-            print(
-                f"Recalculating xray properties using table: {parameter_file.get_xray_table_path()}"
-            )
         category_filter.print_filters()
 
     # Ensure output dir exists
     if comm_world_rank == 0:
         lustre.ensure_output_dir(args.output_file)
     comm_world.barrier()
-
-    if comm_world_rank == 0:
-        xray_bands = [
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-            "erosita-low",
-            "erosita-high",
-            "ROSAT",
-        ]
-        observing_types = [
-            "energies_intrinsic",
-            "energies_intrinsic",
-            "energies_intrinsic",
-            "photons_intrinsic",
-            "photons_intrinsic",
-            "photons_intrinsic",
-            "energies_intrinsic_restframe",
-            "energies_intrinsic_restframe",
-            "energies_intrinsic_restframe",
-            "photons_intrinsic_restframe",
-            "photons_intrinsic_restframe",
-            "photons_intrinsic_restframe",
-        ]
-        xray_calculator = XrayCalculator(
-            cellgrid.z,
-            parameter_file.get_xray_table_path(),
-            xray_bands,
-            observing_types,
-            parameter_file.recalculate_xrays(),
-        )
-    else:
-        xray_calculator = None
-    xray_calculator = comm_world.bcast(xray_calculator)
 
     # Read in the halo catalogue:
     # All ranks read the file(s) in then gather to rank 0. Also computes search radius for each halo.
@@ -521,15 +493,19 @@ def compute_halo_properties():
         timings,
         args.max_ranks_reading,
         scratch_file_format,
-        xray_calculator,
     )
-    metadata = task_queue.execute_tasks(
-        tasks,
-        args=task_args,
-        comm_all=comm_world,
-        comm_master=comm_inter_node,
-        comm_workers=comm_intra_node,
-    )
+    # Catch any errors so we can call MPI_ABORT
+    try:
+        metadata = task_queue.execute_tasks(
+            tasks,
+            args=task_args,
+            comm_all=comm_world,
+            comm_master=comm_inter_node,
+            comm_workers=comm_intra_node,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        comm_world.Abort(1)
 
     # Can stop the halo request thread now that all chunk tasks have executed
     so_cat.stop_request_thread()

@@ -160,8 +160,9 @@ class SWIFTCellGrid:
         if snap_filename_ref is None:
             self.snapshot_datasets = SnapshotDatasets([snap_filename] + extra_filenames)
         else:
-            self.snapshot_datasets = SnapshotDatasets([snap_filename_ref] + extra_filenames_ref)
-
+            self.snapshot_datasets = SnapshotDatasets(
+                [snap_filename_ref] + extra_filenames_ref
+            )
 
         # Open the input file
         with h5py.File(snap_filename.format(file_nr=0), "r") as infile:
@@ -360,8 +361,9 @@ class SWIFTCellGrid:
                                 f"Using {ptype}/{name} from extra-input files instead of snapshot"
                             )
                         if name in self.extra_metadata_combined[ptype]:
-                            # TODO Throw error (& test)
-                            pass
+                            raise Exception(
+                                f"{ptype}/{name} is present in multiple extra-input files"
+                            )
                     self.extra_metadata_combined[ptype].update(file_metadata[ptype])
 
         # Scan reference snapshot for missing particle types (e.g. stars or black holes at high z)
@@ -392,8 +394,6 @@ class SWIFTCellGrid:
                         for ptype in file_metadata:
                             if ptype not in self.extra_metadata_ref_combined:
                                 self.extra_metadata_ref_combined[ptype] = {}
-                            # TODO Check datasets do not appear in multiple extra-input files, because in
-                            # that case we wouldn't know which one to use
                             self.extra_metadata_ref_combined[ptype].update(
                                 file_metadata[ptype]
                             )
@@ -403,7 +403,6 @@ class SWIFTCellGrid:
         comm_size = comm.Get_size()
         if comm_rank == 0:
             pass
-            # TODO: Check the units
 
         # Loop over the different extra-input files, checking they have the
         # same number of particles as are in the snapshot
@@ -413,29 +412,35 @@ class SWIFTCellGrid:
             first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
         ):
             npart_snapshot = {}
-            with h5py.File(self.snap_filename.format(file_nr=file_nr), 'r') as snap_file:
+            with h5py.File(
+                self.snap_filename.format(file_nr=file_nr), "r"
+            ) as snap_file:
                 for parttype in self.snap_metadata:
                     # Skip if this particle type is not present in the snapshot
                     if len(self.snap_metadata[parttype]) == 0:
                         continue
                     # Pick the first dataset, assume all others are the same size
                     dset = list(self.snap_metadata[parttype].keys())[0]
-                    npart_snapshot[parttype] = snap_file[f'{parttype}/{dset}'].shape[0]
+                    npart_snapshot[parttype] = snap_file[f"{parttype}/{dset}"].shape[0]
 
-            for extra_filename, extra_metadata in zip(self.extra_filenames, self.extra_metadata):
-                with h5py.File(extra_filename.format(file_nr=file_nr), 'r') as extra_file:
+            for extra_filename, extra_metadata in zip(
+                self.extra_filenames, self.extra_metadata
+            ):
+                with h5py.File(
+                    extra_filename.format(file_nr=file_nr), "r"
+                ) as extra_file:
                     for parttype in self.snap_metadata:
                         # Skip if this particle type is not present in the extra files
                         if len(extra_metadata[parttype]) == 0:
                             continue
                         # Check the first dataset has the correct size
                         dset = list(extra_metadata[parttype].keys())[0]
-                        npart_extra = extra_file[f'{parttype}/{dset}'].shape[0]
+                        npart_extra = extra_file[f"{parttype}/{dset}"].shape[0]
                         if npart_snapshot[parttype] != npart_extra:
-                            print(f'Incorrect number of {parttype} in {extra_filename}')
+                            print(f"Incorrect number of {parttype} in {extra_filename}")
                             comm.Abort()
 
-    def check_datasets_exist(self, required_datasets):
+    def check_datasets_exist(self, required_datasets, halo_prop_list):
         # Check we have all the fields needed for each property
         # Doing it at this point rather than in masked cells since we want
         # to output a list of properties that require the missing fields
@@ -450,8 +455,14 @@ class SWIFTCellGrid:
                     print(f"The following properties require {dataset}:")
                     full_property_list = property_table.PropertyTable.full_property_list
                     for k, v in full_property_list.items():
-                        if dataset in v[8]:
-                            print(f"  {v[0]}")
+                        # Skip property if it doesn't require this dataset
+                        if dataset not in v[8]:
+                            continue
+                        # Only print if the property is being calculated for some halo type
+                        for halo_prop in halo_prop_list:
+                            if halo_prop.property_mask.get(v[0], False):
+                                print(f"  {v[0]}")
+                                break
                     raise KeyError(
                         f"Can't find required dataset {dataset} in input file(s)!"
                     )
@@ -645,9 +656,8 @@ class SWIFTCellGrid:
                 for name in property_names[ptype]:
 
                     # Get metadata for array to allocate in memory
-                    if (
-                        (self.extra_filenames is not None)
-                        and (name in self.extra_metadata_combined[ptype])
+                    if (self.extra_filenames is not None) and (
+                        name in self.extra_metadata_combined[ptype]
                     ):
                         units, dtype, shape = self.extra_metadata_combined[ptype][name]
                     elif name in self.snap_metadata[ptype]:

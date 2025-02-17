@@ -1453,6 +1453,19 @@ class SubhaloParticleData:
         return self.gas_SFR.sum()
 
     @lazy_property
+    def AveragedStarFormationRate(self) -> unyt.unyt_array:
+        """
+        Averaged star formation rates of gas particles. Averaging times are
+        set by the value of 'recording_triggers' in the SWIFT parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[
+            self.gas_mask_all
+        ]
+        return np.sum(avg_SFR, axis=0)
+
+    @lazy_property
     def gas_metal_mass(self) -> unyt.unyt_array:
         """
         Metal masses of gas particles in the subhalo.
@@ -1866,6 +1879,7 @@ class SubhaloProperties(HaloProperty):
             "Tgas_no_agn",
             "Tgas_no_cool_no_agn",
             "SFR",
+            "AveragedStarFormationRate",
             "StellarLuminosity",
             "CorrectedStellarLuminosity",
             "CorrectedStellarLuminosityWithDust",
@@ -2129,7 +2143,7 @@ class SubhaloProperties(HaloProperty):
             )
         elif Ntot > Nexpected:
             # This would indicate a bug somewhere
-            raise RuntimeError("Found more particles than expected!")
+            raise RuntimeError(f'Found more particles than expected for halo {input_halo["index"]}')
 
         # Add these properties to the output
         for prop in self.property_list:

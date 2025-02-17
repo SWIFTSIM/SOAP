@@ -238,6 +238,9 @@ ApertureProperties:
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
+    AveragedStarFormationRate:
+      snapshot: true
+      snipshot: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInIron:
       snapshot: true
@@ -396,6 +399,9 @@ ProjectedApertureProperties:
     ProjectedStellarInertiaTensorNoniterative: false
     ProjectedStellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
+    AveragedStarFormationRate:
+      snapshot: true
+      snipshot: false
     StarFormingGasMassFractionInMetals: true
     StellarInitialMass: true
     StellarLuminosity: true
@@ -520,7 +526,11 @@ SOProperties:
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
+    MaximumCircularVelocity: true
     StarFormationRate: true
+    AveragedStarFormationRate:
+      snapshot: true
+      snipshot: false
     StarFormingGasMassFractionInMetals: true
     StellarCentreOfMass: true
     StellarCentreOfMassVelocity: true
@@ -561,6 +571,27 @@ SOProperties:
     SpectroscopicLikeTemperatureCoreExcision: false
     SpectroscopicLikeTemperatureWithoutRecentAGNHeating: true
     SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: false
+    DarkMatterMassFlowRate: true
+    ColdGasMassFlowRate: true
+    CoolGasMassFlowRate: true
+    WarmGasMassFlowRate: true
+    HotGasMassFlowRate: true
+    HIMassFlowRate:
+      snapshot: true
+      snipshot: false
+    H2MassFlowRate:
+      snapshot: true
+      snipshot: false
+    MetalMassFlowRate: true
+    StellarMassFlowRate: true
+    ColdGasEnergyFlowRate: true
+    CoolGasEnergyFlowRate: true
+    WarmGasEnergyFlowRate: true
+    HotGasEnergyFlowRate: true
+    ColdGasMomentumFlowRate: true
+    CoolGasMomentumFlowRate: true
+    WarmGasMomentumFlowRate: true
+    HotGasMomentumFlowRate: true
   variations:
     200_crit:
       type: crit
@@ -692,6 +723,9 @@ SubhaloProperties:
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
+    AveragedStarFormationRate:
+      snapshot: true
+      snipshot: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInMetals: true
     StellarInitialMass: true
@@ -743,7 +777,6 @@ defined_constants:
   C_O_sun: 0.549
   Mg_H_sun: 3.98e-5
 calculations:
-  recalculate_xrays: false
   min_read_radius_cmpc: 0.5
   calculate_missing_properties: true
   recently_heated_gas_filter:

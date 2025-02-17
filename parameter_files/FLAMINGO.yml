@@ -30,6 +30,9 @@ GroupMembership:
   # Where to write the group membership files
   filename: "{sim_dir}/{sim_name}/SOAP-HBT/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
 
+ExtraInput:
+  xray_filename: "{output_dir}/{sim_name}/recalculated_xray/xray_{snap_nr:04d}/xray_{snap_nr:04d}.{file_nr}.hdf5"
+
 HaloProperties:
   # Where to write the halo properties file
   filename: "{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/halo_properties_{snap_nr:04d}.hdf5"
@@ -148,6 +151,7 @@ ApertureProperties:
     NumberOfStarParticles: true
     SpinParameter: true
     StarFormationRate: true
+    AveragedStarFormationRate: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInIron: true
     StarFormingGasMassFractionInMetals: true
@@ -281,6 +285,7 @@ ProjectedApertureProperties:
     ProjectedStellarInertiaTensorNoniterative: true
     ProjectedStellarInertiaTensorReducedNoniterative: true
     StarFormationRate: true
+    AveragedStarFormationRate: false
     StarFormingGasMassFractionInMetals: false
     StellarInitialMass: true
     StellarLuminosity: true
@@ -386,6 +391,7 @@ SOProperties:
     SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: true
     SpinParameter: true
     StarFormationRate: true
+    AveragedStarFormationRate: false
     StarFormingGasMassFractionInMetals: true
     StellarCentreOfMass: true
     StellarCentreOfMassVelocity: true
@@ -430,6 +436,23 @@ SOProperties:
     XRayPhotonLuminosityInRestframeCoreExcision: true
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: true
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: true
+    DarkMatterMassFlowRate: false
+    ColdGasMassFlowRate: false
+    CoolGasMassFlowRate: false
+    WarmGasMassFlowRate: false
+    HotGasMassFlowRate: false
+    HIMassFlowRate: false
+    H2MassFlowRate: false
+    MetalMassFlowRate: false
+    StellarMassFlowRate: false
+    ColdGasEnergyFlowRate: false
+    CoolGasEnergyFlowRate: false
+    WarmGasEnergyFlowRate: false
+    HotGasEnergyFlowRate: false
+    ColdGasMomentumFlowRate: false
+    CoolGasMomentumFlowRate: false
+    WarmGasMomentumFlowRate: false
+    HotGasMomentumFlowRate: false
   variations:
     200_crit:
       type: crit
@@ -558,8 +581,10 @@ SubhaloProperties:
     GasInertiaTensorReducedNoniterative: true
     DarkMatterInertiaTensorReducedNoniterative: true
     StellarInertiaTensorReducedNoniterative: true
+    MaximumCircularVelocity: true
     SpinParameter: true
     StarFormationRate: true
+    AveragedStarFormationRate: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInMetals: true
     StellarInitialMass: true
@@ -606,8 +631,6 @@ defined_constants:
   O_H_sun: 4.9e-4
   Fe_H_sun: 2.82e-5
 calculations:
-  recalculate_xrays: true
-  xray_table_path: /cosma8/data/dp004/flamingo/Tables/Xray/X_Ray_table_metals_full.hdf5
   min_read_radius_cmpc: 5
   calculate_missing_properties: true
   reduced_snapshots:

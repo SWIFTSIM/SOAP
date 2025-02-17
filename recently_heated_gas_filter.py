@@ -54,6 +54,7 @@ class RecentlyHeatedGasFilter:
         cellgrid: SWIFTCellGrid,
         delta_time: unyt.unyt_quantity,
         use_AGN_delta_T: bool,
+        initialised: bool,
         delta_logT_min: float = -1.0,
         delta_logT_max: float = 0.3,
     ):
@@ -78,7 +79,12 @@ class RecentlyHeatedGasFilter:
          - delta_logT_max: float
            Upper limit on the temperature (dex above AGN_delta_T) above which
            gas is too hot to be considered "heated by AGN".
+         - initialised: bool
+           If the parameters required for the filter where found in the parameter
+           file. If this is false and the filter is called, it will throw an error.
         """
+        self.initialised = initialised
+
         H0 = unyt.unyt_quantity(
             cellgrid.cosmology["H0 [internal units]"],
             units="1/snap_time",
@@ -160,6 +166,8 @@ class RecentlyHeatedGasFilter:
 
         Returns a mask that can be used to index particle arrays.
         """
+        if not self.initialised:
+            raise RuntimeError("RecentlyHeatedGasFilter was not initialised")
         mask = lastAGNfeedback >= self.a_limit
         if self.use_AGN_delta_T:
             mask = mask & (temperature >= self.Tmin) & (temperature <= self.Tmax)

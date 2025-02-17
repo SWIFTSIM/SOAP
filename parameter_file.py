@@ -112,13 +112,15 @@ class ParameterFile:
             # Property is listed in the parameter file for this halo_type
             if property in self.parameters[halo_type]["properties"]:
                 should_calculate = self.parameters[halo_type]["properties"][property]
-                # should_calculate can be a dict if we want different behaviour for snapshots/snipshots
+                # should_calculate is a dict if we want different behaviour for snapshots/snipshots
                 if isinstance(should_calculate, dict):
                     if self.snipshot:
-                        should_calculate = should_calculate["snipshot"]
+                        mask[property] = should_calculate["snipshot"]
                     else:
-                        should_calculate = should_calculate["snapshot"]
-                mask[property] = should_calculate
+                        mask[property] = should_calculate["snapshot"]
+                # otherwise should_calculate is a bool
+                else:
+                    mask[property] = should_calculate
             # Property is not listed in the parameter file for this halo_type
             else:
                 if self.calculate_missing_properties():
@@ -279,20 +281,6 @@ class ParameterFile:
             return dict(self.parameters["defined_constants"])
         else:
             return dict()
-
-    def recalculate_xrays(self) -> bool:
-        """
-        Returns a bool indicating if xray properties should be recomputed.
-        Defaults to true.
-        """
-        return self.parameters.get("calculations", {}).get("recalculate_xrays", True)
-
-    def get_xray_table_path(self) -> bool:
-        """
-        Returns the table to use for calculating xray properties.
-        Defaults to "", which will cause code to crash.
-        """
-        return self.parameters.get("calculations", {}).get("xray_table_path", "")
 
     def calculate_missing_properties(self) -> bool:
         """

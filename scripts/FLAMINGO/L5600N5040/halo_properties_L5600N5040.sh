@@ -8,7 +8,7 @@
 #
 # cd SOAP
 # mkdir logs
-# sbatch -J HYDRO_FIDUCIAL --array=0-78%4 ./scripts/FLAMINGO/L5600N5040/halo_properties_L5600N5040.sh
+# sbatch -J DMO_FIDUCIAL --array=0-78%4 ./scripts/FLAMINGO/L5600N5040/halo_properties_L5600N5040.sh
 #
 #SBATCH --nodes=32
 #SBATCH --cpus-per-task=1

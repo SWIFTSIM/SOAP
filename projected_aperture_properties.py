@@ -1092,6 +1092,19 @@ class SingleProjectionProjectedApertureParticleData:
         return self.gas_SFR.sum()
 
     @lazy_property
+    def AveragedStarFormationRate(self) -> unyt.unyt_array:
+        """
+        Averaged star formation rates of gas particles. Averaging times are
+        set by the value of 'recording_triggers' in the SWIFT parameter file.
+        """
+        if self.Ngas == 0:
+            return None
+        avg_SFR = self.part_props.get_dataset("PartType0/AveragedStarFormationRates")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+        return np.sum(avg_SFR, axis=0)
+
+    @lazy_property
     def gas_metal_mass(self) -> unyt.unyt_array:
         """
         Metal mass of gas particles.
@@ -1443,6 +1456,7 @@ class ProjectedApertureProperties(HaloProperty):
             "com",
             "vcom",
             "SFR",
+            "AveragedStarFormationRate",
             "StellarLuminosity",
             "CorrectedStellarLuminosity",
             "CorrectedStellarLuminosityWithDust",

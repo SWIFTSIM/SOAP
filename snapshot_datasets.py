@@ -42,17 +42,24 @@ class SnapshotDatasets:
     defined_constants: Dict
 
     def __init__(self, filenames: list):
+    def __init__(self, filenames: list):
         """
         Constructor.
 
         Read dataset names and named column metadata from
+        the filenames given.
         the filenames given.
 
         Parameters:
          - filenames: list
            Filenames of the snapshot and extra-input files.
            The snapshot filename must be the first element.
+         - filenames: list
+           Filenames of the snapshot and extra-input files.
+           The snapshot filename must be the first element.
         """
+
+        # Loop through all the files provided and record the datasets present
 
         # Loop through all the files provided and record the datasets present
         self.datasets_in_file = {}
