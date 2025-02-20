@@ -93,4 +93,3 @@ def get_half_mass_radius(
         )
 
     return half_mass_radius
-

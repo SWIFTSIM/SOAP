@@ -57,7 +57,7 @@ class ChunkTask:
 
     Each ChunkTask is called collectively on all of the MPI ranks in one
     compute node. The task imports the halos to be processed, reads in
-    the required patch of the snapshot and computes halo properties.    
+    the required patch of the snapshot and computes halo properties.
     """
 
     def __init__(self, halo_prop_list=None, chunk_nr=0, nr_chunks=1):
@@ -95,7 +95,6 @@ class ChunkTask:
                     )
                 )
 
-
         # The first rank on this node import the halos to be processed.
         # It also checks if this chunk has already been processed (by
         # a previous SOAP run that crashed).
@@ -116,7 +115,7 @@ class ChunkTask:
             # Sort halos based on their number of bound particles
             # We do this since larger halos will take longer to process
             # and so we want to do them first
-            order = np.argsort(self.halo_arrays['nr_bound_part'])[::-1]
+            order = np.argsort(self.halo_arrays["nr_bound_part"])[::-1]
             for name in names:
                 self.halo_arrays[name] = self.halo_arrays[name][order]
 
@@ -125,12 +124,14 @@ class ChunkTask:
             filename = scratch_file_format % {"file_nr": self.chunk_nr}
             if os.path.exists(filename):
                 try:
-                    with h5py.File(filename, 'r') as outfile:
-                        chunk_file_already_exists = outfile.attrs.get('Write complete', False)
-                        index = np.sort(outfile['InputHalos/HaloCatalogueIndex'][:])
+                    with h5py.File(filename, "r") as outfile:
+                        chunk_file_already_exists = outfile.attrs.get(
+                            "Write complete", False
+                        )
+                        index = np.sort(outfile["InputHalos/HaloCatalogueIndex"][:])
                         file_calc_names = sorted(outfile.attrs["calc_names"].tolist())
                     # Check we have the correct halo indices
-                    if not np.all(index == np.sort(self.halo_arrays['index'].value)):
+                    if not np.all(index == np.sort(self.halo_arrays["index"].value)):
                         chunk_file_already_exists = False
                     # Check halo properties are the same
                     calc_names = sorted([hp.name for hp in self.halo_prop_list])
@@ -145,7 +146,9 @@ class ChunkTask:
 
             # File is valid, let's extracting the metadata from it
             if chunk_file_already_exists:
-                result_metadata = result_set.get_metadata_from_chunk_file(filename, self.halo_prop_list, cellgrid.snap_unit_registry)
+                result_metadata = result_set.get_metadata_from_chunk_file(
+                    filename, self.halo_prop_list, cellgrid.snap_unit_registry
+                )
 
         else:
             chunk_file_already_exists = None
@@ -155,7 +158,7 @@ class ChunkTask:
 
         chunk_file_already_exists = comm.bcast(chunk_file_already_exists)
         if chunk_file_already_exists:
-            message(f'using pre-existing file for chunk')
+            message(f"using pre-existing file for chunk")
             return result_metadata
 
         # Then we copy the halo arrays into shared memory
@@ -270,7 +273,7 @@ class ChunkTask:
             for ptype in data:
                 for name in data[ptype]:
                     nr_bytes += data[ptype][name].full.nbytes
-            nr_mb = nr_bytes / (1024 ** 2)
+            nr_mb = nr_bytes / (1024**2)
             rate = nr_mb / (t1_read - t0_read)
             message(
                 "read in %d particles in %.1fs = %.1fMB/s (uncompressed)"
@@ -305,7 +308,7 @@ class ChunkTask:
             msg = f"constructing shared mesh took {t1_mesh - t0_mesh:.1f}s"
             total_mem_gb, free_mem_gb = memory_use.get_memory_use()
             if total_mem_gb is not None:
-                msg += f', node has {free_mem_gb:.1f}GB of {total_mem_gb:.1f}GB memory free'
+                msg += f", node has {free_mem_gb:.1f}GB of {total_mem_gb:.1f}GB memory free"
             message(msg)
 
             # Calculate the halo properties
@@ -384,13 +387,13 @@ class ChunkTask:
 
         # Write metadata in case this file is used for restarts
         if comm_rank == 0:
-            with h5py.File(filename, 'a') as outfile:
+            with h5py.File(filename, "a") as outfile:
                 units = outfile.create_group("Units")
                 for name, value in cellgrid.swift_units_group.items():
                     units.attrs[name] = [value]
                 calc_names = sorted([hp.name for hp in self.halo_prop_list])
                 outfile.attrs["calc_names"] = calc_names
-                outfile.attrs['Write complete'] = True
+                outfile.attrs["Write complete"] = True
 
         # Return the names, dimensions and units of the quantities we computed
         # so that we can check they're consistent between chunks

@@ -1,6 +1,6 @@
 #!/bin/env python
 
-import os 
+import os
 
 import h5py
 import numpy as np
@@ -10,7 +10,6 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 
 from . import swift_units
-
 
 
 def concatenate(result_sets):
@@ -120,9 +119,9 @@ class ResultSet:
                 ]
 
             # Find the array to store this result
-            result_array, result_description, result_physical, result_a_exponent = self.result_arrays[
-                result_name
-            ]
+            result_array, result_description, result_physical, result_a_exponent = (
+                self.result_arrays[result_name]
+            )
 
             # Consistency check: data type, units and shape should match the existing array
             if result_data.units != result_array.units:
@@ -324,27 +323,28 @@ class ResultSet:
         else:
             return None
 
+
 def get_metadata_from_chunk_file(filename, halo_prop_list, reg):
     metadata = []
-    with h5py.File(filename, 'r') as file:
+    with h5py.File(filename, "r") as file:
         # Get the names of the datasets
         datasets = []
         for halo_prop in halo_prop_list:
-            if 'ProjectedAperture' in halo_prop.group_name:
+            if "ProjectedAperture" in halo_prop.group_name:
                 for proj_name in ["projx", "projy", "projz"]:
-                    group_name = f'{halo_prop.group_name}/{proj_name}'
+                    group_name = f"{halo_prop.group_name}/{proj_name}"
                     for key in file[group_name]:
-                        name = f'{group_name}/{key}'
+                        name = f"{group_name}/{key}"
                         datasets.append(name)
             else:
                 for key in file[halo_prop.group_name]:
-                    name = f'{halo_prop.group_name}/{key}'
+                    name = f"{halo_prop.group_name}/{key}"
                     datasets.append(name)
-        for key in file['InputHalos']:
-            name = f'InputHalos/{key}'
+        for key in file["InputHalos"]:
+            name = f"InputHalos/{key}"
             if isinstance(file[name], h5py.Group):
                 for group_key in file[name]:
-                    datasets.append(f'{name}/{group_key}')
+                    datasets.append(f"{name}/{group_key}")
             else:
                 datasets.append(name)
 
@@ -356,10 +356,10 @@ def get_metadata_from_chunk_file(filename, halo_prop_list, reg):
                 size = (file[name].shape[1],)
             unit = swift_units.units_from_attributes(file[name].attrs, reg)
             dtype = file[name].dtype
-            description = file[name].attrs['Description']
-            physical = file[name].attrs['Value stored as physical'][0] == 1
-            a_exponent = file[name].attrs['a-scale exponent'][0]
-            if not file[name].attrs['Property can be converted to comoving']:
+            description = file[name].attrs["Description"]
+            physical = file[name].attrs["Value stored as physical"][0] == 1
+            a_exponent = file[name].attrs["a-scale exponent"][0]
+            if not file[name].attrs["Property can be converted to comoving"]:
                 a_exponent = None
             metadata.append(
                 (name, size, unit, dtype, description, physical, a_exponent)

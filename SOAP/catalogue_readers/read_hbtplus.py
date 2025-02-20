@@ -41,8 +41,8 @@ def read_hbtplus_groupnr(basename):
         files_per_rank[0] += 1
     elif remainder > 1:
         for i in range(remainder):
-            files_per_rank[int((comm_size - 1) * i/(remainder - 1))] += 1
-    assert np.sum(files_per_rank) == nr_files, f'{nr_files=}, {comm_size=}'
+            files_per_rank[int((comm_size - 1) * i / (remainder - 1))] += 1
+    assert np.sum(files_per_rank) == nr_files, f"{nr_files=}, {comm_size=}"
     first_file_on_rank = np.cumsum(files_per_rank) - files_per_rank
 
     # Read in the halos from the HBT output:
@@ -122,7 +122,9 @@ def read_hbtplus_groupnr(basename):
     return total_nr_halos, ids_bound, grnr_bound, rank_bound
 
 
-def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize, keep_orphans=False):
+def read_hbtplus_catalogue(
+    comm, basename, a_unit, registry, boxsize, keep_orphans=False
+):
     """
     Read in the HBTplus halo catalogue, distributed over communicator comm.
 
@@ -140,7 +142,7 @@ def read_hbtplus_catalogue(comm, basename, a_unit, registry, boxsize, keep_orpha
     search_radius - initial search radius which includes all member particles
     is_central - integer 1 for centrals, 0 for satellites
     nr_bound_part - number of bound particles in each halo
-    
+
     Any other arrays will be passed through to the output ONLY IF they are
     documented in property_table.py.
 

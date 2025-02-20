@@ -17,7 +17,7 @@ contains the spherical overdensity radius calculation, which is
 somewhat more involved than simply using a fixed aperture.
 
 Contrary to the other halo types, spherical overdensities are only
-calculated for central halos. SO properties are also only calculated if 
+calculated for central halos. SO properties are also only calculated if
 an SO radius could be determined.
 """
 
@@ -73,7 +73,7 @@ def cumulative_mass_intersection(r: float, rho_dim: float, slope_dim: float) -> 
     Returns the value of the intersection equation for the given r (and using
     the given rho_dim and slope_dim boundary conditions).
     """
-    return 4.0 * np.pi / 3.0 * rho_dim * r ** 3 - slope_dim * r + slope_dim - 1.0
+    return 4.0 * np.pi / 3.0 * rho_dim * r**3 - slope_dim * r + slope_dim - 1.0
 
 
 def find_SO_radius_and_mass(
@@ -173,7 +173,7 @@ def find_SO_radius_and_mass(
             / (np.pi * ordered_radius[ipos] * reference_density)
         )
         SO_mass = cumulative_mass[ipos] * SO_r / ordered_radius[ipos]
-        return SO_r, SO_mass, 4.0 * np.pi / 3.0 * SO_r ** 3
+        return SO_r, SO_mass, 4.0 * np.pi / 3.0 * SO_r**3
 
     # We now have the intersecting interval. Get the limits.
     r1 = ordered_radius[i - 1]
@@ -202,13 +202,13 @@ def find_SO_radius_and_mass(
     # compute the dimensionless quantities that enter the intersection equation
     # remember, we are simply solving
     #  4*pi/3*r^3*rho = M1 + (M2-M1)/(r2-r1)*(r-r1)
-    rho_dim = reference_density * r1 ** 3 / M1
+    rho_dim = reference_density * r1**3 / M1
     slope_dim = (M2 - M1) / (r2 - r1) * (r1 / M1)
     SO_r = r1 * brentq(
         cumulative_mass_intersection, 1.0, r2 / r1, args=(rho_dim, slope_dim)
     )
 
-    SO_volume = 4.0 / 3.0 * np.pi * SO_r ** 3
+    SO_volume = 4.0 / 3.0 * np.pi * SO_r**3
     # compute the SO mass by requiring that the mean density in the SO is the
     # target density
     SO_mass = SO_volume * reference_density
@@ -334,7 +334,7 @@ class SOParticleData:
             mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}"))
             pos = self.get_dataset(f"{ptype}/Coordinates") - self.centre[None, :]
             position.append(pos)
-            r = np.sqrt(np.sum(pos ** 2, axis=1))
+            r = np.sqrt(np.sum(pos**2, axis=1))
             radius.append(r)
             velocity.append(self.get_dataset(f"{ptype}/Velocities"))
             typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
@@ -381,7 +381,7 @@ class SOParticleData:
                 "PartType6/Weights"
             )
             pos = self.get_dataset("PartType6/Coordinates") - self.centre[None, :]
-            nur = np.sqrt(np.sum(pos ** 2, axis=1))
+            nur = np.sqrt(np.sum(pos**2, axis=1))
             self.nu_mass = numass
             self.nu_radius = nur
             self.nu_softening = (
@@ -401,7 +401,7 @@ class SOParticleData:
         )
         # add mean neutrino mass
         cumulative_mass += (
-            self.cosmology["nu_density"] * 4.0 / 3.0 * np.pi * ordered_radius ** 3
+            self.cosmology["nu_density"] * 4.0 / 3.0 * np.pi * ordered_radius**3
         )
         # Determine FOF ID of object using the central non-neutrino particle
         non_neutrino_order = order[order < self.radius.shape[0]]
@@ -416,7 +416,7 @@ class SOParticleData:
         ordered_radius = ordered_radius[nskip:]
         cumulative_mass = cumulative_mass[nskip:]
         nr_parts = len(ordered_radius)
-        density = cumulative_mass / (4.0 / 3.0 * np.pi * ordered_radius ** 3)
+        density = cumulative_mass / (4.0 / 3.0 * np.pi * ordered_radius**3)
 
         # Check if we ever reach the density threshold
         if reference_density > 0:
@@ -428,10 +428,10 @@ class SOParticleData:
                 except SearchRadiusTooSmallError:
                     raise SearchRadiusTooSmallError("SO radius multiple was too small!")
             else:
-                self.SO_volume = 0 * ordered_radius.units ** 3
+                self.SO_volume = 0 * ordered_radius.units**3
         elif physical_radius > 0:
             self.SO_r = physical_radius
-            self.SO_volume = 4.0 * np.pi / 3.0 * self.SO_r ** 3
+            self.SO_volume = 4.0 * np.pi / 3.0 * self.SO_r**3
             if nr_parts > 0:
                 # find the enclosed mass using interpolation
                 outside_radius = ordered_radius > self.SO_r
@@ -558,9 +558,9 @@ class SOParticleData:
         """
         Centre of mass of all particles in the spherical overdensity.
         """
-        return ((self.mass_fraction[:, None] * self.position).sum(
-            axis=0
-        ) + self.centre) % self.boxsize
+        return (
+            (self.mass_fraction[:, None] * self.position).sum(axis=0) + self.centre
+        ) % self.boxsize
 
     @lazy_property
     def vcom(self) -> unyt.unyt_array:
@@ -734,9 +734,9 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return ((self.gas_mass_fraction[:, None] * self.gas_pos).sum(
-            axis=0
-        ) + self.centre) % self.boxsize
+        return (
+            (self.gas_mass_fraction[:, None] * self.gas_pos).sum(axis=0) + self.centre
+        ) % self.boxsize
 
     @lazy_property
     def vcom_gas(self) -> unyt.unyt_array:
@@ -1013,9 +1013,9 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return ((self.star_mass_fraction[:, None] * self.star_pos).sum(
-            axis=0
-        ) + self.centre) % self.boxsize
+        return (
+            (self.star_mass_fraction[:, None] * self.star_pos).sum(axis=0) + self.centre
+        ) % self.boxsize
 
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
@@ -1429,7 +1429,7 @@ class SOParticleData:
     @lazy_property
     def Tgas_cy_weighted_core_excision_no_agn(self) -> unyt.unyt_quantity:
         """
-        ComptonY-weighted average gas temperature, excluding the inner core and 
+        ComptonY-weighted average gas temperature, excluding the inner core and
         gas recently heated by AGN.
         """
         if self.Ngas == 0:
@@ -1480,7 +1480,7 @@ class SOParticleData:
     def Tgas_no_cool_core_excision(self) -> unyt.unyt_quantity:
         """
         Mass-weighted average gas temperature, excluding the inner core and cool
-        gas. 
+        gas.
         """
         if self.Ngas_no_cool_core_excision == 0:
             return None
@@ -1734,7 +1734,7 @@ class SOParticleData:
     @lazy_property
     def Xraylum_no_agn(self) -> unyt.unyt_array:
         """
-        Total observer-frame X-ray luminosities of gas particles, excluding 
+        Total observer-frame X-ray luminosities of gas particles, excluding
         contributions from gas particles that were recently heated by AGN feedback.
 
         Note that this is an array, since we have multiple luminosity bands.
@@ -1746,7 +1746,7 @@ class SOParticleData:
     @lazy_property
     def Xrayphlum_no_agn(self) -> unyt.unyt_array:
         """
-        Total observer-frame X-ray photon luminosities of gas particles, 
+        Total observer-frame X-ray photon luminosities of gas particles,
         excluding contributions from gas particles that were recently heated by AGN feedback.
 
         Note that this is an array, since we have multiple luminosity bands.
@@ -1770,7 +1770,7 @@ class SOParticleData:
     @lazy_property
     def Xrayphlum_restframe_no_agn(self) -> unyt.unyt_array:
         """
-        Total rest-frame X-ray photon luminosities of gas particles, 
+        Total rest-frame X-ray photon luminosities of gas particles,
         excluding contributions from gas particles that were recently heated by AGN feedback.
 
         Note that this is an array, since we have multiple luminosity bands.
@@ -1849,7 +1849,7 @@ class SOParticleData:
     @lazy_property
     def Xrayphlum_core_excision(self) -> unyt.unyt_array:
         """
-        Total observer-frame X-ray photon luminosities of gas particles, 
+        Total observer-frame X-ray photon luminosities of gas particles,
         excluding contributions from gas particles in the inner core.
 
         Note that this is an array, since we have multiple luminosity bands.
@@ -1861,7 +1861,7 @@ class SOParticleData:
     @lazy_property
     def Xraylum_no_agn_core_excision(self) -> unyt.unyt_array:
         """
-        Total observer-frame X-ray luminosities of gas particles, 
+        Total observer-frame X-ray luminosities of gas particles,
         excluding contributions from gas particles in the inner core and those
         recently heated by AGN.
 
@@ -1874,7 +1874,7 @@ class SOParticleData:
     @lazy_property
     def Xrayphlum_no_agn_core_excision(self) -> unyt.unyt_array:
         """
-        Total observer-frame X-ray photon luminosities of gas particles, 
+        Total observer-frame X-ray photon luminosities of gas particles,
         excluding contributions from gas particles in the inner core and those
         recently heated by AGN.
 
@@ -1887,7 +1887,7 @@ class SOParticleData:
     @lazy_property
     def Xraylum_restframe_core_excision(self) -> unyt.unyt_array:
         """
-        Total rest-frame X-ray luminosities of gas particles, 
+        Total rest-frame X-ray luminosities of gas particles,
         excluding contributions from gas particles in the inner core.
 
         Note that this is an array, since we have multiple luminosity bands.
@@ -1899,7 +1899,7 @@ class SOParticleData:
     @lazy_property
     def Xrayphlum_restframe_core_excision(self) -> unyt.unyt_array:
         """
-        Total rest-frame X-ray photon luminosities of gas particles, 
+        Total rest-frame X-ray photon luminosities of gas particles,
         excluding contributions from gas particles in the inner core.
 
         Note that this is an array, since we have multiple luminosity bands.
@@ -1913,7 +1913,7 @@ class SOParticleData:
     @lazy_property
     def Xraylum_restframe_no_agn_core_excision(self) -> unyt.unyt_array:
         """
-        Total rest-frame X-ray luminosities of gas particles, 
+        Total rest-frame X-ray luminosities of gas particles,
         excluding contributions from gas particles in the inner core and those
         recently heated by AGN.
 
@@ -1928,7 +1928,7 @@ class SOParticleData:
     @lazy_property
     def Xrayphlum_restframe_no_agn_core_excision(self) -> unyt.unyt_array:
         """
-        Total rest-frame X-ray photon luminosities of gas particles, 
+        Total rest-frame X-ray photon luminosities of gas particles,
         excluding contributions from gas particles in the inner core and those
         recently heated by AGN.
 
@@ -2156,7 +2156,7 @@ class SOParticleData:
         # to make them absolute again before subtracting the observer
         # position
         relpos = self.gas_pos + self.centre[None, :] - self.observer_position[None, :]
-        distance = np.sqrt((relpos ** 2).sum(axis=1))
+        distance = np.sqrt((relpos**2).sum(axis=1))
         # we need to exclude particles at zero distance
         # (we assume those have no relative velocity)
         vr = unyt.unyt_array(
@@ -2172,7 +2172,7 @@ class SOParticleData:
         ) / distance[has_distance]
         fac = unyt.sigma_thompson / unyt.c
         volumes = self.gas_masses / self.gas_densities
-        area = np.pi * self.SO_r ** 2
+        area = np.pi * self.SO_r**2
         return (fac * ne * vr * (volumes / area)).sum().to("dimensionless")
 
     @lazy_property
@@ -2625,7 +2625,7 @@ class SOParticleData:
             c += b * np.log10(R1.to("dimensionless")) ** i
         # Cap concentration values, as polynomial is only valid for 1<c<1000
         c = max(min(c, 3), 0)
-        return unyt.unyt_quantity(10 ** c, dtype=np.float32, units="dimensionless")
+        return unyt.unyt_quantity(10**c, dtype=np.float32, units="dimensionless")
 
     def calculate_concentration(self, r):
         if r.shape[0] < 10:
@@ -2637,8 +2637,8 @@ class SOParticleData:
             R1 += np.sum(self.nu_mass * self.nu_radius)
             missed_mass -= np.sum(self.nu_mass)
         # Neutrino background
-        R1 += np.pi * self.cosmology["nu_density"] * self.r ** 4
-        missed_mass -= self.cosmology["nu_density"] * 4.0 / 3.0 * np.pi * self.r ** 3
+        R1 += np.pi * self.cosmology["nu_density"] * self.r**4
+        missed_mass -= self.cosmology["nu_density"] * 4.0 / 3.0 * np.pi * self.r**3
         R1 += missed_mass * self.r
         # Normalize
         R1 /= self.r * self.Mtot
@@ -2689,7 +2689,9 @@ class SOParticleData:
         mask = self.radius < 0.1 * self.SO_r
         if not np.sum(mask):
             return None
-        return (self.mass[mask, None] * self.velocity[mask]).sum(axis=0) / self.mass[mask].sum()
+        return (self.mass[mask, None] * self.velocity[mask]).sum(axis=0) / self.mass[
+            mask
+        ].sum()
 
     @lazy_property
     def vcom_thirty_percent(self) -> unyt.unyt_array:
@@ -2699,7 +2701,9 @@ class SOParticleData:
         mask = self.radius < 0.3 * self.SO_r
         if not np.sum(mask):
             return None
-        return (self.mass[mask, None] * self.velocity[mask]).sum(axis=0) / self.mass[mask].sum()
+        return (self.mass[mask, None] * self.velocity[mask]).sum(axis=0) / self.mass[
+            mask
+        ].sum()
 
     def calculate_flow_rate(
         self,
@@ -2722,7 +2726,7 @@ class SOParticleData:
         centered at R_SO extends beyond R_SO.
         """
         # Calculate particle radii
-        radii = np.sqrt(np.sum(positions ** 2, axis=1))
+        radii = np.sqrt(np.sum(positions**2, axis=1))
 
         # Specify radii to calculate flow rates for
         R_fracs = [0.1, 0.3, 1]
@@ -2780,7 +2784,7 @@ class SOParticleData:
             elif flow_type == "energy":
                 # Subtract CoM velocity
                 proper_vel = velocities[r_mask] - vcom[None, :]
-                kinetic = 0.5 * np.sqrt(np.sum(proper_vel ** 2, axis=1)) ** 2
+                kinetic = 0.5 * np.sqrt(np.sum(proper_vel**2, axis=1)) ** 2
                 flow_rate = (
                     masses[r_mask] * np.abs(v_r) * (kinetic + internal_energies[r_mask])
                 )
@@ -2789,7 +2793,7 @@ class SOParticleData:
                 gamma = 5.0 / 3.0
                 sq_sound_speed = (gamma - 1) * gamma * internal_energies[r_mask]
                 # Calculate momentum flux, second term accounts for pressure
-                flow_rate = masses[r_mask] * (v_r ** 2 + (sq_sound_speed / gamma))
+                flow_rate = masses[r_mask] * (v_r**2 + (sq_sound_speed / gamma))
 
             # Determine total outflow/inflow rates
             inflow = np.sum(flow_rate[v_r < 0]) / dR
@@ -2899,7 +2903,9 @@ class SOParticleData:
         # flow through the SO radius
         pos = self.get_dataset(f"PartType0/Coordinates") - self.centre[None, :]
         vel = self.get_dataset("PartType0/Velocities")
-        mass = self.get_dataset("PartType0/Masses") * self.get_dataset("PartType0/MetalMassFractions")
+        mass = self.get_dataset("PartType0/Masses") * self.get_dataset(
+            "PartType0/MetalMassFractions"
+        )
 
         return self.calculate_flow_rate("mass", pos, mass, vel)
 
@@ -2907,7 +2913,7 @@ class SOParticleData:
         self, flow_type, Tmin=None, Tmax=None
     ):
         """
-        Helper function for calculating the flow rate of gas particles 
+        Helper function for calculating the flow rate of gas particles
         masked based on their temperature.
         """
 
@@ -3323,7 +3329,7 @@ class SOProperties(HaloProperty):
                 / cellgrid.cosmology["H [internal units]"]
             )
             ** 2
-            / cellgrid.a ** 3
+            / cellgrid.a**3
         )
 
         # We need the following for inflow/outflow calculations
@@ -3606,16 +3612,16 @@ class SOProperties(HaloProperty):
             )
             if self.record_timings:
                 arr = unyt.unyt_array(
-                        timings.get(name, 0),
-                        dtype=np.float32,
-                        units=unyt.dimensionless,
-                        registry=registry,
-                    )
+                    timings.get(name, 0),
+                    dtype=np.float32,
+                    units=unyt.dimensionless,
+                    registry=registry,
+                )
                 halo_result.update(
                     {
                         f"{self.group_name}/{outputname}_time": (
                             arr,
-                            'Time taken in seconds',
+                            "Time taken in seconds",
                             True,
                             None,
                         )
@@ -3805,5 +3811,3 @@ class RadiusMultipleSOProperties(SOProperties):
 
         super().calculate(input_halo, search_radius, data, halo_result)
         return
-
-

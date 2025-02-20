@@ -3,6 +3,7 @@ import unyt
 
 from SOAP.property_calculation.half_mass_radius import get_half_mass_radius
 
+
 def test_get_half_mass_radius():
     """
     Unit test for get_half_mass_radius().

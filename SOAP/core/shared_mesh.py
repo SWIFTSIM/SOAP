@@ -62,7 +62,7 @@ class SharedMesh:
 
         # Determine the cell size
         self.resolution = int(resolution)
-        nr_cells = self.resolution ** 3
+        nr_cells = self.resolution**3
         self.cell_size = (self.pos_max - self.pos_min) / self.resolution
 
         # Determine which cell each particle in the local part of pos belongs to
@@ -73,7 +73,7 @@ class SharedMesh:
         cell_idx = (
             cell_idx[:, 0]
             + self.resolution * cell_idx[:, 1]
-            + (self.resolution ** 2) * cell_idx[:, 2]
+            + (self.resolution**2) * cell_idx[:, 2]
         )
 
         # Count local particles per cell
@@ -139,7 +139,7 @@ class SharedMesh:
             dr = pos - centre[None, :]
             dr[dr > 0.5 * boxsize] -= boxsize
             dr[dr < -0.5 * boxsize] += boxsize
-            return np.sum(dr ** 2, axis=1)
+            return np.sum(dr**2, axis=1)
 
         # Find the coordinates in the grid to search in each dimension. Here we deal with the
         # periodic box by also considering periodic copies of the search centre and radius.
@@ -183,7 +183,7 @@ class SharedMesh:
         for k in cell_coords[2]:
             for j in cell_coords[1]:
                 for i in cell_coords[0]:
-                    cell_nr = i + self.resolution * j + (self.resolution ** 2) * k
+                    cell_nr = i + self.resolution * j + (self.resolution**2) * k
                     start = self.cell_offset.full[cell_nr]
                     count = self.cell_count.full[cell_nr]
                     if count > 0:
@@ -198,4 +198,3 @@ class SharedMesh:
             return np.concatenate(idx)
         else:
             return np.ndarray(0, dtype=int)
-

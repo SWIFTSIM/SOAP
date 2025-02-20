@@ -115,9 +115,7 @@ def test_subhalo_properties():
             cat_filter,
         )
         halo_result = {}
-        for subhalo_name, prop_calc in [
-            ("BoundSubhalo", property_calculator_bound)
-        ]:
+        for subhalo_name, prop_calc in [("BoundSubhalo", property_calculator_bound)]:
             input_data = {}
             for ptype in prop_calc.particle_properties:
                 if ptype in data:

@@ -1066,9 +1066,9 @@ class ApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return ((self.mass_fraction[:, None] * self.position).sum(
-            axis=0
-        ) + self.centre) % self.boxsize
+        return (
+            (self.mass_fraction[:, None] * self.position).sum(axis=0) + self.centre
+        ) % self.boxsize
 
     @lazy_property
     def vcom(self) -> unyt.unyt_array:
@@ -1233,9 +1233,9 @@ class ApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return ((self.star_mass_fraction[:, None] * self.pos_star).sum(
-            axis=0
-        ) + self.centre) % self.boxsize
+        return (
+            (self.star_mass_fraction[:, None] * self.pos_star).sum(axis=0) + self.centre
+        ) % self.boxsize
 
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
@@ -2587,10 +2587,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.GasMassInColdDenseGas == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
-            * self.mass_gas[self.gas_is_cold_dense]
-        ).sum() / self.GasMassInColdDenseGas)
+        return 10 ** (
+            (
+                self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+            ).sum()
+            / self.GasMassInColdDenseGas
+        )
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit(
@@ -2603,10 +2606,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.GasMassInColdDenseGas == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
-            * self.mass_gas[self.gas_is_cold_dense]
-        ).sum() / self.GasMassInColdDenseGas)
+        return 10 ** (
+            (
+                self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+            ).sum()
+            / self.GasMassInColdDenseGas
+        )
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit(
@@ -2619,10 +2625,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.GasMassInColdDenseGas == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_N_over_O_diffuse_low_limit[self.gas_is_cold_dense]
-            * self.mass_gas[self.gas_is_cold_dense]
-        ).sum() / self.GasMassInColdDenseGas)
+        return 10 ** (
+            (
+                self.gas_log10_N_over_O_diffuse_low_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+            ).sum()
+            / self.GasMassInColdDenseGas
+        )
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit(
@@ -2635,10 +2644,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.GasMassInColdDenseGas == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_N_over_O_diffuse_high_limit[self.gas_is_cold_dense]
-            * self.mass_gas[self.gas_is_cold_dense]
-        ).sum() / self.GasMassInColdDenseGas)
+        return 10 ** (
+            (
+                self.gas_log10_N_over_O_diffuse_high_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+            ).sum()
+            / self.GasMassInColdDenseGas
+        )
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit(
@@ -2651,10 +2663,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.GasMassInColdDenseGas == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_C_over_O_diffuse_low_limit[self.gas_is_cold_dense]
-            * self.mass_gas[self.gas_is_cold_dense]
-        ).sum() / self.GasMassInColdDenseGas)
+        return 10 ** (
+            (
+                self.gas_log10_C_over_O_diffuse_low_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+            ).sum()
+            / self.GasMassInColdDenseGas
+        )
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit(
@@ -2667,10 +2682,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.GasMassInColdDenseGas == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_C_over_O_diffuse_high_limit[self.gas_is_cold_dense]
-            * self.mass_gas[self.gas_is_cold_dense]
-        ).sum() / self.GasMassInColdDenseGas)
+        return 10 ** (
+            (
+                self.gas_log10_C_over_O_diffuse_high_limit[self.gas_is_cold_dense]
+                * self.mass_gas[self.gas_is_cold_dense]
+            ).sum()
+            / self.GasMassInColdDenseGas
+        )
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit(
@@ -2683,10 +2701,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.AtomicHydrogenMass == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
-            * self.gas_mass_HI[self.gas_is_cold_dense]
-        ).sum() / self.AtomicHydrogenMass)
+        return 10 ** (
+            (
+                self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
+                * self.gas_mass_HI[self.gas_is_cold_dense]
+            ).sum()
+            / self.AtomicHydrogenMass
+        )
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit(
@@ -2699,10 +2720,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.AtomicHydrogenMass == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
-            * self.gas_mass_HI[self.gas_is_cold_dense]
-        ).sum() / self.AtomicHydrogenMass)
+        return 10 ** (
+            (
+                self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
+                * self.gas_mass_HI[self.gas_is_cold_dense]
+            ).sum()
+            / self.AtomicHydrogenMass
+        )
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit(
@@ -2715,10 +2739,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.MolecularHydrogenMass == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
-            * self.gas_mass_H2[self.gas_is_cold_dense]
-        ).sum() / self.MolecularHydrogenMass)
+        return 10 ** (
+            (
+                self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
+                * self.gas_mass_H2[self.gas_is_cold_dense]
+            ).sum()
+            / self.MolecularHydrogenMass
+        )
 
     @lazy_property
     def LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit(
@@ -2731,10 +2758,13 @@ class ApertureParticleData:
         """
         if (self.Ngas == 0) or (self.MolecularHydrogenMass == 0):
             return None
-        return 10 ** ((
-            self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
-            * self.gas_mass_H2[self.gas_is_cold_dense]
-        ).sum() / self.MolecularHydrogenMass)
+        return 10 ** (
+            (
+                self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
+                * self.gas_mass_H2[self.gas_is_cold_dense]
+            ).sum()
+            / self.MolecularHydrogenMass
+        )
 
     @lazy_property
     def star_Fe_over_H(self) -> unyt.unyt_array:
@@ -2837,7 +2867,9 @@ class ApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        return 10 ** ((self.star_log10_Fe_over_H_low_limit * self.mass_star).sum() / self.Mstar)
+        return 10 ** (
+            (self.star_log10_Fe_over_H_low_limit * self.mass_star).sum() / self.Mstar
+        )
 
     @lazy_property
     def LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit(
@@ -2849,7 +2881,9 @@ class ApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        return 10 ** ((self.star_log10_Fe_over_H_high_limit * self.mass_star).sum() / self.Mstar)
+        return 10 ** (
+            (self.star_log10_Fe_over_H_high_limit * self.mass_star).sum() / self.Mstar
+        )
 
     @lazy_property
     def LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit(
@@ -2862,10 +2896,15 @@ class ApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        return 10 ** ((self.star_log10_Fe_from_SNIa_over_H_low_limit * self.mass_star).sum() / self.Mstar)
+        return 10 ** (
+            (self.star_log10_Fe_from_SNIa_over_H_low_limit * self.mass_star).sum()
+            / self.Mstar
+        )
 
     @lazy_property
-    def LinearMassWeightedIronFromSNIaOverHydrogenOfStars(self,) -> unyt.unyt_quantity:
+    def LinearMassWeightedIronFromSNIaOverHydrogenOfStars(
+        self,
+    ) -> unyt.unyt_quantity:
         """
         Mass-weighted sum of the iron over hydrogen ratio for star particles,
         times the solar ratio, set in the parameter file, and
@@ -2945,7 +2984,9 @@ class ApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        return 10 ** ((self.star_log10_Mg_over_H_low_limit * self.mass_star).sum() / self.Mstar)
+        return 10 ** (
+            (self.star_log10_Mg_over_H_low_limit * self.mass_star).sum() / self.Mstar
+        )
 
     @lazy_property
     def LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit(
@@ -2957,7 +2998,9 @@ class ApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        return 10 ** ((self.star_log10_Mg_over_H_high_limit * self.mass_star).sum() / self.Mstar)
+        return 10 ** (
+            (self.star_log10_Mg_over_H_high_limit * self.mass_star).sum() / self.Mstar
+        )
 
     @lazy_property
     def HalfMassRadiusGas(self) -> unyt.unyt_quantity:
@@ -3010,136 +3053,135 @@ class ApertureProperties(HaloProperty):
     # values computed by the previous aperture (if the number of particles was
     # the same for both apertures), but we can't do this for all properties
     property_names = {
-            "Mtot": False,
-            "Mgas": False,
-            "Mdm": False,
-            "Mstar": False,
-            "Mstar_init": False,
-            "Mbh_dynamical": False,
-            "Mbh_subgrid": False,
-            "Ngas": False,
-            "Ndm": False,
-            "Nstar": False,
-            "Nbh": False,
-            "BHlasteventa": False,
-            "BHmaxM": False,
-            "BHmaxID": False,
-            "BHmaxpos": False,
-            "BHmaxvel": False,
-            "BHmaxAR": False,
-            "BHmaxlasteventa": False,
-            "BlackHolesTotalInjectedThermalEnergy": False,
-            "BlackHolesTotalInjectedJetEnergy": False,
-            "MostMassiveBlackHoleAveragedAccretionRate": False,
-            "MostMassiveBlackHoleInjectedThermalEnergy": False,
-            "MostMassiveBlackHoleNumberOfAGNEvents": False,
-            "MostMassiveBlackHoleAccretionMode": False,
-            "MostMassiveBlackHoleGWMassLoss": False,
-            "MostMassiveBlackHoleInjectedJetEnergyByMode": False,
-            "MostMassiveBlackHoleLastJetEventScalefactor": False,
-            "MostMassiveBlackHoleNumberOfAGNJetEvents": False,
-            "MostMassiveBlackHoleNumberOfMergers": False,
-            "MostMassiveBlackHoleRadiatedEnergyByMode": False,
-            "MostMassiveBlackHoleTotalAccretedMassesByMode": False,
-            "MostMassiveBlackHoleWindEnergyByMode": False,
-            "MostMassiveBlackHoleSpin": False,
-            "MostMassiveBlackHoleTotalAccretedMass": False,
-            "MostMassiveBlackHoleFormationScalefactor": False,
-            "com": False,
-            "com_star": False,
-            "vcom": False,
-            "vcom_star": False,
-            "Lgas": False,
-            "Ldm": False,
-            "Lstar": False,
-            "kappa_corot_gas": False,
-            "kappa_corot_star": False,
-            "Lbaryons": False,
-            "kappa_corot_baryons": False,
-            "veldisp_matrix_gas": False,
-            "veldisp_matrix_dm": False,
-            "veldisp_matrix_star": False,
-            "Ekin_gas": False,
-            "Ekin_star": False,
-            "Mgas_SF": False,
-            "gasmetalfrac": False,
-            "gasmetalfrac_SF": False,
-            "gasOfrac": False,
-            "gasOfrac_SF": False,
-            "gasFefrac": False,
-            "gasFefrac_SF": False,
-            "Tgas": False,
-            "Tgas_no_agn": False,
-            "SFR": False,
-            "AveragedStarFormationRate": False,
-            "StellarLuminosity": False,
-            "starmetalfrac": False,
-            "HalfMassRadiusGas": False,
-            "HalfMassRadiusDM": False,
-            "HalfMassRadiusStar": False,
-            "HalfMassRadiusBaryon": False,
-            "DtoTgas": False,
-            "DtoTstar": False,
-            "starOfrac": False,
-            "starFefrac": False,
-            "stellar_age_mw": False,
-            "stellar_age_lw": False,
-            "TotalSNIaRate": False,
-            "HydrogenMass": False,
-            "HeliumMass": False,
-            "MolecularHydrogenMass": False,
-            "AtomicHydrogenMass": False,
-            "starMgfrac": False,
-            "DustGraphiteMass": False,
-            "DustGraphiteMassInAtomicGas": False,
-            "DustGraphiteMassInMolecularGas": False,
-            "DustGraphiteMassInColdDenseGas": False,
-            "DustLargeGrainMass": False,
-            "DustLargeGrainMassInMolecularGas": False,
-            "DustLargeGrainMassInColdDenseGas": False,
-            "DustSilicatesMass": False,
-            "DustSilicatesMassInAtomicGas": False,
-            "DustSilicatesMassInMolecularGas": False,
-            "DustSilicatesMassInColdDenseGas": False,
-            "DustSmallGrainMass": False,
-            "DustSmallGrainMassInMolecularGas": False,
-            "DustSmallGrainMassInColdDenseGas": False,
-            "GasMassInColdDenseGas": False,
-            "DiffuseCarbonMass": False,
-            "DiffuseOxygenMass": False,
-            "DiffuseMagnesiumMass": False,
-            "DiffuseSiliconMass": False,
-            "DiffuseIronMass": False,
-            "LinearMassWeightedOxygenOverHydrogenOfGas": False,
-            "LinearMassWeightedNitrogenOverOxygenOfGas": False,
-            "LinearMassWeightedCarbonOverOxygenOfGas": False,
-            "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas": False,
-            "LinearMassWeightedDiffuseNitrogenOverOxygenOfGas": False,
-            "LinearMassWeightedDiffuseCarbonOverOxygenOfGas": False,
-            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit": False,
-            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit": False,
-            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit": False,
-            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit": False,
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit": False,
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit": False,
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit": False,
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit": False,
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit": False,
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit": False,
-            "LinearMassWeightedMagnesiumOverHydrogenOfStars": False,
-            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit": False,
-            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit": False,
-            "LinearMassWeightedIronOverHydrogenOfStars": False,
-            "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit": False,
-            "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit": False,
-            "GasMassInColdDenseDiffuseMetals": False,
-            "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit": False,
-            "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": False,
+        "Mtot": False,
+        "Mgas": False,
+        "Mdm": False,
+        "Mstar": False,
+        "Mstar_init": False,
+        "Mbh_dynamical": False,
+        "Mbh_subgrid": False,
+        "Ngas": False,
+        "Ndm": False,
+        "Nstar": False,
+        "Nbh": False,
+        "BHlasteventa": False,
+        "BHmaxM": False,
+        "BHmaxID": False,
+        "BHmaxpos": False,
+        "BHmaxvel": False,
+        "BHmaxAR": False,
+        "BHmaxlasteventa": False,
+        "BlackHolesTotalInjectedThermalEnergy": False,
+        "BlackHolesTotalInjectedJetEnergy": False,
+        "MostMassiveBlackHoleAveragedAccretionRate": False,
+        "MostMassiveBlackHoleInjectedThermalEnergy": False,
+        "MostMassiveBlackHoleNumberOfAGNEvents": False,
+        "MostMassiveBlackHoleAccretionMode": False,
+        "MostMassiveBlackHoleGWMassLoss": False,
+        "MostMassiveBlackHoleInjectedJetEnergyByMode": False,
+        "MostMassiveBlackHoleLastJetEventScalefactor": False,
+        "MostMassiveBlackHoleNumberOfAGNJetEvents": False,
+        "MostMassiveBlackHoleNumberOfMergers": False,
+        "MostMassiveBlackHoleRadiatedEnergyByMode": False,
+        "MostMassiveBlackHoleTotalAccretedMassesByMode": False,
+        "MostMassiveBlackHoleWindEnergyByMode": False,
+        "MostMassiveBlackHoleSpin": False,
+        "MostMassiveBlackHoleTotalAccretedMass": False,
+        "MostMassiveBlackHoleFormationScalefactor": False,
+        "com": False,
+        "com_star": False,
+        "vcom": False,
+        "vcom_star": False,
+        "Lgas": False,
+        "Ldm": False,
+        "Lstar": False,
+        "kappa_corot_gas": False,
+        "kappa_corot_star": False,
+        "Lbaryons": False,
+        "kappa_corot_baryons": False,
+        "veldisp_matrix_gas": False,
+        "veldisp_matrix_dm": False,
+        "veldisp_matrix_star": False,
+        "Ekin_gas": False,
+        "Ekin_star": False,
+        "Mgas_SF": False,
+        "gasmetalfrac": False,
+        "gasmetalfrac_SF": False,
+        "gasOfrac": False,
+        "gasOfrac_SF": False,
+        "gasFefrac": False,
+        "gasFefrac_SF": False,
+        "Tgas": False,
+        "Tgas_no_agn": False,
+        "SFR": False,
+        "AveragedStarFormationRate": False,
+        "StellarLuminosity": False,
+        "starmetalfrac": False,
+        "HalfMassRadiusGas": False,
+        "HalfMassRadiusDM": False,
+        "HalfMassRadiusStar": False,
+        "HalfMassRadiusBaryon": False,
+        "DtoTgas": False,
+        "DtoTstar": False,
+        "starOfrac": False,
+        "starFefrac": False,
+        "stellar_age_mw": False,
+        "stellar_age_lw": False,
+        "TotalSNIaRate": False,
+        "HydrogenMass": False,
+        "HeliumMass": False,
+        "MolecularHydrogenMass": False,
+        "AtomicHydrogenMass": False,
+        "starMgfrac": False,
+        "DustGraphiteMass": False,
+        "DustGraphiteMassInAtomicGas": False,
+        "DustGraphiteMassInMolecularGas": False,
+        "DustGraphiteMassInColdDenseGas": False,
+        "DustLargeGrainMass": False,
+        "DustLargeGrainMassInMolecularGas": False,
+        "DustLargeGrainMassInColdDenseGas": False,
+        "DustSilicatesMass": False,
+        "DustSilicatesMassInAtomicGas": False,
+        "DustSilicatesMassInMolecularGas": False,
+        "DustSilicatesMassInColdDenseGas": False,
+        "DustSmallGrainMass": False,
+        "DustSmallGrainMassInMolecularGas": False,
+        "DustSmallGrainMassInColdDenseGas": False,
+        "GasMassInColdDenseGas": False,
+        "DiffuseCarbonMass": False,
+        "DiffuseOxygenMass": False,
+        "DiffuseMagnesiumMass": False,
+        "DiffuseSiliconMass": False,
+        "DiffuseIronMass": False,
+        "LinearMassWeightedOxygenOverHydrogenOfGas": False,
+        "LinearMassWeightedNitrogenOverOxygenOfGas": False,
+        "LinearMassWeightedCarbonOverOxygenOfGas": False,
+        "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas": False,
+        "LinearMassWeightedDiffuseNitrogenOverOxygenOfGas": False,
+        "LinearMassWeightedDiffuseCarbonOverOxygenOfGas": False,
+        "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit": False,
+        "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit": False,
+        "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit": False,
+        "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit": False,
+        "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit": False,
+        "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit": False,
+        "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit": False,
+        "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit": False,
+        "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit": False,
+        "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit": False,
+        "LinearMassWeightedMagnesiumOverHydrogenOfStars": False,
+        "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit": False,
+        "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit": False,
+        "LinearMassWeightedIronOverHydrogenOfStars": False,
+        "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit": False,
+        "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit": False,
+        "GasMassInColdDenseDiffuseMetals": False,
+        "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit": False,
+        "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": False,
     }
 
     property_list = {
-        name: PropertyTable.full_property_list[name]
-        for name in property_names
+        name: PropertyTable.full_property_list[name] for name in property_names
     }
 
     def __init__(
@@ -3186,7 +3228,7 @@ class ApertureProperties(HaloProperty):
            The filter to apply to this halo type. Halos which do not fulfil the
            filter requirements will be skipped.
          - inclusive: bool
-           Should properties include particles that are not gravitationally bound 
+           Should properties include particles that are not gravitationally bound
            to the subhalo?
          - all_radii_kpc: list
            A list of all the radii for which we are computing an ApertureProperties.
@@ -3311,13 +3353,12 @@ class ApertureProperties(HaloProperty):
                 val, dtype=dtype, units=unit, registry=registry
             )
 
-
         do_calculation = self.category_filter.get_do_calculation(halo_result)
 
         skip_gt_enclose_radius = False
-        # Determine if the previous aperture already enclosed all 
+        # Determine if the previous aperture already enclosed all
         # the bound particles of the subhalo
-        r_enclose = halo_result['BoundSubhalo/EncloseRadius'][0]
+        r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
         i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
         if i_radius != 0:
             r_previous_kpc = self.all_radii_kpc[i_radius - 1]
@@ -3344,8 +3385,9 @@ class ApertureProperties(HaloProperty):
                             # size (and so would have a different value)
                             if self.strict_halo_copy and self.property_names[name]:
                                 continue
-                            aperture_sphere[name] = halo_result[f'{prev_group_name}/{outputname}'][0]
-
+                            aperture_sphere[name] = halo_result[
+                                f"{prev_group_name}/{outputname}"
+                            ][0]
 
         # Determine whether to skip this halo (because of the filter or because we
         # have copied over the values from the previous aperture)
@@ -3437,16 +3479,16 @@ class ApertureProperties(HaloProperty):
             )
             if self.record_timings:
                 arr = unyt.unyt_array(
-                        timings.get(name, 0),
-                        dtype=np.float32,
-                        units=unyt.dimensionless,
-                        registry=registry,
-                    )
+                    timings.get(name, 0),
+                    dtype=np.float32,
+                    units=unyt.dimensionless,
+                    registry=registry,
+                )
                 halo_result.update(
                     {
                         f"{self.group_name}/{outputname}_time": (
                             arr,
-                            'Time taken in seconds',
+                            "Time taken in seconds",
                             True,
                             None,
                         )
@@ -3588,4 +3630,3 @@ class InclusiveSphereProperties(ApertureProperties):
             True,
             all_radii_kpc,
         )
-

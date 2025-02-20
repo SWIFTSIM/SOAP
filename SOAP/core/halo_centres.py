@@ -180,28 +180,38 @@ class SOCatalogue:
         if args.record_halo_timings:
             # Total amount of time spent processing this halo
             local_halo["process_time"] = unyt.unyt_array(
-                np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+                np.zeros(local_halo["index"].shape[0], dtype=np.float32),
+                units=unyt.dimensionless,
+                registry=registry,
             )
             # Number of loops before target density was reached
             local_halo["n_loop"] = unyt.unyt_array(
-                np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+                np.zeros(local_halo["index"].shape[0], dtype=np.float32),
+                units=unyt.dimensionless,
+                registry=registry,
             )
             # Number of times this halo was processed (a halo will have to be
             # reprocessed if it's target density is not reached with the region
             # currently loaded in memory)
             local_halo["n_process"] = unyt.unyt_array(
-                np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+                np.zeros(local_halo["index"].shape[0], dtype=np.float32),
+                units=unyt.dimensionless,
+                registry=registry,
             )
             for halo_prop in halo_prop_list:
                 # Total time taken for this halo prop
-                local_halo[f'{halo_prop.name}_total_time'] = unyt.unyt_array(
-                    np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+                local_halo[f"{halo_prop.name}_total_time"] = unyt.unyt_array(
+                    np.zeros(local_halo["index"].shape[0], dtype=np.float32),
+                    units=unyt.dimensionless,
+                    registry=registry,
                 )
                 # Time taken the final time we calculated this halo_prop. This is needed
                 # certain halo_prop can throw exceptions which require them to be reprocessed,
                 # and so we want to know how often that happens
-                local_halo[f'{halo_prop.name}_final_time'] = unyt.unyt_array(
-                    np.zeros(local_halo['index'].shape[0], dtype=np.float32), units=unyt.dimensionless, registry=registry
+                local_halo[f"{halo_prop.name}_final_time"] = unyt.unyt_array(
+                    np.zeros(local_halo["index"].shape[0], dtype=np.float32),
+                    units=unyt.dimensionless,
+                    registry=registry,
                 )
 
         # Ensure that both the initial search radius and the radius to read in

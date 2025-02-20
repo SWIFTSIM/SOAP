@@ -31,7 +31,7 @@ def read_vr_datasets(vr_basename, file_type, datasets, return_file_nr=None):
 def compute_lengths(offsets, total_nr_ids):
     """
     Compute group lengths given the offsets and the total number
-    of particle IDs. 
+    of particle IDs.
     """
 
     # Only include ranks with >0 groups
@@ -184,7 +184,7 @@ def vr_group_membership_from_ids(
 
 def read_vr_groupnr(basename):
     """
-    Read VR output and return group number for each particle ID 
+    Read VR output and return group number for each particle ID
     """
     (
         length_bound,
@@ -226,7 +226,7 @@ def read_vr_catalogue(comm, basename, a_unit, registry, boxsize):
     is_central - integer 1 for centrals, 0 for satellites
     nr_bound_part - number of bound particles in each halo
     nr_unbound_part - number of unbound particles in each halo
-    
+
     Any other arrays will be passed through to the output ONLY IF they are
     documented in property_table.py.
     """
@@ -373,7 +373,7 @@ def read_vr_catalogue(comm, basename, a_unit, registry, boxsize):
     for dim in range(3):
         need_wrap = dist[:, dim] > 0.5 * boxsize
         dist[need_wrap, dim] = boxsize - dist[need_wrap, dim]
-    dist = np.sqrt(np.sum(dist ** 2, axis=1))
+    dist = np.sqrt(np.sum(dist**2, axis=1))
 
     # Store the initial search radius
     local_halo["search_radius"] = local_halo["R_size"] * 1.01 + dist
@@ -390,12 +390,12 @@ def read_vr_group_sizes(basename, suffix, comm):
     Compute number of bound and unbound particles in each group. This is much
     more complicated than it should be because VR doesn't write out bound and
     unbound sizes. Instead we have to compute them in an awkward way.
-    
+
     For groups which are not last in the file, group i has size
     Offset[i+1]-Offset[i]. For the last group in each file we need to know the
     number of particles in the corresponding catalog_particles file to compute
     its size.
-    
+
     basename: VR output filename without trailing .properties[.0] or similar
     suffix: format string to add file number suffix, if necesary
     """
@@ -539,5 +539,3 @@ def read_vr_group_sizes(basename, suffix, comm):
         )
 
     return nr_parts_bound, nr_parts_unbound
-
-

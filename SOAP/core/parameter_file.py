@@ -86,7 +86,7 @@ class ParameterFile:
         Get a dictionary with the filter that should be applied to each
         property for the given halo type. If a property should be not be
         computed for this halo type then False is return. The dictionary
-        keys are based on the contents of the given list of properties. 
+        keys are based on the contents of the given list of properties.
 
         Parameters:
          - base_halo_type: str
@@ -103,7 +103,9 @@ class ParameterFile:
         string (the name of the filter to apply to the property).
         """
         # Save the filters as they are needed in combine chunks
-        self.property_filters[base_halo_type] = self.property_filters.get(base_halo_type, {})
+        self.property_filters[base_halo_type] = self.property_filters.get(
+            base_halo_type, {}
+        )
 
         if not base_halo_type in self.parameters:
             self.parameters[base_halo_type] = {}
@@ -119,7 +121,7 @@ class ParameterFile:
             # Check if property is listed in the parameter file for this base_halo_type
             if property in self.parameters[base_halo_type]["properties"]:
                 filter_name = self.parameters[base_halo_type]["properties"][property]
-                # filter_name will a dict if we want different behaviour 
+                # filter_name will a dict if we want different behaviour
                 # for snapshots/snipshots
                 if isinstance(filter_name, dict):
                     if self.snipshot:
@@ -129,19 +131,21 @@ class ParameterFile:
                 # if a filter is not specified in the snapshots
                 # then we default to "basic"
                 if filter_name == True:
-                    filter_name = 'basic'
+                    filter_name = "basic"
                 filters[property] = filter_name
             # Property is not listed in the parameter file for this base_halo_type
             else:
                 if self.calculate_missing_properties():
-                    filters[property] = 'basic'
-                    self.parameters[base_halo_type]["properties"][property] = 'basic'
+                    filters[property] = "basic"
+                    self.parameters[base_halo_type]["properties"][property] = "basic"
                     if self.unregistered_parameters is not None:
                         self.unregistered_parameters.add((base_halo_type, property))
                 else:
                     filters[property] = False
             if isinstance(filters[property], str):
-                assert (filters[property] in self.parameters.get('filters', {})) or (filters[property] == 'basic')
+                assert (filters[property] in self.parameters.get("filters", {})) or (
+                    filters[property] == "basic"
+                )
             else:
                 assert filters[property] == False
 

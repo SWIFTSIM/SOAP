@@ -7,6 +7,7 @@ import virgo.mpi.parallel_hdf5 as phdf5
 
 from SOAP.property_calculation.subhalo_rank import compute_subhalo_rank
 
+
 @pytest.mark.mpi
 def test_subhalo_rank():
 

@@ -30,7 +30,23 @@ def recalculate_xrays(snap_file, output_filename, units, xray_calculator):
 
     if comm_rank == 0:
         print("Recalculating xrays")
-    idx_he, idx_T, idx_n, t_z, d_z, t_T, d_T, t_nH, d_nH, t_He, d_He, abundance_to_solar, joint_mask, volumes, data_n = xray_calculator.find_indices(
+    (
+        idx_he,
+        idx_T,
+        idx_n,
+        t_z,
+        d_z,
+        t_T,
+        d_T,
+        t_nH,
+        d_nH,
+        t_He,
+        d_He,
+        abundance_to_solar,
+        joint_mask,
+        volumes,
+        data_n,
+    ) = xray_calculator.find_indices(
         data["Densities"],
         data["Temperatures"],
         data["SmoothedElementMassFractions"],
@@ -163,6 +179,7 @@ def recalculate_xrays(snap_file, output_filename, units, xray_calculator):
 if __name__ == "__main__":
 
     import datetime
+
     start = datetime.datetime.now()
 
     # Read parameters from command line and config file

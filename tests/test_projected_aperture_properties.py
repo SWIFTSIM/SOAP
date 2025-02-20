@@ -4,9 +4,12 @@ import unyt
 
 from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
-from SOAP.particle_selection.projected_aperture_properties import ProjectedApertureProperties
+from SOAP.particle_selection.projected_aperture_properties import (
+    ProjectedApertureProperties,
+)
 
 from dummy_halo_generator import DummyHaloGenerator
+
 
 def test_projected_aperture_properties():
     """

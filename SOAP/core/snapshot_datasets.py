@@ -187,7 +187,7 @@ class SnapshotDatasets:
             full_property_list = property_table.PropertyTable.full_property_list
             for k, v in full_property_list.items():
                 if name in v.particle_properties:
-                    print(f'  {k}')
+                    print(f"  {k}")
             raise e
         return data_dict[ptype][dset]
 

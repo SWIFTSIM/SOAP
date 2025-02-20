@@ -14,67 +14,14 @@ if [ ! -d black_formatting_env ]
 then
   echo "Formatting environment not found, installing it..."
   python3 -m venv black_formatting_env
-  ./black_formatting_env/bin/python3 -m pip install click==8.0.4 black==19.3b0
+  ./black_formatting_env/bin/python3 -m pip install black
 fi
 # Now we know exactly which black to use
 black="./black_formatting_env/bin/python3 -m black"
 
-# Formatting command
-files=$(echo {*.py,compression/*.py})
-cmd="$black -t py38 $files"
+# Make sure we don't try and format any virtual environments
+files=$(echo {compression/*.py,misc/*.py,SOAP/*.py,SOAP/*/*.py,tests/*.py})
 
-# Print the help
-function show_help {
-    echo -e "This script formats all Python scripts using black"
-    echo -e "  -h, --help \t Show this help"
-    echo -e "  -c, --check \t Test if the Python scripts are well formatted"
-}
+# Run formatting (pass --check to see what changes would be made)
+$black -t py38 $files
 
-# Parse arguments
-TEST=0
-while [[ $# -gt 0 ]]
-do
-    key="$1"
-
-    case $key in
-	# print the help and exit
-	-h|--help)
-	    show_help
-	    exit
-	    ;;
-	# check if the code is well formatted
-	-c|--check)
-	    TEST=1
-	    shift
-	    ;;
-	# unknown option
-	*)
-	    echo "Argument '$1' not implemented"
-	    show_help
-	    exit
-	    ;;
-    esac
-done
-
-# Run the required commands
-if [[ $TEST -eq 1 ]]
-then
-    # Note trapping the exit status from both commands in the pipe. Also note
-    # do not use -q in grep as that closes the pipe on first match and we get
-    # a SIGPIPE error.
-    echo "Testing if Python scripts are correctly formatted"
-    $cmd --check
-    status=$?
-
-    # Check formatting
-    if [[ ! ${status} -eq 0 ]]
-    then
-        echo "ERROR: needs formatting"
-        exit 1
-    else
-        echo "Everything is correctly formatted"
-    fi
-else
-    echo "Formatting all Python scripts"
-    $cmd
-fi

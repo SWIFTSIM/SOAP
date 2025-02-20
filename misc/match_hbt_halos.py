@@ -100,13 +100,13 @@ def find_matching_halos(
     del halo_data2
 
     # Find group membership for particles in the first catalogue:
-    total_nr_halos1, cat1_ids, cat1_grnr_in_cat1, rank_bound1 = read_hbtplus.read_hbtplus_groupnr(
-        base_name1
+    total_nr_halos1, cat1_ids, cat1_grnr_in_cat1, rank_bound1 = (
+        read_hbtplus.read_hbtplus_groupnr(base_name1)
     )
 
     # Find group membership for particles in the second catalogue
-    total_nr_halos2, cat2_ids, cat2_grnr_in_cat2, rank_bound2 = read_hbtplus.read_hbtplus_groupnr(
-        base_name2
+    total_nr_halos2, cat2_ids, cat2_grnr_in_cat2, rank_bound2 = (
+        read_hbtplus.read_hbtplus_groupnr(base_name2)
     )
 
     # Decide range of halos in cat1 which we'll store on each rank:
@@ -201,9 +201,9 @@ def find_matching_halos(
     cat1_grnr_in_cat2 = cat1_grnr_in_cat2[matched]
 
     # Get sorted, unique (grnr1, grnr2) combinations and counts of how many instances of each we have
-    assert np.all(cat1_grnr_in_cat1 < 2 ** 32)
+    assert np.all(cat1_grnr_in_cat1 < 2**32)
     assert np.all(cat1_grnr_in_cat1 >= 0)
-    assert np.all(cat1_grnr_in_cat2 < 2 ** 32)
+    assert np.all(cat1_grnr_in_cat2 < 2**32)
     assert np.all(cat1_grnr_in_cat2 >= 0)
     sort_key = (cat1_grnr_in_cat1.astype(np.uint64) << 32) + cat1_grnr_in_cat2.astype(
         np.uint64

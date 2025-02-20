@@ -139,7 +139,7 @@ def read_gadget4_catalogue(comm, basename, a_unit, registry, boxsize):
     search_radius - initial search radius which includes all member particles
     is_central - integer 1 for centrals, 0 for satellites
     nr_bound_part - number of bound particles in each halo
-    
+
     Any other arrays will be passed through to the output ONLY IF they are
     documented in property_table.py.
 

@@ -212,7 +212,7 @@ class SWIFTCellGrid:
 
             # Determine if this is a snapshot or snipshot
             self.snipshot = (
-                self.swift_header_group.get("SelectOutput", b'').decode() == "Snipshot"
+                self.swift_header_group.get("SelectOutput", b"").decode() == "Snipshot"
             )
 
             # Read the critical density and attach units
@@ -255,11 +255,11 @@ class SWIFTCellGrid:
             # mean density.
             H0 = self.cosmology["H0 [internal units]"]
             G = self.constants_internal["newton_G"]
-            critical_density_z0_internal = 3 * (H0 ** 2) / (8 * np.pi * G)
+            critical_density_z0_internal = 3 * (H0**2) / (8 * np.pi * G)
             mean_density_z0_internal = (
                 critical_density_z0_internal * self.cosmology["Omega_m"]
             )
-            mean_density_internal = mean_density_z0_internal / (self.a ** 3)
+            mean_density_internal = mean_density_z0_internal / (self.a**3)
             self.mean_density = unyt.unyt_quantity(
                 mean_density_internal, units=internal_density_unit
             )
@@ -268,10 +268,10 @@ class SWIFTCellGrid:
             Omega_k = self.cosmology["Omega_k"]
             Omega_Lambda = self.cosmology["Omega_lambda"]
             Omega_m = self.cosmology["Omega_m"]
-            bnx = -(Omega_k / self.a ** 2 + Omega_Lambda) / (
-                Omega_k / self.a ** 2 + Omega_m / self.a ** 3 + Omega_Lambda
+            bnx = -(Omega_k / self.a**2 + Omega_Lambda) / (
+                Omega_k / self.a**2 + Omega_m / self.a**3 + Omega_Lambda
             )
-            self.virBN98 = 18.0 * np.pi ** 2 + 82.0 * bnx - 39.0 * bnx ** 2
+            self.virBN98 = 18.0 * np.pi**2 + 82.0 * bnx - 39.0 * bnx**2
             if self.virBN98 < 50.0 or self.virBN98 > 1000.0:
                 raise RuntimeError("Invalid value for virBN98!")
 
@@ -492,7 +492,7 @@ class SWIFTCellGrid:
         cells_to_read = cells_to_read[idx]
 
         # Merge adjacent cells
-        max_size = 20 * 1024 ** 2
+        max_size = 20 * 1024**2
         nr_to_read = len(cells_to_read)
         for cell_nr in range(nr_to_read - 1):
             cell1 = cells_to_read[cell_nr]
@@ -572,7 +572,7 @@ class SWIFTCellGrid:
         for file_nr in all_file_nrs:
             for ptype in reads_for_type:
                 if file_nr in reads_for_type[ptype]:
-                    for (file_offset, mem_offset, count) in reads_for_type[ptype][
+                    for file_offset, mem_offset, count in reads_for_type[ptype][
                         file_nr
                     ]:
                         nr_parts[ptype] += count
@@ -591,9 +591,9 @@ class SWIFTCellGrid:
                         and dataset not in self.extra_metadata_combined[ptype]
                     ):
                         if file_nr in reads_for_type[ptype]:
-                            for (file_offset, mem_offset, count) in reads_for_type[
-                                ptype
-                            ][file_nr]:
+                            for file_offset, mem_offset, count in reads_for_type[ptype][
+                                file_nr
+                            ]:
                                 all_tasks.append(
                                     ReadTask(
                                         filename,
@@ -765,7 +765,7 @@ class SWIFTCellGrid:
         # All types use the same grid, so just use cell arrays for the first type
         ptype = list(self.cell.keys())[0]
         cell_centre = self.cell[ptype]["centre"]
-        cell_diagonal = np.sqrt(np.sum(self.cell_size.value ** 2))
+        cell_diagonal = np.sqrt(np.sum(self.cell_size.value**2))
 
         # Output array
         cell_complete_radius = np.zeros(self.dimension)

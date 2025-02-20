@@ -26,12 +26,13 @@ from typing import Dict
 
 from SOAP.property_table import PropertyTable
 
+
 class CategoryFilter:
     """
     Filter used to determine whether properties need to be calculated for a
     certain halo or not.
 
-    This decision is always based on the number of particles in the subhalo, 
+    This decision is always based on the number of particles in the subhalo,
     and requires the calculation of BoundSubhalo for each halo.
     """
 
@@ -127,10 +128,13 @@ class CategoryFilter:
         # we need to loop over that case
         split_name = property_output_name.split("/")
         for i in range(len(split_name)):
-            output_name = '/'.join(split_name[-1-i:])
+            output_name = "/".join(split_name[-1 - i :])
             for _, prop in PropertyTable.full_property_list.items():
                 if prop.name == output_name:
-                    return {"Lossy compression filter": prop.lossy_compression_filter, "Is Compressed": False}
+                    return {
+                        "Lossy compression filter": prop.lossy_compression_filter,
+                        "Is Compressed": False,
+                    }
         raise RuntimeError(f"Compression filter not found for {split_name}")
 
     def set_property_filters(self, property_filters: Dict) -> None:
@@ -150,12 +154,12 @@ class CategoryFilter:
         # Convert from output file group name to parameter file name
         # Return None for groups (e.g. InputHalos) which are never masked
         base_halo_type = {
-            'BoundSubhalo': 'SubhaloProperties',
-            'ProjectedAperture': 'ProjectedApertureProperties',
-            'SO': 'SOProperties',
-            'ExclusiveSphere': 'ApertureProperties',
-            'InclusiveSphere': 'ApertureProperties',
-        }.get(property_output_name.split('/')[0], None)
+            "BoundSubhalo": "SubhaloProperties",
+            "ProjectedAperture": "ProjectedApertureProperties",
+            "SO": "SOProperties",
+            "ExclusiveSphere": "ApertureProperties",
+            "InclusiveSphere": "ApertureProperties",
+        }.get(property_output_name.split("/")[0], None)
 
         if base_halo_type is not None:
             output_name = property_output_name.split("/")[-1]

@@ -35,7 +35,9 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
     comm_rank = comm.Get_rank()
 
     sub_format_string = basename + ".{file_nr}.hdf5"
-    sub_file = phdf5.MultiFile(sub_format_string, file_nr_attr=("Header", "NumFilesPerSnapshot"))
+    sub_file = phdf5.MultiFile(
+        sub_format_string, file_nr_attr=("Header", "NumFilesPerSnapshot")
+    )
 
     # Get SWIFT's definition of physical and comoving Mpc units
     swift_pmpc = unyt.Unit("swift_mpc", registry=registry)
@@ -43,23 +45,25 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
 
     if comm_rank == 0:
         with h5py.File(sub_format_string.format(file_nr=0), "r") as file:
-            h = file['Header'].attrs['HubbleParam']
+            h = file["Header"].attrs["HubbleParam"]
             # Check units are indeed what we are assuming below
-            units_header = file['Units'].attrs
-            mpc_in_cm = (1 * unyt.Mpc).to('cm').value
-            assert np.isclose(units_header['UnitLength_in_cm'], mpc_in_cm)
-            M_in_g = (10**10 * unyt.Msun).to('g').value
-            assert np.isclose(units_header['UnitMass_in_g'], M_in_g, rtol=1e-2)
-            assert file['Subhalo/CentreOfPotential'].attrs['h-scale-exponent'] == -1
-            assert file['Subhalo/CentreOfPotential'].attrs['aexp-scale-exponent'] == 1
-            assert file['Subhalo/VmaxRadius'].attrs['h-scale-exponent'] == -1
-            assert file['Subhalo/VmaxRadius'].attrs['aexp-scale-exponent'] == 1
+            units_header = file["Units"].attrs
+            mpc_in_cm = (1 * unyt.Mpc).to("cm").value
+            assert np.isclose(units_header["UnitLength_in_cm"], mpc_in_cm)
+            M_in_g = (10**10 * unyt.Msun).to("g").value
+            assert np.isclose(units_header["UnitMass_in_g"], M_in_g, rtol=1e-2)
+            assert file["Subhalo/CentreOfPotential"].attrs["h-scale-exponent"] == -1
+            assert file["Subhalo/CentreOfPotential"].attrs["aexp-scale-exponent"] == 1
+            assert file["Subhalo/VmaxRadius"].attrs["h-scale-exponent"] == -1
+            assert file["Subhalo/VmaxRadius"].attrs["aexp-scale-exponent"] == 1
     else:
         h = None
     h = comm.bcast(h)
 
     sub_format_string = basename + ".{file_nr}.hdf5"
-    sub_file = phdf5.MultiFile(sub_format_string, file_nr_attr=("Header", "NumFilesPerSnapshot"))
+    sub_file = phdf5.MultiFile(
+        sub_format_string, file_nr_attr=("Header", "NumFilesPerSnapshot")
+    )
 
     # Read halo properties we need
     datasets = (
@@ -78,7 +82,10 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
     index <<= 32
     index += sub_group
     index = unyt.unyt_array(
-        index, dtype=int, units=unyt.dimensionless, registry=registry,
+        index,
+        dtype=int,
+        units=unyt.dimensionless,
+        registry=registry,
     )
 
     # Get position in comoving Mpc
@@ -86,9 +93,9 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
 
     # Store central halo flag
     is_central = unyt.unyt_array(
-        data["Subhalo/SubGroupNumber"] == 0, 
-        dtype=int, 
-        units=unyt.dimensionless, 
+        data["Subhalo/SubGroupNumber"] == 0,
+        dtype=int,
+        units=unyt.dimensionless,
         registry=registry,
     )
 
@@ -115,4 +122,3 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
         local_halo[name] = unyt.unyt_array(local_halo[name], registry=registry)
 
     return local_halo
-

@@ -111,9 +111,9 @@ def read_rockstar_groupnr(basename):
         for halo_id, halo_offset in zip(
             halo_file["Halo"]["id"], halo_file["Halo"]["num_p"]
         ):
-            local_grnr[
-                offset + file_offset : offset + file_offset + halo_offset
-            ] = halo_id
+            local_grnr[offset + file_offset : offset + file_offset + halo_offset] = (
+                halo_id
+            )
             file_offset += halo_offset
 
         offset += n_part_file
@@ -141,7 +141,7 @@ def read_rockstar_catalogue(comm, basename, a_unit, registry, boxsize):
     search_radius - initial search radius which includes all member particles
     is_central - integer 1 for centrals, 0 for satellites
     nr_bound_part - number of bound particles in each halo
-    
+
     Any other arrays will be passed through to the output ONLY IF they are
     documented in property_table.py.
 

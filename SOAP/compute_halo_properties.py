@@ -185,11 +185,11 @@ def compute_halo_properties():
         cold_dense_gas_filter = ColdDenseGasFilter(
             float(cold_dense_params["maximum_temperature_K"]) * unyt.K,
             float(cold_dense_params["minimum_hydrogen_number_density_cm3"])
-            / unyt.cm ** 3,
+            / unyt.cm**3,
             True,
         )
     except KeyError:
-        cold_dense_gas_filter = ColdDenseGasFilter(0 * unyt.K, 0 / unyt.cm ** 3, False)
+        cold_dense_gas_filter = ColdDenseGasFilter(0 * unyt.K, 0 / unyt.cm**3, False)
 
     default_filters = {
         "general": {
@@ -230,7 +230,7 @@ def compute_halo_properties():
     # We require BoundSubhalo since it's used for filters
     if comm_world_rank == 0:
         if "SubhaloProperties" not in parameter_file.parameters:
-            print('SubhaloProperties must be in the parameter file')
+            print("SubhaloProperties must be in the parameter file")
             comm_world.Abort(1)
     halo_prop_list.append(
         subhalo_properties.SubhaloProperties(
@@ -335,7 +335,9 @@ def compute_halo_properties():
     # Sort the aperture variations based on their radii, and create a list
     # of all apertures. This is required since we can skip some of the larger
     # apertures if all the particles were already included in the previous aperture
-    aperture_variations = dict(sorted(aperture_variations.items(), key=lambda x: x[1]['radius_in_kpc']))
+    aperture_variations = dict(
+        sorted(aperture_variations.items(), key=lambda x: x[1]["radius_in_kpc"])
+    )
     inclusive_radii_kpc = []
     exclusive_radii_kpc = []
     for variation in aperture_variations:
@@ -352,7 +354,7 @@ def compute_halo_properties():
             # we always want to calculate its properties, regardless of the
             # size of the next smallest aperture.
             radii_kpc = [aperture_variations[variation]["radius_in_kpc"]]
-            if aperture_variations[variation].get('skip_gt_enclose_radius', False):
+            if aperture_variations[variation].get("skip_gt_enclose_radius", False):
                 radii_kpc = inclusive_radii_kpc
 
             halo_prop_list.append(
@@ -365,7 +367,7 @@ def compute_halo_properties():
                     cold_dense_gas_filter,
                     category_filter,
                     aperture_variations[variation].get("filter", "basic"),
-                    radii_kpc
+                    radii_kpc,
                 )
             )
         else:
@@ -379,7 +381,7 @@ def compute_halo_properties():
                     cold_dense_gas_filter,
                     category_filter,
                     aperture_variations[variation].get("filter", "basic"),
-                    exclusive_radii_kpc
+                    exclusive_radii_kpc,
                 )
             )
 
@@ -395,10 +397,16 @@ def compute_halo_properties():
     # Sort the aperture variations based on their radii, and create a list
     # of all apertures. This is required since we can skip some of the larger
     # apertures if all the particles were already included in the previous aperture
-    projected_aperture_variations = dict(sorted(projected_aperture_variations.items(), key=lambda x: x[1]['radius_in_kpc']))
+    projected_aperture_variations = dict(
+        sorted(
+            projected_aperture_variations.items(), key=lambda x: x[1]["radius_in_kpc"]
+        )
+    )
     projected_radii_kpc = []
     for variation in projected_aperture_variations:
-        projected_radii_kpc.append(projected_aperture_variations[variation]["radius_in_kpc"])
+        projected_radii_kpc.append(
+            projected_aperture_variations[variation]["radius_in_kpc"]
+        )
     assert projected_radii_kpc == sorted(projected_radii_kpc)
     for variation in projected_aperture_variations:
         halo_prop_list.append(
@@ -584,18 +592,12 @@ def compute_halo_properties():
     combine_time_fraction = combine_time_total / (comm_world_size * (t1 - t0))
 
     if comm_world_rank == 0:
-        print(
-            "Fraction of time spent setting up = %.2f"
-            % setup_time_fraction
-        )
+        print("Fraction of time spent setting up = %.2f" % setup_time_fraction)
         print(
             "Fraction of time spent calculating halo properties = %.2f"
             % task_time_fraction
         )
-        print(
-            "Fraction of time spent combining chunks = %.2f"
-            % combine_time_fraction
-        )
+        print("Fraction of time spent combining chunks = %.2f" % combine_time_fraction)
         print("Total elapsed time: %.1f seconds" % (t1 - t0))
         print("Done.")
 

@@ -33,5 +33,3 @@ class HaloProperty:
         # No density criterion by default
         self.mean_density_multiple = None
         self.critical_density_multiple = None
-
-

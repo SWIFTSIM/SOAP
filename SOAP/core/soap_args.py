@@ -55,10 +55,14 @@ def get_soap_args(comm):
         "--centrals-only", action="store_true", help="Only process central halos"
     )
     parser.add_argument(
-        "--record-halo-timings", action="store_true", help="Record time taken to process each halo"
+        "--record-halo-timings",
+        action="store_true",
+        help="Record time taken to process each halo",
     )
     parser.add_argument(
-        "--record-property-timings", action="store_true", help="Record time taken to process each property"
+        "--record-property-timings",
+        action="store_true",
+        help="Record time taken to process each property",
     )
     parser.add_argument(
         "--max-halos",

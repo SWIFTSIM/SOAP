@@ -67,7 +67,7 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
                 layout_fof_id = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
             # Loop over input files
             offset = 0
-            for (filename, shape) in zip(filenames, shapes):
+            for filename, shape in zip(filenames, shapes):
                 count = shape[ptype][0]
                 if have_grnr_all:
                     layout_grnr_all[offset : offset + count] = h5py.VirtualSource(
@@ -97,7 +97,9 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
                 )
                 # Copy GroupNr_bound to HaloCatalogueIndex, since that is the name in SOAP
                 outfile.create_virtual_dataset(
-                    f"PartType{ptype}/HaloCatalogueIndex", layout_grnr_bound, fillvalue=-999
+                    f"PartType{ptype}/HaloCatalogueIndex",
+                    layout_grnr_bound,
+                    fillvalue=-999,
                 )
                 for k, v in outfile[f"PartType{ptype}/GroupNr_bound"].attrs.items():
                     outfile[f"PartType{ptype}/HaloCatalogueIndex"].attrs[k] = v

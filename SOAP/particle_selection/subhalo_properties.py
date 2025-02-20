@@ -756,9 +756,10 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return ((self.total_mass_fraction[:, None] * self.position).sum(
-            axis=0
-        ) + self.centre) % self.boxsize
+        return (
+            (self.total_mass_fraction[:, None] * self.position).sum(axis=0)
+            + self.centre
+        ) % self.boxsize
 
     @lazy_property
     def vcom(self) -> unyt.unyt_array:
@@ -773,7 +774,7 @@ class SubhaloParticleData:
     def R_vmax_unsoft(self) -> unyt.unyt_quantity:
         """
         Radius at which the maximum circular velocity of the halo is reached.
-        Particles are not constrained to be at least one softening length away 
+        Particles are not constrained to be at least one softening length away
         from the centre.
 
         This includes contributions from all particle types.
@@ -790,7 +791,7 @@ class SubhaloParticleData:
     def Vmax_unsoft(self) -> unyt.unyt_quantity:
         """
         Maximum circular velocity of the halo.
-        Particles are not constrained to be at least one softening length away 
+        Particles are not constrained to be at least one softening length away
         from the centre.
 
         This includes contributions from all particle types.
@@ -1967,7 +1968,12 @@ class SubhaloProperties(HaloProperty):
             "PartType0": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
             "PartType1": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
             "PartType4": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
-            "PartType5": ["Coordinates", "DynamicalMasses", "Velocities", "GroupNr_bound"],
+            "PartType5": [
+                "Coordinates",
+                "DynamicalMasses",
+                "Velocities",
+                "GroupNr_bound",
+            ],
         }
 
         # add additional particle properties based on the selected halo
@@ -2098,7 +2104,9 @@ class SubhaloProperties(HaloProperty):
             )
         elif Ntot > Nexpected:
             # This would indicate a bug somewhere
-            raise RuntimeError(f'Found more particles than expected for halo {input_halo["index"]}')
+            raise RuntimeError(
+                f'Found more particles than expected for halo {input_halo["index"]}'
+            )
 
         # Add these properties to the output
         for name, prop in self.property_list.items():
@@ -2122,19 +2130,18 @@ class SubhaloProperties(HaloProperty):
             )
             if self.record_timings:
                 arr = unyt.unyt_array(
-                        timings.get(name, 0),
-                        dtype=np.float32,
-                        units=unyt.dimensionless,
-                        registry=registry,
-                    )
+                    timings.get(name, 0),
+                    dtype=np.float32,
+                    units=unyt.dimensionless,
+                    registry=registry,
+                )
                 halo_result.update(
                     {
                         f"{self.group_name}/{outputname}_time": (
                             arr,
-                            'Time taken in seconds',
+                            "Time taken in seconds",
                             True,
                             None,
                         )
                     }
                 )
-

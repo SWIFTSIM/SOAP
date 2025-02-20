@@ -172,9 +172,9 @@ def find_matching_halos(
     cat1_grnr_in_cat2 = cat1_grnr_in_cat2[matched]
 
     # Get sorted, unique (grnr1, grnr2) combinations and counts of how many instances of each we have
-    assert np.all(cat1_grnr_in_cat1 < 2 ** 32)
+    assert np.all(cat1_grnr_in_cat1 < 2**32)
     assert np.all(cat1_grnr_in_cat1 >= 0)
-    assert np.all(cat1_grnr_in_cat2 < 2 ** 32)
+    assert np.all(cat1_grnr_in_cat2 < 2**32)
     assert np.all(cat1_grnr_in_cat2 >= 0)
     sort_key = (cat1_grnr_in_cat1.astype(np.uint64) << 32) + cat1_grnr_in_cat2.astype(
         np.uint64

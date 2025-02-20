@@ -754,9 +754,9 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return ((self.mass_fraction[:, None] * self.proj_position).sum(
-            axis=0
-        ) + self.centre) % self.part_props.boxsize
+        return (
+            (self.mass_fraction[:, None] * self.proj_position).sum(axis=0) + self.centre
+        ) % self.part_props.boxsize
 
     @lazy_property
     def vcom(self) -> unyt.unyt_array:
@@ -1490,8 +1490,7 @@ class ProjectedApertureProperties(HaloProperty):
         "gasmetalfrac_SF": False,
     }
     property_list = {
-        name: PropertyTable.full_property_list[name]
-        for name in property_names
+        name: PropertyTable.full_property_list[name] for name in property_names
     }
 
     def __init__(
@@ -1531,7 +1530,8 @@ class ProjectedApertureProperties(HaloProperty):
         super().__init__(cellgrid)
 
         self.property_filters = parameters.get_property_filters(
-            "ProjectedApertureProperties", [prop.name for prop in self.property_list.values()]
+            "ProjectedApertureProperties",
+            [prop.name for prop in self.property_list.values()],
         )
 
         # Minimum physical radius to read in (pMpc)
@@ -1612,7 +1612,7 @@ class ProjectedApertureProperties(HaloProperty):
         skip_gt_enclose_radius = False
         # Determine if the previous aperture already enclosed
         # all the bound particles of the subhalo
-        r_enclose = halo_result['BoundSubhalo/EncloseRadius'][0]
+        r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
         i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
         if i_radius != 0:
             r_previous_kpc = self.all_radii_kpc[i_radius - 1]
@@ -1749,16 +1749,16 @@ class ProjectedApertureProperties(HaloProperty):
             # Storing total time for each calculation over the three projections
             if self.record_timings:
                 arr = unyt.unyt_array(
-                        timings.get(name, 0),
-                        dtype=np.float32,
-                        units=unyt.dimensionless,
-                        registry=registry,
-                    )
+                    timings.get(name, 0),
+                    dtype=np.float32,
+                    units=unyt.dimensionless,
+                    registry=registry,
+                )
                 halo_result.update(
                     {
                         f"{self.group_name}/{outputname}_time": (
                             arr,
-                            'Time taken in seconds',
+                            "Time taken in seconds",
                             True,
                             None,
                         )
@@ -1766,5 +1766,3 @@ class ProjectedApertureProperties(HaloProperty):
                 )
 
         return
-
-

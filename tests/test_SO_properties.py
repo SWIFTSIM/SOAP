@@ -5,7 +5,10 @@ import unyt
 from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.particle_selection.halo_properties import SearchRadiusTooSmallError
-from SOAP.particle_selection.SO_properties import SOProperties, RadiusMultipleSOProperties
+from SOAP.particle_selection.SO_properties import (
+    SOProperties,
+    RadiusMultipleSOProperties,
+)
 
 from dummy_halo_generator import DummyHaloGenerator
 
@@ -118,7 +121,7 @@ def test_SO_properties_random_halo():
             particle_numbers,
         ) = dummy_halos.get_random_halo([10, 100, 1000, 10000], has_neutrinos=True)
         halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
-        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
+        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax**3)
 
         # force the SO radius to be outside the search sphere and check that
         # we get a SearchRadiusTooSmallError
@@ -305,7 +308,7 @@ def test_SO_properties_random_halo():
         )
 
         halo_result_template = dummy_halos.get_halo_result_template(particle_numbers)
-        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax ** 3)
+        rho_ref = Mtot / (4.0 / 3.0 * np.pi * rmax**3)
 
         # force the SO radius to be within the search sphere
         property_calculator_2500mean.reference_density = 2.0 * rho_ref

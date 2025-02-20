@@ -58,7 +58,7 @@ def process_single_halo(
     swift_mpc = unyt.Unit("swift_mpc", registry=unit_registry)
     snap_length = unyt.Unit("snap_length", registry=unit_registry)
     snap_mass = unyt.Unit("snap_mass", registry=unit_registry)
-    snap_density = snap_mass / (snap_length ** 3)
+    snap_density = snap_mass / (snap_length**3)
 
     # Record which calculations are still to do for this halo
     halo_prop_done = np.zeros(len(halo_prop_list), dtype=bool)
@@ -69,12 +69,12 @@ def process_single_halo(
     # Dict to store timing information for this iteration of
     # attempting to process this halo
     t0_halo = time.time()
-    timings = {'n_process': 1}
+    timings = {"n_process": 1}
 
     # Loop until we fall below the required density
     current_radius = input_halo["search_radius"]
     while True:
-        timings['n_loop'] = timings.get('n_loop', 0) + 1
+        timings["n_loop"] = timings.get("n_loop", 0) + 1
 
         # Sanity checks on the radius
         assert current_radius <= input_halo["read_radius"]
@@ -96,7 +96,7 @@ def process_single_halo(
                 mass_total += np.sum(mass.full[idx[ptype]], dtype=float)
 
         # Find mean density in the search radius
-        density = mass_total / (4.0 / 3.0 * np.pi * current_radius ** 3)
+        density = mass_total / (4.0 / 3.0 * np.pi * current_radius**3)
 
         # If we've reached the target density, we can try to compute halo properties
         max_physical_radius_mpc = (
@@ -133,7 +133,11 @@ def process_single_halo(
                     max_physical_radius_mpc = max(
                         max_physical_radius_mpc, halo_prop.physical_radius_mpc
                     )
-                    timings[f'{halo_prop.name}_total_time'] = timings.get(f'{halo_prop.name}_total_time', 0) + time.time() - t0_halo_prop
+                    timings[f"{halo_prop.name}_total_time"] = (
+                        timings.get(f"{halo_prop.name}_total_time", 0)
+                        + time.time()
+                        - t0_halo_prop
+                    )
                     break
                 except Exception as e:
                     # Calculation caused an unexpected error.
@@ -147,9 +151,15 @@ def process_single_halo(
                     halo_prop_done[prop_nr] = True
                     # The total_time value stored in timings will include all previous failed attempts to
                     # calculate this halo prop, so we also store how long the successful attempt took
-                    timings[f'{halo_prop.name}_total_time'] = timings.get(f'{halo_prop.name}_total_time', 0) + time.time() - t0_halo_prop
-                    if f'{halo_prop.name}_final_time' in input_halo:
-                        input_halo[f'{halo_prop.name}_final_time'] += time.time() - t0_halo_prop
+                    timings[f"{halo_prop.name}_total_time"] = (
+                        timings.get(f"{halo_prop.name}_total_time", 0)
+                        + time.time()
+                        - t0_halo_prop
+                    )
+                    if f"{halo_prop.name}_final_time" in input_halo:
+                        input_halo[f"{halo_prop.name}_final_time"] += (
+                            time.time() - t0_halo_prop
+                        )
 
             # If we computed all of the properties, we're done with this halo
             if np.all(halo_prop_done):
@@ -163,13 +173,13 @@ def process_single_halo(
             # which we read in, so we can't process the halo on this iteration regardless
             # of the current radius.
             input_halo["search_radius"] = max(search_radius, required_radius)
-            timings['process_time'] = time.time() - t0_halo
+            timings["process_time"] = time.time() - t0_halo
             return None, timings
         elif current_radius >= input_halo["read_radius"]:
             # The current radius has exceeded the region read in. Will need to redo this
             # halo using current_radius as the starting point for the next iteration.
             input_halo["search_radius"] = max(search_radius, current_radius)
-            timings['process_time'] = time.time() - t0_halo
+            timings["process_time"] = time.time() - t0_halo
             return None, timings
         else:
             # We still have a large enough region in memory that we can try a larger radius
@@ -182,8 +192,8 @@ def process_single_halo(
     for k in timings:
         if k in input_halo:
             input_halo[k] += timings[k]
-    if 'process_time' in input_halo:
-        input_halo['process_time'] += time.time() - t0_halo
+    if "process_time" in input_halo:
+        input_halo["process_time"] += time.time() - t0_halo
 
     # Store input halo quantites
     for name in input_halo:
@@ -192,27 +202,29 @@ def process_single_halo(
             continue
 
         # Timing information
-        if ("_time" in name) or (name in ['n_loop', 'n_process']):
-            dataset_name = f'InputHalos/{name}'
+        if ("_time" in name) or (name in ["n_loop", "n_process"]):
+            dataset_name = f"InputHalos/{name}"
             arr = input_halo[name]
             physical = True
             a_exponent = None
-            if '_total_time' in name:
-                description = f"Time taken in seconds spent on {name.replace('_total_time', '')}"
-            elif '_final_time' in name:
+            if "_total_time" in name:
+                description = (
+                    f"Time taken in seconds spent on {name.replace('_total_time', '')}"
+                )
+            elif "_final_time" in name:
                 description = (
                     f"Time taken in seconds spent on {name.replace('_final_time', '')}"
                     "the final time it was calculated"
                 )
             else:
                 description = {
-                    'process_time': 'Time taken in seconds in total processing this halo',
-                    'n_loop': 'Number of loops before target density was reached',
-                    'n_process': (
+                    "process_time": "Time taken in seconds in total processing this halo",
+                    "n_loop": "Number of loops before target density was reached",
+                    "n_process": (
                         "Number of times this halo was processed (a halo "
-                         "will have to be reprocessed if it's target density "
-                         "is not reached with the region currently loaded "
-                         "in memory)"
+                        "will have to be reprocessed if it's target density "
+                        "is not reached with the region currently loaded "
+                        "in memory)"
                     ),
                 }[name]
 
@@ -224,7 +236,7 @@ def process_single_halo(
                 # We want to store halo finder properties within the InputHalos group
                 # Identify them using the fact that they have a prefix
                 if "/" in name:
-                    dataset_name = f'InputHalos/{dataset_name}'
+                    dataset_name = f"InputHalos/{dataset_name}"
 
                 dtype = prop.dtype
                 unit = unyt.Unit(prop.unit, registry=unit_registry)
@@ -246,7 +258,7 @@ def process_single_halo(
             # This property not present in PropertyTable. We log this fact
             # to stdout during combine_chunks, rather than doing it here.
             except KeyError:
-                dataset_name = f'InputHalos/{name}'
+                dataset_name = f"InputHalos/{name}"
                 arr = input_halo[name]
                 description = "No description available"
                 physical = True
@@ -319,7 +331,7 @@ def process_halos(
     # Start the clock
     comm.barrier()
     t0_all = time.time()
-    min_free_mem_gb = float('inf')
+    min_free_mem_gb = float("inf")
 
     # Count halos to do
     nr_halos_left = comm.allreduce(np.sum(halo_arrays["done"].local.value == 0))
@@ -336,7 +348,6 @@ def process_halos(
             _, free_mem_gb = memory_use.get_memory_use()
             if free_mem_gb is not None:
                 min_free_mem_gb = min(min_free_mem_gb, free_mem_gb)
-
 
         # Get a task by atomic incrementing the counter. Don't know how to do
         # an atomic fetch and add in python, so will use MPI RMA calls!
@@ -369,7 +380,7 @@ def process_halos(
                     mean_density,
                     boxsize,
                     input_halo,
-                    target_density if input_halo['is_central'] == 1 else None,
+                    target_density if input_halo["is_central"] == 1 else None,
                 )
                 if halo_result is not None:
                     # Store results and flag this halo as done
@@ -412,4 +423,10 @@ def process_halos(
     comm.barrier()
     t1_all = time.time()
 
-    return t1_all - t0_all, task_time, nr_halos_left, comm.allreduce(nr_done_this_rank), min_free_mem_gb
+    return (
+        t1_all - t0_all,
+        task_time,
+        nr_halos_left,
+        comm.allreduce(nr_done_this_rank),
+        min_free_mem_gb,
+    )

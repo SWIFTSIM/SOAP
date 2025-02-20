@@ -76,7 +76,7 @@ def unit_registry_from_snapshot(snap):
     )
     unyt.define_unit(
         "newton_G",
-        physical_constants_cgs["newton_G"] * unyt.cm ** 3 / unyt.g / unyt.s ** 2,
+        physical_constants_cgs["newton_G"] * unyt.cm**3 / unyt.g / unyt.s**2,
         registry=reg,
     )
 
@@ -112,9 +112,9 @@ def units_from_attributes(attrs, registry):
                 u = u * unit
         elif exponent != 0.0:
             if u is unyt.dimensionless:
-                u = unit ** exponent
+                u = unit**exponent
             else:
-                u = u * (unit ** exponent)
+                u = u * (unit**exponent)
 
     # Add expansion factor
     a_scale_exponent = attrs["a-scale exponent"][0]
@@ -180,7 +180,7 @@ def attributes_from_units(units, physical, a_exponent):
 
     # Set the attributes
     attrs["Conversion factor to CGS (not including cosmological corrections)"] = [
-        float(cgs_factor / (a_val ** a_exponent_in_units) / (h_val ** h_exponent))
+        float(cgs_factor / (a_val**a_exponent_in_units) / (h_val**h_exponent))
     ]
     attrs["Conversion factor to physical CGS (including cosmological corrections)"] = [
         float(cgs_factor)

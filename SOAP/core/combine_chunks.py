@@ -95,7 +95,7 @@ def combine_chunks(
     # output but will be computed by combining other halo properties.
     soap_metadata = []
     for key, prop in PropertyTable.full_property_list.items():
-        if not key.startswith('SOAP/'):
+        if not key.startswith("SOAP/"):
             continue
         name = prop.name
         size = prop.shape
@@ -165,7 +165,9 @@ def combine_chunks(
             )
             if recently_heated_gas_filter.initialised:
                 recently_heated_gas_metadata = recently_heated_gas_filter.get_metadata()
-                recently_heated_gas_params = params.create_group("RecentlyHeatedGasFilter")
+                recently_heated_gas_params = params.create_group(
+                    "RecentlyHeatedGasFilter"
+                )
                 for at, val in recently_heated_gas_metadata.items():
                     recently_heated_gas_params.attrs[at] = val
             if cold_dense_gas_filter.initialised:
@@ -249,15 +251,28 @@ def combine_chunks(
                 name, size, unit, dtype, description, physical, a_exponent = metadata
                 if description == "No description available":
                     print(f"{name} not found in property table")
-                    compression_metadata = {"Lossy compression filter": "None", "Is Compressed": False}
+                    compression_metadata = {
+                        "Lossy compression filter": "None",
+                        "Is Compressed": False,
+                    }
                     mask_metadata = category_filter.get_filter_metadata(None)
-                elif description.startswith("Time taken in seconds") or name in ['InputHalos/n_loop', 'InputHalos/n_process']:
+                elif description.startswith("Time taken in seconds") or name in [
+                    "InputHalos/n_loop",
+                    "InputHalos/n_process",
+                ]:
                     # Timing information
-                    compression_metadata = {"Lossy compression filter": "None", "Is Compressed": False}
+                    compression_metadata = {
+                        "Lossy compression filter": "None",
+                        "Is Compressed": False,
+                    }
                     mask_metadata = category_filter.get_filter_metadata(None)
                 else:
-                    compression_metadata = category_filter.get_compression_metadata(name)
-                    mask_metadata = category_filter.get_filter_metadata_for_property(name)
+                    compression_metadata = category_filter.get_compression_metadata(
+                        name
+                    )
+                    mask_metadata = category_filter.get_filter_metadata_for_property(
+                        name
+                    )
 
                 shape = (total_nr_halos,) + size
                 dataset = outfile.create_dataset(
@@ -398,7 +413,7 @@ def combine_chunks(
         physical = prop.output_physical
         a_exponent = prop.a_scale_exponent
         if not physical:
-            soap_com_unit = soap_com_unit * cellgrid.get_unit('a') ** a_exponent
+            soap_com_unit = soap_com_unit * cellgrid.get_unit("a") ** a_exponent
         fof_com = (fof_com * fof_com_unit).to(soap_com_unit)
         phdf5.collective_write(
             outfile,
@@ -417,7 +432,7 @@ def combine_chunks(
         physical = prop.output_physical
         a_exponent = prop.a_scale_exponent
         if not physical:
-            soap_mass_unit = soap_mass_unit * cellgrid.get_unit('a') ** a_exponent
+            soap_mass_unit = soap_mass_unit * cellgrid.get_unit("a") ** a_exponent
         fof_mass = (fof_mass * fof_mass_unit).to(soap_mass_unit)
         phdf5.collective_write(
             outfile,

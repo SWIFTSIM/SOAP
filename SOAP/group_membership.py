@@ -130,6 +130,7 @@ def process_particle_type(
         attrs=attrs,
     )
 
+
 if __name__ == "__main__":
 
     # Read parameters from command line and config file
@@ -157,9 +158,9 @@ if __name__ == "__main__":
     output_file = args["GroupMembership"]["filename"]
 
     if comm_rank == 0:
-        print(f'Input snapshot is {swift_filename}')
-        print(f'Halo basename is {halo_basename}')
-        print(f'Snapshot number is {snap_nr}')
+        print(f"Input snapshot is {swift_filename}")
+        print(f"Halo basename is {halo_basename}")
+        print(f"Snapshot number is {snap_nr}")
 
     # Substitute in the snapshot number where necessary
     pf = PartialFormatter()
@@ -192,8 +193,8 @@ if __name__ == "__main__":
         ) = read_vr.read_vr_groupnr(halo_basename)
     elif halo_format == "HBTplus":
         # Read HBTplus output
-        total_nr_halos, ids_bound, grnr_bound, rank_bound = read_hbtplus.read_hbtplus_groupnr(
-            halo_basename
+        total_nr_halos, ids_bound, grnr_bound, rank_bound = (
+            read_hbtplus.read_hbtplus_groupnr(halo_basename)
         )
     elif halo_format == "Subfind":
         # Read Gadget-4 subfind output
@@ -306,7 +307,7 @@ if __name__ == "__main__":
         first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
     ):
         with h5py.File(output_file.format(file_nr=file_nr), "r+") as infile:
-            group = infile.create_group('Header')
+            group = infile.create_group("Header")
             for k, v in header.items():
                 group.attrs[k] = v
 

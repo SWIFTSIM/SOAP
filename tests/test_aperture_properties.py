@@ -8,9 +8,13 @@ from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculato
 from SOAP.particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 from SOAP.particle_selection.halo_properties import SearchRadiusTooSmallError
-from SOAP.particle_selection.aperture_properties import ExclusiveSphereProperties, InclusiveSphereProperties
+from SOAP.particle_selection.aperture_properties import (
+    ExclusiveSphereProperties,
+    InclusiveSphereProperties,
+)
 
 from dummy_halo_generator import DummyHaloGenerator
+
 
 def test_aperture_properties():
     """

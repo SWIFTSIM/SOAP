@@ -17,7 +17,7 @@ def peano_decomposition(boxsize, local_halo, nr_chunks, comm):
     Sorts halos by chunk index and returns the number of halos
     in each chunk. local_halo is a dict of distributed unyt
     arrays with the halo properties.
-    
+
     Will not work well for zoom simulations. Could use a grid
     which just covers the zoom region?
     """
@@ -27,9 +27,9 @@ def peano_decomposition(boxsize, local_halo, nr_chunks, comm):
     # Find size of grid to use to calculate PH keys
     centres = local_halo["cofp"]
     bits_per_dimension = 10
-    cells_per_dimension = 2 ** bits_per_dimension
+    cells_per_dimension = 2**bits_per_dimension
     grid_size = boxsize / cells_per_dimension
-    nr_cells = cells_per_dimension ** 3
+    nr_cells = cells_per_dimension**3
     nr_halos = centres.shape[0]  # number of halos on this rank
     total_nr_halos = comm.allreduce(nr_halos)  # number on all ranks
 

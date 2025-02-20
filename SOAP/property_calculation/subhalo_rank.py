@@ -53,7 +53,7 @@ def compute_subhalo_rank(host_id, subhalo_mass, comm):
         host_id, return_counts=True, return_index=True
     )
     del host_id
-    for (i, n) in zip(offset, count):
+    for i, n in zip(offset, count):
         subhalo_rank[i : i + n] = np.arange(n, dtype=np.int32)
     assert np.all(subhalo_rank >= 0)
 
@@ -84,4 +84,3 @@ def compute_subhalo_rank(host_id, subhalo_mass, comm):
     subhalo_rank = psort.fetch_elements(subhalo_rank, order, comm=comm)
 
     return subhalo_rank
-

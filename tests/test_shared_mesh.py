@@ -5,6 +5,7 @@ import unyt
 
 from SOAP.core import shared_array, shared_mesh
 
+
 def make_test_dataset(boxsize, total_nr_points, centre, radius, box_wrap, comm):
     """
     Make a set of random test points
@@ -55,7 +56,7 @@ def _test_periodic_box(
 ):
     """
     Test case where points fill the periodic box.
-    
+
     Creates a shared mesh from random points, queries for points near random
     centres and checks the results against a simple brute force method.
     """
@@ -76,7 +77,7 @@ def _test_periodic_box(
         dr = pos - centre[None, :]
         dr[dr > 0.5 * boxsize] -= boxsize
         dr[dr < -0.5 * boxsize] += boxsize
-        return np.sum(dr ** 2, axis=1)
+        return np.sum(dr**2, axis=1)
 
     # Generate random test points
     pos = make_test_dataset(boxsize, total_nr_points, centre, radius, box_wrap, comm)
