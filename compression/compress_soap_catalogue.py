@@ -188,9 +188,10 @@ if __name__ == "__main__":
 
             print(f"Creating groups and datasets in output file")
             tic = time.time()
-            with h5py.File(args.input, "r") as ifile, h5py.File(
-                args.output, "r+"
-            ) as ofile:
+            with (
+                h5py.File(args.input, "r") as ifile,
+                h5py.File(args.output, "r+") as ofile,
+            ):
                 h5copy = H5copier(ifile, ofile)
                 ifile.visititems(h5copy)
                 original_size = h5copy.get_total_size()

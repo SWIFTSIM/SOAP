@@ -43,7 +43,8 @@ if __name__ == "__main__":
     old_soap_file_path = "/cosma8/data/dp004/dc-foro1/colibre/low_res_test/halo_finding/velociraptor/soap/colibre_SOAP_halo_properties_0127.hdf5"
     new_soap_file_path = "/cosma8/data/dp004/dc-foro1/colibre/low_res_test/halo_finding/velociraptor/soap/SOAP_halo_properties_0127.hdf5"
 
-    with h5py.File(old_soap_file_path) as old_soap_file, h5py.File(
-        new_soap_file_path
-    ) as new_soap_file:
+    with (
+        h5py.File(old_soap_file_path) as old_soap_file,
+        h5py.File(new_soap_file_path) as new_soap_file,
+    ):
         test_dataset_values(old_soap_file, new_soap_file)
