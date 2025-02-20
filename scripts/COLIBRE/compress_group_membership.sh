@@ -91,7 +91,7 @@ echo "Creating virtual snapshot"
 snapshot="${output_dir}/${sim}/snapshots/colibre_${snapnum}/colibre_${snapnum}.hdf5"
 membership="${output_filename}.{file_nr}.hdf5"
 virtual="${outbase}/colibre_with_SOAP_membership_${snapnum}.hdf5"
-python make_virtual_snapshot.py $snapshot $membership $virtual
+python compression/make_virtual_snapshot.py $snapshot $membership $virtual
 
 echo "Setting virtual file to be read-only"
 chmod a=r "${virtual}"

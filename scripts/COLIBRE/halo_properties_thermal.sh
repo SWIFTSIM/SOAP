@@ -38,7 +38,7 @@ sim="${SLURM_JOB_NAME}"
 dmo_flag=""
 
 #TODO: Set nodes and chunks
-mpirun -- python3 -u -m mpi4py ./compute_halo_properties.py \
+mpirun -- python3 -u -m mpi4py SOAP/compute_halo_properties.py \
        parameter_files/COLIBRE_THERMAL.yml \
        --sim-name=${sim} --snap-nr=${snapnum} --chunks=1 ${dmo_flag}
 

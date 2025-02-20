@@ -34,7 +34,7 @@ snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 sim="${SLURM_JOB_NAME}"
 
 # Run the code
-mpirun -- python3 -u -m mpi4py ./group_membership.py \
+mpirun -- python3 -u -m mpi4py SOAP/group_membership.py \
        parameter_files/COLIBRE_THERMAL.yml \
        --sim-name=${sim} --snap-nr=${snapnum}
 

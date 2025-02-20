@@ -42,8 +42,9 @@ SOAP catalogues are output as HDF5 files, with the properties being grouped by h
 For loading the catalogues we recommend using the swiftsimio package. A simple example is:
 \begin{verbatim}
 import swiftsimio as sw
-soap_dir = '/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/SOAP-HBT/'
-data = sw.load(f'{soap_dir}halo_properties_0077.hdf5')
+base_dir = '/cosma8/data/dp004/flamingo/Runs'
+run = 'L1000N1800/HYDRO_FIDUCIAL'
+data = sw.load(f'{base_dir}/{run}/SOAP-HBT/halo_properties_0077.hdf5')
 # Load a dataset
 m200 = data.spherical_overdensity_200_crit.total_mass
 # Specify units
@@ -54,11 +55,11 @@ m200.convert_to_physical()
 z = data.metadata.redshift
 \end{verbatim}
 
-\section{Halo types}
+\section{Particle selection for different halo types}
 
-SOAP computes properties for lots of different definition of halo types. This is how we select the
-particles to use when computing the properties. There are two decisions to made - firstly whether
-to include particles which are unbound. Secondly to exclude particles which are outside of a certain
+SOAP computes properties for many different definitions of halo types. The halo type defines how to select the
+particles to use when computing the properties. There are two decisions to be made - firstly whether
+to include particles which are unbound. Secondly whether to exclude particles which are outside of a certain
 aperture.
 
 \paragraph{Subhalo quantities (SH)} are computed for each subhalo identified by the halo finder, irrespective of whether 

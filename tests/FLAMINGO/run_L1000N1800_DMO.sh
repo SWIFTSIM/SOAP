@@ -30,7 +30,7 @@ python tests/FLAMINGO/create_parameters_file.py tests/FLAMINGO/parameters_DMO.ym
 rm -r output/SOAP-tmp
 
 # Run SOAP on eight cores processing the selected halos. Use 'python3 -m pdb' to start in the debugger.
-mpirun -np 8 python3 -u -m mpi4py ./compute_halo_properties.py \
+mpirun -np 8 python3 -u -m mpi4py SOAP/compute_halo_properties.py \
        ./tests/FLAMINGO/test_parameters.yml \
        --halo-indices ${halo_indices} \
        --dmo \

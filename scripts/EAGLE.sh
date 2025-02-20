@@ -14,10 +14,14 @@ sim_name='L0100N1504'
 snap_nr="028"
 z_suffix="z000p000"
 
+module purge
+module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
+source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
+
 ######## Link files to snap (to remove awful z suffix)
 
 sim_dir="/cosma7/data/Eagle/ScienceRuns/Planck1/${sim_name}/PE/REFERENCE/data"
-output_dir="/snap7/scratch/dp004/dc-mcgi1/${sim_name}"
+output_dir="/snap7/scratch/dp004/dc-mcgi1/SOAP_EAGLE/${sim_name}"
 
 sim_snap_dir="${sim_dir}/particledata_${snap_nr}_${z_suffix}"
 output_snap_dir="${output_dir}/gadget_snapshots/snapshot_${snap_nr}"
@@ -45,20 +49,16 @@ done
 
 set -e
 
-mpirun -- python -u convert_eagle.py \
+mpirun -- python -u misc/convert_eagle.py \
     --snap-basename "${output_dir}/gadget_snapshots/snapshot_${snap_nr}/snap_${snap_nr}" \
     --output-basename "${output_dir}/swift_snapshots/swift_${snap_nr}/snap_${snap_nr}" \
     --membership-basename "${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}"
 
 ######### Run SOAP
 
-module purge
-module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
-source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
-
 chunks=10
 
-mpirun -- python3 -u -m mpi4py ./compute_halo_properties.py \
+mpirun -- python3 -u -m mpi4py SOAP/compute_halo_properties.py \
        parameter_files/EAGLE.yml \
        --sim-name=${sim_name} --snap-nr=${snap_nr} --chunks=${chunks}
 

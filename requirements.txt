@@ -1,3 +1,4 @@
+mpi4py
 h5py
 numpy
 unyt>=3
