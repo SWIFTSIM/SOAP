@@ -20,7 +20,7 @@ fi
 black="./black_formatting_env/bin/python3 -m black"
 
 # Make sure we don't try and format any virtual environments
-files=$(echo {compression/*.py,misc/*.py,})
+files=$(echo {compression/*.py,misc/*.py,SOAP/*.py,SOAP/*/*.py,tests/*.py})
 
 # Run formatting (pass --check to see what changes would be made)
 $black -t py310 $files
