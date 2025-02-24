@@ -264,6 +264,8 @@ ApertureProperties:
       snapshot: true
       snipshot: false
     StellarCentreOfMassVelocity: true
+    MaximumCircularVelocity: true
+    MaximumCircularVelocityRadiusUnsoftened: true
   variations:
     exclusive_1_kpc:
       inclusive: false

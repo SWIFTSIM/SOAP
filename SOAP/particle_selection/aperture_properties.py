@@ -3028,6 +3028,35 @@ class ApertureParticleData:
             self.Mbaryons,
         )
 
+    @lazy_property
+    def R_vmax_soft(self) -> unyt.unyt_quantity:
+        """
+        Radius at which the maximum circular velocity of the halo is reached.
+        Particles are set to have minimum radius equal to their softening length.
+
+        This includes contributions from all particle types.
+        """
+        if self.Mtot == 0:
+            return None
+        if not hasattr(self, "vmax_soft"):
+            soft_r = np.maximum(self.softening, self.radius)
+            self.r_vmax_soft, self.vmax_soft = get_vmax(self.mass, soft_r)
+        return self.r_vmax_soft
+
+    @lazy_property
+    def Vmax_soft(self):
+        """
+        Maximum circular velocity of the halo.
+        Particles are set to have minimum radius equal to their softening length.
+        This includes contributions from all particle types.
+        """
+        if self.Mtot == 0:
+            return None
+        if not hasattr(self, "vmax_soft"):
+            soft_r = np.maximum(self.softening, self.radius)
+            self.r_vmax_soft, self.vmax_soft = get_vmax(self.mass, soft_r)
+        return self.vmax_soft
+
 
 class ApertureProperties(HaloProperty):
     """
@@ -3168,6 +3197,9 @@ class ApertureProperties(HaloProperty):
         "GasMassInColdDenseDiffuseMetals": False,
         "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit": False,
         "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": False,
+        "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": False,
+        "Vmax_soft": False,
+        "R_vmax_soft": False,
     }
 
     property_list = {
