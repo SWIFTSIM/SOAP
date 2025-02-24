@@ -14,9 +14,13 @@ def hbt_filename(hbt_basename, file_nr):
     return f"{hbt_basename}.{file_nr}.hdf5"
 
 
-def read_hbtplus_groupnr(basename):
+def read_hbtplus_groupnr(basename, read_binding_energies=False, registry=None):
     """
     Read HBTplus output and return group number for each particle ID
+
+    Binding energies will not be returned by default. To return the binding
+    energies a unit registry must be passed.
+
     """
 
     from mpi4py import MPI
@@ -48,8 +52,11 @@ def read_hbtplus_groupnr(basename):
     # Read in the halos from the HBT output:
     # 'halos' will be an array of structs with the halo catalogue
     # 'ids_bound' will be an array of particle IDs in halos, sorted by halo
+    # 'binding_energy' will be an array of the binding energy of each
+    #   particle, with the same order as 'ids_bound'
     halos = []
     ids_bound = []
+    binding_energies = []
     for file_nr in range(
         first_file_on_rank[comm_rank],
         first_file_on_rank[comm_rank] + files_per_rank[comm_rank],
@@ -57,6 +64,13 @@ def read_hbtplus_groupnr(basename):
         with h5py.File(hbt_filename(basename, file_nr), "r") as infile:
             halos.append(infile["Subhalos"][...])
             ids_bound.append(infile["SubhaloParticles"][...])
+            if read_binding_energies:
+                # TODO: Remove this if/else (We had to handle the case where
+                # HBT did not output binding energies, but now it always should)
+                if "BindingEnergies" not in infile:
+                    binding_energies = None
+                else:
+                    binding_energies.append(infile["BindingEnergies"][...])
 
     # Get the dtype for particle IDs
     if len(ids_bound) > 0:
@@ -89,6 +103,41 @@ def read_hbtplus_groupnr(basename):
         ids_bound = None
     ids_bound = virgo.mpi.util.replace_none_with_zero_size(ids_bound, comm=comm)
 
+    # Apply same combination process to binding energies
+    if read_binding_energies:
+        # TODO: Remove (see above)
+        if binding_energies is not None:
+            if len(binding_energies) > 0:
+                binding_energies = np.concatenate(binding_energies)
+                if len(binding_energies) > 0:
+                    binding_energies = np.concatenate(binding_energies)
+                else:
+                    binding_energies = np.zeros(0, dtype=id_dtype)
+            else:
+                # This rank was assigned no files
+                binding_energies = None
+            binding_energies = virgo.mpi.util.replace_none_with_zero_size(
+                binding_energies, comm=comm
+            )
+
+            # Get HBTplus unit information
+            if comm_rank == 0:
+                filename = hbt_filename(basename, 0)
+                with h5py.File(filename, "r") as infile:
+                    if "Units" in infile:
+                        VelInKmS = float(infile["Units/VelInKmS"][...])
+            else:
+                VelInKmS = None
+            VelInKmS = comm.bcast(
+                VelInKmS
+            )
+
+            # Add units to binding energies
+            binding_energies = (
+                (binding_energies * (VelInKmS**2))
+                * unyt.Unit('km/s', registry=registry)**2
+            )
+
     # Assign halo indexes to the particles
     nr_local_halos = len(halos)
     total_nr_halos = comm.allreduce(nr_local_halos)
@@ -118,6 +167,9 @@ def read_hbtplus_groupnr(basename):
         ids_bound, comm=comm, arr_sorted=False, return_counts=True
     )
     assert len(unique_counts) == 0 or np.max(unique_counts) == 1
+
+    if read_binding_energies:
+        return total_nr_halos, ids_bound, grnr_bound, rank_bound, binding_energies
 
     return total_nr_halos, ids_bound, grnr_bound, rank_bound
 
