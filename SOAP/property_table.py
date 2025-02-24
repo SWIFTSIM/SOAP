@@ -158,7 +158,11 @@ class PropertyTable:
             "HalfMassRadiusStar",
         ],
         "footnote_satfrac.tex": ["Mfrac_satellites", "Mfrac_external"],
-        "footnote_Ekin.tex": ["KineticEnergyGas", "KineticEnergyStars", "KineticEnergyTotal"],
+        "footnote_Ekin.tex": [
+            "KineticEnergyGas",
+            "KineticEnergyStars",
+            "KineticEnergyTotal",
+        ],
         "footnote_Etherm.tex": ["ThermalEnergyGas"],
         "footnote_Mnu.tex": ["Mnu", "MnuNS"],
         "footnote_Xray.tex": [
@@ -1138,7 +1142,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=None,
-         ),
+        ),
         "GasInertiaTensor": Property(
             name="GasInertiaTensor",
             shape=6,
@@ -4291,7 +4295,7 @@ class PropertyTable:
         # Check all footnotes actually correspond to a property in the table
         for prop_names in self.explanation.values():
             for prop_name in prop_names:
-                err_msg = f'{prop_name} missing from property_list'
+                err_msg = f"{prop_name} missing from property_list"
                 assert prop_name in self.full_property_list, err_msg
 
     def get_footnotes(self, name: str):

@@ -117,7 +117,9 @@ def process_particle_type(
         "Rank_bound": {
             "Description": "Ranking by binding energy of the bound particles (first in halo=0), or -1 if not bound"
         },
-        "SpecificBindingEnergies": {"Description": "Specific binding energy of the bound particles"},
+        "SpecificBindingEnergies": {
+            "Description": "Specific binding energy of the bound particles"
+        },
         "FOFGroupIDs": {
             "Description": "Friends-Of-Friends ID of the group in which this particle is a member, of -1 if none"
         },
@@ -222,7 +224,9 @@ if __name__ == "__main__":
         # Read HBTplus output
         total_nr_halos, ids_bound, grnr_bound, rank_bound, binding_energies = (
             read_hbtplus.read_hbtplus_groupnr(
-                halo_basename, read_binding_energies=True, registry=registry,
+                halo_basename,
+                read_binding_energies=True,
+                registry=registry,
             )
         )
     elif halo_format == "Subfind":

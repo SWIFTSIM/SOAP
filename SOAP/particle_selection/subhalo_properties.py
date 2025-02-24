@@ -811,12 +811,7 @@ class SubhaloParticleData:
         """
         if self.Ngas == 0:
             return None
-        etherm_gas = (
-            1.5
-            * self.mass_gas
-            * self.pressure_gas
-            / self.gas_density
-        )
+        etherm_gas = 1.5 * self.mass_gas * self.pressure_gas / self.density_gas
         return etherm_gas.sum()
 
     @lazy_property
@@ -826,7 +821,10 @@ class SubhaloParticleData:
         """
         if self.Ngas == 0:
             return None
-        return self.mass_gas * self.get_dataset("PartType0/SpecificBindingEnergies")[self.gas_mask_all]
+        return (
+            self.mass_gas
+            * self.get_dataset("PartType0/SpecificBindingEnergies")[self.gas_mask_all]
+        )
 
     @lazy_property
     def dm_mask_all(self) -> NDArray[bool]:
@@ -843,7 +841,10 @@ class SubhaloParticleData:
         """
         if self.Ndm == 0:
             return None
-        return self.mass_dm * self.get_dataset("PartType1/SpecificBindingEnergies")[self.dm_mask_all]
+        return (
+            self.mass_dm
+            * self.get_dataset("PartType1/SpecificBindingEnergies")[self.dm_mask_all]
+        )
 
     @lazy_property
     def binding_energy_star(self) -> unyt.unyt_array:
@@ -852,7 +853,10 @@ class SubhaloParticleData:
         """
         if self.Nstar == 0:
             return None
-        return self.mass_star * self.get_dataset("PartType4/SpecificBindingEnergies")[self.star_mask_all]
+        return (
+            self.mass_star
+            * self.get_dataset("PartType4/SpecificBindingEnergies")[self.star_mask_all]
+        )
 
     @lazy_property
     def binding_energy_bh(self) -> unyt.unyt_array:
@@ -861,7 +865,10 @@ class SubhaloParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.mass[self.bh_mask_sh] * self.get_dataset("PartType5/SpecificBindingEnergies")[self.bh_mask_all]
+        return (
+            self.mass[self.bh_mask_sh]
+            * self.get_dataset("PartType5/SpecificBindingEnergies")[self.bh_mask_all]
+        )
 
     @lazy_property
     def BindingEnergyTotal(self) -> unyt.unyt_quantity:
@@ -875,7 +882,11 @@ class SubhaloParticleData:
             0,
             dtype=np.float32,
             units=unyt.Unit("snap_mass", registry=self.mass.units.registry)
-            * (unyt.Unit("snap_length", registry=self.mass.units.registry) / unyt.Unit("snap_time", registry=self.mass.units.registry))** 2,
+            * (
+                unyt.Unit("snap_length", registry=self.mass.units.registry)
+                / unyt.Unit("snap_time", registry=self.mass.units.registry)
+            )
+            ** 2,
         )
         # Add contribution from each particle type
         if self.Ngas != 0:

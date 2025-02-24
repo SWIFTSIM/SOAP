@@ -983,7 +983,7 @@ class DummyHaloGenerator:
             data["PartType0"]["SpecificBindingEnergies"] = unyt.unyt_array(
                 -1000 * np.random.random(Ngas),
                 dtype=np.float32,
-                units=unyt.Unit('km/s', registry=reg)**2,
+                units=unyt.Unit("km/s", registry=reg) ** 2,
                 registry=reg,
             )
             # we assume a fixed "snapshot" redshift of 0.1, so we make sure
@@ -1129,7 +1129,7 @@ class DummyHaloGenerator:
             data["PartType1"]["SpecificBindingEnergies"] = unyt.unyt_array(
                 -1000 * np.random.random(Ndm),
                 dtype=np.float32,
-                units=unyt.Unit('km/s', registry=reg)**2,
+                units=unyt.Unit("km/s", registry=reg) ** 2,
                 registry=reg,
             )
 
@@ -1184,7 +1184,7 @@ class DummyHaloGenerator:
             data["PartType4"]["SpecificBindingEnergies"] = unyt.unyt_array(
                 -1000 * np.random.random(Nstar),
                 dtype=np.float32,
-                units=unyt.Unit('km/s', registry=reg)**2,
+                units=unyt.Unit("km/s", registry=reg) ** 2,
                 registry=reg,
             )
             # all entries in the element mass fractions have their own limits,
@@ -1356,7 +1356,7 @@ class DummyHaloGenerator:
             data["PartType5"]["SpecificBindingEnergies"] = unyt.unyt_array(
                 -1000 * np.random.random(Nbh),
                 dtype=np.float32,
-                units=unyt.Unit('km/s', registry=reg)**2,
+                units=unyt.Unit("km/s", registry=reg) ** 2,
                 registry=reg,
             )
 

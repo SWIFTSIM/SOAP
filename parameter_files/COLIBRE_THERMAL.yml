@@ -265,7 +265,7 @@ ApertureProperties:
       snipshot: false
     StellarCentreOfMassVelocity: true
     MaximumCircularVelocity: true
-    MaximumCircularVelocityRadiusUnsoftened: true
+    MaximumCircularVelocityRadius: true
   variations:
     exclusive_1_kpc:
       inclusive: false
@@ -618,6 +618,7 @@ SubhaloProperties:
     KappaCorotStars: general
     KineticEnergyTotal: true
     BindingEnergyTotal: true
+    ThermalEnergyGas: true
     LastSupernovaEventMaximumGasDensity:
       snapshot: true
       snipshot: false

@@ -128,15 +128,12 @@ def read_hbtplus_groupnr(basename, read_binding_energies=False, registry=None):
                         VelInKmS = float(infile["Units/VelInKmS"][...])
             else:
                 VelInKmS = None
-            VelInKmS = comm.bcast(
-                VelInKmS
-            )
+            VelInKmS = comm.bcast(VelInKmS)
 
             # Add units to binding energies
-            binding_energies = (
-                (binding_energies * (VelInKmS**2))
-                * unyt.Unit('km/s', registry=registry)**2
-            )
+            binding_energies = (binding_energies * (VelInKmS**2)) * unyt.Unit(
+                "km/s", registry=registry
+            ) ** 2
 
     # Assign halo indexes to the particles
     nr_local_halos = len(halos)
