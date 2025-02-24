@@ -167,6 +167,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Masses",
                 "Velocities",
                 "FOFGroupIDs",
+                "SpecificBindingEnergies",
                 "GroupNr_bound",
                 "MetalMassFractions",
                 "Temperatures",
@@ -193,6 +194,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Masses",
                 "Velocities",
                 "FOFGroupIDs",
+                "SpecificBindingEnergies",
             ],
             "PartType4": [
                 "Coordinates",
@@ -200,6 +202,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Velocities",
                 "FOFGroupIDs",
                 "GroupNr_bound",
+                "SpecificBindingEnergies",
                 "InitialMasses",
                 "Luminosities",
                 "MetalMassFractions",
@@ -216,6 +219,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Velocities",
                 "FOFGroupIDs",
                 "GroupNr_bound",
+                "SpecificBindingEnergies",
                 "SubgridMasses",
                 "LastAGNFeedbackScaleFactors",
                 "ParticleIDs",
@@ -976,6 +980,12 @@ class DummyHaloGenerator:
             data["PartType0"]["GroupNr_all"] = groupnr_all[gas_mask]
             data["PartType0"]["GroupNr_bound"] = groupnr_bound[gas_mask]
             data["PartType0"]["FOFGroupIDs"] = fof_group_ids[gas_mask]
+            data["PartType0"]["SpecificBindingEnergies"] = unyt.unyt_array(
+                -1000 * np.random.random(Ngas),
+                dtype=np.float32,
+                units=unyt.Unit('km/s', registry=reg)**2,
+                registry=reg,
+            )
             # we assume a fixed "snapshot" redshift of 0.1, so we make sure
             # the random values span a range of scale factors that is lower
             data["PartType0"]["LastAGNFeedbackScaleFactors"] = unyt.unyt_array(
@@ -1116,6 +1126,12 @@ class DummyHaloGenerator:
             data["PartType1"]["Masses"] = mass[dm_mask]
             Mtot += data["PartType1"]["Masses"].sum()
             data["PartType1"]["Velocities"] = vs[dm_mask]
+            data["PartType1"]["SpecificBindingEnergies"] = unyt.unyt_array(
+                -1000 * np.random.random(Ndm),
+                dtype=np.float32,
+                units=unyt.Unit('km/s', registry=reg)**2,
+                registry=reg,
+            )
 
         # star properties
         star_mask = types == "PartType4"
@@ -1163,6 +1179,12 @@ class DummyHaloGenerator:
                 1.0e-2 * np.random.random(Nstar),
                 dtype=np.float32,
                 units=unyt.dimensionless,
+                registry=reg,
+            )
+            data["PartType4"]["SpecificBindingEnergies"] = unyt.unyt_array(
+                -1000 * np.random.random(Nstar),
+                dtype=np.float32,
+                units=unyt.Unit('km/s', registry=reg)**2,
                 registry=reg,
             )
             # all entries in the element mass fractions have their own limits,
@@ -1331,6 +1353,12 @@ class DummyHaloGenerator:
                 registry=reg,
             )
             data["PartType5"]["Velocities"] = vs[bh_mask]
+            data["PartType5"]["SpecificBindingEnergies"] = unyt.unyt_array(
+                -1000 * np.random.random(Nbh),
+                dtype=np.float32,
+                units=unyt.Unit('km/s', registry=reg)**2,
+                registry=reg,
+            )
 
         # Neutrino properties
         nu_mask = types == "PartType6"

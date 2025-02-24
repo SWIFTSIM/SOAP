@@ -771,6 +771,124 @@ class SubhaloParticleData:
         return (self.total_mass_fraction[:, None] * self.velocity).sum(axis=0)
 
     @lazy_property
+    def KineticEnergyTotal(self) -> unyt.unyt_quantity:
+        """
+        Total kinetic energy of all particles.
+        """
+        if self.Mtot == 0:
+            return None
+        ekin_tot = self.mass * ((self.velocity - self.vcom[None, :]) ** 2).sum(axis=1)
+        return 0.5 * ekin_tot.sum()
+
+    @lazy_property
+    def pressure_gas(self) -> unyt.unyt_array:
+        """
+        Pressure of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/Pressures")[self.gas_mask_all]
+
+    @lazy_property
+    def density_gas(self) -> unyt.unyt_array:
+        """
+        Density of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/Densities")[self.gas_mask_all]
+
+    @lazy_property
+    def ThermalEnergyGas(self) -> unyt.unyt_array:
+        """
+        Total thermal energy of gas particles.
+
+        While this could be computed from PartType0/InternalEnergies, we use
+        the equation of state
+         P = (gamma-1) * rho * u
+        (with gamma=5/3) because some simulations (read: FLAMINGO) do not output
+        the internal energies.
+        """
+        if self.Ngas == 0:
+            return None
+        etherm_gas = (
+            1.5
+            * self.mass_gas
+            * self.pressure_gas
+            / self.gas_density
+        )
+        return etherm_gas.sum()
+
+    @lazy_property
+    def binding_energy_gas(self) -> unyt.unyt_array:
+        """
+        Binding energy of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.mass_gas * self.get_dataset("PartType0/SpecificBindingEnergies")[self.gas_mask_all]
+
+    @lazy_property
+    def dm_mask_all(self) -> NDArray[bool]:
+        """
+        Mask that can be used to filter out DM particles that belong to this
+        subhalo in raw particle arrays, like PartType0/Masses.
+        """
+        return self.get_dataset(f"PartType1/GroupNr_bound") == self.index
+
+    @lazy_property
+    def binding_energy_dm(self) -> unyt.unyt_array:
+        """
+        Binding energy of the DM particles in the subhalo.
+        """
+        if self.Ndm == 0:
+            return None
+        return self.mass_dm * self.get_dataset("PartType1/SpecificBindingEnergies")[self.dm_mask_all]
+
+    @lazy_property
+    def binding_energy_star(self) -> unyt.unyt_array:
+        """
+        Binding energy of the star particles in the subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.mass_star * self.get_dataset("PartType4/SpecificBindingEnergies")[self.star_mask_all]
+
+    @lazy_property
+    def binding_energy_bh(self) -> unyt.unyt_array:
+        """
+        Binding energy of the BH particles in the subhalo.
+        """
+        if self.Nbh == 0:
+            return None
+        return self.mass[self.bh_mask_sh] * self.get_dataset("PartType5/SpecificBindingEnergies")[self.bh_mask_all]
+
+    @lazy_property
+    def BindingEnergyTotal(self) -> unyt.unyt_quantity:
+        """
+        Total binding energy of all particles.
+        """
+        if self.Mtot == 0:
+            return None
+        # Create unyt array with correct units
+        ebin_tot = unyt.unyt_array(
+            0,
+            dtype=np.float32,
+            units=unyt.Unit("snap_mass", registry=self.mass.units.registry)
+            * (unyt.Unit("snap_length", registry=self.mass.units.registry) / unyt.Unit("snap_time", registry=self.mass.units.registry))** 2,
+        )
+        # Add contribution from each particle type
+        if self.Ngas != 0:
+            ebin_tot += self.binding_energy_gas.sum()
+        if self.Ndm != 0:
+            ebin_tot += self.binding_energy_dm.sum()
+        if self.Nstar != 0:
+            ebin_tot += self.binding_energy_star.sum()
+        if self.Nbh != 0:
+            ebin_tot += self.binding_energy_bh.sum()
+        return ebin_tot
+
+    @lazy_property
     def R_vmax_unsoft(self) -> unyt.unyt_quantity:
         """
         Radius at which the maximum circular velocity of the halo is reached.
@@ -1837,6 +1955,9 @@ class SubhaloProperties(HaloProperty):
             "MostMassiveBlackHoleFormationScalefactor",
             "com",
             "vcom",
+            "KineticEnergyTotal",
+            "ThermalEnergyGas",
+            "BindingEnergyTotal",
             "Lgas",
             "Ldm",
             "Lstar",

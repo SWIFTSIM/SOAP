@@ -1171,18 +1171,13 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def Ekin_gas(self) -> unyt.unyt_quantity:
+    def KineticEnergyGas(self) -> unyt.unyt_quantity:
         """
         Kinetic energy of the gas.
         """
         if self.Mgas == 0:
             return None
-        # below we need to force conversion to np.float64 before summing
-        # up particles to avoid overflow
         ekin_gas = self.mass_gas * ((self.vel_gas - self.vcom_gas) ** 2).sum(axis=1)
-        ekin_gas = unyt.unyt_array(
-            ekin_gas.value, dtype=np.float64, units=ekin_gas.units
-        )
         return 0.5 * ekin_gas.sum()
 
     @lazy_property
@@ -1319,18 +1314,13 @@ class ApertureParticleData:
         )
 
     @lazy_property
-    def Ekin_star(self) -> unyt.unyt_quantity:
+    def KineticEnergyStars(self) -> unyt.unyt_quantity:
         """
         Kinetic energy of star particles.
         """
         if self.Mstar == 0:
             return None
-        # below we need to force conversion to np.float64 before summing
-        # up particles to avoid overflow
         ekin_star = self.mass_star * ((self.vel_star - self.vcom_star) ** 2).sum(axis=1)
-        ekin_star = unyt.unyt_array(
-            ekin_star.value, dtype=np.float64, units=ekin_star.units
-        )
         return 0.5 * ekin_star.sum()
 
     @lazy_property
@@ -3102,8 +3092,8 @@ class ApertureProperties(HaloProperty):
         "veldisp_matrix_gas": False,
         "veldisp_matrix_dm": False,
         "veldisp_matrix_star": False,
-        "Ekin_gas": False,
-        "Ekin_star": False,
+        "KineticEnergyGas": False,
+        "KineticEnergyStars": False,
         "Mgas_SF": False,
         "gasmetalfrac": False,
         "gasmetalfrac_SF": False,

@@ -614,6 +614,8 @@ SubhaloProperties:
     KappaCorotBaryons: general
     KappaCorotGas: general
     KappaCorotStars: general
+    KineticEnergyTotal: true
+    BindingEnergyTotal: true
     LastSupernovaEventMaximumGasDensity:
       snapshot: true
       snipshot: false
