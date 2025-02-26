@@ -56,7 +56,16 @@ def read_hbtplus_groupnr(basename, read_binding_energies=False, registry=None):
     #   particle, with the same order as 'ids_bound'
     halos = []
     ids_bound = []
-    binding_energies = []
+    # TODO: Remove this check for binding energies (We had to handle the case where
+    #       HBT did not output binding energies, but now it always should)
+    binding_energies = None
+    if read_binding_energies:
+        if comm_rank == 0:
+            with h5py.File(hbt_filename(basename, 0), "r") as infile:
+                if "BindingEnergies" in infile:
+                    binding_energies = []
+        binding_energies = comm.bcast(binding_energies)
+
     for file_nr in range(
         first_file_on_rank[comm_rank],
         first_file_on_rank[comm_rank] + files_per_rank[comm_rank],
@@ -65,18 +74,9 @@ def read_hbtplus_groupnr(basename, read_binding_energies=False, registry=None):
             halos.append(infile["Subhalos"][...])
             ids_bound.append(infile["SubhaloParticles"][...])
             if read_binding_energies:
-                # TODO: Remove this if/else (We had to handle the case where
-                # HBT did not output binding energies, but now it always should)
-                if "BindingEnergies" not in infile:
-                    binding_energies = None
-                else:
+                # TODO: Remove this if/else (see above)
+                if "BindingEnergies" in infile:
                     binding_energies.append(infile["BindingEnergies"][...])
-
-    # Get the dtype for particle IDs
-    if len(ids_bound) > 0:
-        id_dtype = h5py.check_vlen_dtype(ids_bound[0].dtype)
-    else:
-        id_dtype = None
 
     # Concatenate arrays of halos from different files
     if len(halos) > 0:
@@ -86,15 +86,18 @@ def read_hbtplus_groupnr(basename, read_binding_energies=False, registry=None):
         halos = None
     halos = virgo.mpi.util.replace_none_with_zero_size(halos, comm=comm)
 
-    # Combine arrays of particles in halos
+    # Get the dtype for particle IDs
     if len(ids_bound) > 0:
-        ids_bound = np.concatenate(
-            ids_bound
-        )  # Combine arrays of halos from different files
+        id_dtype = h5py.check_vlen_dtype(ids_bound[0].dtype)
+    else:
+        id_dtype = None
+
+    if len(ids_bound) > 0:
+        # Combine arrays of halos from different files
+        ids_bound = np.concatenate(ids_bound)
         if len(ids_bound) > 0:
-            ids_bound = np.concatenate(
-                ids_bound
-            )  # Combine arrays of particles from different halos
+            # Combine arrays of particles from different halos
+            ids_bound = np.concatenate(ids_bound)
         else:
             # The files assigned to this rank contain zero halos
             ids_bound = np.zeros(0, dtype=id_dtype)
@@ -107,12 +110,18 @@ def read_hbtplus_groupnr(basename, read_binding_energies=False, registry=None):
     if read_binding_energies:
         # TODO: Remove (see above)
         if binding_energies is not None:
+
+            if len(binding_energies) > 0:
+                binding_dtype = h5py.check_vlen_dtype(binding_energies[0].dtype)
+            else:
+                binding_dtype = None
+
             if len(binding_energies) > 0:
                 binding_energies = np.concatenate(binding_energies)
                 if len(binding_energies) > 0:
                     binding_energies = np.concatenate(binding_energies)
                 else:
-                    binding_energies = np.zeros(0, dtype=id_dtype)
+                    binding_energies = np.zeros(0, dtype=binding_dtype)
             else:
                 # This rank was assigned no files
                 binding_energies = None
