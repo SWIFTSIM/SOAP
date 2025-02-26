@@ -35,7 +35,7 @@ snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 sim="L1000N3600/${SLURM_JOB_NAME}"
 
 # Run the code
-mpirun -- python3 -u -m mpi4py ./group_membership.py \
+mpirun -- python3 -u -m mpi4py SOAP/group_membership.py \
        --sim-name=${sim} --snap-nr=${snapnum} \
        parameter_files/FLAMINGO.yml
 

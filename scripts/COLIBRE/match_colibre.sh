@@ -54,7 +54,7 @@ for sim in "${sims[@]}"; do
   echo
   echo Matching $sim1 to $sim2, snapshot ${snapnum}
   mpirun -- python -u \
-      ./match_hbt_halos.py ${hbt_basename1} ${hbt_basename2} ${nr_particles} ${outfile}
+      misc/match_hbt_halos.py ${hbt_basename1} ${hbt_basename2} ${nr_particles} ${outfile}
 
 done
 
