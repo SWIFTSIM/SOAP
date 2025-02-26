@@ -348,6 +348,12 @@ def read_hbtplus_catalogue(
         snapshot_max_vmax, units=unyt.dimensionless, dtype=int, registry=registry
     )
 
+    # Last time the subhalo was a central
+    snapshot_last_isolation = subhalo["SnapshotIndexOfLastIsolation"][keep]
+    snapshot_last_isolation = unyt.unyt_array(
+        snapshot_last_isolation, units=unyt.dimensionless, dtype=int, registry=registry
+    )
+
     # Number of bound particles
     nr_bound_part = nr_bound_part[keep]
 
@@ -367,5 +373,6 @@ def read_hbtplus_catalogue(
         "SnapshotIndexOfLastMaxMass": snapshot_max_mass,
         "LastMaxVmaxPhysical": max_vmax,
         "SnapshotIndexOfLastMaxVmax": snapshot_max_vmax,
+        "SnapshotIndexOfLastIsolation": snapshot_last_isolation,
     }
     return local_halo

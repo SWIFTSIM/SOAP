@@ -4206,6 +4206,18 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
+        "HBTplus/SnapshotIndexOfLastIsolation": Property(
+            name="HBTplus/SnapshotIndexOfLastIsolation",
+            shape=1,
+            dtype=np.uint64,
+            unit="dimensionless",
+            description="Latest snapshot when this subhalo was a central. -1 if the subhalo has always been a central.",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
         # FOF properties
         "FOF/Centres": Property(
             name="FOF/Centres",
