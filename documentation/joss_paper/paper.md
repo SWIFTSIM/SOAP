@@ -11,7 +11,7 @@ authors:
   - name: Joop Schaye 
     affiliation: 1
   - name: Matthieu Schaller
-    affiliation: [ 1, 2 ]
+    affiliation: "1, 3"
   - name: Bert Vandenbroucke
     affiliation: 1
 affiliations:
