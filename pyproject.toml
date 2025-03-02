@@ -36,15 +36,8 @@ test = [
     "pytest-mpi",
 ]
 
-[tool.setuptools]
-packages = [
-    "SOAP",
-    "SOAP.catalogue_readers",
-    "SOAP.core",
-    "SOAP.particle_filter",
-    "SOAP.particle_selection",
-    "SOAP.property_calculation",
-]
+[tool.setuptools.packages]
+find = {}
 
 [project.urls]
 "Homepage" = "https://github.com/SWIFTSIM/SOAP"
