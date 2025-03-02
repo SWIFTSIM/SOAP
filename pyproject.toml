@@ -36,8 +36,7 @@ test = [
     "pytest-mpi",
 ]
 
-[tool.setuptools]
-packages = ["find_packages"]
+[tool.setuptools.packages.find]
 
 [project.urls]
 "Homepage" = "https://github.com/SWIFTSIM/SOAP"
