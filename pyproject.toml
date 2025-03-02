@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "SOAP"
+version = "0.1"
+description = "MPI parallel Python code to compute properties of halos in SWIFT n-body simulations"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "GNU LGPLv3+"}
+authors = [
+    {name = "Rob McGibbon", email = "mcgibbon@strw.leidenuniv.nl"}
+]
+classifiers = [
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+]
+dependencies = [
+    "mpi4py",
+    "h5py",
+    "numpy>=2",
+    "unyt>=3",
+    "astropy",
+    "numba",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "psutil",
+    "virgodc",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest-mpi",
+]
+
+[tool.setuptools]
+packages = ["find_packages"]
+
+[project.urls]
+"Homepage" = "https://github.com/SWIFTSIM/SOAP"
+"Bug Tracker" = "https://github.com/SWIFTSIM/SOAP/issues"
