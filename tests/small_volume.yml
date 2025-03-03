@@ -10,6 +10,8 @@ HaloFinder:
   type: HBTplus
   filename: "{sim_dir}/SubSnap_{snap_nr:03d}"
   fof_filename: "{sim_dir}/fof_output_{snap_nr:04d}.hdf5"
+  # type: VR
+  # filename: "{sim_dir}/vr_{snap_nr:03d}"
 
 GroupMembership:
   filename: "{output_dir}/membership_{snap_nr:04d}/membership_{snap_nr:04d}.hdf5"
