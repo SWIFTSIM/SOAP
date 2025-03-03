@@ -11,7 +11,7 @@ if [[ $(hostname) == *cosma* ]] ; then
 fi
 
 # Download the required data
-python tests/helper.py
+python tests/helpers.py
 
 # Run the group membership script
 mpirun -np 8 python -u SOAP/group_membership.py \
