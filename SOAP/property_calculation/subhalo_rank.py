@@ -2,7 +2,6 @@
 
 import numpy as np
 import h5py
-import pytest
 
 import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5

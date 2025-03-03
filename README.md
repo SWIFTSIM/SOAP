@@ -18,6 +18,9 @@ you can install an SOAP virtual environment by running
 
 ## Running SOAP
 
+The command `./tests/run_small_volume.sh` will download a small example
+simulation and run the halo membership and halo properties scripts on it.
+
 ### Computing halo membership for particles in the snapshot
 
 The first step is to extract the subhalo index for all particles in a
