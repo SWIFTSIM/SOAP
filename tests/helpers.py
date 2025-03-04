@@ -4,6 +4,8 @@ Contains helper functions for downloading test data
 import os
 import subprocess
 
+import pytest
+
 webstorage_location = "https://ftp.strw.leidenuniv.nl/mcgibbon/SOAP/"
 test_output_location = "test_data/"
 
@@ -60,7 +62,7 @@ def requires(filepaths, comm=None):
         if not file_available:
             def dont_call_test(func):
                 def empty(*args, **kwargs):
-                    return True
+                    return pytest.skip()
                 return empty
 
             return dont_call_test

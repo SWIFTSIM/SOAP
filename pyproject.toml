@@ -25,7 +25,6 @@ dependencies = [
     "astropy",
     "numba",
     "scipy",
-    "pandas",
     "matplotlib",
     "psutil",
     "virgodc",
