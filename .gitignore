@@ -19,3 +19,4 @@ documentation/units.tex
 tests/FLAMINGO/test_parameters.yml
 tests/COLIBRE/test_parameters.yml
 tests/test_SO_radius_*.png
+test_data/*

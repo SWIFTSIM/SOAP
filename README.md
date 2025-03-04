@@ -6,9 +6,12 @@ properties of halos in spherical apertures in SWIFT snapshots.
 ## Installation
 
 The code is written in python and uses mpi4py for parallelism.
-IO is carried out in parallel, and so [parallel h5py](https://docs.h5py.org/en/stable/mpi.html)
-is required. A full list of requirements can be
+IO is carried out in parallel, and so [parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is required. A full list of requirements can be
 found in `requirements.txt`.
+
+SOAP and it's dependencies can also be installed directly using the command
+`pip install git+https://github.com/SWIFTSIM/SOAP.git@soap_runtime`
+but this may install a serial version of h5py.
 
 ### Installation on COSMA
 
@@ -17,6 +20,10 @@ you can install an SOAP virtual environment by running
 `./scripts/cosma_python_env.sh`
 
 ## Running SOAP
+
+The command `./tests/run_small_volume.sh` will download a small example
+simulation, run the group membership and halo properties scripts on it,
+and generate the pdf documentation to describe the output file.
 
 ### Computing halo membership for particles in the snapshot
 
@@ -102,7 +109,7 @@ lossless compression to SOAP catalogues.
 
 ### Documentation
 
-A pdf describing the SOAP output can be generated. First run `SOAP/property_table.py` passing the parameter file used to run SOAP (to get the properties and halo types to include) and a snapshot (to get the units), e.g. `SOAP/python property_table.py parameter_files/COLIBRE_THERMAL.yml /cosma8/data/dp004/colibre/Runs/L0100N0752/Thermal_non_equilibrium/snapshots/colibre_0127/colibre_0127.hdf5`. This will generate a table containing all the properties which are enabled in the parameter file. To create the pdf run `cd documentation; pdflatex SOAP.tex`.
+A pdf describing the SOAP output can be generated. First run `SOAP/property_table.py` passing the parameter file used to run SOAP (to get the properties and halo types to include) and a snapshot (to get the units), e.g. `python SOAP/property_table.py parameter_files/COLIBRE_THERMAL.yml /cosma8/data/dp004/colibre/Runs/L0100N0752/Thermal/snapshots/colibre_0127/colibre_0127.hdf5`. This will generate a table containing all the properties which are enabled in the parameter file. To create the pdf run `cd documentation; pdflatex SOAP.tex`.
 
 ### Slurm scripts for running on COSMA
 
