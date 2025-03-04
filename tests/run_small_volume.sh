@@ -2,6 +2,7 @@
 #
 # This runs SOAP on a small DMO box
 #
+set -e
 
 # Load the correct modules if we're running on cosma
 if [[ $(hostname) == *cosma* ]] ; then
@@ -27,3 +28,9 @@ mpirun -np 8 python -u SOAP/compute_halo_properties.py \
     --dmo \
     tests/small_volume.yml
 
+# Generate documentation
+python SOAP/property_table.py \
+    tests/small_volume.yml \
+    test_data/snap_0018.hdf5
+cd documentation
+pdflatex -halt-on-error SOAP.tex
