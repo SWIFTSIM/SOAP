@@ -14,8 +14,6 @@ from SOAP.catalogue_readers.read_rockstar import (
     read_group_file,
 )
 
-import helpers
-
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
 
@@ -28,7 +26,7 @@ def test_read_rockstar_groupnr():
     sanity check on the group membershp files.
     """
 
-    # Test with FLAMINGO data on cosma8, skip this test if we can't find it
+    # Test with FLAMINGO data on cosma8
     test_data_dir = "/cosma8/data/dp004/dc-mcgi1/SOAP/TEST_DATA/ROCKSTAR"
     run = "L1000N0900/DMO_FIDUCIAL"
     snap_nr = 77

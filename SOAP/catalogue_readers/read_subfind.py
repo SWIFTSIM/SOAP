@@ -225,7 +225,7 @@ def read_gadget4_catalogue(comm, basename, a_unit, registry, boxsize):
         registry=registry,
     )
 
-    # Store initial search radius (TODO: check this is still in physical units, unlike the position)
+    # Store initial search radius
     search_radius = (
         data["Subhalo/SubhaloHalfmassRad"] * length_conversion * swift_pmpc
     )  # different units from cofm, not a typo!
@@ -243,76 +243,3 @@ def read_gadget4_catalogue(comm, basename, a_unit, registry, boxsize):
         local_halo[name] = unyt.unyt_array(local_halo[name], registry=registry)
 
     return local_halo
-
-
-def test_read_gadget4_groupnr(basename):
-    """
-    Read in Gadget-4 group numbers and compute the number of particles
-    in each group. This is then compared with the input catalogue as a
-    sanity check on the group membershp files.
-    """
-
-    from mpi4py import MPI
-
-    comm = MPI.COMM_WORLD
-    comm_rank = comm.Get_rank()
-    comm_size = comm.Get_size()
-
-    n_halo, ids, grnr = read_gadget4_groupnr(basename)
-    del ids  # Don't need the particle IDs
-
-    # Find maximum group number
-    max_grnr = comm.allreduce(np.amax(grnr), op=MPI.MAX)
-    nr_groups_from_grnr = max_grnr + 1
-    if comm_rank == 0:
-        print(f"Number of groups from membership files = {nr_groups_from_grnr}")
-
-    # Discard particles in no group
-    keep = grnr >= 0
-    grnr = grnr[keep]
-
-    # Compute group sizes
-    import virgo.mpi.parallel_sort as psort
-
-    nbound_from_grnr = psort.parallel_bincount(grnr, comm=comm)
-
-    # Locate the snapshot and fof_subhalo_tab files
-    if comm_rank == 0:
-        snap_format_string, group_format_string = locate_files(basename)
-    else:
-        snap_format_string = None
-        group_format_string = None
-    snap_format_string, group_format_string = comm.bcast(
-        (snap_format_string, group_format_string)
-    )
-
-    # Read group sizes from the group catalogue
-    subtab = phdf5.MultiFile(group_format_string, file_nr_attr=("Header", "NumFiles"))
-    nbound_from_subtab = subtab.read("Subhalo/SubhaloLen")
-
-    # Find number of groups in the subfind output
-    nr_groups_from_subtab = comm.allreduce(len(nbound_from_subtab))
-    if comm_rank == 0:
-        print(f"Number of groups from fof_subhalo_tab = {nr_groups_from_subtab}")
-        if nr_groups_from_subtab != nr_groups_from_grnr:
-            print("Number of groups does not agree!")
-            comm.Abort(1)
-
-    # Ensure nbound arrays are partitioned the same way
-    nr_per_rank = comm.allgather(len(nbound_from_subtab))
-    nbound_from_grnr = psort.repartition(
-        nbound_from_grnr, ndesired=nr_per_rank, comm=comm
-    )
-
-    # Compare
-    nr_different = comm.allreduce(np.sum(nbound_from_grnr != nbound_from_subtab))
-    if comm_rank == 0:
-        print(f"Number of group sizes which differ = {nr_different} (should be 0!)")
-
-
-if __name__ == "__main__":
-
-    import sys
-
-    basename = sys.argv[1]
-    test_read_gadget4_groupnr(basename)
