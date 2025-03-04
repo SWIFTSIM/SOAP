@@ -7,51 +7,76 @@ import subprocess
 webstorage_location = "https://ftp.strw.leidenuniv.nl/mcgibbon/SOAP/"
 test_output_location = "test_data/"
 
-def requires(filepath):
+def requires(filepaths, comm=None):
     """
     Use this as a decorator around tests that require data.
+
+    Can be passed either a single filepath, or a list of filepaths
+
+    If running with MPI then pass the comm so that only a single
+    rank will download the data.
     """
 
     # First check if the test data directory exists
-    if not os.path.exists(test_output_location):
-        os.mkdir(test_output_location)
+    if (comm is None) or (comm.Get_rank() == 1):
+        if not os.path.exists(test_output_location):
+            os.mkdir(test_output_location)
 
-    filename = os.path.basename(filepath)
-    output_location = f"{test_output_location}{filename}"
-
-    # Download the file if it doesn't exist
-    if os.path.exists(output_location):
-        ret = 0
+    # Handle case where we are passed a single path instead of a list
+    if isinstance(filepaths, str):
+        filepaths = [filepaths]
+        return_str = True
     else:
-        ret = subprocess.call(
-            ["wget", f"{webstorage_location}{filepath}", "-O", output_location]
-        )
+        return_str = False
 
-    if ret != 0:
-        Warning(f"Unable to download file at {filepath}")
-        # It wrote an empty file, kill it.
-        subprocess.call(["rm", output_location])
+    output_locations = []
+    for filepath in filepaths:
+        filename = os.path.basename(filepath)
+        output_location = f"{test_output_location}{filename}"
+        output_locations.append(output_location)
 
-        def dont_call_test(func):
-            def empty(*args, **kwargs):
-                return True
+        if (comm is not None) and (comm.Get_rank() != 0):
+            file_available = None
+        else:
+            if not os.path.exists(output_location):
+                # Download the file if it doesn't exist
+                ret = subprocess.call(
+                    ["wget", f"{webstorage_location}{filepath}", "-O", output_location]
+                )
 
-            return empty
+                if ret != 0:
+                    Warning(f"Unable to download file at {filepath}")
+                    # It wrote an empty file, kill it.
+                    subprocess.call(["rm", output_location])
+                    file_available = False
+                else:
+                    file_available = True
+            else:
+                file_available = True
 
-        return dont_call_test
+        if (comm is not None):
+            file_available = comm.bcast(file_available)
 
-    else:
-        # We can do the test!
+        if not file_available:
+            def dont_call_test(func):
+                def empty(*args, **kwargs):
+                    return True
+                return empty
 
-        def do_call_test(func):
-            def final_test():
-                return func(f"{output_location}")
+            return dont_call_test
 
-            return final_test
+    # Return a single path if that's what we were passed
+    if return_str:
+        output_locations = output_locations[0]
 
-        return do_call_test
+    # We can do the test!
+    def do_call_test(func):
+        def final_test():
+            return func(output_locations)
 
-    raise Exception("You should never have got here.")
+        return final_test
+
+    return do_call_test
 
 if __name__ == '__main__':
     # Download the data required for run_small_volume.sh

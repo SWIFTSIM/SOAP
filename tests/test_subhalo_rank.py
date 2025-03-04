@@ -3,20 +3,19 @@
 import numpy as np
 import h5py
 import pytest
+from mpi4py import MPI
 import virgo.mpi.parallel_hdf5 as phdf5
 
 from SOAP.property_calculation.subhalo_rank import compute_subhalo_rank
 
 import helpers
 
+comm = MPI.COMM_WORLD
+comm_rank = comm.Get_rank()
+
 @pytest.mark.mpi
-@helpers.requires('HBT_output/018/SubSnap_018.0.hdf5')
+@helpers.requires('HBT_output/018/SubSnap_018.0.hdf5', comm=comm)
 def test_subhalo_rank(filename):
-
-    from mpi4py import MPI
-
-    comm = MPI.COMM_WORLD
-    comm_rank = comm.Get_rank()
 
     # Read HBT halos from a small DMO run
     with h5py.File(filename, "r", driver="mpio", comm=comm) as file:

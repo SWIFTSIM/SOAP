@@ -6,16 +6,23 @@ import pytest
 
 from SOAP.catalogue_readers.read_vr import read_vr_group_sizes
 
+import helpers
+
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
-comm_size = comm.Get_size()
 
-
+required_files = [
+    'VR_output/vr_018.catalog_groups.0',
+    'VR_output/vr_018.catalog_particles.0',
+    'VR_output/vr_018.catalog_particles.unbound.0',
+    'VR_output/vr_018.properties.0',
+]
 @pytest.mark.mpi
-def test_read_vr(snap_nr=57):
+@helpers.requires(required_files, comm=comm)
+def test_read_vr(filenames):
 
-    basename = f"/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
-    suffix = ".%(file_nr)d"
+    basename = filenames[0].split('.')[0]
+    suffix = '.' + filenames[0].split('.')[-1]
 
     # Catch deprecation warning from VirgoDC
     with warnings.catch_warnings():
@@ -29,5 +36,4 @@ def test_read_vr(snap_nr=57):
 
 
 if __name__ == "__main__":
-    snap_nr = int(sys.argv[1])
-    test_read_vr(snap_nr=snap_nr)
+    test_read_vr()
