@@ -56,7 +56,16 @@ def locate_files(basename):
 
 def read_group_file(filename):
     usecols = (0, 1, 5, 7, 8, 9, 10, 45)
-    dtype = [('ID', 'i4'), ('DescID', 'i4'), ('Rvir', 'f4'), ('Np', 'i8'), ('X', 'f4'), ('Y', 'f4'), ('Z', 'f4'), ('PID', 'i4')]
+    dtype = [
+        ("ID", "i4"),
+        ("DescID", "i4"),
+        ("Rvir", "f4"),
+        ("Np", "i8"),
+        ("X", "f4"),
+        ("Y", "f4"),
+        ("Z", "f4"),
+        ("PID", "i4"),
+    ]
     return np.genfromtxt(filename, usecols=usecols, dtype=dtype)
 
 
@@ -242,4 +251,3 @@ def read_rockstar_catalogue(comm, basename, a_unit, registry, boxsize):
             )
 
     return local_halo
-

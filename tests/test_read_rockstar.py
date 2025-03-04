@@ -8,12 +8,17 @@ import pytest
 import unyt
 import virgo.mpi.parallel_sort as psort
 
-from SOAP.catalogue_readers.read_rockstar import read_rockstar_groupnr, locate_files, read_group_file
+from SOAP.catalogue_readers.read_rockstar import (
+    read_rockstar_groupnr,
+    locate_files,
+    read_group_file,
+)
 
 import helpers
 
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
+
 
 @pytest.mark.mpi
 def test_read_rockstar_groupnr():
@@ -24,8 +29,8 @@ def test_read_rockstar_groupnr():
     """
 
     # Test with FLAMINGO data on cosma8, skip this test if we can't find it
-    test_data_dir = '/cosma8/data/dp004/dc-mcgi1/SOAP/TEST_DATA/ROCKSTAR'
-    run = 'L1000N0900/DMO_FIDUCIAL'
+    test_data_dir = "/cosma8/data/dp004/dc-mcgi1/SOAP/TEST_DATA/ROCKSTAR"
+    run = "L1000N0900/DMO_FIDUCIAL"
     snap_nr = 77
     basename = f"{test_data_dir}/{run}/snapshot_{snap_nr:04d}/halos_{snap_nr:04d}"
     # Skip this test if we can't find the data (too large to download)
@@ -55,4 +60,3 @@ def test_read_rockstar_groupnr():
 
     # Compute group sizes
     nbound_from_grnr = psort.parallel_bincount(grnr, comm=comm)
-

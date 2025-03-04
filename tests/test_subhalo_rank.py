@@ -13,19 +13,20 @@ import helpers
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
 
+
 @pytest.mark.mpi
-@helpers.requires('HBT_output/018/SubSnap_018.0.hdf5', comm=comm)
+@helpers.requires("HBT_output/018/SubSnap_018.0.hdf5", comm=comm)
 def test_subhalo_rank(filename):
 
     # Read HBT halos from a small DMO run
     with h5py.File(filename, "r", driver="mpio", comm=comm) as file:
-        sub = phdf5.collective_read(file['Subhalos'], comm=comm)
+        sub = phdf5.collective_read(file["Subhalos"], comm=comm)
     if comm_rank == 0:
         print("Read subhalos")
-    host_id = sub['HostHaloId']
-    subhalo_id = sub['TrackId']
-    subhalo_mass = sub['Mbound']
-    depth = sub['Depth']
+    host_id = sub["HostHaloId"]
+    subhalo_id = sub["TrackId"]
+    subhalo_mass = sub["Mbound"]
+    depth = sub["Depth"]
 
     field = depth == 0
     host_id[field] = subhalo_id[field]

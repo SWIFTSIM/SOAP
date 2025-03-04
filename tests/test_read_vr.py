@@ -12,17 +12,19 @@ comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
 
 required_files = [
-    'VR_output/vr_018.catalog_groups.0',
-    'VR_output/vr_018.catalog_particles.0',
-    'VR_output/vr_018.catalog_particles.unbound.0',
-    'VR_output/vr_018.properties.0',
+    "VR_output/vr_018.catalog_groups.0",
+    "VR_output/vr_018.catalog_particles.0",
+    "VR_output/vr_018.catalog_particles.unbound.0",
+    "VR_output/vr_018.properties.0",
 ]
+
+
 @pytest.mark.mpi
 @helpers.requires(required_files, comm=comm)
 def test_read_vr(filenames):
 
-    basename = filenames[0].split('.')[0]
-    suffix = '.' + filenames[0].split('.')[-1]
+    basename = filenames[0].split(".")[0]
+    suffix = "." + filenames[0].split(".")[-1]
 
     # Catch deprecation warning from VirgoDC
     with warnings.catch_warnings():

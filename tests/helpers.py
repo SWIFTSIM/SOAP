@@ -1,6 +1,7 @@
 """
 Contains helper functions for downloading test data
 """
+
 import os
 import subprocess
 
@@ -8,6 +9,7 @@ import pytest
 
 webstorage_location = "https://ftp.strw.leidenuniv.nl/mcgibbon/SOAP/"
 test_output_location = "test_data/"
+
 
 def requires(filepaths, comm=None):
     """
@@ -56,13 +58,15 @@ def requires(filepaths, comm=None):
             else:
                 file_available = True
 
-        if (comm is not None):
+        if comm is not None:
             file_available = comm.bcast(file_available)
 
         if not file_available:
+
             def dont_call_test(func):
                 def empty(*args, **kwargs):
                     return pytest.skip()
+
                 return empty
 
             return dont_call_test
@@ -80,11 +84,11 @@ def requires(filepaths, comm=None):
 
     return do_call_test
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Download the data required for run_small_volume.sh
     # Call @requires by passing a dummy function
     dummy = lambda x: x
     requires("swift_output/fof_output_0018.hdf5")(dummy)()
     requires("swift_output/snap_0018.hdf5")(dummy)()
     requires("HBT_output/018/SubSnap_018.0.hdf5")(dummy)()
-
