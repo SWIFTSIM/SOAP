@@ -1,0 +1,100 @@
+Parameters:
+  sim_dir: ./test_data
+  output_dir: ./output
+  scratch_dir: ./output
+
+Snapshots:
+  filename: "{sim_dir}/snap_{snap_nr:04d}.hdf5"
+
+HaloFinder:
+  type: HBTplus
+  filename: "{sim_dir}/SubSnap_{snap_nr:03d}"
+  fof_filename: "{sim_dir}/fof_output_{snap_nr:04d}.hdf5"
+  # type: VR
+  # filename: "{sim_dir}/vr_{snap_nr:03d}"
+
+GroupMembership:
+  filename: "{output_dir}/membership_{snap_nr:04d}/membership_{snap_nr:04d}.hdf5"
+
+HaloProperties:
+  filename: "{output_dir}/halo_properties_{snap_nr:04d}.hdf5"
+  chunk_dir: "{scratch_dir}/SOAP-tmp/{halo_finder}/"
+
+ApertureProperties:
+  properties:
+    {}
+  variations:
+    {}
+ProjectedApertureProperties:
+  properties:
+    {}
+  variations:
+    {}
+SOProperties:
+  properties:
+    CentreOfMass: true
+    CentreOfMassVelocity: true
+    Concentration: true
+    ConcentrationUnsoftened: true
+    MassFractionSatellites: true
+    MassFractionExternal: true
+    MaximumCircularVelocity: true
+    MaximumCircularVelocityRadius: true
+    NumberOfDarkMatterParticles: true
+    SORadius: true
+    SpinParameter: true
+    TotalMass: true
+  variations:
+    200_crit:
+      type: crit
+      value: 200.0
+    200_mean:
+      type: mean
+      value: 200.0
+    500_crit:
+      type: crit
+      value: 500.0
+SubhaloProperties:
+  properties:
+    CentreOfMass: true
+    CentreOfMassVelocity: true
+    EncloseRadius: true
+    NumberOfDarkMatterParticles: true
+    NumberOfGasParticles: true
+    NumberOfStarParticles: true
+    NumberOfBlackHoleParticles: true
+    MaximumCircularVelocity: true
+    MaximumCircularVelocityUnsoftened: true
+    MaximumCircularVelocityRadiusUnsoftened: true
+    SpinParameter: true
+    TotalMass: true
+filters:
+  general:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfGasParticles
+      - BoundSubhalo/NumberOfDarkMatterParticles
+      - BoundSubhalo/NumberOfStarParticles
+      - BoundSubhalo/NumberOfBlackHoleParticles
+    combine_properties: sum
+  baryon:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfGasParticles
+      - BoundSubhalo/NumberOfStarParticles
+    combine_properties: sum
+  dm:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfDarkMatterParticles
+  gas:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfGasParticles
+  star:
+    limit: 100
+    properties:
+      - BoundSubhalo/NumberOfStarParticles
+calculations:
+  calculate_missing_properties: false
+  min_read_radius_cmpc: 5

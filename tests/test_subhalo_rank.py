@@ -3,29 +3,32 @@
 import numpy as np
 import h5py
 import pytest
+from mpi4py import MPI
 import virgo.mpi.parallel_hdf5 as phdf5
 
 from SOAP.property_calculation.subhalo_rank import compute_subhalo_rank
 
+import helpers
+
+comm = MPI.COMM_WORLD
+comm_rank = comm.Get_rank()
+
 
 @pytest.mark.mpi
-def test_subhalo_rank():
+@helpers.requires("HBT_output/018/SubSnap_018.0.hdf5", comm=comm)
+def test_subhalo_rank(filename):
 
-    from mpi4py import MPI
-
-    comm = MPI.COMM_WORLD
-    comm_rank = comm.Get_rank()
-
-    # Read VR halos from a small FLAMINGO run (assumes single file catalogue)
-    vr_file = "/cosma8/data/dp004/flamingo/Runs/L0100N0180/HYDRO_FIDUCIAL/VR/halos_0006.properties.0"
-    with h5py.File(vr_file, "r", driver="mpio", comm=comm) as vr:
-        host_id = phdf5.collective_read(vr["hostHaloID"], comm=comm)
-        subhalo_id = phdf5.collective_read(vr["ID"], comm=comm)
-        subhalo_mass = phdf5.collective_read(vr["Mass_tot"], comm=comm)
+    # Read HBT halos from a small DMO run
+    with h5py.File(filename, "r", driver="mpio", comm=comm) as file:
+        sub = phdf5.collective_read(file["Subhalos"], comm=comm)
     if comm_rank == 0:
         print("Read subhalos")
+    host_id = sub["HostHaloId"]
+    subhalo_id = sub["TrackId"]
+    subhalo_mass = sub["Mbound"]
+    depth = sub["Depth"]
 
-    field = host_id < 0
+    field = depth == 0
     host_id[field] = subhalo_id[field]
 
     # Compute ranking of subhalos
@@ -33,7 +36,7 @@ def test_subhalo_rank():
     if comm_rank == 0:
         print("Computed ranks")
 
-    # Find fraction of VR 'field' halos with rank=0
+    # Find fraction of 'field' halos with rank=0
     nr_field_halos = comm.allreduce(np.sum(field))
     nr_field_rank_nonzero = comm.allreduce(np.sum((field) & (subhalo_rank > 0)))
     fraction = nr_field_rank_nonzero / nr_field_halos
