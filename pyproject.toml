@@ -1,6 +1,8 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
 
 [project]
 name = "SOAP"
@@ -34,9 +36,6 @@ dependencies = [
 test = [
     "pytest-mpi",
 ]
-
-[tool.setuptools.packages]
-find = {}
 
 [project.urls]
 "Homepage" = "https://github.com/SWIFTSIM/SOAP"

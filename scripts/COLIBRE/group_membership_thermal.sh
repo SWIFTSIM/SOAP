@@ -13,7 +13,7 @@
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/colibre_membership.%a.%j.out
+#SBATCH -o ./logs/colibre_membership.%a.%A.out
 #SBATCH -J group_membership_colibre
 #SBATCH -p cosma8
 #SBATCH -A dp004
