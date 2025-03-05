@@ -1,10 +1,10 @@
+mpi4py
 h5py
 numpy
 unyt>=3
 astropy
 numba
 scipy
-pandas
 pytest-mpi
 matplotlib
 psutil

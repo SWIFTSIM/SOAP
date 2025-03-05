@@ -2,6 +2,8 @@ __pycache__
 *~
 logs
 openmpi-5.0.3-hdf5-1.12.3-env
+black_formatting_env
+*egg-info
 
 documentation/SOAP.aux
 documentation/SOAP.log
@@ -16,3 +18,5 @@ documentation/units.tex
 
 tests/FLAMINGO/test_parameters.yml
 tests/COLIBRE/test_parameters.yml
+tests/test_SO_radius_*.png
+test_data/*

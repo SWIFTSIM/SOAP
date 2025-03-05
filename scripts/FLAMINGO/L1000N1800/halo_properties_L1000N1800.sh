@@ -41,10 +41,10 @@ else
   swift_filename="/cosma8/data/dp004/flamingo/Runs/${sim}/snapshots/flamingo_{snap_nr:04}/flamingo_{snap_nr:04}.{file_nr}.hdf5"
   xray_filename="/snap8/scratch/dp004/${USER}/flamingo/Runs/${sim}/xray/xray_{snap_nr:04}/xray_{snap_nr:04}.{file_nr}.hdf5"
   xray_table_path='/cosma8/data/dp004/flamingo/Tables/Xray/X_Ray_table_metals_full.hdf5'
-  mpirun -- python recalculate_xrays.py $swift_filename $xray_filename $xray_table_path --snap-nr=$snapnum
+  mpirun -- python misc/recalculate_xrays.py $swift_filename $xray_filename $xray_table_path --snap-nr=$snapnum
 fi
 
-mpirun -- python3 -u -m mpi4py ./compute_halo_properties.py \
+mpirun -- python3 -u -m mpi4py SOAP/compute_halo_properties.py \
        --sim-name=${sim} --snap-nr=${snapnum}  --reference-snapshot=77 \
        --chunks=4 ${dmo_flag} parameter_files/FLAMINGO.yml
 

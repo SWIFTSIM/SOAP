@@ -161,8 +161,10 @@ if __name__ == "__main__":
 
     assert not os.path.exists(args.outputSOAP)
 
-    with h5py.File(args.referenceSOAP, "r") as ifile, h5py.File(
-        args.snapshot, "r"
-    ) as snapfile, h5py.File(args.outputSOAP, "w") as ofile:
+    with (
+        h5py.File(args.referenceSOAP, "r") as ifile,
+        h5py.File(args.snapshot, "r") as snapfile,
+        h5py.File(args.outputSOAP, "w") as ofile,
+    ):
         h5copy = H5copier(ifile, snapfile, ofile, snapnum)
         ifile.visititems(h5copy)

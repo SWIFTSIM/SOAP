@@ -42,3 +42,6 @@ ln -s "${mpirun}" "${venv_name}"/bin/mpirun
 pip install -r requirements.txt
 git clone https://github.com/jchelly/VirgoDC.git "${venv_name}/VirgoDC"
 pip install "${venv_name}/VirgoDC/python"
+
+# Install SOAP
+pip install -e .
