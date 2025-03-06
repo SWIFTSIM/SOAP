@@ -852,7 +852,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in graphite grains in atomic gas.",
+            description="Total dust mass in graphite grains in atomic gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -869,7 +869,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in graphite grains in molecular gas.",
+            description="Total dust mass in graphite grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -915,7 +915,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in large grains in molecular gas.",
+            description="Total dust mass in large grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -961,7 +961,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in silicate grains in atomic gas.",
+            description="Total dust mass in silicate grains in atomic gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -978,7 +978,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in silicate grains in molecular gas.",
+            description="Total dust mass in silicate grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1028,7 +1028,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in small grains in molecular gas.",
+            description="Total dust mass in small grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
