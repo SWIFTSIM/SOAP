@@ -11,7 +11,7 @@
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/compress_properties.%a.%j.out
+#SBATCH -o ./logs/compress_properties.%a.%A.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive

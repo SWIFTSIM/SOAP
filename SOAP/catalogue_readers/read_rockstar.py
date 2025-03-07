@@ -3,7 +3,6 @@
 import os
 
 import numpy as np
-import pandas as pd
 import unyt
 
 import virgo.mpi.parallel_hdf5 as phdf5
@@ -53,6 +52,21 @@ def locate_files(basename):
         n_group_file += 1
 
     return snap_format_string, group_format_string, n_bin_file, n_group_file
+
+
+def read_group_file(filename):
+    usecols = (0, 1, 5, 7, 8, 9, 10, 45)
+    dtype = [
+        ("ID", "i4"),
+        ("DescID", "i4"),
+        ("Rvir", "f4"),
+        ("Np", "i8"),
+        ("X", "f4"),
+        ("Y", "f4"),
+        ("Z", "f4"),
+        ("PID", "i4"),
+    ]
+    return np.genfromtxt(filename, usecols=usecols, dtype=dtype)
 
 
 def read_rockstar_groupnr(basename):
@@ -181,28 +195,24 @@ def read_rockstar_catalogue(comm, basename, a_unit, registry, boxsize):
         first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
     ):
         filename = group_format_string % {"file_nr": file_nr}
+        data = read_group_file(filename)
 
-        with open(filename, "r") as file:
-            cols = file.readline()[1:]
-        cols = cols.split()
-        data = pd.read_csv(filename, names=cols, comment="#", delim_whitespace=True)
-
-        local_halo["index"].append(np.array(data["ID"]))
+        local_halo["index"].append(data["ID"])
 
         # Note this is not the most bound particle
-        x = np.array(data["X"]).reshape(-1, 1)
-        y = np.array(data["Y"]).reshape(-1, 1)
-        z = np.array(data["Z"]).reshape(-1, 1)
+        x = data["X"]
+        y = data["Y"]
+        z = data["Z"]
         local_halo["cofp"].append(np.concatenate([x, y, z], axis=1))
 
-        parent_id = np.array(data["PID"])
+        parent_id = data["PID"]
         local_halo["is_central"].append(parent_id == -1)
         local_halo["PID"].append(parent_id)
-        local_halo["DescID"].append(np.array(data["DescID"]))
+        local_halo["DescID"].append(data["DescID"])
 
-        local_halo["nr_bound_part"].append(np.array(data["Np"]))
+        local_halo["nr_bound_part"].append(data["Np"])
 
-        local_halo["search_radius"].append(np.array(data["Rvir"]))
+        local_halo["search_radius"].append(data["Rvir"])
 
     # Get SWIFT's definition of physical and comoving Mpc units
     swift_pmpc = unyt.Unit("swift_mpc", registry=registry)
@@ -241,66 +251,3 @@ def read_rockstar_catalogue(comm, basename, a_unit, registry, boxsize):
             )
 
     return local_halo
-
-
-def test_read_rockstar_groupnr(basename):
-    """
-    Read in rockstar group numbers and compute the number of particles
-    in each group. This is then compared with the input catalogue as a
-    sanity check on the group membershp files.
-    """
-
-    from mpi4py import MPI
-
-    comm = MPI.COMM_WORLD
-    comm_rank = comm.Get_rank()
-    comm_size = comm.Get_size()
-
-    _, ids, grnr = read_rockstar_groupnr(basename)
-    del ids  # Don't need the particle IDs
-
-    # Find maximum group number
-    max_grnr = comm.allreduce(np.amax(grnr), op=MPI.MAX)
-    nr_groups_from_grnr = max_grnr + 1
-    if comm_rank == 0:
-        print(f"Number of groups from membership files = {nr_groups_from_grnr}")
-
-    # Discard particles in no group
-    keep = grnr >= 0
-    grnr = grnr[keep]
-
-    # Compute group sizes
-    import virgo.mpi.parallel_sort as psort
-
-    nbound_from_grnr = psort.parallel_bincount(grnr, comm=comm)
-
-    # Rockstar outputs are csv, so can't use phdf5 to read
-    if comm_rank == 0:
-        snap_format_string, group_format_string, _, n_group_file = locate_files(
-            basename
-        )
-        for file_nr in range(n_group_file):
-
-            filename = group_format_string % {"file_nr": file_nr}
-
-            with open(filename, "r") as file:
-                cols = file.readline()[1:]
-            cols = cols.split()
-            data = pd.read_csv(filename, names=cols, comment="#", delim_whitespace=True)
-
-            # Extract halo ids and number of particles from group files
-            halo_ids = np.array(data["ID"], dtype=int)
-            num_p = np.array(data["Np"], dtype=int)
-
-            # Compare
-            if not np.all(nbound_from_grnr[halo_ids] == num_p):
-                different = nbound_from_grnr[halo_ids] != num_p
-                print("The following halo ids differ:", halo_ids[different])
-
-
-if __name__ == "__main__":
-
-    import sys
-
-    basename = sys.argv[1]
-    test_read_rockstar_groupnr(basename)
