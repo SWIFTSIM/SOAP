@@ -1944,7 +1944,13 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_graphite_mass_fractions * self.gas_mass_HI).sum()
+        atomic_gas_mass = (
+            self.gas_species_fractions[
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "HI")
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_graphite_mass_fractions * atomic_gas_mass).sum()
 
     @lazy_property
     def DustGraphiteMassInMolecularGas(self) -> unyt.unyt_quantity:
@@ -1953,7 +1959,14 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_graphite_mass_fractions * self.gas_mass_H2).sum()
+        molecular_gas_mass = (
+            2
+            * self.gas_species_fractions[
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_graphite_mass_fractions * molecular_gas_mass).sum()
 
     @lazy_property
     def DustGraphiteMassInColdDenseGas(self) -> unyt.unyt_quantity:
@@ -1983,7 +1996,13 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_silicates_mass_fractions * self.gas_mass_HI).sum()
+        atomic_gas_mass = (
+            self.gas_species_fractions[
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "HI")
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_silicates_mass_fractions * atomic_gas_mass).sum()
 
     @lazy_property
     def DustSilicatesMassInMolecularGas(self) -> unyt.unyt_quantity:
@@ -1992,7 +2011,14 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_silicates_mass_fractions * self.gas_mass_H2).sum()
+        molecular_gas_mass = (
+            2
+            * self.gas_species_fractions[
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_silicates_mass_fractions * molecular_gas_mass).sum()
 
     @lazy_property
     def DustSilicatesMassInColdDenseGas(self) -> unyt.unyt_quantity:
@@ -2022,7 +2048,14 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_large_dust_mass_fractions * self.gas_mass_H2).sum()
+        molecular_gas_mass = (
+            2
+            * self.gas_species_fractions[
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_large_dust_mass_fractions * molecular_gas_mass).sum()
 
     @lazy_property
     def DustLargeGrainMassInColdDenseGas(self) -> unyt.unyt_quantity:
@@ -2052,7 +2085,14 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_small_dust_mass_fractions * self.gas_mass_H2).sum()
+        molecular_gas_mass = (
+            2
+            * self.gas_species_fractions[
+                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_small_dust_mass_fractions * molecular_gas_mass).sum()
 
     @lazy_property
     def DustSmallGrainMassInColdDenseGas(self) -> unyt.unyt_quantity:
