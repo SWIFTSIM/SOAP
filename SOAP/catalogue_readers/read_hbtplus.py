@@ -14,9 +14,13 @@ def hbt_filename(hbt_basename, file_nr):
     return f"{hbt_basename}.{file_nr}.hdf5"
 
 
-def read_hbtplus_groupnr(basename):
+def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None):
     """
     Read HBTplus output and return group number for each particle ID
+
+    Potential energies will not be returned by default. To return the potential
+    energies a unit registry must be passed.
+
     """
 
     from mpi4py import MPI
@@ -48,8 +52,20 @@ def read_hbtplus_groupnr(basename):
     # Read in the halos from the HBT output:
     # 'halos' will be an array of structs with the halo catalogue
     # 'ids_bound' will be an array of particle IDs in halos, sorted by halo
+    # 'potential_energy' will be an array of the potential energy of each
+    #   particle, with the same order as 'ids_bound'
     halos = []
     ids_bound = []
+    # TODO: Remove this check for potential energies (We had to handle the case where
+    #       HBT did not output potential energies, but now it always should)
+    potential_energies = None
+    if read_potential_energies:
+        if comm_rank == 0:
+            with h5py.File(hbt_filename(basename, 0), "r") as infile:
+                if "PotentialEnergies" in infile:
+                    potential_energies = []
+        potential_energies = comm.bcast(potential_energies)
+
     for file_nr in range(
         first_file_on_rank[comm_rank],
         first_file_on_rank[comm_rank] + files_per_rank[comm_rank],
@@ -57,12 +73,10 @@ def read_hbtplus_groupnr(basename):
         with h5py.File(hbt_filename(basename, file_nr), "r") as infile:
             halos.append(infile["Subhalos"][...])
             ids_bound.append(infile["SubhaloParticles"][...])
-
-    # Get the dtype for particle IDs
-    if len(ids_bound) > 0:
-        id_dtype = h5py.check_vlen_dtype(ids_bound[0].dtype)
-    else:
-        id_dtype = None
+            if read_potential_energies:
+                # TODO: Remove this if/else (see above)
+                if "PotentialEnergies" in infile:
+                    potential_energies.append(infile["PotentialEnergies"][...])
 
     # Concatenate arrays of halos from different files
     if len(halos) > 0:
@@ -72,15 +86,18 @@ def read_hbtplus_groupnr(basename):
         halos = None
     halos = virgo.mpi.util.replace_none_with_zero_size(halos, comm=comm)
 
-    # Combine arrays of particles in halos
+    # Get the dtype for particle IDs
     if len(ids_bound) > 0:
-        ids_bound = np.concatenate(
-            ids_bound
-        )  # Combine arrays of halos from different files
+        id_dtype = h5py.check_vlen_dtype(ids_bound[0].dtype)
+    else:
+        id_dtype = None
+
+    if len(ids_bound) > 0:
+        # Combine arrays of halos from different files
+        ids_bound = np.concatenate(ids_bound)
         if len(ids_bound) > 0:
-            ids_bound = np.concatenate(
-                ids_bound
-            )  # Combine arrays of particles from different halos
+            # Combine arrays of particles from different halos
+            ids_bound = np.concatenate(ids_bound)
         else:
             # The files assigned to this rank contain zero halos
             ids_bound = np.zeros(0, dtype=id_dtype)
@@ -88,6 +105,44 @@ def read_hbtplus_groupnr(basename):
         # This rank was assigned no files
         ids_bound = None
     ids_bound = virgo.mpi.util.replace_none_with_zero_size(ids_bound, comm=comm)
+
+    # Apply same combination process to potential energies
+    if read_potential_energies:
+        # TODO: Remove (see above)
+        if potential_energies is not None:
+
+            if len(potential_energies) > 0:
+                potential_dtype = h5py.check_vlen_dtype(potential_energies[0].dtype)
+            else:
+                potential_dtype = None
+
+            if len(potential_energies) > 0:
+                potential_energies = np.concatenate(potential_energies)
+                if len(potential_energies) > 0:
+                    potential_energies = np.concatenate(potential_energies)
+                else:
+                    potential_energies = np.zeros(0, dtype=potential_dtype)
+            else:
+                # This rank was assigned no files
+                potential_energies = None
+            potential_energies = virgo.mpi.util.replace_none_with_zero_size(
+                potential_energies, comm=comm
+            )
+
+            # Get HBTplus unit information
+            if comm_rank == 0:
+                filename = hbt_filename(basename, 0)
+                with h5py.File(filename, "r") as infile:
+                    if "Units" in infile:
+                        VelInKmS = float(infile["Units/VelInKmS"][...])
+            else:
+                VelInKmS = None
+            VelInKmS = comm.bcast(VelInKmS)
+
+            # Add units to potential energies
+            potential_energies = (potential_energies * (VelInKmS**2)) * unyt.Unit(
+                "km/s", registry=registry
+            ) ** 2
 
     # Assign halo indexes to the particles
     nr_local_halos = len(halos)
@@ -118,6 +173,9 @@ def read_hbtplus_groupnr(basename):
         ids_bound, comm=comm, arr_sorted=False, return_counts=True
     )
     assert len(unique_counts) == 0 or np.max(unique_counts) == 1
+
+    if read_potential_energies:
+        return total_nr_halos, ids_bound, grnr_bound, rank_bound, potential_energies
 
     return total_nr_halos, ids_bound, grnr_bound, rank_bound
 
@@ -290,6 +348,12 @@ def read_hbtplus_catalogue(
         snapshot_max_vmax, units=unyt.dimensionless, dtype=int, registry=registry
     )
 
+    # Last time the subhalo was a central
+    snapshot_last_isolation = subhalo["SnapshotIndexOfLastIsolation"][keep]
+    snapshot_last_isolation = unyt.unyt_array(
+        snapshot_last_isolation, units=unyt.dimensionless, dtype=int, registry=registry
+    )
+
     # Number of bound particles
     nr_bound_part = nr_bound_part[keep]
 
@@ -309,5 +373,6 @@ def read_hbtplus_catalogue(
         "SnapshotIndexOfLastMaxMass": snapshot_max_mass,
         "LastMaxVmaxPhysical": max_vmax,
         "SnapshotIndexOfLastMaxVmax": snapshot_max_vmax,
+        "SnapshotIndexOfLastIsolation": snapshot_last_isolation,
     }
     return local_halo
