@@ -167,7 +167,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Masses",
                 "Velocities",
                 "FOFGroupIDs",
-                "SpecificBindingEnergies",
+                "SpecificPotentialEnergies",
                 "GroupNr_bound",
                 "MetalMassFractions",
                 "Temperatures",
@@ -194,7 +194,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Masses",
                 "Velocities",
                 "FOFGroupIDs",
-                "SpecificBindingEnergies",
+                "SpecificPotentialEnergies",
             ],
             "PartType4": [
                 "Coordinates",
@@ -202,7 +202,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Velocities",
                 "FOFGroupIDs",
                 "GroupNr_bound",
-                "SpecificBindingEnergies",
+                "SpecificPotentialEnergies",
                 "InitialMasses",
                 "Luminosities",
                 "MetalMassFractions",
@@ -219,7 +219,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Velocities",
                 "FOFGroupIDs",
                 "GroupNr_bound",
-                "SpecificBindingEnergies",
+                "SpecificPotentialEnergies",
                 "SubgridMasses",
                 "LastAGNFeedbackScaleFactors",
                 "ParticleIDs",
@@ -980,7 +980,7 @@ class DummyHaloGenerator:
             data["PartType0"]["GroupNr_all"] = groupnr_all[gas_mask]
             data["PartType0"]["GroupNr_bound"] = groupnr_bound[gas_mask]
             data["PartType0"]["FOFGroupIDs"] = fof_group_ids[gas_mask]
-            data["PartType0"]["SpecificBindingEnergies"] = unyt.unyt_array(
+            data["PartType0"]["SpecificPotentialEnergies"] = unyt.unyt_array(
                 -1000 * np.random.random(Ngas),
                 dtype=np.float32,
                 units=unyt.Unit("km/s", registry=reg) ** 2,
@@ -1126,7 +1126,7 @@ class DummyHaloGenerator:
             data["PartType1"]["Masses"] = mass[dm_mask]
             Mtot += data["PartType1"]["Masses"].sum()
             data["PartType1"]["Velocities"] = vs[dm_mask]
-            data["PartType1"]["SpecificBindingEnergies"] = unyt.unyt_array(
+            data["PartType1"]["SpecificPotentialEnergies"] = unyt.unyt_array(
                 -1000 * np.random.random(Ndm),
                 dtype=np.float32,
                 units=unyt.Unit("km/s", registry=reg) ** 2,
@@ -1181,7 +1181,7 @@ class DummyHaloGenerator:
                 units=unyt.dimensionless,
                 registry=reg,
             )
-            data["PartType4"]["SpecificBindingEnergies"] = unyt.unyt_array(
+            data["PartType4"]["SpecificPotentialEnergies"] = unyt.unyt_array(
                 -1000 * np.random.random(Nstar),
                 dtype=np.float32,
                 units=unyt.Unit("km/s", registry=reg) ** 2,
@@ -1353,7 +1353,7 @@ class DummyHaloGenerator:
                 registry=reg,
             )
             data["PartType5"]["Velocities"] = vs[bh_mask]
-            data["PartType5"]["SpecificBindingEnergies"] = unyt.unyt_array(
+            data["PartType5"]["SpecificPotentialEnergies"] = unyt.unyt_array(
                 -1000 * np.random.random(Nbh),
                 dtype=np.float32,
                 units=unyt.Unit("km/s", registry=reg) ** 2,

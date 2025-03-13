@@ -27,7 +27,7 @@ def process_particle_type(
     ids_bound,
     grnr_bound,
     rank_bound,
-    binding_energies,
+    potential_energies,
     fof_ptypes,
     fof_file,
     create_file,
@@ -78,16 +78,16 @@ def process_particle_type(
         swift_rank_bound[matched] = psort.fetch_elements(rank_bound, ptr[matched])
         swift_rank_bound[matched == False] = -1
 
-    if binding_energies is not None:
+    if potential_energies is not None:
         if comm_rank == 0:
-            print("  Assigning binding energy to SWIFT particles")
-        swift_binding_energies = np.ndarray(
-            len(swift_ids), dtype=binding_energies.dtype
+            print("  Assigning potential energy to SWIFT particles")
+        swift_potential_energies = np.ndarray(
+            len(swift_ids), dtype=potential_energies.dtype
         )
-        swift_binding_energies[matched] = psort.fetch_elements(
-            binding_energies, ptr[matched]
+        swift_potential_energies[matched] = psort.fetch_elements(
+            potential_energies, ptr[matched]
         )
-        swift_binding_energies[matched == False] = 0
+        swift_potential_energies[matched == False] = 0
 
     del ptr
     del matched
@@ -117,8 +117,8 @@ def process_particle_type(
         "Rank_bound": {
             "Description": "Ranking by binding energy of the bound particles (first in halo=0), or -1 if not bound"
         },
-        "SpecificBindingEnergies": {
-            "Description": "Specific binding energy of the bound particles"
+        "SpecificPotentialEnergies": {
+            "Description": "Specific potential energy of the bound particles"
         },
         "FOFGroupIDs": {
             "Description": "Friends-Of-Friends ID of the group in which this particle is a member, of -1 if none"
@@ -135,12 +135,12 @@ def process_particle_type(
     output = {"GroupNr_bound": swift_grnr_bound}
     if rank_bound is not None:
         output["Rank_bound"] = swift_rank_bound
-    if binding_energies is not None:
+    if potential_energies is not None:
         unit_attrs = swift_units.attributes_from_units(
-            binding_energies.units, True, None
+            potential_energies.units, True, None
         )
-        attrs["SpecificBindingEnergies"].update(unit_attrs)
-        output["SpecificBindingEnergies"] = swift_binding_energies
+        attrs["SpecificPotentialEnergies"].update(unit_attrs)
+        output["SpecificPotentialEnergies"] = swift_potential_energies
     if ptype in fof_ptypes:
         output["FOFGroupIDs"] = swift_fof_group_ids
     snap_file.write(
@@ -213,7 +213,7 @@ if __name__ == "__main__":
             grnr_bound,
             rank_bound,
         ) = read_vr.read_vr_groupnr(halo_basename)
-        binding_energies = None
+        potential_energies = None
     elif halo_format == "HBTplus":
         if comm_rank == 0:
             with h5py.File(swift_filename.format(file_nr=0), "r") as file:
@@ -222,10 +222,10 @@ if __name__ == "__main__":
             registry = None
         registry = comm.bcast(registry)
         # Read HBTplus output
-        total_nr_halos, ids_bound, grnr_bound, rank_bound, binding_energies = (
+        total_nr_halos, ids_bound, grnr_bound, rank_bound, potential_energies = (
             read_hbtplus.read_hbtplus_groupnr(
                 halo_basename,
-                read_binding_energies=True,
+                read_potential_energies=True,
                 registry=registry,
             )
         )
@@ -235,14 +235,14 @@ if __name__ == "__main__":
             halo_basename
         )
         rank_bound = None
-        binding_energies = None
+        potential_energies = None
     elif halo_format == "Rockstar":
         # Read Rockstar output
         total_nr_halos, ids_bound, grnr_bound = read_rockstar.read_rockstar_groupnr(
             halo_basename
         )
         rank_bound = None
-        binding_energies = None
+        potential_energies = None
     else:
         raise RuntimeError(f"Unrecognised halo finder name: {halo_format}")
 
@@ -327,7 +327,7 @@ if __name__ == "__main__":
             ids_bound,
             grnr_bound,
             rank_bound,
-            binding_energies,
+            potential_energies,
             fof_ptypes,
             fof_file,
             create_file,

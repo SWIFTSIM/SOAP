@@ -67,6 +67,7 @@ class SubhaloParticleData:
         snapshot_datasets: SnapshotDatasets,
         softening_of_parttype: unyt.unyt_array,
         boxsize: unyt.unyt_quantity,
+        cosmology: dict,
     ):
         """
         Constructor.
@@ -90,6 +91,8 @@ class SubhaloParticleData:
            appropriate aliases and column names.
          - boxsize: unyt.unyt_quantity
            Boxsize for correcting periodic boundary conditions
+         - cosmology: dict
+           Cosmological parameters required for SO calculation
         """
         self.input_halo = input_halo
         self.data = data
@@ -99,6 +102,7 @@ class SubhaloParticleData:
         self.snapshot_datasets = snapshot_datasets
         self.softening_of_parttype = softening_of_parttype
         self.boxsize = boxsize
+        self.cosmology = cosmology
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -777,7 +781,9 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        ekin_tot = self.mass * ((self.velocity - self.vcom[None, :]) ** 2).sum(axis=1)
+        v_tot = self.velocity - self.vcom[None, :]
+        v_tot += self.position * self.cosmology["H"]
+        ekin_tot = self.mass * (v_tot**2).sum(axis=1)
         return 0.5 * ekin_tot.sum()
 
     @lazy_property
@@ -815,15 +821,15 @@ class SubhaloParticleData:
         return etherm_gas.sum()
 
     @lazy_property
-    def binding_energy_gas(self) -> unyt.unyt_array:
+    def potential_energy_gas(self) -> unyt.unyt_array:
         """
-        Binding energy of the gas particles in the subhalo.
+        Potential energy of the gas particles in the subhalo.
         """
         if self.Ngas == 0:
             return None
         return (
             self.mass_gas
-            * self.get_dataset("PartType0/SpecificBindingEnergies")[self.gas_mask_all]
+            * self.get_dataset("PartType0/SpecificPotentialEnergies")[self.gas_mask_all]
         )
 
     @lazy_property
@@ -835,50 +841,52 @@ class SubhaloParticleData:
         return self.get_dataset(f"PartType1/GroupNr_bound") == self.index
 
     @lazy_property
-    def binding_energy_dm(self) -> unyt.unyt_array:
+    def potential_energy_dm(self) -> unyt.unyt_array:
         """
-        Binding energy of the DM particles in the subhalo.
+        Potential energy of the DM particles in the subhalo.
         """
         if self.Ndm == 0:
             return None
         return (
             self.mass_dm
-            * self.get_dataset("PartType1/SpecificBindingEnergies")[self.dm_mask_all]
+            * self.get_dataset("PartType1/SpecificPotentialEnergies")[self.dm_mask_all]
         )
 
     @lazy_property
-    def binding_energy_star(self) -> unyt.unyt_array:
+    def potential_energy_star(self) -> unyt.unyt_array:
         """
-        Binding energy of the star particles in the subhalo.
+        Potential energy of the star particles in the subhalo.
         """
         if self.Nstar == 0:
             return None
         return (
             self.mass_star
-            * self.get_dataset("PartType4/SpecificBindingEnergies")[self.star_mask_all]
+            * self.get_dataset("PartType4/SpecificPotentialEnergies")[
+                self.star_mask_all
+            ]
         )
 
     @lazy_property
-    def binding_energy_bh(self) -> unyt.unyt_array:
+    def potential_energy_bh(self) -> unyt.unyt_array:
         """
-        Binding energy of the BH particles in the subhalo.
+        Potential energy of the BH particles in the subhalo.
         """
         if self.Nbh == 0:
             return None
         return (
             self.mass[self.bh_mask_sh]
-            * self.get_dataset("PartType5/SpecificBindingEnergies")[self.bh_mask_all]
+            * self.get_dataset("PartType5/SpecificPotentialEnergies")[self.bh_mask_all]
         )
 
     @lazy_property
-    def BindingEnergyTotal(self) -> unyt.unyt_quantity:
+    def PotentialEnergyTotal(self) -> unyt.unyt_quantity:
         """
-        Total binding energy of all particles.
+        Total potential energy of the subhalo.
         """
         if self.Mtot == 0:
             return None
         # Create unyt array with correct units
-        ebin_tot = unyt.unyt_array(
+        epot_tot = unyt.unyt_array(
             0,
             dtype=np.float32,
             units=unyt.Unit("snap_mass", registry=self.mass.units.registry)
@@ -890,14 +898,15 @@ class SubhaloParticleData:
         )
         # Add contribution from each particle type
         if self.Ngas != 0:
-            ebin_tot += self.binding_energy_gas.sum()
+            epot_tot += self.potential_energy_gas.sum()
         if self.Ndm != 0:
-            ebin_tot += self.binding_energy_dm.sum()
+            epot_tot += self.potential_energy_dm.sum()
         if self.Nstar != 0:
-            ebin_tot += self.binding_energy_star.sum()
+            epot_tot += self.potential_energy_star.sum()
         if self.Nbh != 0:
-            ebin_tot += self.binding_energy_bh.sum()
-        return ebin_tot
+            epot_tot += self.potential_energy_bh.sum()
+        # Factor of 2 since we should only be summing over each pair of particles
+        return epot_tot / 2
 
     @lazy_property
     def R_vmax_unsoft(self) -> unyt.unyt_quantity:
@@ -1968,7 +1977,7 @@ class SubhaloProperties(HaloProperty):
             "vcom",
             "KineticEnergyTotal",
             "ThermalEnergyGas",
-            "BindingEnergyTotal",
+            "PotentialEnergyTotal",
             "Lgas",
             "Ldm",
             "Lstar",
@@ -2078,6 +2087,11 @@ class SubhaloProperties(HaloProperty):
         self.record_timings = parameters.record_property_timings
         self.boxsize = cellgrid.boxsize
 
+        self.cosmology = {}
+        self.cosmology["H"] = cellgrid.cosmology[
+            "H [internal units]"
+        ] / cellgrid.get_unit("code_time")
+
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.0
 
@@ -2152,6 +2166,7 @@ class SubhaloProperties(HaloProperty):
             self.snapshot_datasets,
             self.softening_of_parttype,
             self.boxsize,
+            self.cosmology,
         )
 
         # this is the halo type that we use for the filter particle numbers,

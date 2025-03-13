@@ -197,6 +197,7 @@ class ApertureParticleData:
         snapshot_datasets: SnapshotDatasets,
         softening_of_parttype: unyt.unyt_array,
         boxsize: unyt.unyt_quantity,
+        cosmology: dict,
     ):
         """
         Constructor.
@@ -229,6 +230,8 @@ class ApertureParticleData:
            Softening length of each particle types
          - boxsize: unyt.unyt_quantity
            Boxsize for correcting periodic boundary conditions
+         - cosmology: dict
+           Cosmological parameters required for SO calculation
         """
         self.input_halo = input_halo
         self.data = data
@@ -241,6 +244,7 @@ class ApertureParticleData:
         self.snapshot_datasets = snapshot_datasets
         self.softening_of_parttype = softening_of_parttype
         self.boxsize = boxsize
+        self.cosmology = cosmology
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -1177,7 +1181,9 @@ class ApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        ekin_gas = self.mass_gas * ((self.vel_gas - self.vcom_gas) ** 2).sum(axis=1)
+        v_gas = self.vel_gas - self.vcom_gas[None, :]
+        v_gas += self.pos_gas * self.cosmology["H"]
+        ekin_gas = self.mass_gas * (v_gas**2).sum(axis=1)
         return 0.5 * ekin_gas.sum()
 
     @lazy_property
@@ -1320,7 +1326,9 @@ class ApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        ekin_star = self.mass_star * ((self.vel_star - self.vcom_star) ** 2).sum(axis=1)
+        v_star = self.vel_star - self.vcom_star[None, :]
+        v_star += self.pos_star * self.cosmology["H"]
+        ekin_star = self.mass_star * (v_star**2).sum(axis=1)
         return 0.5 * ekin_star.sum()
 
     @lazy_property
@@ -3274,6 +3282,11 @@ class ApertureProperties(HaloProperty):
         self.strict_halo_copy = parameters.strict_halo_copy()
         self.boxsize = cellgrid.boxsize
 
+        self.cosmology = {}
+        self.cosmology["H"] = cellgrid.cosmology[
+            "H [internal units]"
+        ] / cellgrid.get_unit("code_time")
+
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.001 * physical_radius_kpc
 
@@ -3432,6 +3445,7 @@ class ApertureProperties(HaloProperty):
                 self.snapshot_datasets,
                 self.softening_of_parttype,
                 self.boxsize,
+                self.cosmology,
             )
 
             for name, prop in self.property_list.items():

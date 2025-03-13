@@ -180,6 +180,7 @@ def combine_chunks(
             code = outfile.create_group("Code")
             code.attrs["Code"] = "SOAP"
             code.attrs["git_hash"] = args.git_hash
+            code.attrs["Date"] = time.strftime("%Y-%m-%d %H:%M:%S")
 
             # Copy swift metadata
             params = cellgrid.copy_swift_metadata(outfile)
