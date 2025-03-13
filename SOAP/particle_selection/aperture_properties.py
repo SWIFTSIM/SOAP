@@ -3205,7 +3205,6 @@ class ApertureProperties(HaloProperty):
         "GasMassInColdDenseDiffuseMetals": False,
         "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit": False,
         "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": False,
-        "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": False,
         "Vmax_soft": False,
         "R_vmax_soft": False,
     }
