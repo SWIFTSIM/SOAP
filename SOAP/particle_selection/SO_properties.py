@@ -2082,7 +2082,7 @@ class SOParticleData:
         """
         if self.Ngas == 0:
             return None
-        v_gas = self.gas_vel - self.vcom_gas[None, :]
+        v_gas = self.gas_vel - self.vcom[None, :]
         v_gas += self.gas_pos * self.cosmology["H"]
         ekin_gas = self.gas_masses * (v_gas**2).sum(axis=1)
         return 0.5 * ekin_gas.sum()
@@ -2255,7 +2255,7 @@ class SOParticleData:
         if self.Nstar == 0:
             return None
 
-        v_star = self.star_vel - self.vcom_star[None, :]
+        v_star = self.star_vel - self.vcom[None, :]
         v_star += self.star_pos * self.cosmology["H"]
         ekin_star = self.star_masses * (v_star**2).sum(axis=1)
         return 0.5 * ekin_star.sum()

@@ -1181,7 +1181,7 @@ class ApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        v_gas = self.vel_gas - self.vcom_gas[None, :]
+        v_gas = self.vel_gas - self.vcom[None, :]
         v_gas += self.pos_gas * self.cosmology["H"]
         ekin_gas = self.mass_gas * (v_gas**2).sum(axis=1)
         return 0.5 * ekin_gas.sum()
@@ -1326,7 +1326,7 @@ class ApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        v_star = self.vel_star - self.vcom_star[None, :]
+        v_star = self.vel_star - self.vcom[None, :]
         v_star += self.pos_star * self.cosmology["H"]
         ekin_star = self.mass_star * (v_star**2).sum(axis=1)
         return 0.5 * ekin_star.sum()
