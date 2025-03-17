@@ -288,7 +288,7 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
 
     if Lnrm > 0.0 * Lnrm.units:
         K = 0.5 * (mass[:, None] * vrel**2).sum()
-        if K > 0.0 * K.units or do_counterrot_mass:
+        if K > 0.0 * K.units or do_counterrot_mass or do_counterrot_luminosity:
             Ldir = Ltot / Lnrm
             Li = (Lpart * Ldir[None, :]).sum(axis=1)
         if K > 0.0 * K.units:
