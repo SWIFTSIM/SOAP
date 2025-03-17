@@ -257,7 +257,7 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     raise NotImplementedError
 
     kappa_corot = unyt.unyt_array(
-        0.0, dtype=np.float32, units="dimensionless", registry=mass.units.registry
+        unyt.unyt_array(np.zeros(luminosities.shape[-1]), units="Dimensionless"), dtype=np.float32, units="dimensionless", registry=mass.units.registry
     )
 
     if ref_position is None:
@@ -275,7 +275,9 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
 
     if do_counterrot_mass:
         M_counterrot = unyt.unyt_array(
-            0.0, dtype=np.float32, units=mass.units, registry=mass.units.registry
+            np.zeros(luminosities.shape[-1]), dtype=np.float32, units=mass.units, registry=mass.units.registry
+        )
+
         )
 
     if Lnrm > 0.0 * Lnrm.units:
