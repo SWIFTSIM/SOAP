@@ -278,6 +278,9 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
             np.zeros(luminosities.shape[-1]), dtype=np.float32, units=mass.units, registry=mass.units.registry
         )
 
+    if do_counterrot_luminosity:
+        M_counterrot = unyt.unyt_array(
+            np.zeros(luminosities.shape[-1]), dtype=np.float32, units=luminosities.units, registry=luminosities.units.registry
         )
 
     if Lnrm > 0.0 * Lnrm.units:
