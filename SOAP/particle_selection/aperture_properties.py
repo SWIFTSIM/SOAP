@@ -1336,6 +1336,62 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
+    def DtoTstar_gBand(self) -> unyt.unyt_quantity:
+        """
+        Disk to total ratio of the stellar luminosity in the g band.
+
+        This is computed together with Lstar and kappa_corot_star
+        by compute_Lstar_props().
+        """
+        if self.Luminosity_star_gband == 0:
+            return None
+        if not hasattr(self, "internal_Lcountrot_star_gband"):
+            self.compute_Lstar_props()
+        return 1.0 - 2.0 * self.internal_Lcountrot_star_gband / self.Luminosity_star_gband
+
+    @lazy_property
+    def DtoTstar_rBand(self) -> unyt.unyt_quantity:
+        """
+        Disk to total ratio of the stellar luminosity in the r band.
+
+        This is computed together with Lstar and kappa_corot_star
+        by compute_Lstar_props().
+        """
+        if self.Luminosity_star_rband == 0:
+            return None
+        if not hasattr(self, "internal_Lcountrot_star_rband"):
+            self.compute_Lstar_props()
+        return 1.0 - 2.0 * self.internal_Lcountrot_star_rband / self.Luminosity_star_rband
+
+    @lazy_property
+    def DtoTstar_iBand(self) -> unyt.unyt_quantity:
+        """
+        Disk to total ratio of the stellar luminosity in the i band.
+
+        This is computed together with Lstar and kappa_corot_star
+        by compute_Lstar_props().
+        """
+        if self.Luminosity_star_iband == 0:
+            return None
+        if not hasattr(self, "internal_Lcountrot_star_iband"):
+            self.compute_Lstar_props()
+        return 1.0 - 2.0 * self.internal_Lcountrot_star_iband / self.Luminosity_star_iband
+
+    @lazy_property
+    def DtoTstar_kBand(self) -> unyt.unyt_quantity:
+        """
+        Disk to total ratio of the stellar luminosity in the k band.
+
+        This is computed together with Lstar and kappa_corot_star
+        by compute_Lstar_props().
+        """
+        if self.Luminosity_star_kband == 0:
+            return None
+        if not hasattr(self, "internal_Lcountrot_star_kband"):
+            self.compute_Lstar_props()
+        return 1.0 - 2.0 * self.internal_Lcountrot_star_kband / self.Luminosity_star_kband
+
+    @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
         """
         Velocity dispersion matrix of the stars.
