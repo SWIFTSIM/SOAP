@@ -500,6 +500,34 @@ class ApertureParticleData:
         return self.mass_star.sum()
 
     @lazy_property
+    def Luminosity_star_gband(self) -> unyt.unyt_quantity:
+        """
+        Total GAMMA g band luminosity of star particles.
+        """
+        return self.StellarLuminosity[1]
+
+    @lazy_property
+    def Luminosity_star_rband(self) -> unyt.unyt_quantity:
+        """
+        Total GAMMA r band luminosity of star particles.
+        """
+        return self.StellarLuminosity[2]
+
+    @lazy_property
+    def Luminosity_star_iband(self) -> unyt.unyt_quantity:
+        """
+        Total GAMMA i band luminosity of star particles.
+        """
+        return self.StellarLuminosity[3]
+
+    @lazy_property
+    def Luminosity_star_kband(self) -> unyt.unyt_quantity:
+        """
+        Total GAMMA K band luminosity of star particles.
+        """
+        return self.StellarLuminosity[8]
+
+    @lazy_property
     def Mbh_dynamical(self) -> unyt.unyt_quantity:
         """
         Total dynamical mass of BH particles.
