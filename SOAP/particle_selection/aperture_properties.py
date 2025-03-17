@@ -146,6 +146,7 @@ from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
+    get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
 )
 

@@ -27,6 +27,7 @@ from SOAP.property_calculation.half_mass_radius import get_half_mass_radius
 from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
+    get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
     get_inertia_tensor,
     get_velocity_dispersion_matrix,

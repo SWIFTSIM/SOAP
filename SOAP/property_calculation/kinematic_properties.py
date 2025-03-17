@@ -195,6 +195,103 @@ def get_angular_momentum_and_kappa_corot(
         return Ltot, kappa_corot
 
 
+def get_angular_momentum_and_kappa_corot_luminosity_weighted(
+    mass: unyt.unyt_array,
+    position: unyt.unyt_array,
+    velocity: unyt.unyt_array,
+    ref_position: Union[None, unyt.unyt_array] = None,
+    ref_velocity: Union[None, unyt.unyt_array] = None,
+    do_counterrot_mass: bool = False,
+) -> Union[
+    Tuple[unyt.unyt_array, unyt.unyt_quantity],
+    Tuple[unyt.unyt_array, unyt.unyt_quantity, unyt.unyt_quantity],
+]:
+    """
+    Get the total angular momentum vector (as in get_angular_momentum()) and
+    kappa_corot (Correa et al., 2017) for the particles with the given masses,
+    positions and velocities, and using the given reference position and
+    velocity as centre of mass (velocity).
+
+    If both kappa_corot and the angular momentum vector are desired, it is more
+    efficient to use this function that calling get_angular_momentum() (and
+    get_kappa_corot(), if that would ever exist).
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Masses of the particles.
+     - position: unyt.unyt_array
+       Position of the particles.
+     - velocity: unyt.unyt_array
+       Velocities of the particles.
+     - ref_position: unyt.unyt_array or None
+       Reference position used as centre for the angular momentum calculation.
+       position and ref_position are assumed to use the same reference point upon
+       entry into this function. If None, position is assumed to be already using
+       the desired referece point.
+     - ref_velocity: unyt.unyt_array or None
+       Reference point in velocity space for the angular momentum calculation.
+       velocity and ref_velocity are assumed to use the same reference point upon
+       entry into this function. If None, velocity is assumed to be already using
+       the desired reference point.
+     - do_counterrot_mass: bool
+       Also compute the counterrotating mass?
+
+    Returns:
+     - The total angular momentum vector.
+     - The ratio of the kinetic energy in counterrotating movement and the total
+       kinetic energy, kappa_corot.
+     - The total mass of counterrotating particles (if do_counterrot_mass == True).
+    """
+
+    raise NotImplementedError
+
+    kappa_corot = unyt.unyt_array(
+        0.0, dtype=np.float32, units="dimensionless", registry=mass.units.registry
+    )
+
+    if ref_position is None:
+        prel = position
+    else:
+        prel = position - ref_position[None, :]
+    if ref_velocity is None:
+        vrel = velocity
+    else:
+        vrel = velocity - ref_velocity[None, :]
+
+    Lpart = mass[:, None] * np.cross(prel, vrel)
+    Ltot = Lpart.sum(axis=0)
+    Lnrm = np.linalg.norm(Ltot)
+
+    if do_counterrot_mass:
+        M_counterrot = unyt.unyt_array(
+            0.0, dtype=np.float32, units=mass.units, registry=mass.units.registry
+        )
+
+    if Lnrm > 0.0 * Lnrm.units:
+        K = 0.5 * (mass[:, None] * vrel**2).sum()
+        if K > 0.0 * K.units or do_counterrot_mass:
+            Ldir = Ltot / Lnrm
+            Li = (Lpart * Ldir[None, :]).sum(axis=1)
+        if K > 0.0 * K.units:
+            r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2
+            rdotL = (prel * Ldir[None, :]).sum(axis=1)
+            Ri2 = r2 - rdotL**2
+            # deal with division by zero (the first particle is guaranteed to
+            # be in the centre)
+            mask = Ri2 == 0.0
+            Ri2[mask] = 1.0 * Ri2.units
+            Krot = 0.5 * (Li**2 / (mass * Ri2))
+            Kcorot = Krot[(~mask) & (Li > 0.0 * Li.units)].sum()
+            kappa_corot += Kcorot / K
+
+        if do_counterrot_mass:
+            M_counterrot += mass[Li < 0.0 * Li.units].sum()
+
+    if do_counterrot_mass:
+        return Ltot, kappa_corot, M_counterrot
+    else:
+        return Ltot, kappa_corot
+
 def get_vmax(
     mass: unyt.unyt_array, radius: unyt.unyt_array, nskip: int = 0
 ) -> Tuple[unyt.unyt_quantity, unyt.unyt_quantity]:
