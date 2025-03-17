@@ -1293,6 +1293,32 @@ class ApertureParticleData:
             do_counterrot_mass=True,
         )
 
+    def compute_Lstar_luminosity_weighted_props(self):
+        """
+        Compute the angular momentum and related properties for star particles,
+        weighted by their luminosity in a given GAMMA band.
+
+        We need this method because Lstar, kappa_star and Mcountrot_star are
+        computed together.
+        """
+
+        # Contrary to compute_Lstar_props, each of the output arrays contains a
+        # value for each GAMMA filter, hence they will have shape (9,)
+        (
+            self.internal_Lstar,
+            self.internal_kappa_star,
+            self.internal_Mcountrot_star,
+            self.internal_Lcountrot_star,
+        ) = get_angular_momentum_and_kappa_corot_luminosity_weighted(
+            self.mass_star,
+            self.pos_star,
+            self.vel_star,
+            self.stellar_luminosities,
+            ref_velocity=self.vcom_star,
+            do_counterrot_mass=True,
+            do_counterrot_light=True,
+        )
+
     @lazy_property
     def Lstar(self) -> unyt.unyt_array:
         """
@@ -1346,7 +1372,7 @@ class ApertureParticleData:
         if self.Luminosity_star_gband == 0:
             return None
         if not hasattr(self, "internal_Lcountrot_star_gband"):
-            self.compute_Lstar_props()
+            self.compute_Lstar_luminosity_weighted_props()
         return 1.0 - 2.0 * self.internal_Lcountrot_star_gband / self.Luminosity_star_gband
 
     @lazy_property
@@ -1360,7 +1386,7 @@ class ApertureParticleData:
         if self.Luminosity_star_rband == 0:
             return None
         if not hasattr(self, "internal_Lcountrot_star_rband"):
-            self.compute_Lstar_props()
+            self.compute_Lstar_luminosity_weighted_props()
         return 1.0 - 2.0 * self.internal_Lcountrot_star_rband / self.Luminosity_star_rband
 
     @lazy_property
@@ -1374,7 +1400,7 @@ class ApertureParticleData:
         if self.Luminosity_star_iband == 0:
             return None
         if not hasattr(self, "internal_Lcountrot_star_iband"):
-            self.compute_Lstar_props()
+            self.compute_Lstar_luminosity_weighted_props()
         return 1.0 - 2.0 * self.internal_Lcountrot_star_iband / self.Luminosity_star_iband
 
     @lazy_property
@@ -1388,7 +1414,7 @@ class ApertureParticleData:
         if self.Luminosity_star_kband == 0:
             return None
         if not hasattr(self, "internal_Lcountrot_star_kband"):
-            self.compute_Lstar_props()
+            self.compute_Lstar_luminosity_weighted_props()
         return 1.0 - 2.0 * self.internal_Lcountrot_star_kband / self.Luminosity_star_kband
 
     @lazy_property
