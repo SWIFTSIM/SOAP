@@ -269,12 +269,11 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     else:
         vrel = velocity - ref_velocity[None, :]
 
-    # Since we use 9 different GAMMA bands, Ltot will have a shape (9, 3). Similarly,
-    # Lnrm will have shape (9,). Lpart will be an array (Npart, 9, 3).
+    # We are computing the weighted angular momenta for a total of number_luminosity_bands. 
     Lpart = (luminosities * mass[:,None])[:, :, None] * np.cross(prel, vrel)[:, None, :] \
-          / luminosities.sum(axis=0)[:,None]
-    Ltot = Lpart.sum(axis=0)
-    Lnrm = np.linalg.norm(Ltot,axis=1)
+          / luminosities.sum(axis=0)[:,None] # Shape (number_particles, number_luminosity_bands, 3).
+    Ltot = Lpart.sum(axis=0)                 # Shape (number_luminosity_bands, 3)
+    Lnrm = np.linalg.norm(Ltot,axis=1)       # Shape (number_luminosity_bands, )
 
     if do_counterrot_mass:
         M_counterrot = unyt.unyt_array(
@@ -289,8 +288,8 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     if Lnrm > 0.0 * Lnrm.units:
         K = 0.5 * (mass[:, None] * vrel**2).sum()
         if K > 0.0 * K.units or do_counterrot_mass or do_counterrot_luminosity:
-            Ldir = Ltot / Lnrm
-            Li = (Lpart * Ldir[None, :]).sum(axis=1)
+            Ldir = Ltot / Lnrm[:,None]        # Shape (number_particles, number_luminosity_bands, 3)
+            Li   = (Lpart * Ldir).sum(axis=2) # Shape (number_particles, number_luminosity_bands)
         if K > 0.0 * K.units:
             r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2
             rdotL = (prel * Ldir[None, :]).sum(axis=1)
