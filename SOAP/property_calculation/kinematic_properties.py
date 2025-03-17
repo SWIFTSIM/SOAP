@@ -269,9 +269,12 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     else:
         vrel = velocity - ref_velocity[None, :]
 
-    Lpart = mass[:, None] * np.cross(prel, vrel)
+    # Since we use 9 different GAMMA bands, Ltot will have a shape (9, 3). Similarly,
+    # Lnrm will have shape (9,). Lpart will be an array (Npart, 9, 3).
+    Lpart = (luminosities * mass[:,None])[:, :, None] * np.cross(prel, vrel)[:, None, :] \
+          / luminosities.sum(axis=0)[:,None]
     Ltot = Lpart.sum(axis=0)
-    Lnrm = np.linalg.norm(Ltot)
+    Lnrm = np.linalg.norm(Ltot,axis=1)
 
     if do_counterrot_mass:
         M_counterrot = unyt.unyt_array(
