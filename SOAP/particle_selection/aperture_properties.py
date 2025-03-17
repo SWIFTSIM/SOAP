@@ -1317,7 +1317,7 @@ class ApertureParticleData:
             self.stellar_luminosities,
             ref_velocity=self.vcom_star,
             do_counterrot_mass=True,
-            do_counterrot_light=True,
+            do_counterrot_luminosity=True,
         )
 
     @lazy_property

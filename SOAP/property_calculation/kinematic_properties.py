@@ -199,12 +199,15 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     mass: unyt.unyt_array,
     position: unyt.unyt_array,
     velocity: unyt.unyt_array,
+    luminosities: unyt.unyt_array,
     ref_position: Union[None, unyt.unyt_array] = None,
     ref_velocity: Union[None, unyt.unyt_array] = None,
     do_counterrot_mass: bool = False,
+    do_counterrot_luminosity: bool = False,
 ) -> Union[
-    Tuple[unyt.unyt_array, unyt.unyt_quantity],
-    Tuple[unyt.unyt_array, unyt.unyt_quantity, unyt.unyt_quantity],
+    Tuple[unyt.unyt_array, unyt.unyt_array],
+    Tuple[unyt.unyt_array, unyt.unyt_array, unyt.unyt_array],
+    Tuple[unyt.unyt_array, unyt.unyt_array, unyt.unyt_array, unyt.unyt_array],
 ]:
     """
     Get the total angular momentum vector (as in get_angular_momentum()) and
@@ -223,6 +226,8 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
        Position of the particles.
      - velocity: unyt.unyt_array
        Velocities of the particles.
+     - luminosities: unyt.unyt_array
+       Luminosities of the particles in each of the GAMMA bands.
      - ref_position: unyt.unyt_array or None
        Reference position used as centre for the angular momentum calculation.
        position and ref_position are assumed to use the same reference point upon
@@ -235,12 +240,18 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
        the desired reference point.
      - do_counterrot_mass: bool
        Also compute the counterrotating mass?
+     - do_counterrot_luminosity: bool
+       Also compute the counterrotating luminosity in each GAMMA band?
 
     Returns:
-     - The total angular momentum vector.
+     - The luminosity-weighted total angular momentum vector for each GAMMA band.
      - The ratio of the kinetic energy in counterrotating movement and the total
-       kinetic energy, kappa_corot.
-     - The total mass of counterrotating particles (if do_counterrot_mass == True).
+       kinetic energy, kappa_corot. Provided for each luminosity-weighted definition of the
+       angular momentum.
+     - The total mass of counterrotating particles for each luminosity-weighted definition of the
+       angular momentum. (if do_counterrot_mass == True).
+     - The total luminosity of counterrotating particles for each luminosity-weighted definition of the
+       angular momentum (if do_counterrot_luminosity == True).
     """
 
     raise NotImplementedError
