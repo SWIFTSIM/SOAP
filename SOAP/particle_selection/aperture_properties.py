@@ -1306,7 +1306,7 @@ class ApertureParticleData:
         # Contrary to compute_Lstar_props, each of the output arrays contains a
         # value for each GAMMA filter, hence they will have shape (9,)
         (
-            self.internal_Lstar,
+            self.internal_Lstar_luminosity_weighted,
             self.internal_kappa_star_luminosity_weighted,
             self.internal_Mcountrot_star_luminosity_weighted,
             self.internal_Lcountrot_star_luminosity_weighted,
