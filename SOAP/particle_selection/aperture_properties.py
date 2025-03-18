@@ -1363,60 +1363,22 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
-    def DtoTstar_gBand(self) -> unyt.unyt_quantity:
+    def DtoTstar_luminosity_weighted(self) -> unyt.unyt_quantity:
         """
-        Disk to total ratio of the stellar luminosity in the g band.
+        Disk to total ratio for all provided stellar luminosity bands. Each band
+        uses the luminosity-weighted angular momentum in that band.
 
-        This is computed together with Lstar and kappa_corot_star
-        by compute_Lstar_props().
+        This is computed together with Lstar, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
         """
-        if self.Luminosity_star_gband == 0:
+        if np.all(self.StellarLuminosity == 0):
             return None
-        if not hasattr(self, "internal_Lcountrot_star_gband"):
+        if not hasattr(self, "internal_Lcountrot_star_luminosity_weighted"):
             self.compute_Lstar_luminosity_weighted_props()
-        return 1.0 - 2.0 * self.internal_Lcountrot_star_gband / self.Luminosity_star_gband
 
-    @lazy_property
-    def DtoTstar_rBand(self) -> unyt.unyt_quantity:
-        """
-        Disk to total ratio of the stellar luminosity in the r band.
-
-        This is computed together with Lstar and kappa_corot_star
-        by compute_Lstar_props().
-        """
-        if self.Luminosity_star_rband == 0:
-            return None
-        if not hasattr(self, "internal_Lcountrot_star_rband"):
-            self.compute_Lstar_luminosity_weighted_props()
-        return 1.0 - 2.0 * self.internal_Lcountrot_star_rband / self.Luminosity_star_rband
-
-    @lazy_property
-    def DtoTstar_iBand(self) -> unyt.unyt_quantity:
-        """
-        Disk to total ratio of the stellar luminosity in the i band.
-
-        This is computed together with Lstar and kappa_corot_star
-        by compute_Lstar_props().
-        """
-        if self.Luminosity_star_iband == 0:
-            return None
-        if not hasattr(self, "internal_Lcountrot_star_iband"):
-            self.compute_Lstar_luminosity_weighted_props()
-        return 1.0 - 2.0 * self.internal_Lcountrot_star_iband / self.Luminosity_star_iband
-
-    @lazy_property
-    def DtoTstar_kBand(self) -> unyt.unyt_quantity:
-        """
-        Disk to total ratio of the stellar luminosity in the k band.
-
-        This is computed together with Lstar and kappa_corot_star
-        by compute_Lstar_props().
-        """
-        if self.Luminosity_star_kband == 0:
-            return None
-        if not hasattr(self, "internal_Lcountrot_star_kband"):
-            self.compute_Lstar_luminosity_weighted_props()
-        return 1.0 - 2.0 * self.internal_Lcountrot_star_kband / self.Luminosity_star_kband
+        # How does this handle bands with 0 luminosity? Is that possible?        
+        return 1.0 - 2.0 * self.internal_Lcountrot_star_luminosity_weighted / self.StellarLuminosity
 
     @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
@@ -3234,10 +3196,7 @@ class ApertureProperties(HaloProperty):
         "HalfMassRadiusBaryon": False,
         "DtoTgas": False,
         "DtoTstar": False,
-        "DtoTstar_gBand": False,
-        "DtoTstar_rBand": False,
-        "DtoTstar_iBand": False,
-        "DtoTstar_kBand": False,
+        "DtoTstar_luminosity_weighted": False,
         "starOfrac": False,
         "starFefrac": False,
         "stellar_age_mw": False,
