@@ -1363,10 +1363,11 @@ class ApertureParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
-    def DtoTstar_luminosity_weighted(self) -> unyt.unyt_quantity:
+    def DtoTstar_luminosity_weighted_luminosity_ratio(self) -> unyt.unyt_quantity:
         """
-        Disk to total ratio for all provided stellar luminosity bands. Each band
-        uses the luminosity-weighted angular momentum in that band.
+        Disk to total luminosity ratio for all provided stellar luminosity bands. 
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
 
         This is computed together with Lstar, kappa_star_luminosity_weighted,
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
@@ -1379,6 +1380,24 @@ class ApertureParticleData:
 
         # How does this handle bands with 0 luminosity? Is that possible?        
         return 1.0 - 2.0 * self.internal_Lcountrot_star_luminosity_weighted / self.StellarLuminosity
+
+    @lazy_property
+    def DtoTstar_luminosity_weighted_mass_ratio(self) -> unyt.unyt_quantity:
+        """
+        Disk to total mass ratio for all provided stellar luminosity bands. 
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
+
+        This is computed together with Lstar, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if np.all(self.StellarLuminosity == 0) | (self.Mstar == 0):
+            return None
+        if not hasattr(self, "internal_Mcountrot_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return 1.0 - 2.0 * self.internal_Mcountrot_star_luminosity_weighted / self.Mstar
 
     @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
@@ -3196,7 +3215,8 @@ class ApertureProperties(HaloProperty):
         "HalfMassRadiusBaryon": False,
         "DtoTgas": False,
         "DtoTstar": False,
-        "DtoTstar_luminosity_weighted": False,
+        "DtoTstar_luminosity_weighted_luminosity_ratio": False,
+        "DtoTstar_luminosity_weighted_mass_ratio": False,
         "starOfrac": False,
         "starFefrac": False,
         "stellar_age_mw": False,
