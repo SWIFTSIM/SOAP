@@ -291,21 +291,30 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
             Ldir = Ltot / Lnrm[:,None]        # Shape (number_particles, number_luminosity_bands, 3)
             Li   = (Lpart * Ldir).sum(axis=2) # Shape (number_particles, number_luminosity_bands)
         if K > 0.0 * K.units:
-            r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2
-            rdotL = (prel * Ldir[None, :]).sum(axis=1)
-            Ri2 = r2 - rdotL**2
-            # deal with division by zero (the first particle is guaranteed to
-            # be in the centre)
+            r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2 # Shape (number_particles, )
+            rdotL = (prel * Ldir[None, :]).sum(axis=2)               # Shape (number_particles, number_luminosity_bands)
+            Ri2 = r2[:,None] - rdotL**2                              # Shape (number_particles, number_luminosity_bands)
+            
+            # Deal with division by zero, as the first particle may be at the centre.
             mask = Ri2 == 0.0
             Ri2[mask] = 1.0 * Ri2.units
             Krot = 0.5 * (Li**2 / (mass * Ri2))
-            Kcorot = Krot[(~mask) & (Li > 0.0 * Li.units)].sum()
-            kappa_corot += Kcorot / K
+
+            # We create an array of shape (number_particles, number_luminosity_bands) rather
+            # than directly indexing to preserve the 2D nature of the array. 
+            # Counterrotating stars make no contribution.
+            Kcorot = np.where((~mask) & (Li > 0.0 * Li.units), Krot, 0 * Krot.units) 
+
+            kappa_corot = Kcorot.sum(axis=0) / Krot.sum(axis=0)
 
         if do_counterrot_mass:
-            M_counterrot += mass[Li < 0.0 * Li.units].sum()
+            M_counterrot = (mass[:,None] * (Li < 0.0 * Li.units)).sum(axis=0)
 
-    if do_counterrot_mass:
+        # No need to create new axis for luminosities as it has the correct shape
+        # already.
+        if do_counterrot_luminosity:
+            L_counterrot = (luminosities * (Li < 0.0 * Li.units)).sum(axis=0)
+
         return Ltot, kappa_corot, M_counterrot
     else:
         return Ltot, kappa_corot
