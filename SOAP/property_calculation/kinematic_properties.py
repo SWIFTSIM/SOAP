@@ -283,20 +283,20 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
             np.zeros(luminosities.shape[-1]), dtype=np.float32, units=luminosities.units, registry=luminosities.units.registry
         )
 
-    if Lnrm > 0.0 * Lnrm.units:
+    if np.any(Lnrm > 0.0 * Lnrm.units):
         K = 0.5 * (mass[:, None] * vrel**2).sum()
         if K > 0.0 * K.units or do_counterrot_mass or do_counterrot_luminosity:
             Ldir = Ltot / Lnrm[:,None]        # Shape (number_particles, number_luminosity_bands, 3)
             Li   = (Lpart * Ldir).sum(axis=2) # Shape (number_particles, number_luminosity_bands)
         if K > 0.0 * K.units:
             r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2 # Shape (number_particles, )
-            rdotL = (prel * Ldir[None, :]).sum(axis=2)               # Shape (number_particles, number_luminosity_bands)
+            rdotL = (Ldir * prel[:,None]).sum(axis=2)               # Shape (number_particles, number_luminosity_bands)
             Ri2 = r2[:,None] - rdotL**2                              # Shape (number_particles, number_luminosity_bands)
             
             # Deal with division by zero, as the first particle may be at the centre.
             mask = Ri2 == 0.0
             Ri2[mask] = 1.0 * Ri2.units
-            Krot = 0.5 * (Li**2 / (mass * Ri2))
+            Krot = 0.5 * (Li**2 / (mass[:,None] * Ri2))
 
             # We create an array of shape (number_particles, number_luminosity_bands) rather
             # than directly indexing to preserve the 2D nature of the array. 
