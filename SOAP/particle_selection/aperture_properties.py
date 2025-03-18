@@ -1349,6 +1349,23 @@ class ApertureParticleData:
         return self.internal_kappa_star
 
     @lazy_property
+    def kappa_corot_star_luminosity_weighted(self) -> unyt.unyt_quantity:
+        """
+        Kinetic energy fraction of co-rotating star particles, measured for
+        different luminosity-weighted angular momentum vectors.
+
+        This is computed together with Lstar, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if np.all(self.StellarLuminosity == 0):
+            return None
+        if not hasattr(self, "internal_kappa_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return self.internal_kappa_star_luminosity_weighted
+
+    @lazy_property
     def DtoTstar(self) -> unyt.unyt_quantity:
         """
         Disk to total ratio of the stars.
