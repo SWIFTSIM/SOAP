@@ -2181,6 +2181,24 @@ class SubhaloProperties(HaloProperty):
             },
         )
 
+        # Check that we found the expected number of halo member particles:
+        # If not, we need to try again with a larger search radius.
+        # For HBT this should not happen since we use the radius of the most distant
+        # bound particle.
+        Ntot = part_props.Ngas + part_props.Ndm + part_props.Nstar + part_props.Nbh
+        Nexpected = input_halo["nr_bound_part"]
+        if Ntot < Nexpected:
+            # Try again with a larger search radius
+            print(f"Ntot = {Ntot}, Nexpected = {Nexpected}, search_radius = {search_radius}")
+            raise SearchRadiusTooSmallError(
+                "Search radius does not contain expected number of particles!"
+            )
+        elif Ntot > Nexpected:
+            # This would indicate a bug somewhere
+            raise RuntimeError(
+                f'Found more particles than expected for halo {input_halo["index"]}'
+            )
+
         subhalo = {}
         timings = {}
         # declare all the variables we will compute
@@ -2236,24 +2254,6 @@ class SubhaloProperties(HaloProperty):
                         assert np.max(np.abs(val.to(unit).value)) < float("inf"), err
                         subhalo[name] += val
                     timings[name] = time.time() - t0_calc
-
-        # Check that we found the expected number of halo member particles:
-        # If not, we need to try again with a larger search radius.
-        # For HBT this should not happen since we use the radius of the most distant
-        # bound particle.
-        Ntot = part_props.Ngas + part_props.Ndm + part_props.Nstar + part_props.Nbh
-        Nexpected = input_halo["nr_bound_part"]
-        if Ntot < Nexpected:
-            # Try again with a larger search radius
-            # print(f"Ntot = {Ntot}, Nexpected = {Nexpected}, search_radius = {search_radius}")
-            raise SearchRadiusTooSmallError(
-                "Search radius does not contain expected number of particles!"
-            )
-        elif Ntot > Nexpected:
-            # This would indicate a bug somewhere
-            raise RuntimeError(
-                f'Found more particles than expected for halo {input_halo["index"]}'
-            )
 
         # Add these properties to the output
         for name, prop in self.property_list.items():
