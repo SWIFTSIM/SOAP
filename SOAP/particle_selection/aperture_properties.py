@@ -1313,7 +1313,7 @@ class ApertureParticleData:
         luminosity bands. NOTE: we reshape the 2D array of shape 
         (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,) 
 
-        This is computed together with Lstar, kappa_star_luminosity_weighted,
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
         by compute_Lstar_luminosity_weighted_props().
         """
@@ -1343,7 +1343,7 @@ class ApertureParticleData:
         Kinetic energy fraction of co-rotating star particles, measured for
         different luminosity-weighted angular momentum vectors.
 
-        This is computed together with Lstar, kappa_star_luminosity_weighted,
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
         by compute_Lstar_luminosity_weighted_props().
         """
@@ -1375,7 +1375,7 @@ class ApertureParticleData:
         Each band uses the luminosity-weighted angular momentum as defined in that
         band.
 
-        This is computed together with Lstar, kappa_star_luminosity_weighted,
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
         by compute_Lstar_luminosity_weighted_props().
         """
@@ -1394,7 +1394,7 @@ class ApertureParticleData:
         Each band uses the luminosity-weighted angular momentum as defined in that
         band.
 
-        This is computed together with Lstar, kappa_star_luminosity_weighted,
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
         by compute_Lstar_luminosity_weighted_props().
         """
