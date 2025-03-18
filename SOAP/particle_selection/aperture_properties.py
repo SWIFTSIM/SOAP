@@ -3251,6 +3251,8 @@ class ApertureProperties(HaloProperty):
         "DtoTstar": False,
         "DtoTstar_luminosity_weighted_luminosity_ratio": False,
         "DtoTstar_luminosity_weighted_mass_ratio": False,
+        "kappa_corot_star_luminosity_weighted": False,
+        "Lstar_luminosity_weighted": False,
         "starOfrac": False,
         "starFefrac": False,
         "stellar_age_mw": False,
