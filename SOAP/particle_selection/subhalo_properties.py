@@ -1268,7 +1268,7 @@ class SubhaloParticleData:
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
         by compute_Lstar_luminosity_weighted_props().
         """
-        if np.all(self.StellarLuminosity == 0):
+        if self.Nstar == 0:
             return None
         if not hasattr(self, "internal_Lstar_luminosity_weighted"):
             self.compute_Lstar_luminosity_weighted_props()
@@ -1298,7 +1298,7 @@ class SubhaloParticleData:
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
         by compute_Lstar_luminosity_weighted_props().
         """
-        if np.all(self.StellarLuminosity == 0):
+        if self.Nstar == 0:
             return None
         if not hasattr(self, "internal_kappa_star_luminosity_weighted"):
             self.compute_Lstar_luminosity_weighted_props()
@@ -1329,7 +1329,7 @@ class SubhaloParticleData:
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
         by compute_Lstar_luminosity_weighted_props().
         """
-        if np.all(self.StellarLuminosity == 0):
+        if self.Nstar == 0:
             return None
         if not hasattr(self, "internal_Lcountrot_star_luminosity_weighted"):
             self.compute_Lstar_luminosity_weighted_props()
@@ -1348,7 +1348,7 @@ class SubhaloParticleData:
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
         by compute_Lstar_luminosity_weighted_props().
         """
-        if np.all(self.StellarLuminosity == 0) | (self.Mstar == 0):
+        if self.Nstar == 0:
             return None
         if not hasattr(self, "internal_Mcountrot_star_luminosity_weighted"):
             self.compute_Lstar_luminosity_weighted_props()
