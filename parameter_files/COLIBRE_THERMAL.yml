@@ -64,6 +64,10 @@ ApertureProperties:
       snipshot: false
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
+    DiscToTotalLuminosityRatioLuminosityWeighted: general
+    DiscToTotalMassRatioLuminosityWeighted: general
+    KappaCorotStarsLuminosityWeighted: general
+    AngularMomentumStarsLuminosityWeighted: general
     DustGraphiteMass:
       snapshot: true
       snipshot: false
