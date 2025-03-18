@@ -1289,7 +1289,7 @@ class SubhaloParticleData:
         return self.internal_kappa_star
 
     @lazy_property
-    def kappa_corot_star_luminosity_weighted(self) -> unyt.unyt_quantity:
+    def kappa_corot_star_luminosity_weighted(self) -> unyt.unyt_array:
         """
         Kinetic energy fraction of co-rotating star particles, measured for
         different luminosity-weighted angular momentum vectors.
@@ -1319,7 +1319,7 @@ class SubhaloParticleData:
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
     @lazy_property
-    def DtoTstar_luminosity_weighted_luminosity_ratio(self) -> unyt.unyt_quantity:
+    def DtoTstar_luminosity_weighted_luminosity_ratio(self) -> unyt.unyt_array:
         """
         Disk to total luminosity ratio for all provided stellar luminosity bands. 
         Each band uses the luminosity-weighted angular momentum as defined in that
@@ -1338,7 +1338,7 @@ class SubhaloParticleData:
         return 1.0 - 2.0 * self.internal_Lcountrot_star_luminosity_weighted / self.StellarLuminosity
 
     @lazy_property
-    def DtoTstar_luminosity_weighted_mass_ratio(self) -> unyt.unyt_quantity:
+    def DtoTstar_luminosity_weighted_mass_ratio(self) -> unyt.unyt_array:
         """
         Disk to total mass ratio for all provided stellar luminosity bands. 
         Each band uses the luminosity-weighted angular momentum as defined in that
