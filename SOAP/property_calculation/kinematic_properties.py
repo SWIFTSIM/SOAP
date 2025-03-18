@@ -254,8 +254,6 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
        angular momentum (if do_counterrot_luminosity == True).
     """
 
-    raise NotImplementedError
-
     kappa_corot = unyt.unyt_array(
         unyt.unyt_array(np.zeros(luminosities.shape[-1]), units="Dimensionless"), dtype=np.float32, units="dimensionless", registry=mass.units.registry
     )
@@ -315,6 +313,12 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
         if do_counterrot_luminosity:
             L_counterrot = (luminosities * (Li < 0.0 * Li.units)).sum(axis=0)
 
+
+    if do_counterrot_mass & do_counterrot_luminosity:
+        return Ltot, kappa_corot, M_counterrot, L_counterrot
+    elif do_counterrot_luminosity:
+        return Ltot, kappa_corot, L_counterrot
+    elif do_counterrot_mass:
         return Ltot, kappa_corot, M_counterrot
     else:
         return Ltot, kappa_corot
