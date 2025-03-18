@@ -1335,6 +1335,23 @@ class ApertureParticleData:
         return self.internal_Lstar
 
     @lazy_property
+    def Lstar_luminosity_weighted(self) -> unyt.unyt_array:
+        """
+        Luminosity-weighted angular momentum of star particles for different 
+        luminosity bands. NOTE: we reshape the 2D array of shape 
+        (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,) 
+
+        This is computed together with Lstar, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if np.all(self.StellarLuminosity == 0):
+            return None
+        if not hasattr(self, "internal_Lstar_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+        return self.internal_Lstar_luminosity_weighted.flatten()
+
+    @lazy_property
     def kappa_corot_star(self) -> unyt.unyt_quantity:
         """
         Kinetic energy fraction of co-rotating star particles.
