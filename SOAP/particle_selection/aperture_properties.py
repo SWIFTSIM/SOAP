@@ -1307,9 +1307,9 @@ class ApertureParticleData:
         # value for each GAMMA filter, hence they will have shape (9,)
         (
             self.internal_Lstar,
-            self.internal_kappa_star,
-            self.internal_Mcountrot_star,
-            self.internal_Lcountrot_star,
+            self.internal_kappa_star_luminosity_weighted,
+            self.internal_Mcountrot_star_luminosity_weighted,
+            self.internal_Lcountrot_star_luminosity_weighted,
         ) = get_angular_momentum_and_kappa_corot_luminosity_weighted(
             self.mass_star,
             self.pos_star,
