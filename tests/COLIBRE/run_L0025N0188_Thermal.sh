@@ -15,13 +15,13 @@ module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
 source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Which simulation to do
-sim="L0025N0376/Thermal_fiducial"
+sim="L0025N0188/Thermal"
 
 # Snapshot number to do
-snapnum=0123
+snapnum=127
 
 # Halo indices to do: all halos with x<1, y<1, and z<1 cMpc in snap 123
-halo_indices="1938 1850 1907 1150 1947 1234 436621 1056 1900 1858 1988 1212 1564 1948 2574 1567 1331 1940"
+halo_indices="1474 1668 1819 1995 2087 2114 2174 2314 2332 2386 2389 2390 2392 2439 2441 2444 2496 2498 2528 14937 78314"
 
 # Create parameters files
 python tests/COLIBRE/create_parameters_file.py
