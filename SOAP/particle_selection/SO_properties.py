@@ -33,6 +33,7 @@ from .halo_properties import HaloProperty, SearchRadiusTooSmallError
 from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
+    get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
     get_inertia_tensor,
 )
@@ -1044,6 +1045,32 @@ class SOParticleData:
             do_counterrot_mass=True,
         )
 
+    def compute_Lstar_luminosity_weighted_props(self):
+        """
+        Compute the angular momentum and related properties for star particles,
+        weighted by their luminosity in a given GAMMA band.
+
+        We need this method because Lstar, kappa_star and Mcountrot_star are
+        computed together.
+        """
+
+        # Contrary to compute_Lstar_props, each of the output arrays contains a
+        # value for each GAMMA filter, hence they will have shape (9,)
+        (
+            self.internal_Lstar_luminosity_weighted,
+            _,
+            self.internal_Mcountrot_star_luminosity_weighted,
+            self.internal_Lcountrot_star_luminosity_weighted,
+        ) = get_angular_momentum_and_kappa_corot_luminosity_weighted(
+            self.star_masses,
+            self.star_pos,
+            self.star_vel,
+            self.get_dataset("PartType4/Luminosities")[self.star_selection],
+            ref_velocity=self.vcom_star,
+            do_counterrot_mass=True,
+            do_counterrot_luminosity=True,
+        )
+
     @lazy_property
     def Lstar(self) -> unyt.unyt_array:
         """
@@ -1058,6 +1085,23 @@ class SOParticleData:
         return self.internal_Lstar
 
     @lazy_property
+    def Lstar_luminosity_weighted(self) -> unyt.unyt_array:
+        """
+        Luminosity-weighted angular momentum of star particles for different 
+        luminosity bands. NOTE: we reshape the 2D array of shape 
+        (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,) 
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Lstar_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+        return self.internal_Lstar_luminosity_weighted.flatten()
+
+    @lazy_property
     def DtoTstar(self) -> unyt.unyt_quantity:
         """
         Disc to total mass ratio for star particles.
@@ -1069,6 +1113,43 @@ class SOParticleData:
         if not hasattr(self, "internal_Mcountrot_star"):
             self.compute_Lstar_props()
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
+
+    @lazy_property
+    def DtoTstar_luminosity_weighted_luminosity_ratio(self) -> unyt.unyt_array:
+        """
+        Disk to total luminosity ratio for all provided stellar luminosity bands. 
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Lcountrot_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        # How does this handle bands with 0 luminosity? Is that possible?        
+        return 1.0 - 2.0 * self.internal_Lcountrot_star_luminosity_weighted / self.StellarLuminosity
+
+    @lazy_property
+    def DtoTstar_luminosity_weighted_mass_ratio(self) -> unyt.unyt_array:
+        """
+        Disk to total mass ratio for all provided stellar luminosity bands. 
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Mcountrot_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return 1.0 - 2.0 * self.internal_Mcountrot_star_luminosity_weighted / self.Mstar
 
     def stellar_inertia_tensor(self, **kwargs) -> unyt.unyt_array:
         """
@@ -3205,6 +3286,7 @@ class SOProperties(HaloProperty):
             "vcom_star",
             #            "veldisp_matrix_star",
             "Lstar",
+            "Lstar_luminosity_weighted",
             "Mstar_init",
             "starmetalfrac",
             "StellarLuminosity",
@@ -3246,6 +3328,8 @@ class SOProperties(HaloProperty):
             "gasFefrac",
             "DtoTgas",
             "DtoTstar",
+            "DtoTstar_luminosity_weighted_luminosity_ratio",
+            "DtoTstar_luminosity_weighted_mass_ratio",
             "starOfrac",
             "starFefrac",
             "gasmetalfrac_SF",

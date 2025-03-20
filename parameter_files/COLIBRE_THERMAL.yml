@@ -411,6 +411,7 @@ SOProperties:
     AngularMomentumDarkMatter: general
     AngularMomentumGas: general
     AngularMomentumStars: general
+    AngularMomentumStarsLuminosityWeighted: general
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -431,6 +432,8 @@ SOProperties:
     DarkMatterMass: true
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
+    DiscToTotalLuminosityRatioLuminosityWeighted: general
+    DiscToTotalMassRatioLuminosityWeighted: general
     DopplerB: false
     GasCentreOfMass: true
     GasCentreOfMassVelocity: true
