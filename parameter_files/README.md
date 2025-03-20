@@ -2,6 +2,8 @@
 
 The parameter files are a YAML dictionary which define the parameters and settings for running SOAP.
 This file describes the structure of a parameter file, including all possible fields which can be specified.
+This file does not detail what the differences are between the various aperture types, for that
+see the main pdf documenation.
 
 ### Parameters
 
