@@ -304,8 +304,7 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
             # than directly indexing to preserve the 2D nature of the array. 
             # Counterrotating stars make no contribution.
             Kcorot = np.where((~mask) & (Li > 0.0 * Li.units), Krot, 0 * Krot.units) 
-
-            kappa_corot = Kcorot.sum(axis=0) / Krot.sum(axis=0)
+            kappa_corot = Kcorot.sum(axis=0) / K.sum(axis=0)
 
         if do_counterrot_mass:
             M_counterrot = (mass[:,None] * (Li < 0.0 * Li.units)).sum(axis=0)
