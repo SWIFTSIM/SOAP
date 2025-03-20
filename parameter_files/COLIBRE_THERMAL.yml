@@ -690,7 +690,6 @@ SubhaloProperties:
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
-  PartType0/MetalMassFractionsDiffuse: PartType0/MetalMassFractions
 filters:
   general:
     limit: 100
