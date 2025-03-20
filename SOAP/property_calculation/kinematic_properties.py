@@ -292,7 +292,7 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
             Li   = (Lpart * Ldir).sum(axis=2) # Shape (number_particles, number_luminosity_bands)
         if K > 0.0 * K.units:
             r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2 # Shape (number_particles, )
-            rdotL = (Ldir * prel[:,None]).sum(axis=2)               # Shape (number_particles, number_luminosity_bands)
+            rdotL = (Ldir * prel[:,None]).sum(axis=2)                # Shape (number_particles, number_luminosity_bands)
             Ri2 = r2[:,None] - rdotL**2                              # Shape (number_particles, number_luminosity_bands)
             
             # Deal with division by zero, as the first particle may be at the centre.
