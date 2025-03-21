@@ -295,7 +295,7 @@ also be useful for visualising the input halo catalogue.
 
 The group membership files are HDF5 files with one group for each
 particle type, named PartType0, PartType1, ... as in the
-snapshots. Each group contains the following datasets:
+snapshots. The following datasets can be contained in the membership files:
 
 \begin{enumerate}
 \item \verb|GroupNr_bound|: for each particle in the corresponding snapshot
@@ -314,6 +314,11 @@ snapshots. Each group contains the following datasets:
   but for FLAMINGO hydro simulations the FOF was regenerated. If this
   field is present it will overwrite the value from the snapshots when
   SOAP is run.
+\item \verb|SpecificPotentialEnergies|: the specific potential energy of
+  each particle as calculated by the subhalo finder. Note that for HBT
+  these values may not have the same order as \verb|Rank_bound|. This is because
+  HBT has a centre refinement step which can reorder the particles in the centre
+  of the subhalo, but binding energies are not updated as part of this step.
 \end{enumerate}
 
 The script \verb|make_virtual_snapshot.py| will combine snapshot and group membership files
