@@ -227,7 +227,7 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
      - velocity: unyt.unyt_array
        Velocities of the particles.
      - luminosities: unyt.unyt_array
-       Luminosities of the particles in each of the GAMMA bands.
+       Luminosities of the particles in each of the GAMA bands.
      - ref_position: unyt.unyt_array or None
        Reference position used as centre for the angular momentum calculation.
        position and ref_position are assumed to use the same reference point upon
@@ -241,10 +241,10 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
      - do_counterrot_mass: bool
        Also compute the counterrotating mass?
      - do_counterrot_luminosity: bool
-       Also compute the counterrotating luminosity in each GAMMA band?
+       Also compute the counterrotating luminosity in each GAMA band?
 
     Returns:
-     - The luminosity-weighted total angular momentum vector for each GAMMA band.
+     - The luminosity-weighted total angular momentum vector for each GAMA band.
      - The ratio of the kinetic energy in counterrotating movement and the total
        kinetic energy, kappa_corot. Provided for each luminosity-weighted definition of the
        angular momentum.

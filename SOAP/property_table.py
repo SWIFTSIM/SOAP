@@ -888,7 +888,7 @@ class PropertyTable:
         ),
         "Lstar_luminosity_weighted": Property(
             name="AngularMomentumStarsLuminosityWeighted",
-            shape=27, # 3D vector for each of the 9 GAMMA bands
+            shape=27, # 3D vector for each of the 9 GAMA bands
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
             description="Luminosity-weighted total angular momentum of the stars, relative to the centre of potential and stellar centre of mass velocity. A different vector is computed for each of the saved luminosity bands.",

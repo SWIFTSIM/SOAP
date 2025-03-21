@@ -1048,14 +1048,14 @@ class SOParticleData:
     def compute_Lstar_luminosity_weighted_props(self):
         """
         Compute the angular momentum and related properties for star particles,
-        weighted by their luminosity in a given GAMMA band.
+        weighted by their luminosity in a given GAMA band.
 
         We need this method because Lstar, kappa_star and Mcountrot_star are
         computed together.
         """
 
         # Contrary to compute_Lstar_props, each of the output arrays contains a
-        # value for each GAMMA filter, hence they will have shape (9,)
+        # value for each GAMA filter, hence they will have shape (9,)
         (
             self.internal_Lstar_luminosity_weighted,
             _,
