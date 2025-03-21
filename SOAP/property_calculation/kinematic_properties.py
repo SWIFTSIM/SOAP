@@ -269,11 +269,16 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     else:
         vrel = velocity - ref_velocity[None, :]
 
-    # We are computing the weighted angular momenta for a total of number_luminosity_bands. 
-    Lpart = (luminosities * mass[:,None])[:, :, None] * np.cross(prel, vrel)[:, None, :] \
-          / luminosities.sum(axis=0)[:,None] # Shape (number_particles, number_luminosity_bands, 3).
-    Ltot = Lpart.sum(axis=0)                 # Shape (number_luminosity_bands, 3)
-    Lnrm = np.linalg.norm(Ltot,axis=1)       # Shape (number_luminosity_bands, )
+    # We compute the normal angular momentum because we require it for the 
+    # kinetic energy calculation in kappa_corot.
+    Lpart = mass[:, None] * np.cross(prel, vrel) # Shape (number_particles, 3)
+  
+    # Assign a weight to each particle based on each of its GAMA luminosity.
+    particle_weights = luminosities / luminosities.sum(axis=0) # Shape (number_particles, number_luminosity_bands)
+  
+    # Do a luminosity-weighted average of the angular momentum.
+    Ltot = (particle_weights[:, :, None] * Lpart[:, None, :]).sum(axis=0) # Shape (number_luminosity_bands, 3)
+    Lnrm = np.linalg.norm(Ltot,axis=1)                                    # Shape (number_luminosity_bands, )
 
     if do_counterrot_mass:
         M_counterrot = unyt.unyt_array(
@@ -288,8 +293,8 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     if np.any(Lnrm > 0.0 * Lnrm.units):
         K = 0.5 * (mass[:, None] * vrel**2).sum()
         if K > 0.0 * K.units or do_counterrot_mass or do_counterrot_luminosity:
-            Ldir = Ltot / Lnrm[:,None]        # Shape (number_particles, number_luminosity_bands, 3)
-            Li   = (Lpart * Ldir).sum(axis=2) # Shape (number_particles, number_luminosity_bands)
+            Ldir = Ltot / Lnrm[:,None]                # Shape (number_particles, number_luminosity_bands, 3)
+            Li   = (Lpart[:,None] * Ldir).sum(axis=2) # Shape (number_particles, number_luminosity_bands)
         if K > 0.0 * K.units:
             r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2 # Shape (number_particles, )
             rdotL = (Ldir * prel[:,None]).sum(axis=2)                # Shape (number_particles, number_luminosity_bands)
