@@ -258,8 +258,8 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
         unyt.unyt_array(np.zeros(luminosities.shape[-1]), units="Dimensionless"), dtype=np.float32, units="dimensionless", registry=mass.units.registry
     )
 
-    # NOTE: For the reference position and velocity we are still using the mass-weighted
-    # CoM. Should I change to be luminosity-weighted?
+    # We use centre of mass velocity and position of the stars to not introduce
+    # an offset from the true galaxy centre due to bright star forming clumps.
     if ref_position is None:
         prel = position
     else:
