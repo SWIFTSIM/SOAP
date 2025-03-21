@@ -272,13 +272,17 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     # We compute the normal angular momentum because we require it for the 
     # kinetic energy calculation in kappa_corot.
     Lpart = mass[:, None] * np.cross(prel, vrel) # Shape (number_particles, 3)
-  
-    # Assign a weight to each particle based on each of its GAMA luminosity.
-    particle_weights = luminosities / luminosities.sum(axis=0) # Shape (number_particles, number_luminosity_bands)
-  
-    # Do a luminosity-weighted average of the angular momentum.
-    Ltot = (particle_weights[:, :, None] * Lpart[:, None, :]).sum(axis=0) # Shape (number_luminosity_bands, 3)
-    Lnrm = np.linalg.norm(Ltot,axis=1)                                    # Shape (number_luminosity_bands, )
+
+    # Assign a weight to each particle based on each of its GAMA luminosity. We divide
+    # by the particle mass to have an average based on L * (r x v). 
+    particle_weights =  luminosities / luminosities.sum(axis=0) / mass[:, None] # Shape (number_particles, number_luminosity_bands)
+    weighted_mass    = (luminosities / luminosities.sum(axis=0) * mass[:, None]).sum(axis=0) * len(mass)
+
+    # Luminosity-weighted average of the (specific) angular momentum. We multiply
+    # by the luminosity-weighted total mass to have the correct units for angular momentum,
+    # but we are only really interested in its direction.
+    Ltot = weighted_mass[:,None] * (particle_weights[:, :, None] * Lpart[:, None, :]).sum(axis=0) # Shape (number_luminosity_bands, 3)
+    Lnrm = np.linalg.norm(Ltot,axis=1)                                                            # Shape (number_luminosity_bands, )
 
     if do_counterrot_mass:
         M_counterrot = unyt.unyt_array(
