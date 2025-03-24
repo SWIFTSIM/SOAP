@@ -528,6 +528,7 @@ def get_inertia_tensor_luminosity_weighted(
     # luminosity band independently?
     tol = 0.0001
     q = 1000
+    is_converged = np.zeros(luminosity.shape[1])
 
     # Ensure we have consistent units
     R = sphere_radius.to("kpc")
@@ -544,9 +545,12 @@ def get_inertia_tensor_luminosity_weighted(
         s = np.sqrt(eig_val[:,0] / eig_val[:,2])
         p = np.sqrt(eig_val[:,0] / eig_val[:,1])
 
-        # Break if converged
-        if abs((old_q - q) / q) < tol:
-            break
+        # Identify bands with converged results. The calculations will only be
+        # done for bands that are not yet converged. If all are converged, we are 
+        # done.
+        is_converged[((old_q - q) / q) < tol] = 1
+        if ~is_converged.sum() == 0:
+          break
 
         # Calculate ellipsoid, determine which particles are inside
         axis = R * np.array(
