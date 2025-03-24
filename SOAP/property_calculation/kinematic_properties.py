@@ -472,6 +472,103 @@ def get_inertia_tensor(
 
     return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
 
+def get_inertia_tensor_luminosity_weighted(
+    mass,
+    position,
+    sphere_radius,
+    search_radius=None,
+    reduced=False,
+    max_iterations=20,
+    min_particles=20,
+):
+    """
+    Get the inertia tensor of the given particle distribution, computed as
+    I_{ij} = m*x_i*x_j / Mtot.
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Masses of the particles.
+     - position: unyt.unyt_array
+       Positions of the particles.
+     - sphere_radius: unyt.unyt_quantity
+       Use all particles within a sphere of this size for the calculation
+     - search_radius: unyt.unyt_quantity
+       Radius of the region of the simulation for which we have particle data
+       This function throws a SearchRadiusTooSmallError if we need particles outside
+       of this region.
+     - reduced: bool
+       Whether to calculate the reduced inertia tensor
+     - max_iterations: int
+       The maximum number of iterations to repeat the inertia tensor calculation
+     - min_particles: int
+       The number of particles required within the initial sphere. The inertia tensor
+       is not computed if this threshold is not met.
+
+    Returns the inertia tensor.
+    """
+
+    # Check we have at least "min_particles" particles
+    if mass.shape[0] < min_particles:
+        return None
+
+    # Remove particles at centre if calculating reduced tensor
+    if reduced:
+        norm = np.linalg.norm(position, axis=1) ** 2
+        mask = np.logical_not(np.isclose(norm, 0))
+        position = position[mask]
+        mass = mass[mask]
+        norm = norm[mask]
+
+    # Set stopping criteria
+    tol = 0.0001
+    q = 1000
+
+    # Ensure we have consistent units
+    R = sphere_radius.to("kpc")
+    position = position.to("kpc")
+
+    # Start with a sphere
+    eig_val = [1, 1, 1]
+    eig_vec = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+    for i_iter in range(max_iterations):
+        # Calculate shape
+        old_q = q
+        q = np.sqrt(eig_val[1] / eig_val[2])
+        s = np.sqrt(eig_val[0] / eig_val[2])
+        p = np.sqrt(eig_val[0] / eig_val[1])
+
+        # Break if converged
+        if abs((old_q - q) / q) < tol:
+            break
+
+        # Calculate ellipsoid, determine which particles are inside
+        axis = R * np.array(
+            [1 * np.cbrt(s * p), 1 * np.cbrt(q / p), 1 / np.cbrt(q * s)]
+        )
+        p = np.dot(position, eig_vec) / axis
+        r = np.linalg.norm(p, axis=1)
+        # We want to skip the calculation if we have less than "min_particles"
+        # inside the initial sphere. We do the check here since this is the first
+        # time we calculate how many particles are within the sphere.
+        if (i_iter == 0) and (np.sum(r <= 1) < min_particles):
+            return None
+        weight = mass / np.sum(mass[r <= 1])
+        weight[r > 1] = 0
+
+        # Check if we have exceeded the search radius. For subhalo_properties we
+        # have all the bound particles, and so the search radius doesn't matter
+        if (search_radius is not None) and (np.max(R) > search_radius):
+            raise SearchRadiusTooSmallError("Inertia tensor required more particles")
+
+        # Calculate inertia tensor
+        tensor = weight[:, None, None] * position[:, :, None] * position[:, None, :]
+        if reduced:
+            tensor /= norm[:, None, None]
+        tensor = tensor.sum(axis=0)
+        eig_val, eig_vec = np.linalg.eigh(tensor.value)
+
+    return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
 
 def get_projected_inertia_tensor(
     mass, position, axis, radius, reduced=False, max_iterations=20, min_particles=20
