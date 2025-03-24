@@ -533,9 +533,9 @@ def get_inertia_tensor_luminosity_weighted(
     R = sphere_radius.to("kpc")
     position = position.to("kpc")
 
-    # Start with a sphere
-    eig_val = [1, 1, 1]
-    eig_vec = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    # Start with a sphere for each luminosity band.
+    eig_val = np.ones((luminosity.shape[1],3))
+    eig_vec = np.repeat(np.diag(np.ones(3))[np.newaxis, :, :], luminosity.shape[1], axis=0)
 
     for i_iter in range(max_iterations):
         # Calculate shape
