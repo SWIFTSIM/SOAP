@@ -524,7 +524,8 @@ def get_inertia_tensor_luminosity_weighted(
         luminosity = luminosity[mask]
         norm = norm[mask]
 
-    # Set stopping criteria
+    # Set stopping criteria. NOTE: should we apply the stopping criteria to each
+    # luminosity band independently?
     tol = 0.0001
     q = 1000
 
