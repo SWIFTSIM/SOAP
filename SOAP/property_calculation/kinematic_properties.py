@@ -475,6 +475,7 @@ def get_inertia_tensor(
 def get_inertia_tensor_luminosity_weighted(
     mass,
     position,
+    luminosity,
     sphere_radius,
     search_radius=None,
     reduced=False,
@@ -482,14 +483,17 @@ def get_inertia_tensor_luminosity_weighted(
     min_particles=20,
 ):
     """
-    Get the inertia tensor of the given particle distribution, computed as
-    I_{ij} = m*x_i*x_j / Mtot.
+    Get the inertia tensor of the given particle distribution weighted by the 
+    luminosity of individual particles. Computed as:
+    I_{ij} = Li * x_i * x_j / Ltot.
 
     Parameters:
      - mass: unyt.unyt_array
        Masses of the particles.
      - position: unyt.unyt_array
        Positions of the particles.
+     - luminosity: unyt.unyt_array
+       Luminosities of the particles in each of the provided bands.
      - sphere_radius: unyt.unyt_quantity
        Use all particles within a sphere of this size for the calculation
      - search_radius: unyt.unyt_quantity
@@ -504,7 +508,7 @@ def get_inertia_tensor_luminosity_weighted(
        The number of particles required within the initial sphere. The inertia tensor
        is not computed if this threshold is not met.
 
-    Returns the inertia tensor.
+    Returns the inertia tensor for each of the luminosity bands.
     """
 
     # Check we have at least "min_particles" particles
