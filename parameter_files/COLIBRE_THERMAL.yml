@@ -674,18 +674,22 @@ SubhaloProperties:
     GasInertiaTensor: false
     DarkMatterInertiaTensor: false
     StellarInertiaTensor: false
+    StellarInertiaTensor_LuminosityWeighted: false
     TotalInertiaTensorReduced: false
     GasInertiaTensorReduced: false
     DarkMatterInertiaTensorReduced: false
     StellarInertiaTensorReduced: false
+    StellarInertiaTensorReduced_LuminosityWeighted: false
     TotalInertiaTensorNoniterative: general
     GasInertiaTensorNoniterative: general
     DarkMatterInertiaTensorNoniterative: general
     StellarInertiaTensorNoniterative: general
+    StellarInertiaTensorNoniterative_LuminosityWeighted: general
     TotalInertiaTensorReducedNoniterative: false
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
+    StellarInertiaTensorReducedNoniterative_LuminosityWeighted: false
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true

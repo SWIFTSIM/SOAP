@@ -1410,6 +1410,65 @@ class SubhaloParticleData:
         )
 
     @lazy_property
+    def StellarInertiaTensor_LuminosityWeighted(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar luminosity distribution for each GAMA band.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius HalfMassRadiusStar. Only considers bound particles.
+        # TODO: change to be within HalfLightRadiusStar
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor_luminosity_weighted(
+            self.mass_star, self.pos_star, self.stellar_luminosities, self.HalfMassRadiusStar
+        )
+
+    @lazy_property
+    def StellarInertiaTensorReduced_LuminosityWeighted(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius HalfMassRadiusStar. Only considers bound particles.
+        # TODO: change to be within HalfLightRadiusStar
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor_luminosity_weighted(
+            self.mass_star, self.pos_star, self.stellar_luminosities, self.HalfMassRadiusStar, reduced=True
+        )
+
+    @lazy_property
+    def StellarInertiaTensorNoniterative_LuminosityWeighted(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar luminosity distribution for each GAMA band.
+        Computed using all bound star particles within HalfMassRadiusStar.
+        # TODO: change to be within HalfLightRadiusStar
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor_luminosity_weighted(
+            self.mass_star, self.pos_star, self.stellar_luminosities, self.HalfMassRadiusStar, max_iterations=1
+        )
+
+    @lazy_property
+    def StellarInertiaTensorReducedNoniterative_LuminosityWeighted(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
+        Computed using all bound star particles within HalfMassRadiusStar.
+        # TODO: change to be within HalfLightRadiusStar
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor_luminosity_weighted(
+            self.mass_star,
+            self.pos_star,
+            self.stellar_luminosities,
+            self.HalfMassRadiusStar,
+            reduced=True,
+            max_iterations=1,
+        )
+
+    @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
         """
         Velocity dispersion matrix of the star particles in the subhalo.
@@ -1965,18 +2024,22 @@ class SubhaloProperties(HaloProperty):
             "GasInertiaTensor",
             "DarkMatterInertiaTensor",
             "StellarInertiaTensor",
+            "StellarInertiaTensor_LuminosityWeighted",
             "TotalInertiaTensor",
             "GasInertiaTensorReduced",
             "DarkMatterInertiaTensorReduced",
             "StellarInertiaTensorReduced",
+            "StellarInertiaTensorReduced_LuminosityWeighted",
             "TotalInertiaTensorReduced",
             "GasInertiaTensorNoniterative",
             "DarkMatterInertiaTensorNoniterative",
             "StellarInertiaTensorNoniterative",
+            "StellarInertiaTensorNoniterative_LuminosityWeighted",
             "TotalInertiaTensorNoniterative",
             "GasInertiaTensorReducedNoniterative",
             "DarkMatterInertiaTensorReducedNoniterative",
             "StellarInertiaTensorReducedNoniterative",
+            "StellarInertiaTensorReducedNoniterative_LuminosityWeighted",
             "TotalInertiaTensorReducedNoniterative",
             "veldisp_matrix_gas",
             "veldisp_matrix_dm",
