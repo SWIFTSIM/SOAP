@@ -564,8 +564,11 @@ def get_inertia_tensor_luminosity_weighted(
         # time we calculate how many particles are within the sphere.
         if (i_iter == 0) and (np.all(np.sum(r <= 1,axis=0) < min_particles)):
             return None
-        weight = mass / np.sum(mass[r <= 1])
-        weight[r > 1] = 0
+
+        # Create a luminosity-weight array of the correct shape.
+        weight = np.zeros(luminosity.shape)
+        weight = np.where(r <= 1, luminosity, weight)
+        weight /= weight.sum(axis=0)
 
         # Check if we have exceeded the search radius. For subhalo_properties we
         # have all the bound particles, and so the search radius doesn't matter
