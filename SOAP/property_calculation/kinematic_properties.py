@@ -562,7 +562,7 @@ def get_inertia_tensor_luminosity_weighted(
         # We want to skip the calculation if we have less than "min_particles"
         # inside the initial sphere. We do the check here since this is the first
         # time we calculate how many particles are within the sphere.
-        if (i_iter == 0) and (np.sum(r <= 1) < min_particles):
+        if (i_iter == 0) and (np.all(np.sum(r <= 1,axis=0) < min_particles)):
             return None
         weight = mass / np.sum(mass[r <= 1])
         weight[r > 1] = 0
