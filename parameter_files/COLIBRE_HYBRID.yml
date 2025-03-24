@@ -219,22 +219,6 @@ ApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
-    TotalInertiaTensor: false
-    GasInertiaTensor: false
-    DarkMatterInertiaTensor: false
-    StellarInertiaTensor: false
-    TotalInertiaTensorReduced: false
-    GasInertiaTensorReduced: false
-    DarkMatterInertiaTensorReduced: false
-    StellarInertiaTensorReduced: false
-    TotalInertiaTensorNoniterative: general
-    GasInertiaTensorNoniterative: general
-    DarkMatterInertiaTensorNoniterative: general
-    StellarInertiaTensorNoniterative: general
-    TotalInertiaTensorReducedNoniterative: false
-    GasInertiaTensorReducedNoniterative: false
-    DarkMatterInertiaTensorReducedNoniterative: false
-    StellarInertiaTensorReducedNoniterative: false
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true
@@ -439,17 +423,11 @@ SOProperties:
       snapshot: true
       snipshot: false
     GasComptonYTemperature: false
-    GasComptonYTemperatureCoreExcision: false
     GasComptonYTemperatureWithoutRecentAGNHeating: false
-    GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision: false
     GasTemperature: true
-    GasTemperatureCoreExcision: false
     GasTemperatureWithoutCoolGas: true
     GasTemperatureWithoutCoolGasAndRecentAGNHeating: true
     GasTemperatureWithoutRecentAGNHeating: true
-    GasTemperatureWithoutCoolGasAndRecentAGNHeatingCoreExcision: false
-    GasTemperatureWithoutCoolGasCoreExcision: false
-    GasTemperatureWithoutRecentAGNHeatingCoreExcision: false
     HotGasMass: true
     KineticEnergyGas: general
     KineticEnergyStars: general
@@ -521,31 +499,21 @@ SOProperties:
     XRayLuminosity:
       snapshot: true
       snipshot: false
-    XRayLuminosityCoreExcision: false
     XRayLuminosityWithoutRecentAGNHeating:
       snapshot: true
       snipshot: false
-    XRayLuminosityWithoutRecentAGNHeatingCoreExcision: false
     XRayLuminosityInRestframe: false
-    XRayLuminosityInRestframeCoreExcision: false
     XRayLuminosityInRestframeWithoutRecentAGNHeating: false
-    XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: false
     XRayPhotonLuminosity:
       snapshot: true
       snipshot: false
-    XRayPhotonLuminosityCoreExcision: false
     XRayPhotonLuminosityWithoutRecentAGNHeating:
       snapshot: true
       snipshot: false
-    XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision: false
     XRayPhotonLuminosityInRestframe: false
-    XRayPhotonLuminosityInRestframeCoreExcision: false
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: false
-    XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: false
     SpectroscopicLikeTemperature: true
-    SpectroscopicLikeTemperatureCoreExcision: false
     SpectroscopicLikeTemperatureWithoutRecentAGNHeating: true
-    SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: false
     DarkMatterMassFlowRate: general
     ColdGasMassFlowRate: general
     CoolGasMassFlowRate: general

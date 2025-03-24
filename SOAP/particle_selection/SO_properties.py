@@ -3119,6 +3119,7 @@ class SOProperties(HaloProperty):
     Each property should have a corresponding method/property/lazy_property in
     the SOParticleData class above.
     """
+    base_halo_type = 'SOProperties'
     property_list = {
         name: PropertyTable.full_property_list[name]
         for name in [

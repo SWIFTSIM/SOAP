@@ -167,28 +167,35 @@ class ParameterFile:
             for base_halo_type, property in self.unregistered_parameters:
                 print(f"  {base_halo_type.ljust(30)}{property}")
 
-    def print_invalid_properties(self) -> None:
+    def print_invalid_properties(self, halo_prop_list) -> None:
         """
         Print a list of any properties in the parameter file that are not present in
         the property table. This doesn't check if the property is defined for a specific
         halo type.
         """
-        invalid_properties = []
-        full_property_list = property_table.PropertyTable.full_property_list
-        valid_properties = [prop.name for prop in full_property_list.values()]
+        invalid_properties = set()
         for key in self.parameters:
             # Skip keys which aren't halo types
             if "properties" not in self.parameters[key]:
                 continue
+            # Add all properties to the invalid list
             for prop in self.parameters[key]["properties"]:
-                if prop not in valid_properties:
-                    invalid_properties.append(prop)
+                invalid_properties.add((key, prop))
+            # Remove those which are valid for this particle halo type
+            for halo_type in halo_prop_list:
+                if key != halo_type.base_halo_type:
+                    continue
+                valid_properties = [prop.name for prop in halo_type.property_list.values()]
+                for prop in self.parameters[key]["properties"]:
+                    if prop in valid_properties:
+                        invalid_properties.discard((key, prop))
         if len(invalid_properties):
+            invalid_properties = sorted(invalid_properties, key=lambda x: (x[0], x[1]))
             print(
                 "The following properties were found in the parameter file, but are invalid:"
             )
-            for prop in invalid_properties:
-                print(f"  {prop}")
+            for base_halo_type, prop in invalid_properties:
+                print(f"  {base_halo_type}  {prop}")
 
     def get_halo_type_variations(
         self, base_halo_type: str, default_variations: Dict
