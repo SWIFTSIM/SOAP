@@ -521,6 +521,7 @@ def get_inertia_tensor_luminosity_weighted(
         mask = np.logical_not(np.isclose(norm, 0))
         position = position[mask]
         mass = mass[mask]
+        luminosity = luminosity[mask]
         norm = norm[mask]
 
     # Set stopping criteria
