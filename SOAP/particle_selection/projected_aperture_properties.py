@@ -1413,6 +1413,7 @@ class ProjectedApertureProperties(HaloProperty):
     the halo along the projection axis.
     """
 
+    base_halo_type = 'ProjectedApertureProperties'
     # Properties to calculate. The key is the name of the property,
     # the value indicates the property has a direct dependence on aperture size.
     # This is needed since for larger apertures we sometimes copy across the

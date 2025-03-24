@@ -4275,9 +4275,7 @@ class PropertyTable:
         # Get the property_filters dict, which says whether a property should be included,
         # and what category the property is in
         props = halo_property.property_list
-        base_halo_type = halo_type
-        if halo_type in ["ExclusiveSphereProperties", "InclusiveSphereProperties"]:
-            base_halo_type = "ApertureProperties"
+        base_halo_type = halo_property.base_halo_type
         if halo_type == "DummyProperties":
             property_filters = {
                 prop.name: prop.name.split("/")[0] for prop in props.values()
@@ -4614,6 +4612,7 @@ class DummyProperties:
     category (e.g. we have 'VR/ID' instead of 'ID')
     """
 
+    base_halo_type = 'DummyProperties'
     def __init__(self, halo_finder):
         categories = ["SOAP", "Input", halo_finder]
         # Currently FOF properties are only stored for HBT

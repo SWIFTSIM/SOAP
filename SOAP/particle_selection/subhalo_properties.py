@@ -1797,6 +1797,7 @@ class SubhaloProperties(HaloProperty):
     Each property should have a corresponding method/property/lazy_property in
     the SubhaloParticleData class above.
     """
+    base_halo_type = 'SubhaloProperties'
     property_list = {
         prop: PropertyTable.full_property_list[prop]
         for prop in [
