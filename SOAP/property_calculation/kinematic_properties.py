@@ -538,11 +538,11 @@ def get_inertia_tensor_luminosity_weighted(
     eig_vec = np.repeat(np.diag(np.ones(3))[np.newaxis, :, :], luminosity.shape[1], axis=0)
 
     for i_iter in range(max_iterations):
-        # Calculate shape
+        # Calculate shape for each luminosity band
         old_q = q
-        q = np.sqrt(eig_val[1] / eig_val[2])
-        s = np.sqrt(eig_val[0] / eig_val[2])
-        p = np.sqrt(eig_val[0] / eig_val[1])
+        q = np.sqrt(eig_val[:,1] / eig_val[:,2])
+        s = np.sqrt(eig_val[:,0] / eig_val[:,2])
+        p = np.sqrt(eig_val[:,0] / eig_val[:,1])
 
         # Break if converged
         if abs((old_q - q) / q) < tol:
