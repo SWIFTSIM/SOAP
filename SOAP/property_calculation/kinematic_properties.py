@@ -583,6 +583,8 @@ def get_inertia_tensor_luminosity_weighted(
 
         tensor = tensor.sum(axis=0) # Shape (number_bands,3 ,3)
 
+        eig_val, eig_vec = np.linalg.eigh(tensor.value)
+
     return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
 
 def get_projected_inertia_tensor(
