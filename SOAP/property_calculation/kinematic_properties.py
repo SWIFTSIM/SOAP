@@ -515,6 +515,8 @@ def get_inertia_tensor_luminosity_weighted(
     if mass.shape[0] < min_particles:
         return None
 
+    number_luminosity_bands = luminosity.shape[1]
+ 
     # Remove particles at centre if calculating reduced tensor
     if reduced:
         norm = np.linalg.norm(position, axis=1) ** 2
@@ -527,15 +529,15 @@ def get_inertia_tensor_luminosity_weighted(
     # Set stopping criteria.
     tol = 0.0001
     q = 1000
-    is_converged = np.zeros(luminosity.shape[1], dtype=bool)
+    is_converged = np.zeros(number_luminosity_bands, dtype=bool)
 
     # Ensure we have consistent units
     R = sphere_radius.to("kpc")
     position = position.to("kpc")
 
     # Start with a sphere for each luminosity band.
-    eig_val = np.ones((luminosity.shape[1],3))
-    eig_vec = np.repeat(np.diag(np.ones(3))[np.newaxis, :, :], luminosity.shape[1], axis=0)
+    eig_val = np.ones((number_luminosity_bands,3))
+    eig_vec = np.repeat(np.diag(np.ones(3))[np.newaxis, :, :], number_luminosity_bands, axis=0)
 
     for i_iter in range(max_iterations):
         # Calculate shape for each luminosity band
