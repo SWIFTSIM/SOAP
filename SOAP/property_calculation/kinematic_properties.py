@@ -550,7 +550,7 @@ def get_inertia_tensor_luminosity_weighted(
         # done for bands that are not yet converged. If all are converged, we are 
         # done.
         is_converged[((old_q - q) / q) < tol] = 1
-        if ~is_converged.sum() == 0:
+        if (~is_converged).sum() == 0:
           break
 
         # Calculate ellipsoid per band, and determine which particles are inside. 
