@@ -587,7 +587,12 @@ def get_inertia_tensor_luminosity_weighted(
 
         eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
-    return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
+    # Flatten all inertia tensors computed in different luminosity bands
+    flattened_matricies = []
+    for i_band in range(number_luminosity_bands):
+        flattened_matricies.extend([np.diag(tensor[i_band]), tensor[i_band][np.triu_indices(3, 1)]])
+
+    return np.concatenate(flattened_matricies)
 
 def get_projected_inertia_tensor(
     mass, position, axis, radius, reduced=False, max_iterations=20, min_particles=20
