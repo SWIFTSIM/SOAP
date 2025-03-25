@@ -528,7 +528,7 @@ def get_inertia_tensor_luminosity_weighted(
     # luminosity band independently?
     tol = 0.0001
     q = 1000
-    is_converged = np.zeros(luminosity.shape[1])
+    is_converged = np.zeros(luminosity.shape[1], dtype=bool)
 
     # Ensure we have consistent units
     R = sphere_radius.to("kpc")
