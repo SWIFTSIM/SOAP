@@ -524,8 +524,7 @@ def get_inertia_tensor_luminosity_weighted(
         luminosity = luminosity[mask]
         norm = norm[mask]
 
-    # Set stopping criteria. NOTE: should we apply the stopping criteria to each
-    # luminosity band independently?
+    # Set stopping criteria.
     tol = 0.0001
     q = 1000
     is_converged = np.zeros(luminosity.shape[1], dtype=bool)
