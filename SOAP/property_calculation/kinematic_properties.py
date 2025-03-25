@@ -574,12 +574,14 @@ def get_inertia_tensor_luminosity_weighted(
         if (search_radius is not None) and (np.max(R) > search_radius):
             raise SearchRadiusTooSmallError("Inertia tensor required more particles")
 
-        # Calculate inertia tensor
-        tensor = weight[:, None, None] * position[:, :, None] * position[:, None, :]
+        # Calculate inertia tensor for each band, shape  (number_bands, number_partices, 3, 3)
+        tensor = weight[:,:, None, None] * (position[:, :, None] * position[:, None, :])[:, None, :, :]
+
         if reduced:
+            raise NotImplementedError
             tensor /= norm[:, None, None]
-        tensor = tensor.sum(axis=0)
-        eig_val, eig_vec = np.linalg.eigh(tensor.value)
+
+        tensor = tensor.sum(axis=0) # Shape (number_bands,3 ,3)
 
     return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
 
