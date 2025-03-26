@@ -587,6 +587,9 @@ def get_inertia_tensor_luminosity_weighted(
 
         eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
+        # We sometimes get very small eigenvalues that overflow into negative values. We 
+        # only expect positive values for a real symmetric matrix, hence we take abs.
+        eig_val = np.abs(eig_val)
     # Flatten all inertia tensors computed in different luminosity bands
     flattened_matricies = []
     for i_band in range(number_luminosity_bands):
