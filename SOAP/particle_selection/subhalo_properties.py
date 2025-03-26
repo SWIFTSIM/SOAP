@@ -30,6 +30,7 @@ from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
     get_inertia_tensor,
+    get_inertia_tensor_luminosity_weighted,
     get_velocity_dispersion_matrix,
 )
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
