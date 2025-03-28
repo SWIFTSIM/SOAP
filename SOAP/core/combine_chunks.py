@@ -458,24 +458,30 @@ def combine_chunks(
     if len(host_halo_index_props) > 0:
         with MPITimer("Calculate and write host index of each satellite", comm_world):
             if args.halo_format == "VR":
-                sat_mask = props_kept["InputHalos/VR/HostHaloID"] != -1
-                host_ids = props_kept["InputHalos/VR/HostHaloID"][sat_mask]
-                # If we run on an incomplete catalogue (e.g. for testing) some satellites will have an index == -1
-                indices = psort.parallel_match(
+                # We don't need to worry about hostless halos for VR
+                host_ids = props_kept["InputHalos/VR/HostHaloID"].copy()
+                cen_mask = host_ids == -1
+                host_ids[cen_mask] = props_kept["InputHalos/VR/ID"][cen_mask]
+                # If we run on an incomplete catalogue (e.g. for testing)
+                # some satellites might point to themselves
+                host_halo_index = psort.parallel_match(
                     host_ids, props_kept["InputHalos/VR/ID"], comm=comm_world
                 )
-                host_halo_index = -1 * np.ones(sat_mask.shape[0], dtype=np.int64)
-                host_halo_index[sat_mask] = indices
             elif args.halo_format == "HBTplus":
-                # Create array where FOF IDs are only set for centrals, so we can match to it
-                cen_fof_id = props_kept["InputHalos/HBTplus/HostFOFId"].copy()
+                host_fof_id = props_kept["InputHalos/HBTplus/HostFOFId"]
+                # Create array where FOF IDs are only set for centrals
+                # so that we can match to it
+                cen_fof_id = host_fof_id.copy()
                 sat_mask = props_kept["InputHalos/IsCentral"] == 0
                 cen_fof_id[sat_mask] = -1
-                host_ids = props_kept["InputHalos/HBTplus/HostFOFId"][sat_mask]
-                # If we run on an incomplete catalogue (e.g. for testing) some satellites will have an index == -1
+                # We don't want to set HostHaloIndex for hostless halos
+                has_host_mask = host_fof_id != -1
+                host_ids = host_fof_id[has_host_mask]
+                # If we run on an incomplete catalogue (e.g. for testing)
+                # some satellites might point to themselves
                 indices = psort.parallel_match(host_ids, cen_fof_id, comm=comm_world)
                 host_halo_index = -1 * np.ones(sat_mask.shape[0], dtype=np.int64)
-                host_halo_index[sat_mask] = indices
+                host_halo_index[has_host_mask] = indices
     else:
         # Set default value
         host_halo_index = -1 * np.ones(order.shape[0], dtype=np.int64)
