@@ -4215,7 +4215,7 @@ class PropertyTable:
             shape=1,
             dtype=np.int64,
             unit="dimensionless",
-            description="Index (within the SOAP arrays) of the top level parent of this subhalo. -1 for central subhalos.",
+            description="Index (within the SOAP arrays) of the top level parent of this subhalo. -1 for hostless halos.",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
