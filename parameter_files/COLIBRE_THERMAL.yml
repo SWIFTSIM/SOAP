@@ -378,6 +378,10 @@ ProjectedApertureProperties:
     ProjectedStellarInertiaTensorReduced: false
     ProjectedStellarInertiaTensorNoniterative: general
     ProjectedStellarInertiaTensorReducedNoniterative: false
+    ProjectedStellarInertiaTensor_LuminosityWeighted: false
+    ProjectedStellarInertiaTensorReduced_LuminosityWeighted: false
+    ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted: general
+    ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted: false
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true
