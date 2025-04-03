@@ -130,9 +130,7 @@ class SnapshotDatasets:
             SOAP_ptype, SOAP_dset = alias.split("/")
             snap_ptype, snap_dset = aliases[alias].split("/")
             self.dataset_map[alias] = (snap_ptype, snap_dset)
-            if (snap_dset in self.named_columns) and (
-                SOAP_dset not in self.named_columns
-            ):
+            if snap_dset in self.named_columns:
                 self.named_columns[SOAP_dset] = dict(self.named_columns[snap_dset])
 
     def setup_defined_constants(self, defined_constants: Dict):
@@ -182,13 +180,9 @@ class SnapshotDatasets:
         try:
             ptype, dset = self.dataset_map[name]
         except KeyError as e:
-            print(f'Dataset "{name}" not found!')
-            print("The following properties require this dataset:")
-            full_property_list = property_table.PropertyTable.full_property_list
-            for k, v in full_property_list.items():
-                if name in v.particle_properties:
-                    print(f"  {k}")
-            raise e
+            # This should never occur since swift_cells.check_datasets_exist
+            # checks all the properties we require are indeed available
+            raise KeyError(f"Failed to read {name} from input files!")
         return data_dict[ptype][dset]
 
     def get_dataset_column(

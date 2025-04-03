@@ -4612,7 +4612,8 @@ class DummyProperties:
     category (e.g. we have 'VR/ID' instead of 'ID')
     """
 
-    base_halo_type = 'DummyProperties'
+    base_halo_type = "DummyProperties"
+
     def __init__(self, halo_finder):
         categories = ["SOAP", "Input", halo_finder]
         # Currently FOF properties are only stored for HBT

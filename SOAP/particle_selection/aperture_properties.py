@@ -3087,7 +3087,7 @@ class ApertureProperties(HaloProperty):
     are bound to the halo.
     """
 
-    base_halo_type = 'ApertureProperties'
+    base_halo_type = "ApertureProperties"
     # Properties to calculate for ApertureProperties. Key is the name of the property.
     # The value indicates the property has a direct dependence on aperture size.
     # This is needed since for larger apertures we sometimes copy across the

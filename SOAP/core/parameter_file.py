@@ -61,6 +61,7 @@ class ParameterFile:
                 self.parameters = {}
 
         self.snipshot = snipshot
+        self.aliases = None
 
         self.property_filters = {}
 
@@ -185,7 +186,9 @@ class ParameterFile:
             for halo_type in halo_prop_list:
                 if key != halo_type.base_halo_type:
                     continue
-                valid_properties = [prop.name for prop in halo_type.property_list.values()]
+                valid_properties = [
+                    prop.name for prop in halo_type.property_list.values()
+                ]
                 for prop in self.parameters[key]["properties"]:
                     if prop in valid_properties:
                         invalid_properties.discard((key, prop))
@@ -249,9 +252,9 @@ class ParameterFile:
         Returns a tuple with the path of the actual dataset in the snapshot,
         e.g. ("PartType4", "Masses").
         """
-        if "aliases" in self.parameters:
-            if property_name in self.parameters["aliases"]:
-                property_name = self.parameters["aliases"][property_name]
+        aliases = self.get_aliases()
+        if property_name in aliases:
+            property_name = aliases[property_name]
         parts = property_name.split("/")
         if not len(parts) == 2:
             raise RuntimeError(
@@ -266,10 +269,20 @@ class ParameterFile:
         Returns the dictionary of aliases or an empty dictionary if no
         aliases were defined (there are no default aliases).
         """
-        if "aliases" in self.parameters:
-            return dict(self.parameters["aliases"])
-        else:
-            return dict()
+        if self.aliases is None:
+            if "aliases" in self.parameters:
+                if "snipshot" in self.parameters["aliases"]:
+                    if self.snipshot:
+                        self.aliases = dict(self.parameters["aliases"]["snipshot"])
+                    else:
+                        aliases = dict(self.parameters["aliases"])
+                        del aliases["snipshot"]
+                        self.aliases = aliases
+                else:
+                    self.aliases = dict(self.parameters["aliases"])
+            else:
+                self.aliases = dict()
+        return self.aliases
 
     def get_filters(self, default_filters: Dict) -> Dict:
         """

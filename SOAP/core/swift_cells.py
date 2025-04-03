@@ -447,6 +447,8 @@ class SWIFTCellGrid:
         # to output a list of properties that require the missing fields
         for ptype in set(self.ptypes).intersection(set(required_datasets.keys())):
             for name in required_datasets[ptype]:
+                # Note that the field names in required_datasets have already had
+                # any aliases applied, so we can check the raw files themselves
                 in_extra = (self.extra_filenames is not None) and (
                     name in self.extra_metadata_combined[ptype]
                 )
