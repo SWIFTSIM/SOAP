@@ -3304,7 +3304,7 @@ class ApertureProperties(HaloProperty):
                 self.group_name = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
             else:
                 self.name = f"inclusive_sphere_renclose"
-                self.group_name = f"InclusiveSphere/REnclose"
+                self.group_name = f"InclusiveSphere/EncloseRadius"
             # TODO: Will this work with swiftsimio
         else:
             assert self.physical_radius_mpc != 0
