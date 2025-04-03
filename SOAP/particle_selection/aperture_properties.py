@@ -3299,9 +3299,15 @@ class ApertureProperties(HaloProperty):
         self.inclusive = inclusive
 
         if self.inclusive:
-            self.name = f"inclusive_sphere_{physical_radius_kpc:.0f}kpc"
-            self.group_name = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+            if self.physical_radius_mpc != 0:
+                self.name = f"inclusive_sphere_{physical_radius_kpc:.0f}kpc"
+                self.group_name = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+            else:
+                self.name = f"inclusive_sphere_renclose"
+                self.group_name = f"InclusiveSphere/REnclose"
+            # TODO: Will this work with swiftsimio
         else:
+            assert self.physical_radius_mpc != 0
             self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
             self.group_name = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
         self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
@@ -3400,7 +3406,10 @@ class ApertureProperties(HaloProperty):
         # Determine if the previous aperture already enclosed all
         # the bound particles of the subhalo
         r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
-        i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
+        if self.physical_radius_mpc != 0:
+            i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
+        else:
+            i_radius = 0
         if i_radius != 0:
             r_previous_kpc = self.all_radii_kpc[i_radius - 1]
             if r_previous_kpc * unyt.kpc > r_enclose:
@@ -3438,13 +3447,18 @@ class ApertureProperties(HaloProperty):
                     "Search radius is smaller than aperture"
                 )
 
+            # TODO: Comment
+            physical_radius_mpc = self.physical_radius_mpc
+            if self.physical_radius_mpc == 0:
+                physical_radius_mpc = r_enclose.to('Mpc').value
+
             types_present = [type for type in self.particle_properties if type in data]
             part_props = ApertureParticleData(
                 input_halo,
                 data,
                 types_present,
                 self.inclusive,
-                self.physical_radius_mpc * unyt.Mpc,
+                physical_radius_mpc * unyt.Mpc,
                 self.stellar_ages,
                 self.recently_heated_gas_filter,
                 self.cold_dense_gas_filter,

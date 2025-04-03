@@ -259,6 +259,9 @@ ApertureProperties:
     exclusive_100_kpc:
       inclusive: false
       radius_in_kpc: 100.0
+    inclusive_r_enclose:
+      inclusive: true
+      radius_in_kpc: 0.0
     inclusive_1_kpc:
       inclusive: true
       radius_in_kpc: 1.0

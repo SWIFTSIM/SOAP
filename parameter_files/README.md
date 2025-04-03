@@ -92,6 +92,7 @@ ApertureProperties:
       skip_gt_enclose_radius: false
 ```
 
+# TODO: Note that inclusive can be passed encloseradius
 If you do not wish to calculate any apertures then pass any empty dict to both the properties and the variations, e.g.
 
 ```
