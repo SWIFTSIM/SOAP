@@ -162,14 +162,17 @@ SOProperties:
 
 ### Aliases
 
-Optional. Used if field names in the snapshots do not agree with what SOAP expects, e.g.
+Optional. Used if field names in the snapshots do not agree with what SOAP expects. If the `snipshot` section is passed then those aliases will be used when running in snipshot mode (the snipshot values will not be combined with the snapshot aliases present. If no `snipshot` section is present then the snapshot aliases will be used when running in snipshot mode). E.g.
 ```
 aliases:
   PartType0/ElementMassFractions: PartType0/SmoothedElementMassFractions
   PartType4/ElementMassFractions: PartType4/SmoothedElementMassFractions
+  snipshot:
+    PartType0/ElementMassFractions: PartType0/ReducedElementMassFractions
+    PartType4/ElementMassFractions: PartType4/SmoothedElementMassFractions
+
 ```
-The key is the name of the property that SOAP expects, and the value is the name
-of the property in the snapshot being passed.
+For each alias the key is the name of the property that SOAP expects, and the value is the name of the property in the snapshot being passed.
 
 ### Filters
 

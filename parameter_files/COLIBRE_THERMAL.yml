@@ -35,9 +35,7 @@ ApertureProperties:
     AngularMomentumDarkMatter: general
     AngularMomentumGas: general
     AngularMomentumStars: general
-    AtomicHydrogenMass:
-      snapshot: true
-      snipshot: false
+    AtomicHydrogenMass: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -122,12 +120,8 @@ ApertureProperties:
     HalfMassRadiusDarkMatter: general
     HalfMassRadiusGas: general
     HalfMassRadiusStars: true
-    HeliumMass:
-      snapshot: true
-      snipshot: false
-    HydrogenMass:
-      snapshot: true
-      snipshot: false
+    HeliumMass: true
+    HydrogenMass: true
     KappaCorotBaryons: general
     KappaCorotGas: general
     KappaCorotStars: general
@@ -191,9 +185,7 @@ ApertureProperties:
       snipshot: false
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
-    MolecularHydrogenMass:
-      snapshot: true
-      snipshot: false
+    MolecularHydrogenMass: true
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
@@ -293,9 +285,7 @@ ApertureProperties:
       skip_gt_enclose_radius: true
 ProjectedApertureProperties:
   properties:
-    AtomicHydrogenMass:
-      snapshot: true
-      snipshot: false
+    AtomicHydrogenMass: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -312,15 +302,9 @@ ProjectedApertureProperties:
     HalfMassRadiusDarkMatter: general
     HalfMassRadiusGas: general
     HalfMassRadiusStars: true
-    HeliumMass:
-      snapshot: true
-      snipshot: false
-    HydrogenMass:
-      snapshot: true
-      snipshot: false
-    MolecularHydrogenMass:
-      snapshot: true
-      snipshot: false
+    HeliumMass: true
+    HydrogenMass: true
+    MolecularHydrogenMass: true
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleAveragedAccretionRate: true
     MostMassiveBlackHoleID: true
@@ -519,12 +503,8 @@ SOProperties:
     CoolGasMassFlowRate: general
     WarmGasMassFlowRate: general
     HotGasMassFlowRate: general
-    HIMassFlowRate:
-      snapshot: general
-      snipshot: false
-    H2MassFlowRate:
-      snapshot: general
-      snipshot: false
+    HIMassFlowRate: general
+    H2MassFlowRate: general
     MetalMassFlowRate: general
     StellarMassFlowRate: general
     ColdGasEnergyFlowRate: general
@@ -658,6 +638,11 @@ SubhaloProperties:
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
+  snipshot:
+    PartType0/SpeciesFractions: PartType0/ReducedSpeciesFractions
+    PartType0/ElementMassFractions: PartType0/ReducedElementMassFractions
+    PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
+    PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
 filters:
   general:
     limit: 100
