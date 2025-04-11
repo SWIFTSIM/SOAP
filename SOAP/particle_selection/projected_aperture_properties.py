@@ -1043,6 +1043,33 @@ class SingleProjectionProjectedApertureParticleData:
         return self.part_props.get_dataset("PartType0/GroupNr_bound") == self.index
 
     @lazy_property
+    def gas_total_dust_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Total dust mass fractions in gas particles in the projection.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.part_props.get_dataset("PartType0/TotalDustMassFractions")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+
+    @lazy_property
+    def mass_dust(self) -> unyt.unyt_array:
+        """
+        Masses of the dust particles in the subhalo.
+        """
+        return self.gas_total_dust_mass_fractions * self.proj_mass_gas
+
+    @lazy_property
+    def DustMass(self) -> unyt.unyt_quantity:
+        """
+        Total dust mass of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.mass_dust.sum()
+
+    @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
         """
         Star formation rates of star particles.
@@ -1374,6 +1401,17 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
+    def HalfMassRadiusDust(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the dust.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.proj_radius[self.proj_type == 0], self.mass_dust, self.DustMass
+        )
+
+    @lazy_property
     def HalfMassRadiusDM(self) -> unyt.unyt_quantity:
         """
         Half mass radius of dark matter.
@@ -1427,6 +1465,7 @@ class ProjectedApertureProperties(HaloProperty):
         "Mstar_init": False,
         "Mbh_dynamical": False,
         "Mbh_subgrid": False,
+        "DustMass": True,
         "Ngas": False,
         "Ndm": False,
         "Nstar": False,
@@ -1437,6 +1476,7 @@ class ProjectedApertureProperties(HaloProperty):
         "AveragedStarFormationRate": False,
         "StellarLuminosity": False,
         "HalfMassRadiusGas": False,
+        "HalfMassRadiusDust": False,
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
         "HalfMassRadiusBaryon": False,
