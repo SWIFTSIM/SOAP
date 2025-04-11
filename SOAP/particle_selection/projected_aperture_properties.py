@@ -759,6 +759,18 @@ class SingleProjectionProjectedApertureParticleData:
         ) % self.part_props.boxsize
 
     @lazy_property
+    def com_star(self) -> unyt.unyt_array:
+        """
+        Centre of mass of star particles in the subhalo.
+        """
+        if self.Mstar == 0:
+            return None
+        return (
+            (self.star_mass_fraction[:, None] * self.proj_pos_star).sum(axis=0)
+            + self.centre
+        ) % self.part_props.boxsize
+
+    @lazy_property
     def vcom(self) -> unyt.unyt_array:
         """
         Centre of mass velocity of all particles in the projected aperture.
@@ -1471,6 +1483,7 @@ class ProjectedApertureProperties(HaloProperty):
         "Nstar": False,
         "Nbh": False,
         "com": False,
+        "com_star": False,
         "vcom": False,
         "SFR": False,
         "AveragedStarFormationRate": False,

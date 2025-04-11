@@ -787,6 +787,17 @@ class SubhaloParticleData:
         ) % self.boxsize
 
     @lazy_property
+    def com_star(self) -> unyt.unyt_array:
+        """
+        Centre of mass of star particles in the subhalo.
+        """
+        if self.Mstar == 0:
+            return None
+        return (
+            (self.star_mass_fraction[:, None] * self.pos_star).sum(axis=0) + self.centre
+        ) % self.boxsize
+
+    @lazy_property
     def vcom(self) -> unyt.unyt_array:
         """
         Centre of mass velocity of all particles in the subhalo.
@@ -1873,6 +1884,7 @@ class SubhaloProperties(HaloProperty):
             "MostMassiveBlackHoleTotalAccretedMass",
             "MostMassiveBlackHoleFormationScalefactor",
             "com",
+            "com_star",
             "vcom",
             "Lgas",
             "Ldm",

@@ -351,6 +351,7 @@ ProjectedApertureProperties:
       snapshot: true
       snipshot: false
     StarFormingGasMassFractionInMetals: true
+    StellarCentreOfMass: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
@@ -635,6 +636,7 @@ SubhaloProperties:
       snipshot: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInMetals: true
+    StellarCentreOfMass: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
