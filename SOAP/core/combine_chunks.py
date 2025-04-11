@@ -91,6 +91,39 @@ def combine_chunks(
     # Determine total number of halos
     total_nr_halos = comm_world.allreduce(len(order))
 
+    # Certain properties need to be kept for calculating the SOAP properties
+    props_to_keep = set()
+    subhalo_rank_props = {
+        "VR": (
+            "InputHalos/VR/ID",
+            "BoundSubhalo/TotalMass",
+            "InputHalos/VR/HostHaloID",
+        ),
+        "HBTplus": (
+            "InputHalos/HBTplus/HostFOFId",
+            "BoundSubhalo/TotalMass",
+            "InputHalos/HBTplus/TrackId",
+        ),
+    }.get(args.halo_format, ())
+    props_to_keep.update(subhalo_rank_props)
+    host_halo_index_props = {
+        "VR": ("InputHalos/VR/ID", "InputHalos/VR/HostHaloID"),
+        "HBTplus": ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"),
+    }.get(args.halo_format, ())
+    props_to_keep.update(host_halo_index_props)
+    fof_props = {
+        "HBTplus": ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral")
+    }.get(args.halo_format, ())
+    props_to_keep.update(fof_props)
+    index_previous_snap_props = {
+        "HBTplus": ("InputHalos/HBTplus/TrackId")
+    }.get(args.halo_format, ())
+    props_to_keep.update(index_previous_snap_props)
+    # Also keep M200c for calculating reduced_snapshot flag
+    if "reduced_snapshots" in args.calculations:
+        props_to_keep.add("SO/200_crit/TotalMass")
+    props_kept = {}
+
     # Get metadata for derived quantities: these don't exist in the chunk
     # output but will be computed by combining other halo properties.
     soap_metadata = []
@@ -303,32 +336,6 @@ def combine_chunks(
 
     # Reopen the output file in parallel mode
     outfile = h5py.File(output_file, "r+", driver="mpio", comm=comm_world)
-
-    # Certain properties need to be kept for calculating the SOAP properties
-    subhalo_rank_props = {
-        "VR": (
-            "InputHalos/VR/ID",
-            "BoundSubhalo/TotalMass",
-            "InputHalos/VR/HostHaloID",
-        ),
-        "HBTplus": (
-            "InputHalos/HBTplus/HostFOFId",
-            "BoundSubhalo/TotalMass",
-            "InputHalos/HBTplus/TrackId",
-        ),
-    }.get(args.halo_format, ())
-    host_halo_index_props = {
-        "VR": ("InputHalos/VR/ID", "InputHalos/VR/HostHaloID"),
-        "HBTplus": ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"),
-    }.get(args.halo_format, ())
-    fof_props = {
-        "HBTplus": ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral")
-    }.get(args.halo_format, ())
-    props_to_keep = set((*subhalo_rank_props, *host_halo_index_props, *fof_props))
-    # Also keep M200c for calculating reduced_snapshot flag
-    if "reduced_snapshots" in args.calculations:
-        props_to_keep.add("SO/200_crit/TotalMass")
-    props_kept = {}
 
     with MPITimer("Writing output properties", comm_world):
         # Loop over halo properties, a few at a time
