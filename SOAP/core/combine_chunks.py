@@ -91,44 +91,51 @@ def combine_chunks(
     # Determine total number of halos
     total_nr_halos = comm_world.allreduce(len(order))
 
-    # Certain properties need to be kept for calculating the SOAP properties
-    props_to_keep = set()
-    subhalo_rank_props = {
-        "VR": (
+    # Handle derived (SOAP) quantities: these don't exist in the chunk
+    # output but will be computed by combining other halo properties.
+    soap_props = set()      # SOAP properties which will be calculated
+    props_to_keep = set()   # Properties from the chunk files which are
+                            # required in order to calculate the SOAP properties
+    if args.halo_format == 'VR':
+        # Subhalo rank
+        soap_props.add("SOAP/SubhaloRankByBoundMass")
+        props_to_keep.update((
             "InputHalos/VR/ID",
             "BoundSubhalo/TotalMass",
             "InputHalos/VR/HostHaloID",
-        ),
-        "HBTplus": (
+        ))
+        # Host halo index
+        soap_props.add("SOAP/HostHaloIndex")
+        props_to_keep.update((
+            "InputHalos/VR/ID", "InputHalos/VR/HostHaloID"
+        ))
+    elif args.halo_format == 'HBTplus':
+        # Subhalo rank
+        soap_props.add("SOAP/SubhaloRankByBoundMass")
+        props_to_keep.update((
             "InputHalos/HBTplus/HostFOFId",
             "BoundSubhalo/TotalMass",
             "InputHalos/HBTplus/TrackId",
-        ),
-    }.get(args.halo_format, ())
-    props_to_keep.update(subhalo_rank_props)
-    host_halo_index_props = {
-        "VR": ("InputHalos/VR/ID", "InputHalos/VR/HostHaloID"),
-        "HBTplus": ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"),
-    }.get(args.halo_format, ())
-    props_to_keep.update(host_halo_index_props)
-    fof_props = {
-        "HBTplus": ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral")
-    }.get(args.halo_format, ())
-    props_to_keep.update(fof_props)
-    index_previous_snap_props = {
-        "HBTplus": ("InputHalos/HBTplus/TrackId")
-    }.get(args.halo_format, ())
-    props_to_keep.update(index_previous_snap_props)
+        ))
+        # Host halo index
+        soap_props.add("SOAP/HostHaloIndex")
+        props_to_keep.update((
+            "InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"
+        ))
+
     # Also keep M200c for calculating reduced_snapshot flag
     if "reduced_snapshots" in args.calculations:
+        # TODO: Check ref_metadata for SO 200_crit
+        # for metadata in ref_metadata
+        soap_props.add("SOAP/IncludedInReducedSnapshot")
         props_to_keep.add("SO/200_crit/TotalMass")
-    props_kept = {}
 
-    # Get metadata for derived quantities: these don't exist in the chunk
-    # output but will be computed by combining other halo properties.
+    # Get metadata for derived quantities
     soap_metadata = []
     for key, prop in PropertyTable.full_property_list.items():
         if not key.startswith("SOAP/"):
+            continue
+        if not key in soap_props:
             continue
         name = prop.name
         size = prop.shape
@@ -172,6 +179,11 @@ def combine_chunks(
             fof_metadata.append(
                 (name, size, unit, dtype, description, physical, a_exponent)
             )
+
+        # Keep the properties required for matching subhalos to FOFs
+        props_to_keep.update((
+            "InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"
+        ))
 
     # First MPI rank sets up the output file
     with MPITimer("Creating output file", comm_world):
@@ -336,6 +348,7 @@ def combine_chunks(
 
     # Reopen the output file in parallel mode
     outfile = h5py.File(output_file, "r+", driver="mpio", comm=comm_world)
+    props_kept = {}
 
     with MPITimer("Writing output properties", comm_world):
         # Loop over halo properties, a few at a time
@@ -462,7 +475,7 @@ def combine_chunks(
         )
 
     # Calculate the index in the SOAP output of the host field halo (VR) or the central subhalo of the host FOF group (HBTplus)
-    if len(host_halo_index_props) > 0:
+    if "SOAP/HostHaloIndex" in soap_props:
         with MPITimer("Calculate and write host index of each satellite", comm_world):
             if args.halo_format == "VR":
                 # We don't need to worry about hostless halos for VR
@@ -503,7 +516,7 @@ def combine_chunks(
     )
 
     # Write out subhalo ranking by mass within host halos, if we have all the required quantities.
-    if len(subhalo_rank_props) > 0:
+    if "SOAP/SubhaloRankByBoundMass" in soap_props:
         with MPITimer("Calculate and write subhalo ranking by mass", comm_world):
             if args.halo_format == "VR":
                 # Set field halos to be their own host (VR sets hostid=-1 in this case)
@@ -520,23 +533,19 @@ def combine_chunks(
             subhalo_rank = compute_subhalo_rank(
                 host_id, props_kept["BoundSubhalo/TotalMass"], comm_world
             )
+            phdf5.collective_write(
+                outfile,
+                "SOAP/SubhaloRankByBoundMass",
+                subhalo_rank,
+                create_dataset=False,
+                comm=comm_world,
+            )
     else:
-        # Set default value
-        subhalo_rank = -1 * np.ones(order.shape[0], dtype=np.int32)
         if comm_world.Get_rank() == 0:
             print("Not calculating subhalo ranking by mass")
-    phdf5.collective_write(
-        outfile,
-        "SOAP/SubhaloRankByBoundMass",
-        subhalo_rank,
-        create_dataset=False,
-        comm=comm_world,
-    )
 
     # Determine which objects should be saved in the reduced snapshot files
-    if ("reduced_snapshots" in args.calculations) and (
-        "SO/200_crit/TotalMass" in props_kept
-    ):
+    if "SOAP/IncludedInReducedSnapshot" in soap_props:
         with MPITimer("Calculate and write reduced snapshot membership", comm_world):
             # Load parameters. We create mass bins with the lower limit of the smallest mass bin
             # given by "min_halo_mass". The size of the bins is set by "halo_bin_size_dex".
@@ -594,18 +603,16 @@ def combine_chunks(
                 assert n_keep[i_bin] <= np.sum(mask)
                 keep_idx = np.random.choice(idx, size=n_keep[i_bin], replace=False)
                 reduced_snapshot[keep_idx] = 1
+            phdf5.collective_write(
+                outfile,
+                "SOAP/IncludedInReducedSnapshot",
+                reduced_snapshot,
+                create_dataset=False,
+                comm=comm_world,
+            )
     else:
-        # Set default value
-        reduced_snapshot = np.zeros(order.shape[0], dtype=np.int32)
         if comm_world.Get_rank() == 0:
             print("Not calculating reduced snapshot membership")
-    phdf5.collective_write(
-        outfile,
-        "SOAP/IncludedInReducedSnapshot",
-        reduced_snapshot,
-        create_dataset=False,
-        comm=comm_world,
-    )
 
     # Done.
     outfile.close()
