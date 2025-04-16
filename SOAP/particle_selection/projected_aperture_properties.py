@@ -1066,9 +1066,9 @@ class SingleProjectionProjectedApertureParticleData:
         ][self.gas_mask_ap]
 
     @lazy_property
-    def mass_dust(self) -> unyt.unyt_array:
+    def proj_mass_dust(self) -> unyt.unyt_array:
         """
-        Masses of the dust particles in the subhalo.
+        Dust masses of the gas particles in the subhalo.
         """
         return self.gas_total_dust_mass_fractions * self.proj_mass_gas
 
@@ -1079,7 +1079,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return self.mass_dust.sum()
+        return self.proj_mass_dust.sum()
 
     @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
@@ -1420,7 +1420,7 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Ngas == 0:
             return None
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == 0], self.mass_dust, self.DustMass
+            self.proj_radius[self.proj_type == 0], self.proj_mass_dust, self.DustMass
         )
 
     @lazy_property
