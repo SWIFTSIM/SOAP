@@ -93,42 +93,45 @@ def combine_chunks(
 
     # Handle derived (SOAP) quantities: these don't exist in the chunk
     # output but will be computed by combining other halo properties.
-    soap_props = set()      # SOAP properties which will be calculated
-    props_to_keep = set()   # Properties from the chunk files which are
-                            # required in order to calculate the SOAP properties
-    if args.halo_format == 'VR':
+    soap_props = set()  # SOAP properties which will be calculated
+    props_to_keep = set()  # Properties required from the chunk files
+    if args.halo_format == "VR":
         # Subhalo rank
         soap_props.add("SOAP/SubhaloRankByBoundMass")
-        props_to_keep.update((
-            "InputHalos/VR/ID",
-            "BoundSubhalo/TotalMass",
-            "InputHalos/VR/HostHaloID",
-        ))
+        props_to_keep.update(
+            (
+                "InputHalos/VR/ID",
+                "BoundSubhalo/TotalMass",
+                "InputHalos/VR/HostHaloID",
+            )
+        )
         # Host halo index
         soap_props.add("SOAP/HostHaloIndex")
-        props_to_keep.update((
-            "InputHalos/VR/ID", "InputHalos/VR/HostHaloID"
-        ))
-    elif args.halo_format == 'HBTplus':
+        props_to_keep.update(("InputHalos/VR/ID", "InputHalos/VR/HostHaloID"))
+    elif args.halo_format == "HBTplus":
         # Subhalo rank
         soap_props.add("SOAP/SubhaloRankByBoundMass")
-        props_to_keep.update((
-            "InputHalos/HBTplus/HostFOFId",
-            "BoundSubhalo/TotalMass",
-            "InputHalos/HBTplus/TrackId",
-        ))
+        props_to_keep.update(
+            (
+                "InputHalos/HBTplus/HostFOFId",
+                "BoundSubhalo/TotalMass",
+                "InputHalos/HBTplus/TrackId",
+            )
+        )
         # Host halo index
         soap_props.add("SOAP/HostHaloIndex")
-        props_to_keep.update((
-            "InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"
-        ))
+        props_to_keep.update(("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"))
 
     # Also keep M200c for calculating reduced_snapshot flag
     if "reduced_snapshots" in args.calculations:
-        # TODO: Check ref_metadata for SO 200_crit
-        # for metadata in ref_metadata
-        soap_props.add("SOAP/IncludedInReducedSnapshot")
-        props_to_keep.add("SO/200_crit/TotalMass")
+        for metadata in ref_metadata:
+            if metadata[0] == "SO/200_crit/TotalMass":
+                soap_props.add("SOAP/IncludedInReducedSnapshot")
+                props_to_keep.add("SO/200_crit/TotalMass")
+                break
+        else:
+            if comm_world.Get_rank() == 0:
+                print("IncludedInReducedSnapshot is enabled, but M200c is missing")
 
     # Get metadata for derived quantities
     soap_metadata = []
@@ -181,9 +184,7 @@ def combine_chunks(
             )
 
         # Keep the properties required for matching subhalos to FOFs
-        props_to_keep.update((
-            "InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"
-        ))
+        props_to_keep.update(("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"))
 
     # First MPI rank sets up the output file
     with MPITimer("Creating output file", comm_world):
@@ -502,18 +503,17 @@ def combine_chunks(
                 indices = psort.parallel_match(host_ids, cen_fof_id, comm=comm_world)
                 host_halo_index = -1 * np.ones(sat_mask.shape[0], dtype=np.int64)
                 host_halo_index[has_host_mask] = indices
+
+            phdf5.collective_write(
+                outfile,
+                "SOAP/HostHaloIndex",
+                host_halo_index,
+                create_dataset=False,
+                comm=comm_world,
+            )
     else:
-        # Set default value
-        host_halo_index = -1 * np.ones(order.shape[0], dtype=np.int64)
         if comm_world.Get_rank() == 0:
             print("Not calculating host halo index")
-    phdf5.collective_write(
-        outfile,
-        "SOAP/HostHaloIndex",
-        host_halo_index,
-        create_dataset=False,
-        comm=comm_world,
-    )
 
     # Write out subhalo ranking by mass within host halos, if we have all the required quantities.
     if "SOAP/SubhaloRankByBoundMass" in soap_props:
