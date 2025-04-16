@@ -146,7 +146,7 @@ class ParameterFile:
             if isinstance(filters[property], str):
                 assert (filters[property] in self.parameters.get("filters", {})) or (
                     filters[property] == "basic"
-                )
+                ), f'Filter "{filters[property]}" is not defined in paramter file'
             else:
                 assert filters[property] == False
 

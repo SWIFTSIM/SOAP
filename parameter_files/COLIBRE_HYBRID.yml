@@ -62,6 +62,7 @@ ApertureProperties:
       snipshot: false
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
+    DustMass: true
     DustGraphiteMass:
       snapshot: true
       snipshot: false
@@ -119,6 +120,7 @@ ApertureProperties:
     HalfMassRadiusBaryons: general
     HalfMassRadiusDarkMatter: general
     HalfMassRadiusGas: general
+    HalfMassRadiusDust: general
     HalfMassRadiusStars: true
     HeliumMass: true
     HydrogenMass: true
@@ -295,12 +297,14 @@ ProjectedApertureProperties:
     CentreOfMassVelocity: true
     DarkMatterMass: true
     DarkMatterProjectedVelocityDispersion: general
+    DustMass: true
     GasMass: true
     GasMassFractionInMetals: true
     GasProjectedVelocityDispersion: general
     HalfMassRadiusBaryons: general
     HalfMassRadiusDarkMatter: general
     HalfMassRadiusGas: general
+    HalfMassRadiusDust: general
     HalfMassRadiusStars: true
     HeliumMass: true
     HydrogenMass: true
@@ -347,6 +351,7 @@ ProjectedApertureProperties:
       snapshot: true
       snipshot: false
     StarFormingGasMassFractionInMetals: true
+    StellarCentreOfMass: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
@@ -546,6 +551,7 @@ SubhaloProperties:
     DarkMatterVelocityDispersionMatrix: general
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
+    DustMass: true
     GasMass: true
     GasMassFractionInMetals: true
     GasTemperature: true
@@ -556,6 +562,7 @@ SubhaloProperties:
     HalfMassRadiusBaryons: general
     HalfMassRadiusDarkMatter: general
     HalfMassRadiusGas: general
+    HalfMassRadiusDust: general
     HalfMassRadiusStars: true
     HalfMassRadiusTotal: true
     EncloseRadius: true
@@ -629,6 +636,7 @@ SubhaloProperties:
       snipshot: false
     StarFormingGasMass: true
     StarFormingGasMassFractionInMetals: true
+    StellarCentreOfMass: true
     StellarInitialMass: true
     StellarLuminosity: true
     StellarMass: true
