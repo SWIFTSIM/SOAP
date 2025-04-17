@@ -1348,7 +1348,9 @@ class SOParticleData:
             self.gas_masses
             * self.get_dataset("PartType0/ElementMassFractions")[self.gas_selection][
                 :,
-                self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/ElementMassFractions", "Iron"
+                ),
             ]
         ).sum() / self.Mgas
 
@@ -2244,7 +2246,9 @@ class SOParticleData:
             self.star_masses
             * self.get_dataset("PartType4/ElementMassFractions")[self.star_selection][
                 :,
-                self.snapshot_datasets.get_column_index("PartType4/ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType4/ElementMassFractions", "Iron"
+                ),
             ]
         ).sum() / self.Mstar
 
@@ -2856,7 +2860,9 @@ class SOParticleData:
         i_H = self.snapshot_datasets.get_column_index(
             "PartType0/ElementMassFractions", "Hydrogen"
         )
-        i_HI = self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "HI")
+        i_HI = self.snapshot_datasets.get_column_index(
+            "PartType0/SpeciesFractions", "HI"
+        )
         mass = (
             self.get_dataset("PartType0/Masses")
             * self.get_dataset("PartType0/ElementMassFractions")[:, i_H]
@@ -2880,7 +2886,9 @@ class SOParticleData:
         i_H = self.snapshot_datasets.get_column_index(
             "PartType0/ElementMassFractions", "Hydrogen"
         )
-        i_H2 = self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "H2")
+        i_H2 = self.snapshot_datasets.get_column_index(
+            "PartType0/SpeciesFractions", "H2"
+        )
         # Factor of two needed since we want mass fraction not number
         mass = (
             self.get_dataset("PartType0/Masses")

@@ -631,7 +631,9 @@ class ApertureParticleData:
         return (
             self.star_element_fractions[
                 :,
-                self.snapshot_datasets.get_column_index("PartType4/ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType4/ElementMassFractions", "Iron"
+                ),
             ]
             * self.mass_star
         )
@@ -714,7 +716,8 @@ class ApertureParticleData:
         if self.Nstar == 0:
             return None
         Lr = self.stellar_luminosities[
-            :, self.snapshot_datasets.get_column_index("PartType4/Luminosities", "GAMA_r")
+            :,
+            self.snapshot_datasets.get_column_index("PartType4/Luminosities", "GAMA_r"),
         ]
         Lrtot = Lr.sum()
         if Lrtot == 0:
@@ -1579,7 +1582,9 @@ class ApertureParticleData:
                 self.gas_mask_ap
             ][
                 :,
-                self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/ElementMassFractions", "Iron"
+                ),
             ]
         )
 
@@ -1731,7 +1736,10 @@ class ApertureParticleData:
         return (
             self.gas_mass_H
             * self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "HI")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "HI"
+                ),
             ]
         )
 
@@ -1745,7 +1753,10 @@ class ApertureParticleData:
         return (
             self.gas_mass_H
             * self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "H2")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
             ]
             * 2.0
         )
@@ -1946,7 +1957,10 @@ class ApertureParticleData:
             return None
         atomic_gas_mass = (
             self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "HI")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "HI"
+                ),
             ]
             * self.mass_gas
         )
@@ -1962,7 +1976,10 @@ class ApertureParticleData:
         molecular_gas_mass = (
             2
             * self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "H2")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
             ]
             * self.mass_gas
         )
@@ -1998,7 +2015,10 @@ class ApertureParticleData:
             return None
         atomic_gas_mass = (
             self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "HI")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "HI"
+                ),
             ]
             * self.mass_gas
         )
@@ -2014,7 +2034,10 @@ class ApertureParticleData:
         molecular_gas_mass = (
             2
             * self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "H2")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
             ]
             * self.mass_gas
         )
@@ -2051,7 +2074,10 @@ class ApertureParticleData:
         molecular_gas_mass = (
             2
             * self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "H2")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
             ]
             * self.mass_gas
         )
@@ -2088,7 +2114,10 @@ class ApertureParticleData:
         molecular_gas_mass = (
             2
             * self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "H2")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
             ]
             * self.mass_gas
         )
@@ -2206,7 +2235,9 @@ class ApertureParticleData:
         return (
             self.gas_diffuse_element_fractions[
                 :,
-                self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/ElementMassFractions", "Iron"
+                ),
             ]
             * self.mass_gas
         )
@@ -2265,10 +2296,15 @@ class ApertureParticleData:
             return None
         nH = self.gas_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nO = self.gas_element_fractions[
-            :, self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         return nO / (16.0 * nH)
 
@@ -2281,10 +2317,15 @@ class ApertureParticleData:
             return None
         nN = self.gas_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Nitrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Nitrogen"
+            ),
         ]
         nO = self.gas_element_fractions[
-            :, self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         ratio = np.zeros_like(nN)
         ratio[nO != 0] = (16.0 * nN[nO != 0]) / (14.0 * nO[nO != 0])
@@ -2298,10 +2339,16 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         nC = self.gas_element_fractions[
-            :, self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Carbon")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Carbon"
+            ),
         ]
         nO = self.gas_element_fractions[
-            :, self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         ratio = np.zeros_like(nC)
         ratio[nO != 0] = (16.0 * nC[nO != 0]) / (12.011 * nO[nO != 0])
@@ -2317,10 +2364,15 @@ class ApertureParticleData:
             return None
         nN = self.gas_diffuse_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Nitrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Nitrogen"
+            ),
         ]
         nO = self.gas_diffuse_element_fractions[
-            :, self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         ratio = np.zeros_like(nN)
         ratio[nO != 0] = (16.0 * nN[nO != 0]) / (14.0 * nO[nO != 0])
@@ -2334,10 +2386,16 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         nC = self.gas_diffuse_element_fractions[
-            :, self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Carbon")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Carbon"
+            ),
         ]
         nO = self.gas_diffuse_element_fractions[
-            :, self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         ratio = np.zeros_like(nC)
         ratio[nO != 0] = (16.0 * nC[nO != 0]) / (12.011 * nO[nO != 0])
@@ -2352,10 +2410,15 @@ class ApertureParticleData:
             return None
         nH = self.gas_diffuse_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nO = self.gas_diffuse_element_fractions[
-            :, self.snapshot_datasets.get_column_index("PartType0/ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         return nO / (16.0 * nH)
 
@@ -2815,10 +2878,15 @@ class ApertureParticleData:
             return None
         nH = self.star_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("PartType4/ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType4/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nFe = self.star_element_fractions[
-            :, self.snapshot_datasets.get_column_index("PartType4/ElementMassFractions", "Iron")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType4/ElementMassFractions", "Iron"
+            ),
         ]
         return nFe / (55.845 * nH)
 
@@ -2832,7 +2900,9 @@ class ApertureParticleData:
             return None
         nH = self.star_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("PartType4/ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType4/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nFe = self.get_dataset("PartType4/IronMassFractionsFromSNIa")[
             self.star_mask_all
@@ -2963,7 +3033,9 @@ class ApertureParticleData:
             return None
         nH = self.star_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("PartType4/ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType4/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nMg = self.star_element_fractions[
             :,

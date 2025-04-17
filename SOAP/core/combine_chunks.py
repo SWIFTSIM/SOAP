@@ -632,9 +632,9 @@ def combine_chunks(
         assert args.halo_format in ["HBTplus"]
 
         for name, snap_nr in [
-                ('Progenitor', args.snapshot_nr - 1),
-                ('Descendant', args.snapshot_nr + 1),
-            ]:
+            ("Progenitor", args.snapshot_nr - 1),
+            ("Descendant", args.snapshot_nr + 1),
+        ]:
 
             # Set the default value
             prev_index = -1 * np.ones(order.shape[0], dtype=np.int32)
@@ -659,18 +659,22 @@ def combine_chunks(
                 # This assumes the metadata in the previous/next snapshot
                 # is the same as in the current snapshot
                 prev_data = read_hbtplus.read_hbtplus_catalogue(
-                    comm_world, prev_basename, cellgrid.a_unit, cellgrid.snap_unit_registry, cellgrid.boxsize
+                    comm_world,
+                    prev_basename,
+                    cellgrid.a_unit,
+                    cellgrid.snap_unit_registry,
+                    cellgrid.boxsize,
                 )
                 prev_order, _ = spatial_sort(
-                    prev_data['cofp'],
-                    prev_data['index'],
+                    prev_data["cofp"],
+                    prev_data["index"],
                     cellgrid,
                     comm_world,
                 )
-
                 prev_track_id = psort.fetch_elements(
-                    prev_data['TrackId'], prev_order, comm=comm_world
+                    prev_data["TrackId"], prev_order, comm=comm_world
                 )
+                # Find where each TrackId appears in the previous/next snapshot
                 prev_index = psort.parallel_match(
                     track_id, prev_track_id, comm=comm_world
                 )

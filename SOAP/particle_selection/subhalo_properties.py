@@ -428,7 +428,8 @@ class SubhaloParticleData:
         if self.Nstar == 0:
             return None
         Lr = self.stellar_luminosities[
-            :, self.snapshot_datasets.get_column_index("PartType4/Luminosities", "GAMA_r")
+            :,
+            self.snapshot_datasets.get_column_index("PartType4/Luminosities", "GAMA_r"),
         ]
         Lrtot = Lr.sum()
         return ((Lr / Lrtot) * self.stellar_ages).sum()

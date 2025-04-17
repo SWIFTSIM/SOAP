@@ -82,7 +82,7 @@ class SnapshotDatasets:
                     for group, datasets in self.datasets_in_file.items():
                         if not dset in datasets:
                             continue
-                        name = f'{group}/{dset}'
+                        name = f"{group}/{dset}"
                         self.named_columns[name] = {}
                         # turn the list into a dictionary that maps a column name to
                         # a colum index
@@ -196,4 +196,3 @@ class SnapshotDatasets:
         using get_dataset().
         """
         return self.named_columns[name][column_name]
-
