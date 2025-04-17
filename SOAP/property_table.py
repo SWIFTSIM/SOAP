@@ -1327,7 +1327,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of baryons (gas and stars), relative to the centre of potential and baryonic centre of mass velocity.",
+            description="Total angular momentum of baryons (gas and stars), relative to the HaloCentre and baryonic centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1346,7 +1346,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of the dark matter, relative to the centre of potential and DM centre of mass velocity.",
+            description="Total angular momentum of the dark matter, relative to the HaloCentre and DM centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[
@@ -1362,7 +1362,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of the gas, relative to the centre of potential and gas centre of mass velocity.",
+            description="Total angular momentum of the gas, relative to the HaloCentre and gas centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1417,7 +1417,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of the stars, relative to the centre of potential and stellar centre of mass velocity.",
+            description="Total angular momentum of the stars, relative to the HaloCentre and stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3271,7 +3271,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Kappa-corot for baryons (gas and stars), relative to the centre of potential and the centre of mass velocity of the baryons.",
+            description="Kappa-corot for baryons (gas and stars), relative to the HaloCentre and the centre of mass velocity of the baryons.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3290,7 +3290,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Kappa-corot for gas, relative to the centre of potential and the centre of mass velocity of the gas.",
+            description="Kappa-corot for gas, relative to the HaloCentre and the centre of mass velocity of the gas.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3306,7 +3306,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Kappa-corot for stars, relative to the centre of potential and the centre of mass velocity of the stars.",
+            description="Kappa-corot for stars, relative to the HaloCentre and the centre of mass velocity of the stars.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4417,7 +4417,7 @@ class PropertyTable:
             "dm",
             "star",
             "baryon",
-            "Input",
+            "InputHalos",
             "VR",
             "HBTplus",
             "FOF",
@@ -4456,6 +4456,8 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
             prop = self.properties[prop_name]
             footnotes = self.get_footnotes(prop_name)
             prop_outputname = f"{prop['name']}{footnotes}"
+            if prop_outputname.split('/')[0] in ['HBTplus', 'VR', 'FOF']:
+                prop_outputname = 'InputHalos/' + prop_outputname
             prop_outputname = word_wrap_name(prop_outputname)
             prop_shape = f'{prop["shape"]}'
             prop_dtype = prop["dtype"]
@@ -4646,7 +4648,7 @@ class DummyProperties:
     base_halo_type = "DummyProperties"
 
     def __init__(self, halo_finder):
-        categories = ["SOAP", "Input", halo_finder]
+        categories = ["SOAP", "InputHalos", halo_finder]
         # Currently FOF properties are only stored for HBT
         if halo_finder == "HBTplus":
             categories += ["FOF"]
