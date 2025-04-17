@@ -1,5 +1,6 @@
 #!/bin/env python
 
+import os
 import socket
 import time
 
@@ -10,6 +11,7 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 from virgo.util.partial_formatter import PartialFormatter
 
+from catalogue_readers import read_hbtplus
 from property_calculation.subhalo_rank import compute_subhalo_rank
 from . import swift_units
 from .mpi_timer import MPITimer
@@ -26,6 +28,36 @@ def sub_snapnum(filename, snapnum):
     pf = PartialFormatter()
     filename = pf.format(filename, snap_nr=snapnum, file_nr=None)
     return filename
+
+
+def spatial_sort(halo_cofp, halo_index, cellgrid, comm):
+    """
+    Sort the halos based on what cell they are in, then based
+    on their catalogue index
+    """
+    cell_indices = (halo_cofp // cellgrid.cell_size).value.astype("int64")
+    assert cellgrid.dimension[0] >= cellgrid.dimension[1] >= cellgrid.dimension[2]
+    # Assert that all halos are within the box
+    assert np.min(cell_indices) >= 0
+    for i_cell in range(3):
+        assert np.max(cell_indices[:, i_cell]) < cellgrid.dimension[i_cell]
+    # Sort first based on position, then on catalogue index
+    sort_hash_dtype = [("cell_index", np.int64), ("catalogue_index", np.int64)]
+    sort_hash = np.zeros(cell_indices.shape[0], dtype=sort_hash_dtype)
+    sort_hash["cell_index"] += cell_indices[:, 0] * cellgrid.dimension[0] ** 2
+    sort_hash["cell_index"] += cell_indices[:, 1] * cellgrid.dimension[1]
+    sort_hash["cell_index"] += cell_indices[:, 2]
+    sort_hash["catalogue_index"] = halo_index
+    order = psort.parallel_sort(sort_hash, return_index=True, comm=comm)
+
+    # Calculate local count of halos in each cell, and combine on rank 0
+    local_cell_counts = np.bincount(
+        sort_hash["cell_index"], minlength=cellgrid.nr_cells[0]
+    ).astype("int64")
+    assert local_cell_counts.shape[0] == np.prod(cellgrid.dimension)
+    cell_counts = comm.reduce(local_cell_counts)
+
+    return order, cell_counts
 
 
 def combine_chunks(
@@ -60,33 +92,11 @@ def combine_chunks(
     ):
         halo_cofp = scratch_file.read("InputHalos/HaloCentre") * cofp_units
         halo_index = scratch_file.read("InputHalos/HaloCatalogueIndex")
-        cell_indices = (halo_cofp // cellgrid.cell_size).value.astype("int64")
-        assert cellgrid.dimension[0] >= cellgrid.dimension[1] >= cellgrid.dimension[2]
-        # Assert that all halos are within the box
-        assert np.min(cell_indices) >= 0
-        for i_cell in range(3):
-            assert np.max(cell_indices[:, i_cell]) < cellgrid.dimension[i_cell]
-        # Sort first based on position, then on catalogue index
-        sort_hash_dtype = [("cell_index", np.int64), ("catalogue_index", np.int64)]
-        sort_hash = np.zeros(cell_indices.shape[0], dtype=sort_hash_dtype)
-        sort_hash["cell_index"] += cell_indices[:, 0] * cellgrid.dimension[0] ** 2
-        sort_hash["cell_index"] += cell_indices[:, 1] * cellgrid.dimension[1]
-        sort_hash["cell_index"] += cell_indices[:, 2]
-        sort_hash["catalogue_index"] = halo_index
-        order = psort.parallel_sort(sort_hash, return_index=True, comm=comm_world)
-
-        # Calculate local count of halos in each cell, and combine on rank 0
-        local_cell_counts = np.bincount(
-            sort_hash["cell_index"], minlength=cellgrid.nr_cells[0]
-        ).astype("int64")
-        assert local_cell_counts.shape[0] == np.prod(cellgrid.dimension)
-        cell_counts = comm_world.reduce(local_cell_counts)
+        order, cell_counts = spatial_sort(halo_cofp, halo_index, cellgrid, comm_world)
 
         # Free up some memory
         del halo_cofp
         del halo_index
-        del cell_indices
-        del sort_hash
 
     # Determine total number of halos
     total_nr_halos = comm_world.allreduce(len(order))
@@ -121,6 +131,9 @@ def combine_chunks(
         # Host halo index
         soap_props.add("SOAP/HostHaloIndex")
         props_to_keep.update(("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"))
+        # Progenitor/Descendant SOAP index
+        soap_props.update(("SOAP/ProgenitorIndex", "SOAP/DescendantIndex"))
+        props_to_keep.add("InputHalos/HBTplus/TrackId")
 
     # Also keep M200c for calculating reduced_snapshot flag
     if "reduced_snapshots" in args.calculations:
@@ -613,6 +626,62 @@ def combine_chunks(
     else:
         if comm_world.Get_rank() == 0:
             print("Not calculating reduced snapshot membership")
+
+    if "SOAP/ProgenitorIndex" in soap_props:
+        assert "SOAP/DescendantIndex" in soap_props
+        assert args.halo_format in ["HBTplus"]
+
+        for name, snap_nr in [
+                ('Progenitor', args.snapshot_nr - 1),
+                ('Descendant', args.snapshot_nr + 1),
+            ]:
+
+            # Set the default value
+            prev_index = -1 * np.ones(order.shape[0], dtype=np.int32)
+
+            # Check if the previous/next HBT catalogue is available
+            prev_basename = args.halo_basename.format(snap_nr=snap_nr)
+            if comm_world.Get_rank() == 0:
+                prev_filename = prev_basename + ".0.hdf5"
+                if os.path.exists(prev_filename):
+                    calculate_prev_index = True
+                else:
+                    print(f"Can't find halo catalogues for calculating {name}Index")
+                    calculate_prev_index = False
+            else:
+                calculate_prev_index = None
+            calculate_prev_index = comm_world.bcast(calculate_prev_index)
+
+            if calculate_prev_index:
+                track_id = props_kept["InputHalos/HBTplus/TrackId"]
+
+                # Load data from previous/next halo catalogue and sort it
+                # This assumes the metadata in the previous/next snapshot
+                # is the same as in the current snapshot
+                prev_data = read_hbtplus.read_hbtplus_catalogue(
+                    comm_world, prev_basename, cellgrid.a_unit, cellgrid.snap_unit_registry, cellgrid.boxsize
+                )
+                prev_order, _ = spatial_sort(
+                    prev_data['cofp'],
+                    prev_data['index'],
+                    cellgrid,
+                    comm_world,
+                )
+
+                prev_track_id = psort.fetch_elements(
+                    prev_data['TrackId'], prev_order, comm=comm_world
+                )
+                prev_index = psort.parallel_match(
+                    track_id, prev_track_id, comm=comm_world
+                )
+
+            phdf5.collective_write(
+                outfile,
+                f"SOAP/{name}Index",
+                prev_index,
+                create_dataset=False,
+                comm=comm_world,
+            )
 
     # Done.
     outfile.close()
