@@ -1156,7 +1156,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.gas_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Hydrogen"
+                    "PartType0/ElementMassFractions", "Hydrogen"
                 ),
             ]
             * self.proj_mass_gas
@@ -1173,7 +1173,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.gas_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Helium"
+                    "PartType0/ElementMassFractions", "Helium"
                 ),
             ]
             * self.proj_mass_gas
@@ -1202,7 +1202,7 @@ class SingleProjectionProjectedApertureParticleData:
             * self.gas_species_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "SpeciesFractions", "HI"
+                    "PartType0/SpeciesFractions", "HI"
                 ),
             ]
         )
@@ -1219,7 +1219,7 @@ class SingleProjectionProjectedApertureParticleData:
             * self.gas_species_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "SpeciesFractions", "H2"
+                    "PartType0/SpeciesFractions", "H2"
                 ),
             ]
             * 2.0
@@ -1283,7 +1283,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType4/ElementMassFractions", "Oxygen"
                 ),
             ]
             * self.proj_mass_star
@@ -1300,7 +1300,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Magnesium"
+                    "PartType4/ElementMassFractions", "Magnesium"
                 ),
             ]
             * self.proj_mass_star
@@ -1317,7 +1317,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Iron"
+                    "PartType4/ElementMassFractions", "Iron"
                 ),
             ]
             * self.proj_mass_star
