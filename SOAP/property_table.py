@@ -275,6 +275,10 @@ class PropertyTable:
             "LinearMassWeightedMagnesiumOverHydrogenOfStars",
             "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
         ],
+        "footnote_progenitor_descendant.tex": [
+            "SOAP/DescendantIndex",
+            "SOAP/ProgenitorIndex",
+        ],
     }
 
     # dictionary with human-friendly descriptions of the various lossy
