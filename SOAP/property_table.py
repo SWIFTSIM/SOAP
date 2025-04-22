@@ -275,6 +275,10 @@ class PropertyTable:
             "LinearMassWeightedMagnesiumOverHydrogenOfStars",
             "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
         ],
+        "footnote_progenitor_descendant.tex": [
+            "SOAP/DescendantIndex",
+            "SOAP/ProgenitorIndex",
+        ],
     }
 
     # dictionary with human-friendly descriptions of the various lossy
@@ -4259,6 +4263,30 @@ class PropertyTable:
             dtype=np.int32,
             unit="dimensionless",
             description="Whether this halo is included in the reduced snapshot.",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "SOAP/ProgenitorIndex": Property(
+            name="SOAP/ProgenitorIndex",
+            shape=1,
+            dtype=np.int32,
+            unit="dimensionless",
+            description="Index (within the previous snapshot SOAP arrays) of the main progenitor of this subhalo.",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "SOAP/DescendantIndex": Property(
+            name="SOAP/DescendantIndex",
+            shape=1,
+            dtype=np.int32,
+            unit="dimensionless",
+            description="Index (within the next snapshot SOAP arrays) of the main descendant of this subhalo.",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],

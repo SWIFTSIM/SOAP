@@ -1,5 +1,6 @@
 #!/bin/env python
 
+import os
 import socket
 import time
 
@@ -10,6 +11,7 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 from virgo.util.partial_formatter import PartialFormatter
 
+from catalogue_readers import read_hbtplus
 from property_calculation.subhalo_rank import compute_subhalo_rank
 from . import swift_units
 from .mpi_timer import MPITimer
@@ -26,6 +28,36 @@ def sub_snapnum(filename, snapnum):
     pf = PartialFormatter()
     filename = pf.format(filename, snap_nr=snapnum, file_nr=None)
     return filename
+
+
+def spatial_sort(halo_cofp, halo_index, cellgrid, comm):
+    """
+    Sort the halos based on what cell they are in, then based
+    on their catalogue index
+    """
+    cell_indices = (halo_cofp // cellgrid.cell_size).value.astype("int64")
+    assert cellgrid.dimension[0] >= cellgrid.dimension[1] >= cellgrid.dimension[2]
+    # Assert that all halos are within the box
+    assert np.min(cell_indices) >= 0
+    for i_cell in range(3):
+        assert np.max(cell_indices[:, i_cell]) < cellgrid.dimension[i_cell]
+    # Sort first based on position, then on catalogue index
+    sort_hash_dtype = [("cell_index", np.int64), ("catalogue_index", np.int64)]
+    sort_hash = np.zeros(cell_indices.shape[0], dtype=sort_hash_dtype)
+    sort_hash["cell_index"] += cell_indices[:, 0] * cellgrid.dimension[0] ** 2
+    sort_hash["cell_index"] += cell_indices[:, 1] * cellgrid.dimension[1]
+    sort_hash["cell_index"] += cell_indices[:, 2]
+    sort_hash["catalogue_index"] = halo_index
+    order = psort.parallel_sort(sort_hash, return_index=True, comm=comm)
+
+    # Calculate local count of halos in each cell, and combine on rank 0
+    local_cell_counts = np.bincount(
+        sort_hash["cell_index"], minlength=cellgrid.nr_cells[0]
+    ).astype("int64")
+    assert local_cell_counts.shape[0] == np.prod(cellgrid.dimension)
+    cell_counts = comm.reduce(local_cell_counts)
+
+    return order, cell_counts
 
 
 def combine_chunks(
@@ -60,42 +92,66 @@ def combine_chunks(
     ):
         halo_cofp = scratch_file.read("InputHalos/HaloCentre") * cofp_units
         halo_index = scratch_file.read("InputHalos/HaloCatalogueIndex")
-        cell_indices = (halo_cofp // cellgrid.cell_size).value.astype("int64")
-        assert cellgrid.dimension[0] >= cellgrid.dimension[1] >= cellgrid.dimension[2]
-        # Assert that all halos are within the box
-        assert np.min(cell_indices) >= 0
-        for i_cell in range(3):
-            assert np.max(cell_indices[:, i_cell]) < cellgrid.dimension[i_cell]
-        # Sort first based on position, then on catalogue index
-        sort_hash_dtype = [("cell_index", np.int64), ("catalogue_index", np.int64)]
-        sort_hash = np.zeros(cell_indices.shape[0], dtype=sort_hash_dtype)
-        sort_hash["cell_index"] += cell_indices[:, 0] * cellgrid.dimension[0] ** 2
-        sort_hash["cell_index"] += cell_indices[:, 1] * cellgrid.dimension[1]
-        sort_hash["cell_index"] += cell_indices[:, 2]
-        sort_hash["catalogue_index"] = halo_index
-        order = psort.parallel_sort(sort_hash, return_index=True, comm=comm_world)
-
-        # Calculate local count of halos in each cell, and combine on rank 0
-        local_cell_counts = np.bincount(
-            sort_hash["cell_index"], minlength=cellgrid.nr_cells[0]
-        ).astype("int64")
-        assert local_cell_counts.shape[0] == np.prod(cellgrid.dimension)
-        cell_counts = comm_world.reduce(local_cell_counts)
+        order, cell_counts = spatial_sort(halo_cofp, halo_index, cellgrid, comm_world)
 
         # Free up some memory
         del halo_cofp
         del halo_index
-        del cell_indices
-        del sort_hash
 
     # Determine total number of halos
     total_nr_halos = comm_world.allreduce(len(order))
 
-    # Get metadata for derived quantities: these don't exist in the chunk
+    # Handle derived (SOAP) quantities: these don't exist in the chunk
     # output but will be computed by combining other halo properties.
+    soap_props = set()  # SOAP properties which will be calculated
+    props_to_keep = set()  # Properties required from the chunk files
+    if args.halo_format == "VR":
+        # Subhalo rank
+        soap_props.add("SOAP/SubhaloRankByBoundMass")
+        props_to_keep.update(
+            (
+                "InputHalos/VR/ID",
+                "BoundSubhalo/TotalMass",
+                "InputHalos/VR/HostHaloID",
+            )
+        )
+        # Host halo index
+        soap_props.add("SOAP/HostHaloIndex")
+        props_to_keep.update(("InputHalos/VR/ID", "InputHalos/VR/HostHaloID"))
+    elif args.halo_format == "HBTplus":
+        # Subhalo rank
+        soap_props.add("SOAP/SubhaloRankByBoundMass")
+        props_to_keep.update(
+            (
+                "InputHalos/HBTplus/HostFOFId",
+                "BoundSubhalo/TotalMass",
+                "InputHalos/HBTplus/TrackId",
+            )
+        )
+        # Host halo index
+        soap_props.add("SOAP/HostHaloIndex")
+        props_to_keep.update(("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"))
+        # Progenitor/Descendant SOAP index
+        soap_props.update(("SOAP/ProgenitorIndex", "SOAP/DescendantIndex"))
+        props_to_keep.add("InputHalos/HBTplus/TrackId")
+
+    # Also keep M200c for calculating reduced_snapshot flag
+    if "reduced_snapshots" in args.calculations:
+        for metadata in ref_metadata:
+            if metadata[0] == "SO/200_crit/TotalMass":
+                soap_props.add("SOAP/IncludedInReducedSnapshot")
+                props_to_keep.add("SO/200_crit/TotalMass")
+                break
+        else:
+            if comm_world.Get_rank() == 0:
+                print("IncludedInReducedSnapshot is enabled, but M200c is missing")
+
+    # Get metadata for derived quantities
     soap_metadata = []
     for key, prop in PropertyTable.full_property_list.items():
         if not key.startswith("SOAP/"):
+            continue
+        if not key in soap_props:
             continue
         name = prop.name
         size = prop.shape
@@ -139,6 +195,9 @@ def combine_chunks(
             fof_metadata.append(
                 (name, size, unit, dtype, description, physical, a_exponent)
             )
+
+        # Keep the properties required for matching subhalos to FOFs
+        props_to_keep.update(("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"))
 
     # First MPI rank sets up the output file
     with MPITimer("Creating output file", comm_world):
@@ -303,31 +362,6 @@ def combine_chunks(
 
     # Reopen the output file in parallel mode
     outfile = h5py.File(output_file, "r+", driver="mpio", comm=comm_world)
-
-    # Certain properties need to be kept for calculating the SOAP properties
-    subhalo_rank_props = {
-        "VR": (
-            "InputHalos/VR/ID",
-            "BoundSubhalo/TotalMass",
-            "InputHalos/VR/HostHaloID",
-        ),
-        "HBTplus": (
-            "InputHalos/HBTplus/HostFOFId",
-            "BoundSubhalo/TotalMass",
-            "InputHalos/HBTplus/TrackId",
-        ),
-    }.get(args.halo_format, ())
-    host_halo_index_props = {
-        "VR": ("InputHalos/VR/ID", "InputHalos/VR/HostHaloID"),
-        "HBTplus": ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"),
-    }.get(args.halo_format, ())
-    fof_props = {
-        "HBTplus": ("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral")
-    }.get(args.halo_format, ())
-    props_to_keep = set((*subhalo_rank_props, *host_halo_index_props, *fof_props))
-    # Also keep M200c for calculating reduced_snapshot flag
-    if "reduced_snapshots" in args.calculations:
-        props_to_keep.add("SO/200_crit/TotalMass")
     props_kept = {}
 
     with MPITimer("Writing output properties", comm_world):
@@ -455,7 +489,7 @@ def combine_chunks(
         )
 
     # Calculate the index in the SOAP output of the host field halo (VR) or the central subhalo of the host FOF group (HBTplus)
-    if len(host_halo_index_props) > 0:
+    if "SOAP/HostHaloIndex" in soap_props:
         with MPITimer("Calculate and write host index of each satellite", comm_world):
             if args.halo_format == "VR":
                 # We don't need to worry about hostless halos for VR
@@ -482,21 +516,20 @@ def combine_chunks(
                 indices = psort.parallel_match(host_ids, cen_fof_id, comm=comm_world)
                 host_halo_index = -1 * np.ones(sat_mask.shape[0], dtype=np.int64)
                 host_halo_index[has_host_mask] = indices
+
+            phdf5.collective_write(
+                outfile,
+                "SOAP/HostHaloIndex",
+                host_halo_index,
+                create_dataset=False,
+                comm=comm_world,
+            )
     else:
-        # Set default value
-        host_halo_index = -1 * np.ones(order.shape[0], dtype=np.int64)
         if comm_world.Get_rank() == 0:
             print("Not calculating host halo index")
-    phdf5.collective_write(
-        outfile,
-        "SOAP/HostHaloIndex",
-        host_halo_index,
-        create_dataset=False,
-        comm=comm_world,
-    )
 
     # Write out subhalo ranking by mass within host halos, if we have all the required quantities.
-    if len(subhalo_rank_props) > 0:
+    if "SOAP/SubhaloRankByBoundMass" in soap_props:
         with MPITimer("Calculate and write subhalo ranking by mass", comm_world):
             if args.halo_format == "VR":
                 # Set field halos to be their own host (VR sets hostid=-1 in this case)
@@ -513,23 +546,19 @@ def combine_chunks(
             subhalo_rank = compute_subhalo_rank(
                 host_id, props_kept["BoundSubhalo/TotalMass"], comm_world
             )
+            phdf5.collective_write(
+                outfile,
+                "SOAP/SubhaloRankByBoundMass",
+                subhalo_rank,
+                create_dataset=False,
+                comm=comm_world,
+            )
     else:
-        # Set default value
-        subhalo_rank = -1 * np.ones(order.shape[0], dtype=np.int32)
         if comm_world.Get_rank() == 0:
             print("Not calculating subhalo ranking by mass")
-    phdf5.collective_write(
-        outfile,
-        "SOAP/SubhaloRankByBoundMass",
-        subhalo_rank,
-        create_dataset=False,
-        comm=comm_world,
-    )
 
     # Determine which objects should be saved in the reduced snapshot files
-    if ("reduced_snapshots" in args.calculations) and (
-        "SO/200_crit/TotalMass" in props_kept
-    ):
+    if "SOAP/IncludedInReducedSnapshot" in soap_props:
         with MPITimer("Calculate and write reduced snapshot membership", comm_world):
             # Load parameters. We create mass bins with the lower limit of the smallest mass bin
             # given by "min_halo_mass". The size of the bins is set by "halo_bin_size_dex".
@@ -587,18 +616,76 @@ def combine_chunks(
                 assert n_keep[i_bin] <= np.sum(mask)
                 keep_idx = np.random.choice(idx, size=n_keep[i_bin], replace=False)
                 reduced_snapshot[keep_idx] = 1
+            phdf5.collective_write(
+                outfile,
+                "SOAP/IncludedInReducedSnapshot",
+                reduced_snapshot,
+                create_dataset=False,
+                comm=comm_world,
+            )
     else:
-        # Set default value
-        reduced_snapshot = np.zeros(order.shape[0], dtype=np.int32)
         if comm_world.Get_rank() == 0:
             print("Not calculating reduced snapshot membership")
-    phdf5.collective_write(
-        outfile,
-        "SOAP/IncludedInReducedSnapshot",
-        reduced_snapshot,
-        create_dataset=False,
-        comm=comm_world,
-    )
+
+    if "SOAP/ProgenitorIndex" in soap_props:
+        assert "SOAP/DescendantIndex" in soap_props
+        assert args.halo_format in ["HBTplus"]
+
+        for name, snap_nr in [
+            ("Progenitor", args.snapshot_nr - 1),
+            ("Descendant", args.snapshot_nr + 1),
+        ]:
+
+            # Set the default value
+            prev_index = -1 * np.ones(order.shape[0], dtype=np.int32)
+
+            # Check if the previous/next HBT catalogue is available
+            prev_basename = args.halo_basename.format(snap_nr=snap_nr)
+            if comm_world.Get_rank() == 0:
+                prev_filename = prev_basename + ".0.hdf5"
+                if os.path.exists(prev_filename):
+                    calculate_prev_index = True
+                else:
+                    print(f"Can't find halo catalogues for calculating {name}Index")
+                    calculate_prev_index = False
+            else:
+                calculate_prev_index = None
+            calculate_prev_index = comm_world.bcast(calculate_prev_index)
+
+            if calculate_prev_index:
+                track_id = props_kept["InputHalos/HBTplus/TrackId"]
+
+                # Load data from previous/next halo catalogue and sort it
+                # This assumes the metadata in the previous/next snapshot
+                # is the same as in the current snapshot
+                prev_data = read_hbtplus.read_hbtplus_catalogue(
+                    comm_world,
+                    prev_basename,
+                    cellgrid.a_unit,
+                    cellgrid.snap_unit_registry,
+                    cellgrid.boxsize,
+                )
+                prev_order, _ = spatial_sort(
+                    prev_data["cofp"],
+                    prev_data["index"],
+                    cellgrid,
+                    comm_world,
+                )
+                prev_track_id = psort.fetch_elements(
+                    prev_data["TrackId"], prev_order, comm=comm_world
+                )
+                # Find where each TrackId appears in the previous/next snapshot
+                prev_index = psort.parallel_match(
+                    track_id, prev_track_id, comm=comm_world
+                )
+
+            phdf5.collective_write(
+                outfile,
+                f"SOAP/{name}Index",
+                prev_index,
+                create_dataset=False,
+                comm=comm_world,
+            )
 
     # Done.
     outfile.close()
