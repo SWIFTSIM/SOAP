@@ -221,6 +221,13 @@ class SubhaloParticleData:
         return self.mass[self.gas_mask_sh]
 
     @lazy_property
+    def mass_dust(self) -> unyt.unyt_array:
+        """
+        Masses of the dust particles in the subhalo.
+        """
+        return self.gas_total_dust_mass_fractions * self.mass_gas
+
+    @lazy_property
     def mass_dm(self) -> unyt.unyt_array:
         """
         Masses of the dark matter particles in the subhalo.
@@ -310,6 +317,24 @@ class SubhaloParticleData:
         Total mass of the gas particles in the subhalo.
         """
         return self.mass_gas.sum()
+
+    @lazy_property
+    def DustMass(self) -> unyt.unyt_quantity:
+        """
+        Total dust mass of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.mass_dust.sum()
+
+    @lazy_property
+    def gas_total_dust_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Total dust mass fractions in gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/TotalDustMassFractions")[self.gas_mask_all]
 
     @lazy_property
     def Mdm(self) -> unyt.unyt_quantity:
@@ -760,6 +785,17 @@ class SubhaloParticleData:
         return (
             (self.total_mass_fraction[:, None] * self.position).sum(axis=0)
             + self.centre
+        ) % self.boxsize
+
+    @lazy_property
+    def com_star(self) -> unyt.unyt_array:
+        """
+        Centre of mass of star particles in the subhalo.
+        """
+        if self.Mstar == 0:
+            return None
+        return (
+            (self.star_mass_fraction[:, None] * self.pos_star).sum(axis=0) + self.centre
         ) % self.boxsize
 
     @lazy_property
@@ -1736,6 +1772,17 @@ class SubhaloParticleData:
         return get_half_mass_radius(self.radius, self.mass, self.Mtot)
 
     @lazy_property
+    def HalfMassRadiusDust(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the dust particle distribution in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.radius[self.gas_mask_sh], self.mass_dust, self.DustMass
+        )
+
+    @lazy_property
     def HalfMassRadiusGas(self) -> unyt.unyt_quantity:
         """
         Half-mass radius of the gas particle distribution in the subhalo.
@@ -1838,6 +1885,7 @@ class SubhaloProperties(HaloProperty):
             "MostMassiveBlackHoleTotalAccretedMass",
             "MostMassiveBlackHoleFormationScalefactor",
             "com",
+            "com_star",
             "vcom",
             "Lgas",
             "Ldm",
@@ -1861,7 +1909,9 @@ class SubhaloProperties(HaloProperty):
             "DM_Vmax_soft",
             "DM_R_vmax_soft",
             "spin_parameter",
+            "DustMass",
             "HalfMassRadiusTot",
+            "HalfMassRadiusDust",
             "HalfMassRadiusGas",
             "HalfMassRadiusDM",
             "HalfMassRadiusStar",

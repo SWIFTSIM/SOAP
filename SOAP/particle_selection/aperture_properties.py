@@ -395,6 +395,13 @@ class ApertureParticleData:
         return self.mass[self.type == 0]
 
     @lazy_property
+    def mass_dust(self) -> unyt.unyt_array:
+        """
+        Dust mass of the gas particles.
+        """
+        return self.gas_total_dust_mass_fractions * self.mass[self.type == 0]
+
+    @lazy_property
     def mass_dm(self) -> unyt.unyt_array:
         """
         Mass of the DM particles.
@@ -1798,6 +1805,26 @@ class ApertureParticleData:
         return self.gas_mass_HI.sum()
 
     @lazy_property
+    def DustMass(self) -> unyt.unyt_quantity:
+        """
+        Total dust mass in gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.mass_dust.sum()
+
+    @lazy_property
+    def gas_total_dust_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Total dust mass fractions in gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/TotalDustMassFractions")[self.gas_mask_all][
+            self.gas_mask_ap
+        ]
+
+    @lazy_property
     def gas_dust_mass_fractions(self) -> unyt.unyt_array:
         """
         Dust mass fractions in gas particles.
@@ -3124,6 +3151,17 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def HalfMassRadiusDust(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of dust.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.radius[self.type == 0], self.mass_dust, self.DustMass
+        )
+
+    @lazy_property
     def HalfMassRadiusDM(self) -> unyt.unyt_quantity:
         """
         Half mass radius of dark matter.
@@ -3231,6 +3269,7 @@ class ApertureProperties(HaloProperty):
         "StellarLuminosity": False,
         "starmetalfrac": False,
         "HalfMassRadiusGas": False,
+        "HalfMassRadiusDust": False,
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
         "HalfMassRadiusBaryon": False,
@@ -3246,6 +3285,7 @@ class ApertureProperties(HaloProperty):
         "MolecularHydrogenMass": False,
         "AtomicHydrogenMass": False,
         "starMgfrac": False,
+        "DustMass": False,
         "DustGraphiteMass": False,
         "DustGraphiteMassInAtomicGas": False,
         "DustGraphiteMassInMolecularGas": False,
