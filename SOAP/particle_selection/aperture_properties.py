@@ -190,6 +190,7 @@ class ApertureParticleData:
         data: Dict,
         types_present: List[str],
         inclusive: bool,
+        include_central_particles: bool,
         aperture_radius: unyt.unyt_quantity,
         stellar_age_calculator: StellarAgeCalculator,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
@@ -212,6 +213,8 @@ class ApertureParticleData:
          - inclusive: bool
            Whether or not to include particles not gravitationally bound to the subhalo
            in the property calculations.
+         - inclusive: bool
+           Whether or not to include particles bound to the host central subhalo
          - aperture_radius: unyt.unyt_quantity
            Aperture radius.
          - stellar_age_calculator: StellarAgeCalculator
@@ -234,6 +237,7 @@ class ApertureParticleData:
         self.data = data
         self.types_present = types_present
         self.inclusive = inclusive
+        self.include_central_particles = include_central_particles
         self.aperture_radius = aperture_radius
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
@@ -256,6 +260,7 @@ class ApertureParticleData:
         """
         self.centre = self.input_halo["cofp"]
         self.index = self.input_halo["index"]
+        self.host_index = self.input_halo["HBTplus/HostHaloCatalogueIndex"]
         mass = []
         position = []
         radius = []
@@ -266,8 +271,13 @@ class ApertureParticleData:
             grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
             if self.inclusive:
                 in_halo = np.ones(grnr.shape, dtype=bool)
+                assert not self.include_central_particles
             else:
                 in_halo = grnr == self.index
+                # TODO: This is a massive waste of time for centrals, we need to skip them
+                if self.include_central_particles:
+                    # print(np.sum(grnr == self.host_index))
+                    in_halo |= grnr == self.host_index
             mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
             pos = (
                 self.get_dataset(f"{ptype}/Coordinates")[in_halo, :]
@@ -289,7 +299,7 @@ class ApertureParticleData:
         self.types = np.concatenate(types)
         self.softening = np.concatenate(softening)
 
-        self.mask = self.radius <= self.aperture_radius
+        self.mask = self.radius <= 1.0001 * self.aperture_radius
 
         self.mass = self.mass[self.mask]
         self.position = self.position[self.mask]
@@ -526,7 +536,10 @@ class ApertureParticleData:
         if self.inclusive:
             return np.ones(groupnr_bound.shape, dtype=bool)
         else:
-            return groupnr_bound == self.index
+            in_halo = groupnr_bound == self.index
+            if self.include_central_particles:
+                in_halo |= groupnr_bound == self.host_index
+            return in_halo
 
     @lazy_property
     def Mstar_init(self) -> unyt.unyt_quantity:
@@ -745,7 +758,10 @@ class ApertureParticleData:
         if self.inclusive:
             return np.ones(groupnr_bound.shape, dtype=bool)
         else:
-            return groupnr_bound == self.index
+            in_halo = groupnr_bound == self.index
+            if self.include_central_particles:
+                in_halo |= groupnr_bound == self.host_index
+            return in_halo
 
     @lazy_property
     def BH_subgrid_masses(self) -> unyt.unyt_array:
@@ -1410,7 +1426,10 @@ class ApertureParticleData:
         if self.inclusive:
             return np.ones(groupnr_bound.shape, dtype=bool)
         else:
-            return groupnr_bound == self.index
+            in_halo = groupnr_bound == self.index
+            if self.include_central_particles:
+                in_halo |= groupnr_bound == self.host_index
+            return in_halo
 
     @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
@@ -3236,6 +3255,7 @@ class ApertureProperties(HaloProperty):
         category_filter: CategoryFilter,
         halo_filter: str,
         inclusive: bool,
+        include_central_particles: bool,
         all_radii_kpc: list,
     ):
         """
@@ -3271,6 +3291,7 @@ class ApertureProperties(HaloProperty):
          - inclusive: bool
            Should properties include particles that are not gravitationally bound
            to the subhalo?
+           # TODO
          - all_radii_kpc: list
            A list of all the radii for which we are computing an ApertureProperties.
            This can allow us to skip property calculation for larger apertures
@@ -3297,6 +3318,7 @@ class ApertureProperties(HaloProperty):
         self.physical_radius_mpc = 0.001 * physical_radius_kpc
 
         self.inclusive = inclusive
+        self.include_central_particles = include_central_particles
 
         if self.inclusive:
             if self.physical_radius_mpc != 0:
@@ -3307,9 +3329,20 @@ class ApertureProperties(HaloProperty):
                 self.group_name = f"InclusiveSphere/EncloseRadius"
             # TODO: Will this work with swiftsimio
         else:
-            assert self.physical_radius_mpc != 0
-            self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
-            self.group_name = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+            if not self.include_central_particles:
+                if self.physical_radius_mpc != 0:
+                    self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
+                    self.group_name = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+                else:
+                    self.name = f"exclusive_sphere_renclose"
+                    self.group_name = f"ExclusiveSphere/EncloseRadius"
+            else:
+                if self.physical_radius_mpc != 0:
+                    self.name = f"exclusive_cen_sphere_{physical_radius_kpc:.0f}kpc"
+                    self.group_name = f"ExclusiveCentralSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+                else:
+                    self.name = f"exclusive_cen_sphere_renclose"
+                    self.group_name = f"ExclusiveCentralSphere/EncloseRadius"
         self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
@@ -3406,38 +3439,39 @@ class ApertureProperties(HaloProperty):
         # Determine if the previous aperture already enclosed all
         # the bound particles of the subhalo
         r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
-        if self.physical_radius_mpc != 0:
-            i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
-        else:
-            i_radius = 0
-        if i_radius != 0:
-            r_previous_kpc = self.all_radii_kpc[i_radius - 1]
-            if r_previous_kpc * unyt.kpc > r_enclose:
-                # Skip if inclusive, don't copy over any values. Note this is
-                # never hit if skip_gt_enclose_radius=False in the parameter
-                # file, since in that case all_radii_kpc is not passed
-                if self.inclusive:
-                    skip_gt_enclose_radius = True
-                else:
-                    skip_gt_enclose_radius = True
-                    # Skip if this halo has a filter
-                    if do_calculation[self.halo_filter]:
-                        prev_group_name = f"ExclusiveSphere/{r_previous_kpc:.0f}kpc"
-                        for name, prop in self.property_list.items():
-                            outputname = prop.name
-                            # Skip if this property is disabled in the parameter file
-                            if not self.property_filters[outputname]:
-                                continue
-                            # Skip non-DMO properties when in DMO run mode
-                            if self.category_filter.dmo and not prop.dmo_property:
-                                continue
-                            # Skip if this property has a direct dependence on aperture
-                            # size (and so would have a different value)
-                            if self.strict_halo_copy and self.property_names[name]:
-                                continue
-                            aperture_sphere[name] = halo_result[
-                                f"{prev_group_name}/{outputname}"
-                            ][0]
+        # TODO:
+#       if self.physical_radius_mpc != 0:
+#           i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
+#       else:
+#           i_radius = 0
+#       if i_radius != 0:
+#           r_previous_kpc = self.all_radii_kpc[i_radius - 1]
+#           if r_previous_kpc * unyt.kpc > r_enclose:
+#               # Skip if inclusive, don't copy over any values. Note this is
+#               # never hit if skip_gt_enclose_radius=False in the parameter
+#               # file, since in that case all_radii_kpc is not passed
+#               if self.inclusive:
+#                   skip_gt_enclose_radius = True
+#               else:
+#                   skip_gt_enclose_radius = True
+#                   # Skip if this halo has a filter
+#                   if do_calculation[self.halo_filter]:
+#                       prev_group_name = f"ExclusiveSphere/{r_previous_kpc:.0f}kpc"
+#                       for name, prop in self.property_list.items():
+#                           outputname = prop.name
+#                           # Skip if this property is disabled in the parameter file
+#                           if not self.property_filters[outputname]:
+#                               continue
+#                           # Skip non-DMO properties when in DMO run mode
+#                           if self.category_filter.dmo and not prop.dmo_property:
+#                               continue
+#                           # Skip if this property has a direct dependence on aperture
+#                           # size (and so would have a different value)
+#                           if self.strict_halo_copy and self.property_names[name]:
+#                               continue
+#                           aperture_sphere[name] = halo_result[
+#                               f"{prev_group_name}/{outputname}"
+#                           ][0]
 
         # Determine whether to skip this halo (because of the filter or because we
         # have copied over the values from the previous aperture)
@@ -3458,6 +3492,7 @@ class ApertureProperties(HaloProperty):
                 data,
                 types_present,
                 self.inclusive,
+                self.include_central_particles,
                 physical_radius_mpc * unyt.Mpc,
                 self.stellar_ages,
                 self.recently_heated_gas_filter,
@@ -3552,6 +3587,74 @@ class ApertureProperties(HaloProperty):
 
         return
 
+# TODO Cleanup and comment all this
+class ExclusiveCentralSphereProperties(ApertureProperties):
+    """
+    ApertureProperties specialization for exclusive apertures,
+    i.e. excluding particles not gravitationally bound to the
+    subhalo.
+    """
+
+    def __init__(
+        self,
+        cellgrid: SWIFTCellGrid,
+        parameters: ParameterFile,
+        physical_radius_kpc: float,
+        recently_heated_gas_filter: RecentlyHeatedGasFilter,
+        stellar_age_calculator: StellarAgeCalculator,
+        cold_dense_gas_filter: ColdDenseGasFilter,
+        category_filter: CategoryFilter,
+        halo_filter: str,
+        all_radii_kpc: list,
+    ):
+        """
+        Construct an ExclusiveSphereProperties object with the given physical
+        radius (in Mpc) that uses the given filter to filter out recently
+        heated gas particles.
+
+        Parameters:
+         - cellgrid: SWIFTCellGrid
+           Container object containing global information about the snapshot,
+           like the cosmology and the dataset metadata.
+         - parameters: ParameterFile
+           Parameter file object containing the parameters from the parameter
+           file.
+         - physical_radius_kpc: float
+           Physical radius of the aperture. Unitless and assumed to be expressed
+           in units of kpc.
+         - recently_heated_gas_filter: RecentlyHeatedGasFilter
+           Filter used to mask out gas particles that were recently heated by
+           AGN feedback.
+         - stellar_age_calculator: StellarAgeCalculator
+           Object used to calculate stellar ages from the current cosmological
+           scale factor and the birth scale factor of the star particles.
+         - cold_dense_gas_filter: ColdDenseGasFilter
+           Filter used to mask out gas particles that represent cold, dense gas.
+         - category_filter: CategoryFilter
+           Filter used to determine which properties can be calculated for this halo.
+           This depends on the number of particles in the Bound subhalo and the category
+           of each property.
+         - halo_filter: str
+           The filter to apply to this halo type. Halos which do not fulfil the
+           filter requirements will be skipped.
+         - all_radii_kpc: list
+           A list of all the radii for which we compute an ExclusiveSphere. This
+           can allow us to skip property calculation for larger apertures
+        """
+        super().__init__(
+            cellgrid,
+            parameters,
+            physical_radius_kpc,
+            recently_heated_gas_filter,
+            stellar_age_calculator,
+            cold_dense_gas_filter,
+            category_filter,
+            halo_filter,
+            False,
+            True,
+            all_radii_kpc,
+        )
+
 
 class ExclusiveSphereProperties(ApertureProperties):
     """
@@ -3615,6 +3718,7 @@ class ExclusiveSphereProperties(ApertureProperties):
             cold_dense_gas_filter,
             category_filter,
             halo_filter,
+            False,
             False,
             all_radii_kpc,
         )
@@ -3683,5 +3787,6 @@ class InclusiveSphereProperties(ApertureProperties):
             category_filter,
             halo_filter,
             True,
+            False,
             all_radii_kpc,
         )

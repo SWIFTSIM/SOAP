@@ -293,6 +293,24 @@ def read_hbtplus_catalogue(
     # Number of bound particles
     nr_bound_part = nr_bound_part[keep]
 
+    # Calculate the index of the primary subhalo that this
+    # TODO: We also do this in combine_chunks, not much point in doing it twice
+    host_fof_id = host_halo_id
+    # Create array where FOF IDs are only set for centrals
+    # so that we can match to it
+    cen_fof_id = host_fof_id.copy()
+    sat_mask = is_central == 0
+    cen_fof_id[sat_mask] = -1
+
+    host_ids = host_fof_id[sat_mask]
+    indices = psort.parallel_match(host_ids, cen_fof_id, comm=comm)
+    # TODO: -2 hack to avoid unbound
+    host_cat_index = -2 * np.ones(sat_mask.shape[0], dtype=np.int64)
+    host_cat_index[sat_mask] = psort.fetch_elements(index, indices, comm=comm)
+    host_cat_index = unyt.unyt_array(
+        host_cat_index, units=unyt.dimensionless, dtype=int, registry=registry
+    )
+
     local_halo = {
         "cofp": cofp,
         "index": index,
@@ -309,5 +327,6 @@ def read_hbtplus_catalogue(
         "SnapshotIndexOfLastMaxMass": snapshot_max_mass,
         "LastMaxVmaxPhysical": max_vmax,
         "SnapshotIndexOfLastMaxVmax": snapshot_max_vmax,
+        "HostHaloCatalogueIndex": host_cat_index,
     }
     return local_halo

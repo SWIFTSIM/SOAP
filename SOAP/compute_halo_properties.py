@@ -384,6 +384,19 @@ def compute_halo_properties():
                     exclusive_radii_kpc,
                 )
             )
+            halo_prop_list.append(
+                aperture_properties.ExclusiveCentralSphereProperties(
+                    cellgrid,
+                    parameter_file,
+                    aperture_variations[variation]["radius_in_kpc"],
+                    recently_heated_gas_filter,
+                    stellar_age_calculator,
+                    cold_dense_gas_filter,
+                    category_filter,
+                    aperture_variations[variation].get("filter", "basic"),
+                    exclusive_radii_kpc,
+                )
+            )
 
     projected_aperture_variations = parameter_file.get_halo_type_variations(
         "ProjectedApertureProperties",
