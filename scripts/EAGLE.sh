@@ -17,6 +17,7 @@ z_suffix="z000p000"
 module purge
 module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
 source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
+pip install git+ssh://git@github.com/kyleaoman/Hdecompose.git
 
 ######## Link files to snap (to remove awful z suffix)
 
@@ -57,7 +58,7 @@ mpirun -- python -u misc/convert_eagle.py \
 
 ######### Estimate SpeciesFraction of hydrogen
 
-mpirun -- python -u misc/approximate_hydrogen_fractions.py \
+mpirun -- python -u misc/hdecompose_hydrogen_fractions.py \
     --snap-basename "${output_dir}/swift_snapshots/swift_${snap_nr}/snap_${snap_nr}" \
     --output-basename "${output_dir}/species_fractions/swift_${snap_nr}/snap_${snap_nr}"
 
