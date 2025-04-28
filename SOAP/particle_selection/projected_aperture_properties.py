@@ -759,6 +759,18 @@ class SingleProjectionProjectedApertureParticleData:
         ) % self.part_props.boxsize
 
     @lazy_property
+    def com_star(self) -> unyt.unyt_array:
+        """
+        Centre of mass of star particles in the subhalo.
+        """
+        if self.Mstar == 0:
+            return None
+        return (
+            (self.star_mass_fraction[:, None] * self.proj_pos_star).sum(axis=0)
+            + self.centre
+        ) % self.part_props.boxsize
+
+    @lazy_property
     def vcom(self) -> unyt.unyt_array:
         """
         Centre of mass velocity of all particles in the projected aperture.
@@ -1043,6 +1055,33 @@ class SingleProjectionProjectedApertureParticleData:
         return self.part_props.get_dataset("PartType0/GroupNr_bound") == self.index
 
     @lazy_property
+    def gas_total_dust_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Total dust mass fractions in gas particles in the projection.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.part_props.get_dataset("PartType0/TotalDustMassFractions")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+
+    @lazy_property
+    def proj_mass_dust(self) -> unyt.unyt_array:
+        """
+        Dust masses of the gas particles in the subhalo.
+        """
+        return self.gas_total_dust_mass_fractions * self.proj_mass_gas
+
+    @lazy_property
+    def DustMass(self) -> unyt.unyt_quantity:
+        """
+        Total dust mass of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.proj_mass_dust.sum()
+
+    @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
         """
         Star formation rates of star particles.
@@ -1156,7 +1195,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.gas_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Hydrogen"
+                    "PartType0/ElementMassFractions", "Hydrogen"
                 ),
             ]
             * self.proj_mass_gas
@@ -1173,7 +1212,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.gas_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Helium"
+                    "PartType0/ElementMassFractions", "Helium"
                 ),
             ]
             * self.proj_mass_gas
@@ -1202,7 +1241,7 @@ class SingleProjectionProjectedApertureParticleData:
             * self.gas_species_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "SpeciesFractions", "HI"
+                    "PartType0/SpeciesFractions", "HI"
                 ),
             ]
         )
@@ -1219,7 +1258,7 @@ class SingleProjectionProjectedApertureParticleData:
             * self.gas_species_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "SpeciesFractions", "H2"
+                    "PartType0/SpeciesFractions", "H2"
                 ),
             ]
             * 2.0
@@ -1283,7 +1322,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType4/ElementMassFractions", "Oxygen"
                 ),
             ]
             * self.proj_mass_star
@@ -1300,7 +1339,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Magnesium"
+                    "PartType4/ElementMassFractions", "Magnesium"
                 ),
             ]
             * self.proj_mass_star
@@ -1317,7 +1356,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Iron"
+                    "PartType4/ElementMassFractions", "Iron"
                 ),
             ]
             * self.proj_mass_star
@@ -1374,6 +1413,17 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
+    def HalfMassRadiusDust(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the dust.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.proj_radius[self.proj_type == 0], self.proj_mass_dust, self.DustMass
+        )
+
+    @lazy_property
     def HalfMassRadiusDM(self) -> unyt.unyt_quantity:
         """
         Half mass radius of dark matter.
@@ -1413,7 +1463,7 @@ class ProjectedApertureProperties(HaloProperty):
     the halo along the projection axis.
     """
 
-    base_halo_type = 'ProjectedApertureProperties'
+    base_halo_type = "ProjectedApertureProperties"
     # Properties to calculate. The key is the name of the property,
     # the value indicates the property has a direct dependence on aperture size.
     # This is needed since for larger apertures we sometimes copy across the
@@ -1427,16 +1477,19 @@ class ProjectedApertureProperties(HaloProperty):
         "Mstar_init": False,
         "Mbh_dynamical": False,
         "Mbh_subgrid": False,
+        "DustMass": True,
         "Ngas": False,
         "Ndm": False,
         "Nstar": False,
         "Nbh": False,
         "com": False,
+        "com_star": False,
         "vcom": False,
         "SFR": False,
         "AveragedStarFormationRate": False,
         "StellarLuminosity": False,
         "HalfMassRadiusGas": False,
+        "HalfMassRadiusDust": False,
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
         "HalfMassRadiusBaryon": False,
