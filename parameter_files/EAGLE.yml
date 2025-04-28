@@ -20,6 +20,9 @@ GroupMembership:
   # Where to write the group membership files
   filename: "{sim_dir}/{sim_name}/SOAP_uncompressed/membership_{snap_nr:03d}/membership_{snap_nr:03d}.{file_nr}.hdf5"
 
+ExtraInput:
+  species_frac_filename: "{sim_dir}/{sim_name}/species_fractions/swift_{snap_nr:03d}/snap_{snap_nr:03d}.{file_nr}.hdf5"
+
 HaloProperties:
   # Where to write the halo properties file
   filename: "{output_dir}/{sim_name}/SOAP_uncompressed/halo_properties_{snap_nr:04d}.hdf5"
@@ -28,6 +31,7 @@ HaloProperties:
 
 ApertureProperties:
   properties:
+    AtomicHydrogenMass: true
     AngularMomentumBaryons: general
     AngularMomentumDarkMatter: general
     AngularMomentumGas: general
@@ -70,6 +74,7 @@ ApertureProperties:
     LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit: true
     LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit: true
     MassWeightedMeanStellarAge: true
+    MolecularHydrogenMass: true
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleMass: true
@@ -115,6 +120,7 @@ ApertureProperties:
       radius_in_kpc: 100.0
 ProjectedApertureProperties:
   properties:
+    AtomicHydrogenMass: true
     BlackHolesDynamicalMass: true
     BlackHolesSubgridMass: true
     CentreOfMass: true
@@ -130,6 +136,7 @@ ProjectedApertureProperties:
     HalfMassRadiusStars: true
     HeliumMass: true
     HydrogenMass: true
+    MolecularHydrogenMass: true
     MostMassiveBlackHoleAccretionRate: true
     MostMassiveBlackHoleID: true
     MostMassiveBlackHoleMass: true
