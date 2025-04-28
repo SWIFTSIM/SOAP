@@ -4039,6 +4039,31 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
+        # EAGLE SubFind properties
+        "SubfindEagle/group_nr": Property(
+            name="SubFind/GroupNumber",
+            shape=1,
+            dtype=np.uint64,
+            unit="dimensionless",
+            description="Group number of the host of this subhalo",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "SubfindEagle/sub_group_nr": Property(
+            name="SubFind/SubGroupNumber",
+            shape=1,
+            dtype=np.uint64,
+            unit="dimensionless",
+            description="Sub group number of this subhalo (within its host group)",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
         # HBT properties
         "HBTplus/Depth": Property(
             name="HBTplus/Depth",

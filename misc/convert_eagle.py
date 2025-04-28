@@ -83,6 +83,14 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
+    "--subfind-basename",
+    type=str,
+    required=True,
+    help=(
+        "The basename for the subfind files"
+    ),
+)
+parser.add_argument(
     "--output-basename",
     type=str,
     required=True,
@@ -96,6 +104,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 snap_filename = args.snap_basename + ".{file_nr}.hdf5"
+subfind_filename = args.subfind_basename + ".{file_nr}.hdf5"
 output_filename = args.output_basename + ".{file_nr}.hdf5"
 membership_filename = args.membership_basename + ".{file_nr}.hdf5"
 os.makedirs(os.path.dirname(output_filename), exist_ok=True)
@@ -182,6 +191,10 @@ if comm_rank == 0:
             "Gravity:max_physical_baryon_softening": runtime.attrs[
                 "SofteningGasMaxPhys"
             ],
+            "EAGLE:InitAbundance_Hydrogen": runtime.attrs['InitAbundance_Hydrogen'],
+            "EAGLE:InitAbundance_Helium": runtime.attrs['InitAbundance_Helium'],
+            "EAGLE:EOS_Jeans_GammaEffective": runtime.attrs['EOS_Jeans_GammaEffective'],
+            "EAGLE:EOS_Jeans_TempNorm_K": runtime.attrs['EOS_Jeans_TempNorm_K'],
         }
 
         # Check units are indeed what we are assuming below, since HO,
@@ -584,6 +597,16 @@ cell_centres += cell_size_cmpc / 2
 snap_file = phdf5.MultiFile(
     snap_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
 )
+# Load the SubFind catalogue and create an array that links the GroupNumber
+# and SubGroupNumber of a subhalo to its index within the subhalo catalogue
+# (for creating the membership files)
+subfind_file = phdf5.MultiFile(
+    subfind_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
+)
+subfind_id = subfind_file.read("Subhalo/GroupNumber").astype(np.int64)
+subfind_id <<= 32
+subfind_id += subfind_file.read("Subhalo/SubGroupNumber").astype(np.int64)
+
 create_output_file = True
 create_membership_file = True
 for ptype in ptypes:
@@ -734,14 +757,18 @@ for ptype in ptypes:
 
     # Create a subhalo id for each particle by combining the
     # group number and subgroup number
-    group = snap_file.read(f"PartType{ptype}/GroupNumber")
     sub_group = snap_file.read(f"PartType{ptype}/SubGroupNumber")
-
-    subhalo = group.astype(np.int64)
+    subhalo = snap_file.read(f"PartType{ptype}/GroupNumber").astype(np.int64)
     subhalo <<= 32
-    subhalo += sub_group
+    subhalo += sub_group.astype(np.int64)
     # Indicate unbound particles with -1
-    subhalo[sub_group == 1073741824] = -1
+    bound = sub_group != 1073741824
+    subhalo[np.logical_not(bound)] = -1
+    # Get SubFind index of bound particles
+    subhalo[bound] = psort.parallel_match(
+        subhalo[bound], subfind_id, comm=comm
+    )
+    assert np.all(subhalo[bound] != -1)
 
     # Sort, add units, and write to file (same as for other properties)
     subhalo = psort.fetch_elements(subhalo, order, comm=comm)
