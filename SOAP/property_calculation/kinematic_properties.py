@@ -733,11 +733,12 @@ def get_projected_inertia_tensor_luminosity_weighted(
 
     Returns the inertia tensor.
     """
-    raise NotImplementedError
 
     # Check we have at least "min_particles" particles
     if mass.shape[0] < min_particles:
         return None
+
+    number_luminosity_bands = luminosity.shape[1]
 
     projected_position = unyt.unyt_array(
         np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
@@ -761,52 +762,71 @@ def get_projected_inertia_tensor_luminosity_weighted(
         projected_position = projected_position[mask]
         mass = mass[mask]
         norm = norm[mask]
+        luminosity = luminosity[mask]
 
     # Set stopping criteria
     tol = 0.0001
     q = 1000
+    is_converged = np.zeros(number_luminosity_bands, dtype=bool)
 
     # Ensure we have consistent units
     R = radius.to("kpc")
     projected_position = projected_position.to("kpc")
 
-    # Start with a circle
-    eig_val = [1, 1]
-    eig_vec = np.array([[1, 0], [0, 1]])
+    # Start with a circle for each luminosity band.
+    eig_val = np.ones((number_luminosity_bands,2))
+    eig_vec = np.repeat(np.diag(np.ones(2))[np.newaxis, :, :], number_luminosity_bands, axis=0)
 
     for i_iter in range(max_iterations):
-        # Calculate shape
+        # Calculate shape for each luminosity band
         old_q = q
-        q = np.sqrt(eig_val[0] / eig_val[1])
+        q = np.sqrt(eig_val[:,0] / eig_val[:,1])
 
-        # Break if converged
-        if abs((old_q - q) / q) < tol:
-            break
+        # Identify bands with converged results. The calculations will only be
+        # done for bands that are not yet converged. If all are converged, we are 
+        # done.
+        is_converged[np.abs((old_q - q) / q) < tol] = 1
+        if (~is_converged).sum() == 0:
+          break
 
-        # Calculate ellipse, determine which particles are inside
+        # Calculate ellipsoid per band, and determine which particles are inside. 
         axis = R * np.array([1 * np.sqrt(q), 1 / np.sqrt(q)])
-        p = np.dot(projected_position, eig_vec) / axis
-        r = np.linalg.norm(p, axis=1)
+        # The transpose is to handle the fact that axis has shape (3, number_luminosity_bands)
+        p = np.dot(projected_position, eig_vec) / axis.T
+        r = np.linalg.norm(p, axis=2)
+
         # We want to skip the calculation if we have less than "min_particles"
         # inside the initial circle. We do the check here since this is the first
         # time we calculate how many particles are within the circle.
-        if (i_iter == 0) and (np.sum(r <= 1) < min_particles):
+        if (i_iter == 0) and (np.all(np.sum(r <= 1,axis=0) < min_particles)):
             return None
-        weight = mass / np.sum(mass[r <= 1])
-        weight[r > 1] = 0
+
+        # Create a luminosity-weight array of the correct shape.
+        weight = np.zeros(luminosity.shape)
+        weight = np.where(r <= 1, luminosity, weight)
+        weight /= weight.sum(axis=0)
+
+        # Calculate inertia tensor for each band, shape  (number_bands, number_partices, 2, 2)
+        tensor = weight[:,:, None, None] * (position[:, :, None] * position[:, None, :])[:, None, :, :]
+
+        if reduced:
+            raise NotImplementedError
+            tensor /= norm[:, None, None]
 
         # Calculate inertia tensor
-        tensor = (
-            weight[:, None, None]
-            * projected_position[:, :, None]
-            * projected_position[:, None, :]
-        )
-        if reduced:
-            tensor /= norm[:, None, None]
-        tensor = tensor.sum(axis=0)
+        tensor = tensor.sum(axis=0) # Shape (number_bands, 2 ,2)
         eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
-    return np.concatenate([np.diag(tensor), [tensor[(0, 1)]]])
+        # We sometimes get very small eigenvalues that overflow into negative values. We 
+        # only expect positive values for a real symmetric matrix, hence we take abs.
+        eig_val = np.abs(eig_val)
+
+    # Flatten all inertia tensors computed in different luminosity bands
+    flattened_matricies = []
+    for i_band in range(number_luminosity_bands):
+        flattened_matricies.extend([np.diag(tensor[i_band]), tensor[i_band][np.triu_indices(2, 1)]])
+
+    return np.concatenate(flattened_matricies)
 
 if __name__ == "__main__":
     """
