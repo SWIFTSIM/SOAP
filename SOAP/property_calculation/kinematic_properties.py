@@ -807,7 +807,7 @@ def get_projected_inertia_tensor_luminosity_weighted(
         weight /= weight.sum(axis=0)
 
         # Calculate inertia tensor for each band, shape (number_particles, number_bands, 2, 2)
-        tensor = weight[:,:, None, None] * (position[:, :, None] * position[:, None, :])[:, None, :, :]
+        tensor = weight[:,:, None, None] * (projected_position[:, :, None] * projected_position[:, None, :])[:, None, :, :]
 
         if reduced:
             raise NotImplementedError
