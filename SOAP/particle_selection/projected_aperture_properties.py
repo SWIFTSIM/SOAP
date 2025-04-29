@@ -35,7 +35,7 @@ from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.dataset_names import mass_dataset
 from SOAP.property_calculation.half_mass_radius import get_half_mass_radius
 from SOAP.property_table import PropertyTable
-from SOAP.property_calculation.kinematic_properties import get_projected_inertia_tensor
+from SOAP.property_calculation.kinematic_properties import get_projected_inertia_tensor, get_projected_inertia_tensor_luminosity_weighted
 
 
 class ProjectedApertureParticleData:
@@ -977,6 +977,18 @@ class SingleProjectionProjectedApertureParticleData:
             mass, position, self.iproj, self.aperture_radius, **kwargs
         )
 
+    def stellar_inertia_tensor_luminosity_weighted(self, **kwargs) -> unyt.unyt_array:
+        """
+        Helper function for calculating projected luminosity-weighted stellar inertia tensors
+        """
+        mass = self.part_props.mass[self.part_props.types == 4]
+        position = self.part_props.position[self.part_props.types == 4]
+        luminosity = self.stellar_luminosities
+
+        return get_projected_inertia_tensor_luminosity_weighted(
+            mass, position, self.iproj, self.aperture_radius, **kwargs
+        )
+
     @lazy_property
     def ProjectedStellarInertiaTensor(self) -> unyt.unyt_array:
         """
@@ -1041,7 +1053,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return self.stellar_inertia_tensor()
+        return self.stellar_inertia_tensor_luminosity_weighted()
 
     @lazy_property
     def ProjectedStellarInertiaTensorReduced_LuminosityWeighted(self) -> unyt.unyt_array:
@@ -1052,7 +1064,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return self.stellar_inertia_tensor(reduced=True)
+        return self.stellar_inertia_tensor_luminosity_weighted(reduced=True)
 
     @lazy_property
     def ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted(self) -> unyt.unyt_array:
@@ -1062,7 +1074,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_luminosity_weighted(
             self.proj_mass_star,
             self.proj_pos_star,
             self.iproj,
@@ -1078,7 +1090,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_luminosity_weighted(
             self.proj_mass_star,
             self.proj_pos_star,
             self.iproj,
