@@ -1,27 +1,19 @@
 #!/bin/env python
 
 """
+calculate_fof_positions.py
 
-mpirun -np 8 python -u misc/fof_prop.py \
-    --snap-basename "${sim_dir}/snapshots/colibre_${snap_nr}/colibre_${snap_nr}" \
-    --fof-basename "${sim_dir}/fof/fof_output_${snap_nr}/fof_output_${snap_nr}" \
-    --output-basename "${output_dir}/${sim_name}/fof_extent_${snap_nr}/fof_extent_${snap_nr}"
-TODO: WRITE DOCSTRING
-convert_eagle.py
-
-This script converts EAGLE GADGET snapshots into SWIFT snapshots.
+This script calculates the maximum and minimum particles positions for each FOF.
 Usage:
 
-  mpirun -- python convert_eagle.py \
+  mpirun -- python misc/calculate_fof_positions.py \
           --snapshot-basename=SNAPSHOT \
           --fof-basename=FOF \
-          --output-basename=OUTPUT \
-          --membership-basename=MEMBERSHIP
+          --output-basename=OUTPUT
 
-where SNAPSHOT is the EAGLE snapshot (use the particledata_*** files,
-since the normal snapshots don't store SubGroupNumber), and OUTPUT &
-MEMBERSHIP are the names of the output files. You must run with
-the same number of ranks as input files.
+where SNAPSHOT is the basename of the snapshot files (the snapshot
+name without the .{file_nr}.hdf5 suffix), FOF is the basename of the
+fof catalogues, and OUTPUT is the basename of the output fof catalogues.
 """
 
 import argparse
@@ -260,6 +252,8 @@ fof_file.write(
     group="Groups",
     attrs=coordinate_unit_attrs,
 )
+
+# TODO: Create virtual files
 
 if comm_rank == 0:
     print('Done')
