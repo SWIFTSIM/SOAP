@@ -701,6 +701,112 @@ def get_projected_inertia_tensor(
 
     return np.concatenate([np.diag(tensor), [tensor[(0, 1)]]])
 
+def get_projected_inertia_tensor_luminosity_weighted(
+    mass, position, luminosity, axis, radius, reduced=False, max_iterations=20, min_particles=20
+):
+    """
+    Takes in the particle distribution projected along a given axis, and calculates the inertia
+    tensor using the projected values and weighting by the luminosity of the particle.
+
+    Unlike get_inertia_tensor, we don't need to check if we have exceeded the search radius. This
+    is because all the bound particles are passed to this function.
+
+    Parameters:
+     - mass: unyt.unyt_array
+       Masses of the particles.
+     - position: unyt.unyt_array
+       Positions of the particles.
+     - luminosity: unyt.unyt_array
+       Luminosities of the particles.
+     - axis: 0, 1, 2
+       Projection axis. Only the coordinates perpendicular to this axis are
+       taken into account.
+     - radius: unyt.unyt_quantity
+       Exclude particles outside this radius for the inertia tensor calculation
+     - reduced: bool
+       Whether to calculate the reduced inertia tensor
+     - max_iterations: int
+       The maximum number of iterations to repeat the inertia tensor calculation
+     - min_particles: int
+       The number of particles required within the initial circle. The inertia tensor
+       is not computed if this threshold is not met.
+
+    Returns the inertia tensor.
+    """
+    raise NotImplementedError
+
+    # Check we have at least "min_particles" particles
+    if mass.shape[0] < min_particles:
+        return None
+
+    projected_position = unyt.unyt_array(
+        np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
+    )
+    if axis == 0:
+        projected_position[:, 0] = position[:, 1]
+        projected_position[:, 1] = position[:, 2]
+    elif axis == 1:
+        projected_position[:, 0] = position[:, 2]
+        projected_position[:, 1] = position[:, 0]
+    elif axis == 2:
+        projected_position[:, 0] = position[:, 0]
+        projected_position[:, 1] = position[:, 1]
+    else:
+        raise AttributeError(f"Invalid axis: {axis}!")
+
+    # Remove particles at centre if calculating reduced tensor
+    if reduced:
+        norm = np.linalg.norm(projected_position, axis=1) ** 2
+        mask = np.logical_not(np.isclose(norm, 0))
+        projected_position = projected_position[mask]
+        mass = mass[mask]
+        norm = norm[mask]
+
+    # Set stopping criteria
+    tol = 0.0001
+    q = 1000
+
+    # Ensure we have consistent units
+    R = radius.to("kpc")
+    projected_position = projected_position.to("kpc")
+
+    # Start with a circle
+    eig_val = [1, 1]
+    eig_vec = np.array([[1, 0], [0, 1]])
+
+    for i_iter in range(max_iterations):
+        # Calculate shape
+        old_q = q
+        q = np.sqrt(eig_val[0] / eig_val[1])
+
+        # Break if converged
+        if abs((old_q - q) / q) < tol:
+            break
+
+        # Calculate ellipse, determine which particles are inside
+        axis = R * np.array([1 * np.sqrt(q), 1 / np.sqrt(q)])
+        p = np.dot(projected_position, eig_vec) / axis
+        r = np.linalg.norm(p, axis=1)
+        # We want to skip the calculation if we have less than "min_particles"
+        # inside the initial circle. We do the check here since this is the first
+        # time we calculate how many particles are within the circle.
+        if (i_iter == 0) and (np.sum(r <= 1) < min_particles):
+            return None
+        weight = mass / np.sum(mass[r <= 1])
+        weight[r > 1] = 0
+
+        # Calculate inertia tensor
+        tensor = (
+            weight[:, None, None]
+            * projected_position[:, :, None]
+            * projected_position[:, None, :]
+        )
+        if reduced:
+            tensor /= norm[:, None, None]
+        tensor = tensor.sum(axis=0)
+        eig_val, eig_vec = np.linalg.eigh(tensor.value)
+
+    return np.concatenate([np.diag(tensor), [tensor[(0, 1)]]])
 
 if __name__ == "__main__":
     """

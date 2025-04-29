@@ -983,10 +983,16 @@ class SingleProjectionProjectedApertureParticleData:
         """
         mass = self.part_props.mass[self.part_props.types == 4]
         position = self.part_props.position[self.part_props.types == 4]
-        luminosity = self.stellar_luminosities
 
+        # self.stellar_luminosities correspond to bound particles within the 
+        # initial aperture. In the iterative case we want all bound, regardless 
+        # of whether they are within the initial projected aperture. Hence, we
+        # cannot use self.stellar_luminosities directly.
+        luminosity = self.part_props.get_dataset("PartType4/Luminosities")[
+            self.star_mask_all
+        ]
         return get_projected_inertia_tensor_luminosity_weighted(
-            mass, position, self.iproj, self.aperture_radius, **kwargs
+            mass, position, luminosity, self.iproj, self.aperture_radius, **kwargs
         )
 
     @lazy_property
@@ -1077,6 +1083,7 @@ class SingleProjectionProjectedApertureParticleData:
         return get_projected_inertia_tensor_luminosity_weighted(
             self.proj_mass_star,
             self.proj_pos_star,
+            self.stellar_luminosities, # Bound and within initial aperture.
             self.iproj,
             self.aperture_radius,
             max_iterations=1,
@@ -1093,6 +1100,7 @@ class SingleProjectionProjectedApertureParticleData:
         return get_projected_inertia_tensor_luminosity_weighted(
             self.proj_mass_star,
             self.proj_pos_star,
+            self.stellar_luminosities, # Bound and within initial aperture.
             self.iproj,
             self.aperture_radius,
             reduced=True,
