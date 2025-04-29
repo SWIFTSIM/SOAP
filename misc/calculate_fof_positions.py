@@ -1,6 +1,11 @@
 #!/bin/env python
 
 """
+
+mpirun -np 8 python -u misc/fof_prop.py \
+    --snap-basename "${sim_dir}/snapshots/colibre_${snap_nr}/colibre_${snap_nr}" \
+    --fof-basename "${sim_dir}/fof/fof_output_${snap_nr}/fof_output_${snap_nr}" \
+    --output-basename "${output_dir}/${sim_name}/fof_extent_${snap_nr}/fof_extent_${snap_nr}"
 TODO: WRITE DOCSTRING
 convert_eagle.py
 
@@ -82,51 +87,59 @@ os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
 if comm_rank == 0:
     with h5py.File(snap_filename.format(file_nr=0), "r") as file:
-        header = file['Header'].attrs
-        boxsize = header['BoxSize']
-        ptypes = np.where(header['TotalNumberOfParticles'] != 0)[0]
+        header = dict(file['Header'].attrs)
         coordinate_unit_attrs = dict(file['PartType1/Coordinates'].attrs)
-
-
-    # TODO: Split across ranks
-    for i_file in range(4):
-        src_filename = fof_filename.format(file_nr=i_file)
-        dst_filename = output_filename.format(file_nr=i_file)
-
-        def copy_attrs(src_obj, dst_obj):
-            for key, val in src_obj.attrs.items():
-                dst_obj.attrs[key] = val
-
-        with h5py.File(src_filename, "r") as src_file, h5py.File(dst_filename, "w") as dst_file:
-
-            def create_virtual_datasets(src_group, dst_group, src_filename, prefix=""):
-                copy_attrs(src_group, dst_group)
-
-                for name, item in src_group.items():
-                    if isinstance(item, h5py.Dataset):
-                        shape = item.shape
-                        dtype = item.dtype
-                        layout = h5py.VirtualLayout(shape=shape, dtype=dtype)
-                        vsource = h5py.VirtualSource(src_filename, prefix + name, shape=shape)
-                        layout[...] = vsource
-                        vds = dst_group.create_virtual_dataset(name, layout)
-                        copy_attrs(item, vds)  # Copy dataset attributes
-                    elif isinstance(item, h5py.Group):
-                        new_group = dst_group.create_group(name)
-                        create_virtual_datasets(item, new_group, src_filename, prefix + name + "/")
-
-            create_virtual_datasets(src_file, dst_file, src_filename)
-
-        print("Virtual copy with attributes created successfully.")
-
-
 else:
-    boxsize = None
-    ptypes = None
+    header = None
     coordinate_unit_attrs = None
-boxsize = comm.bcast(boxsize)
-ptypes = comm.bcast(ptypes)
+header = comm.bcast(header)
 coordinate_unit_attrs = comm.bcast(coordinate_unit_attrs)
+
+boxsize = header['BoxSize']
+ptypes = np.where(header['TotalNumberOfParticles'] != 0)[0]
+nr_files = header['NumFilesPerSnapshot'][0]
+
+# Assign files to ranks
+files_per_rank = np.zeros(comm_size, dtype=int)
+files_per_rank[:] = nr_files // comm_size
+remainder = nr_files % comm_size
+if remainder > 0:
+    step = max(nr_files // (remainder+1), 1)
+    for i in range(remainder):
+        files_per_rank[(i*step) % comm_size] += 1
+first_file = np.cumsum(files_per_rank) - files_per_rank
+assert sum(files_per_rank) == nr_files
+
+# Create output files
+for i_file in range(
+    first_file[comm_rank], first_file[comm_rank] + files_per_rank[comm_rank]
+):
+    src_filename = fof_filename.format(file_nr=i_file)
+    dst_filename = output_filename.format(file_nr=i_file)
+
+    def copy_attrs(src_obj, dst_obj):
+        for key, val in src_obj.attrs.items():
+            dst_obj.attrs[key] = val
+
+    with h5py.File(src_filename, "r") as src_file, h5py.File(dst_filename, "w") as dst_file:
+
+        def create_virtual_datasets(src_group, dst_group, src_filename, prefix=""):
+            copy_attrs(src_group, dst_group)
+
+            for name, item in src_group.items():
+                if isinstance(item, h5py.Dataset):
+                    shape = item.shape
+                    dtype = item.dtype
+                    layout = h5py.VirtualLayout(shape=shape, dtype=dtype)
+                    vsource = h5py.VirtualSource(src_filename, prefix + name, shape=shape)
+                    layout[...] = vsource
+                    vds = dst_group.create_virtual_dataset(name, layout)
+                    copy_attrs(item, vds)
+                elif isinstance(item, h5py.Group):
+                    new_group = dst_group.create_group(name)
+                    create_virtual_datasets(item, new_group, src_filename, prefix + name + "/")
+
+        create_virtual_datasets(src_file, dst_file, src_filename)
 
 # Load FOF catalogue
 fof_file = phdf5.MultiFile(
