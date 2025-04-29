@@ -1743,7 +1743,7 @@ class ProjectedApertureProperties(HaloProperty):
         # have copied over the values from the previous aperture)
         if do_calculation[self.halo_filter] and (not skip_gt_enclose_radius):
             # For projected apertures we are only using bound particles
-            # Therefore we don't need to check if the serach_radius is large enough,
+            # Therefore we don't need to check if the search_radius is large enough,
             # because all particles will have been loaded
 
             types_present = [type for type in self.particle_properties if type in data]
