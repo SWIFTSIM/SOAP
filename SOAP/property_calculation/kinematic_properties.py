@@ -763,9 +763,9 @@ def get_projected_inertia_tensor_luminosity_weighted(
         norm = norm[mask]
         luminosity = luminosity[mask]
 
-    # Set stopping criteria
+    # Set stopping criteria and arrays to track convergence.
     tol = 0.0001
-    q = 1000
+    q = np.repeat(1000, number_luminosity_bands)
     is_converged = np.zeros(number_luminosity_bands, dtype=bool)
 
     # Ensure we have consistent units
