@@ -792,9 +792,10 @@ def get_projected_inertia_tensor_luminosity_weighted(
         if (~is_converged).sum() == 0:
           break
 
-        # Calculate ellipsoid per band, and determine which particles are inside. 
-        axis = R * np.array([1 * np.sqrt(q), 1 / np.sqrt(q)]).T
-        p = np.dot(projected_position, eig_vec) / axis
+        # Calculate ellipsoid for each non-converged band, and determine which 
+        # particles are inside.
+        axis = R * np.array([1 * np.sqrt(q)[~is_converged], 1 / np.sqrt(q)[~is_converged]]).T
+        p = np.dot(projected_position, eig_vec[~is_converged]) / axis
         r = np.linalg.norm(p, axis=2)
 
         # We want to skip the calculation if we have less than "min_particles"
@@ -804,20 +805,28 @@ def get_projected_inertia_tensor_luminosity_weighted(
             return None
 
         # Create a luminosity-weight array of the correct shape.
-        weight = np.zeros(luminosity.shape)
-        weight = np.where(r <= 1, luminosity, weight)
+        weight = np.zeros(luminosity[:,~is_converged].shape)
+        weight = np.where(r <= 1, luminosity[:,~is_converged], weight)
         weight /= weight.sum(axis=0)
 
-        # Calculate inertia tensor for each band, shape (number_particles, number_bands, 2, 2)
-        tensor = weight[:,:, None, None] * (projected_position[:, :, None] * projected_position[:, None, :])[:, None, :, :]
+        # Calculate inertia tensor for each band and for each particle
+        individual_particle_tensor = weight[:,:, None, None] * (projected_position[:, :, None] * projected_position[:, None, :])[:, None, :, :]
 
         if reduced:
             raise NotImplementedError
             tensor /= norm[:, None, None]
 
-        # Calculate inertia tensor
-        tensor = tensor.sum(axis=0) # Shape (number_bands, 2 ,2)
-        eig_val, eig_vec = np.linalg.eigh(tensor.value)
+        # Calculate total inertia tensor for bands that are not yet converged. We 
+        # do indexing on tensor beyond the first iteration so that the matricies 
+        # from converged bands are left intact.
+        if (i_iter == 0):
+          tensor = individual_particle_tensor.sum(axis=0)
+        else:
+          tensor[~is_converged] = individual_particle_tensor.sum(axis=0)
+
+        # Get the eigenvalues and eigenvectors of the tensors with non-converged
+        # bands
+        eig_val[~is_converged], eig_vec[~is_converged] = np.linalg.eigh(tensor[~is_converged].value)
 
         # We sometimes get very small eigenvalues that overflow into negative values. We 
         # only expect positive values for a real symmetric matrix, hence we take abs.
