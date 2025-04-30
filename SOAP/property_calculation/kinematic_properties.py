@@ -784,7 +784,7 @@ def get_projected_inertia_tensor_luminosity_weighted(
         # We disable warnings because some bands will have q = 0 (indicative of 
         # <= 1 particle enclosed by its current ellipsoid). We wil force the 
         # algorithm to think they are converged to stop their calculation.
-        with np.errstate(divide='ignore'):
+        with np.errstate(divide='ignore', invalid='ignore'):
           fractional_change = np.where(q != 0, np.abs((old_q - q) / q), 0)
 
         # We can stop once all bands have converged results.
