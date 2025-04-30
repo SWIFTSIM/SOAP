@@ -130,7 +130,8 @@ for i_file in range(
     src_filename = fof_filename.format(file_nr=i_file)
     dst_filename = output_filename.format(file_nr=i_file)
     with h5py.File(src_filename, "r") as src_file, h5py.File(dst_filename, "w") as dst_file:
-        copy_object(src_file, dst_file, src_filename)
+        rel_filename = os.path.relpath(src_filename, os.path.dirname(dst_filename))
+        copy_object(src_file, dst_file, rel_filename)
 
 # Load FOF catalogue
 fof_file = phdf5.MultiFile(
@@ -283,9 +284,10 @@ if comm_rank == 0:
             offset = 0
             for i_file in range(nr_files):
                 src_filename = output_filename.format(file_nr=i_file)
+                rel_filename = os.path.relpath(src_filename, os.path.dirname(dst_filename))
                 count = counts[i_file]
                 layout[offset : offset + count] = h5py.VirtualSource(
-                    src_filename, f"Groups/{prop}", shape=(count, *shape[1:])
+                    rel_filename, f"Groups/{prop}", shape=(count, *shape[1:])
                 )
                 offset += count
             dst_file.create_virtual_dataset(
