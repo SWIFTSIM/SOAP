@@ -7,7 +7,7 @@ This script calculates the maximum and minimum particles positions for each FOF.
 Usage:
 
   mpirun -- python misc/calculate_fof_positions.py \
-          --snapshot-basename=SNAPSHOT \
+          --snap-basename=SNAPSHOT \
           --fof-basename=FOF \
           --output-basename=OUTPUT
 
@@ -251,6 +251,10 @@ output_data = {
     "MinParticlePosition": fof_min_pos,
     "MaxParticlePosition": fof_max_pos,
 }
+attrs = {
+    "MinParticlePosition": coordinate_unit_attrs,
+    "MaxParticlePosition": coordinate_unit_attrs,
+}
 elements_per_file = fof_file.get_elements_per_file("Groups/GroupIDs")
 fof_file.write(
     output_data,
@@ -258,7 +262,7 @@ fof_file.write(
     filenames=output_filename,
     mode="r+",
     group="Groups",
-    attrs=coordinate_unit_attrs,
+    attrs=attrs,
 )
 
 if comm_rank == 0:
@@ -274,14 +278,16 @@ if comm_rank == 0:
         nr_groups = dst_file["Header"].attrs["NumGroups_Total"][0]
 
         # Get number of groups in each chunk file
-        counts = []
+        counts, shapes, dtypes, attrs = [], [], [], {}
         for i_file in range(nr_files):
             src_filename = output_filename.format(file_nr=i_file)
             with h5py.File(src_filename, "r") as src_file:
                 if i_file == 0:
                     props = list(src_file["Groups"].keys())
-                    shapes = [src_file[f"Groups/{prop}"].shape for prop in props]
-                    dtypes = [src_file[f"Groups/{prop}"].dtype for prop in props]
+                    for prop in props:
+                        shapes.append(src_file[f"Groups/{prop}"].shape)
+                        dtypes.append(src_file[f"Groups/{prop}"].dtype)
+                        attrs[prop] = dict(src_file[f"Groups/{prop}"].attrs)
                 counts.append(src_file["Header"].attrs["NumGroups_ThisFile"][0])
 
         # Create virtual datasets
@@ -300,6 +306,10 @@ if comm_rank == 0:
                     rel_filename, f"Groups/{prop}", shape=(count, *shape[1:])
                 )
                 offset += count
-            dst_file.create_virtual_dataset(f"Groups/{prop}", layout, fillvalue=-999)
+            dset = dst_file.create_virtual_dataset(
+                f"Groups/{prop}", layout, fillvalue=-999
+            )
+            for k, v in attrs[prop].items():
+                dset.attrs[k] = v
 
     print("Done")
