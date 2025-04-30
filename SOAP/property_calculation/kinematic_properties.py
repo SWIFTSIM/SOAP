@@ -832,6 +832,9 @@ def get_projected_inertia_tensor_luminosity_weighted(
         # only expect positive values for a real symmetric matrix, hence we take abs.
         eig_val = np.abs(eig_val)
 
+    # Set tensors associated to q = 0 to be invalid
+    tensor[q == 0] = 0
+
     # Flatten all inertia tensors computed in different luminosity bands
     flattened_matricies = []
     for i_band in range(number_luminosity_bands):
