@@ -169,15 +169,6 @@ for ptype in ptypes:
     part_pos = part_pos[mask]
     part_fof_ids = part_fof_ids[mask]
 
-    # Get the centre of the FOF each particle is part of
-    idx = psort.parallel_match(part_fof_ids, fof_group_ids, comm=comm)
-    assert np.all(idx != -1), "FOFs could not be found for some particles"
-    part_centre = psort.fetch_elements(fof_centres, idx, comm=comm)
-
-    # Centre the particles
-    shift = (boxsize[None, :] / 2) - part_centre
-    part_pos = ((part_pos + shift) % boxsize[None, :]) - (boxsize[None, :] / 2)
-
     # Count the number of particles found for each FOF
     unique_fof_ids, unique_counts = psort.parallel_unique(
         part_fof_ids,
@@ -243,8 +234,8 @@ for ptype in ptypes:
 
 # Carry out some sanity checks
 assert np.all(total_part_counts == fof_sizes), "Not all particles found for some FOFs"
-assert np.max(fof_min_pos) < 0
-assert np.min(fof_max_pos) > 0
+assert np.max(fof_min_pos) < np.inf
+assert np.min(fof_max_pos) > -np.inf
 
 # Write data to file
 output_data = {
