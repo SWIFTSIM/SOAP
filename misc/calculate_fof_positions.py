@@ -91,6 +91,27 @@ boxsize = header['BoxSize']
 ptypes = np.where(header['TotalNumberOfParticles'] != 0)[0]
 nr_files = header['NumFilesPerSnapshot'][0]
 
+def copy_attrs(src_obj, dst_obj):
+    for key, val in src_obj.attrs.items():
+        dst_obj.attrs[key] = val
+
+def copy_object(src_obj, dst_obj, src_filename, prefix="", skip_datasets=False):
+    copy_attrs(src_obj, dst_obj)
+    for name, item in src_obj.items():
+        if isinstance(item, h5py.Dataset):
+            if skip_datasets and (item.name != "/Header/PartTypeNames"):
+                continue
+            shape = item.shape
+            dtype = item.dtype
+            layout = h5py.VirtualLayout(shape=shape, dtype=dtype)
+            vsource = h5py.VirtualSource(src_filename, prefix + name, shape=shape)
+            layout[...] = vsource
+            vds = dst_obj.create_virtual_dataset(name, layout)
+            copy_attrs(item, vds)
+        elif isinstance(item, h5py.Group):
+            new_group = dst_obj.create_group(name)
+            copy_object(item, new_group, src_filename, prefix + name + "/", skip_datasets=skip_datasets)
+
 # Assign files to ranks
 files_per_rank = np.zeros(comm_size, dtype=int)
 files_per_rank[:] = nr_files // comm_size
@@ -108,30 +129,8 @@ for i_file in range(
 ):
     src_filename = fof_filename.format(file_nr=i_file)
     dst_filename = output_filename.format(file_nr=i_file)
-
-    def copy_attrs(src_obj, dst_obj):
-        for key, val in src_obj.attrs.items():
-            dst_obj.attrs[key] = val
-
     with h5py.File(src_filename, "r") as src_file, h5py.File(dst_filename, "w") as dst_file:
-
-        def create_virtual_datasets(src_group, dst_group, src_filename, prefix=""):
-            copy_attrs(src_group, dst_group)
-
-            for name, item in src_group.items():
-                if isinstance(item, h5py.Dataset):
-                    shape = item.shape
-                    dtype = item.dtype
-                    layout = h5py.VirtualLayout(shape=shape, dtype=dtype)
-                    vsource = h5py.VirtualSource(src_filename, prefix + name, shape=shape)
-                    layout[...] = vsource
-                    vds = dst_group.create_virtual_dataset(name, layout)
-                    copy_attrs(item, vds)
-                elif isinstance(item, h5py.Group):
-                    new_group = dst_group.create_group(name)
-                    create_virtual_datasets(item, new_group, src_filename, prefix + name + "/")
-
-        create_virtual_datasets(src_file, dst_file, src_filename)
+        copy_object(src_file, dst_file, src_filename)
 
 # Load FOF catalogue
 fof_file = phdf5.MultiFile(
@@ -253,8 +252,45 @@ fof_file.write(
     attrs=coordinate_unit_attrs,
 )
 
-# TODO: Create virtual files
-
 if comm_rank == 0:
+
+    # Create virtual file
+    dst_filename = args.output_basename + ".hdf5"
+    with h5py.File(dst_filename, "w") as dst_file:
+
+        # Copy original virtual file, skip datasets
+        src_filename = args.fof_basename + ".hdf5"
+        with h5py.File(src_filename, "r") as src_file:
+            copy_object(src_file, dst_file, src_filename, skip_datasets=True)
+        nr_groups = dst_file['Header'].attrs['NumGroups_Total'][0]
+
+        # Get number of groups in each chunk file
+        counts = []
+        for i_file in range(nr_files):
+            src_filename = output_filename.format(file_nr=i_file)
+            with h5py.File(src_filename, 'r') as src_file:
+                if i_file == 0:
+                    props = list(src_file['Groups'].keys())
+                    shapes = [src_file[f'Groups/{prop}'].shape for prop in props]
+                    dtypes = [src_file[f'Groups/{prop}'].dtype for prop in props]
+                counts.append(src_file['Header'].attrs['NumGroups_ThisFile'][0])
+
+        # Create virtual datasets
+        for prop, shape, dtype in zip(props, shapes, dtypes):
+            full_shape = (nr_groups, *shape[1:])
+            layout = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
+
+            offset = 0
+            for i_file in range(nr_files):
+                src_filename = output_filename.format(file_nr=i_file)
+                count = counts[i_file]
+                layout[offset : offset + count] = h5py.VirtualSource(
+                    src_filename, f"Groups/{prop}", shape=(count, *shape[1:])
+                )
+                offset += count
+            dst_file.create_virtual_dataset(
+                f"Groups/{prop}", layout, fillvalue=-999
+            )
+
     print('Done')
 
