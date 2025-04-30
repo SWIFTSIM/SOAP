@@ -556,9 +556,8 @@ def get_inertia_tensor_luminosity_weighted(
         # Calculate ellipsoid per band, and determine which particles are inside. 
         axis = R * np.array(
             [1 * np.cbrt(s * p), 1 * np.cbrt(q / p), 1 / np.cbrt(q * s)]
-        )
-        # The transpose is to handle the fact that axis has shape (3, number_luminosity_bands)
-        p = np.dot(position, eig_vec) / axis.T
+        ).T
+        p = np.dot(position, eig_vec) / axis
         r = np.linalg.norm(p, axis=2)
         # We want to skip the calculation if we have less than "min_particles"
         # inside the initial sphere. We do the check here since this is the first
@@ -790,9 +789,8 @@ def get_projected_inertia_tensor_luminosity_weighted(
           break
 
         # Calculate ellipsoid per band, and determine which particles are inside. 
-        axis = R * np.array([1 * np.sqrt(q), 1 / np.sqrt(q)])
-        # The transpose is to handle the fact that axis has shape (3, number_luminosity_bands)
-        p = np.dot(projected_position, eig_vec) / axis.T
+        axis = R * np.array([1 * np.sqrt(q), 1 / np.sqrt(q)]).T
+        p = np.dot(projected_position, eig_vec) / axis
         r = np.linalg.norm(p, axis=2)
 
         # We want to skip the calculation if we have less than "min_particles"
