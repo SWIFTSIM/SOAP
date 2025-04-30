@@ -781,10 +781,14 @@ def get_projected_inertia_tensor_luminosity_weighted(
         old_q = q
         q = np.sqrt(eig_val[:,0] / eig_val[:,1])
 
-        # Identify bands with converged results. The calculations will only be
-        # done for bands that are not yet converged. If all are converged, we are 
-        # done.
-        is_converged[np.abs((old_q - q) / q) < tol] = 1
+        # We disable warnings because some bands will have q = 0 (indicative of 
+        # <= 1 particle enclosed by its current ellipsoid). We wil force the 
+        # algorithm to think they are converged to stop their calculation.
+        with np.errstate(divide='ignore'):
+          fractional_change = np.where(q != 0, np.abs((old_q - q) / q), 0)
+
+        # We can stop once all bands have converged results.
+        is_converged[fractional_change < tol] = 1
         if (~is_converged).sum() == 0:
           break
 
