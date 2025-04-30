@@ -35,9 +35,7 @@ from virgo.mpi.gather_array import gather_array
 
 # Parse arguments
 parser = argparse.ArgumentParser(
-    description=(
-        "Script to calculate extent of FoF groups."
-    )
+    description=("Script to calculate extent of FoF groups.")
 )
 parser.add_argument(
     "--snap-basename",
@@ -58,18 +56,14 @@ parser.add_argument(
     "--output-basename",
     type=str,
     required=True,
-    help=(
-        "The basename for the output files"
-    ),
+    help=("The basename for the output files"),
 )
 parser.add_argument(
     "--null-fof-id",
     type=int,
     required=False,
     default=2147483647,
-    help=(
-        "The FOFGroupIDs of particles not in a FOF group"
-    ),
+    help=("The FOFGroupIDs of particles not in a FOF group"),
 )
 args = parser.parse_args()
 snap_filename = args.snap_basename + ".{file_nr}.hdf5"
@@ -79,21 +73,23 @@ os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
 if comm_rank == 0:
     with h5py.File(snap_filename.format(file_nr=0), "r") as file:
-        header = dict(file['Header'].attrs)
-        coordinate_unit_attrs = dict(file['PartType1/Coordinates'].attrs)
+        header = dict(file["Header"].attrs)
+        coordinate_unit_attrs = dict(file["PartType1/Coordinates"].attrs)
 else:
     header = None
     coordinate_unit_attrs = None
 header = comm.bcast(header)
 coordinate_unit_attrs = comm.bcast(coordinate_unit_attrs)
 
-boxsize = header['BoxSize']
-ptypes = np.where(header['TotalNumberOfParticles'] != 0)[0]
-nr_files = header['NumFilesPerSnapshot'][0]
+boxsize = header["BoxSize"]
+ptypes = np.where(header["TotalNumberOfParticles"] != 0)[0]
+nr_files = header["NumFilesPerSnapshot"][0]
+
 
 def copy_attrs(src_obj, dst_obj):
     for key, val in src_obj.attrs.items():
         dst_obj.attrs[key] = val
+
 
 def copy_object(src_obj, dst_obj, src_filename, prefix="", skip_datasets=False):
     copy_attrs(src_obj, dst_obj)
@@ -110,16 +106,23 @@ def copy_object(src_obj, dst_obj, src_filename, prefix="", skip_datasets=False):
             copy_attrs(item, vds)
         elif isinstance(item, h5py.Group):
             new_group = dst_obj.create_group(name)
-            copy_object(item, new_group, src_filename, prefix + name + "/", skip_datasets=skip_datasets)
+            copy_object(
+                item,
+                new_group,
+                src_filename,
+                prefix + name + "/",
+                skip_datasets=skip_datasets,
+            )
+
 
 # Assign files to ranks
 files_per_rank = np.zeros(comm_size, dtype=int)
 files_per_rank[:] = nr_files // comm_size
 remainder = nr_files % comm_size
 if remainder > 0:
-    step = max(nr_files // (remainder+1), 1)
+    step = max(nr_files // (remainder + 1), 1)
     for i in range(remainder):
-        files_per_rank[(i*step) % comm_size] += 1
+        files_per_rank[(i * step) % comm_size] += 1
 first_file = np.cumsum(files_per_rank) - files_per_rank
 assert sum(files_per_rank) == nr_files
 
@@ -129,7 +132,10 @@ for i_file in range(
 ):
     src_filename = fof_filename.format(file_nr=i_file)
     dst_filename = output_filename.format(file_nr=i_file)
-    with h5py.File(src_filename, "r") as src_file, h5py.File(dst_filename, "w") as dst_file:
+    with (
+        h5py.File(src_filename, "r") as src_file,
+        h5py.File(dst_filename, "w") as dst_file,
+    ):
         rel_filename = os.path.relpath(src_filename, os.path.dirname(dst_filename))
         copy_object(src_file, dst_file, rel_filename)
 
@@ -152,7 +158,7 @@ snap_file = phdf5.MultiFile(
 )
 for ptype in ptypes:
     if comm_rank == 0:
-        print(f'Processing PartType{ptype}')
+        print(f"Processing PartType{ptype}")
 
     # Load particle positions and their FOF IDs
     part_pos = snap_file.read(f"PartType{ptype}/Coordinates")
@@ -165,7 +171,7 @@ for ptype in ptypes:
 
     # Get the centre of the FOF each particle is part of
     idx = psort.parallel_match(part_fof_ids, fof_group_ids, comm=comm)
-    assert np.all(idx != -1), 'FOFs could not be found for some particles'
+    assert np.all(idx != -1), "FOFs could not be found for some particles"
     part_centre = psort.fetch_elements(fof_centres, idx, comm=comm)
 
     # Centre the particles
@@ -194,8 +200,10 @@ for ptype in ptypes:
         n_part_target = np.sum(gathered_counts) / comm_size
         cumsum = np.cumsum(gathered_counts)
         ranks = np.floor(cumsum / n_part_target).astype(int)
-        ranks = np.clip(ranks, 0, comm_size-1)
-        n_part_per_rank = np.bincount(ranks, weights=gathered_counts, minlength=comm_size)
+        ranks = np.clip(ranks, 0, comm_size - 1)
+        n_part_per_rank = np.bincount(
+            ranks, weights=gathered_counts, minlength=comm_size
+        )
         assert np.sum(n_part_per_rank) == np.sum(gathered_counts)
     else:
         n_part_per_rank = None
@@ -234,7 +242,7 @@ for ptype in ptypes:
         fof_max_pos[mask, i] = np.maximum(fof_max_pos[mask, i], max_pos)
 
 # Carry out some sanity checks
-assert np.all(total_part_counts == fof_sizes), 'Not all particles found for some FOFs'
+assert np.all(total_part_counts == fof_sizes), "Not all particles found for some FOFs"
 assert np.max(fof_min_pos) < 0
 assert np.min(fof_max_pos) > 0
 
@@ -248,7 +256,7 @@ fof_file.write(
     output_data,
     elements_per_file,
     filenames=output_filename,
-    mode='r+',
+    mode="r+",
     group="Groups",
     attrs=coordinate_unit_attrs,
 )
@@ -263,18 +271,18 @@ if comm_rank == 0:
         src_filename = args.fof_basename + ".hdf5"
         with h5py.File(src_filename, "r") as src_file:
             copy_object(src_file, dst_file, src_filename, skip_datasets=True)
-        nr_groups = dst_file['Header'].attrs['NumGroups_Total'][0]
+        nr_groups = dst_file["Header"].attrs["NumGroups_Total"][0]
 
         # Get number of groups in each chunk file
         counts = []
         for i_file in range(nr_files):
             src_filename = output_filename.format(file_nr=i_file)
-            with h5py.File(src_filename, 'r') as src_file:
+            with h5py.File(src_filename, "r") as src_file:
                 if i_file == 0:
-                    props = list(src_file['Groups'].keys())
-                    shapes = [src_file[f'Groups/{prop}'].shape for prop in props]
-                    dtypes = [src_file[f'Groups/{prop}'].dtype for prop in props]
-                counts.append(src_file['Header'].attrs['NumGroups_ThisFile'][0])
+                    props = list(src_file["Groups"].keys())
+                    shapes = [src_file[f"Groups/{prop}"].shape for prop in props]
+                    dtypes = [src_file[f"Groups/{prop}"].dtype for prop in props]
+                counts.append(src_file["Header"].attrs["NumGroups_ThisFile"][0])
 
         # Create virtual datasets
         for prop, shape, dtype in zip(props, shapes, dtypes):
@@ -284,15 +292,14 @@ if comm_rank == 0:
             offset = 0
             for i_file in range(nr_files):
                 src_filename = output_filename.format(file_nr=i_file)
-                rel_filename = os.path.relpath(src_filename, os.path.dirname(dst_filename))
+                rel_filename = os.path.relpath(
+                    src_filename, os.path.dirname(dst_filename)
+                )
                 count = counts[i_file]
                 layout[offset : offset + count] = h5py.VirtualSource(
                     rel_filename, f"Groups/{prop}", shape=(count, *shape[1:])
                 )
                 offset += count
-            dst_file.create_virtual_dataset(
-                f"Groups/{prop}", layout, fillvalue=-999
-            )
+            dst_file.create_virtual_dataset(f"Groups/{prop}", layout, fillvalue=-999)
 
-    print('Done')
-
+    print("Done")
