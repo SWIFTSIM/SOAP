@@ -1410,7 +1410,7 @@ class SOParticleData:
             * self.get_dataset("PartType0/ElementMassFractions")[self.gas_selection][
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType0/ElementMassFractions", "Oxygen"
                 ),
             ]
         ).sum() / self.Mgas
@@ -1429,7 +1429,9 @@ class SOParticleData:
             self.gas_masses
             * self.get_dataset("PartType0/ElementMassFractions")[self.gas_selection][
                 :,
-                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/ElementMassFractions", "Iron"
+                ),
             ]
         ).sum() / self.Mgas
 
@@ -2307,7 +2309,7 @@ class SOParticleData:
             * self.get_dataset("PartType4/ElementMassFractions")[self.star_selection][
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType4/ElementMassFractions", "Oxygen"
                 ),
             ]
         ).sum() / self.Mstar
@@ -2325,7 +2327,9 @@ class SOParticleData:
             self.star_masses
             * self.get_dataset("PartType4/ElementMassFractions")[self.star_selection][
                 :,
-                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType4/ElementMassFractions", "Iron"
+                ),
             ]
         ).sum() / self.Mstar
 
@@ -2935,9 +2939,11 @@ class SOParticleData:
         pos = self.get_dataset(f"PartType0/Coordinates") - self.centre[None, :]
         vel = self.get_dataset("PartType0/Velocities")
         i_H = self.snapshot_datasets.get_column_index(
-            "ElementMassFractions", "Hydrogen"
+            "PartType0/ElementMassFractions", "Hydrogen"
         )
-        i_HI = self.snapshot_datasets.get_column_index("SpeciesFractions", "HI")
+        i_HI = self.snapshot_datasets.get_column_index(
+            "PartType0/SpeciesFractions", "HI"
+        )
         mass = (
             self.get_dataset("PartType0/Masses")
             * self.get_dataset("PartType0/ElementMassFractions")[:, i_H]
@@ -2959,9 +2965,11 @@ class SOParticleData:
         pos = self.get_dataset(f"PartType0/Coordinates") - self.centre[None, :]
         vel = self.get_dataset("PartType0/Velocities")
         i_H = self.snapshot_datasets.get_column_index(
-            "ElementMassFractions", "Hydrogen"
+            "PartType0/ElementMassFractions", "Hydrogen"
         )
-        i_H2 = self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
+        i_H2 = self.snapshot_datasets.get_column_index(
+            "PartType0/SpeciesFractions", "H2"
+        )
         # Factor of two needed since we want mass fraction not number
         mass = (
             self.get_dataset("PartType0/Masses")
@@ -3200,6 +3208,7 @@ class SOProperties(HaloProperty):
     Each property should have a corresponding method/property/lazy_property in
     the SOParticleData class above.
     """
+    base_halo_type = "SOProperties"
     property_list = {
         name: PropertyTable.full_property_list[name]
         for name in [

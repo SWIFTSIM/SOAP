@@ -36,8 +36,6 @@ class SnapshotDatasets:
     dataset_map: Dict
     # mapping from dataset + column names to column index
     named_columns: Dict
-    # grain compositions in the dust model (currently not used)
-    dust_grain_composition: NDArray[float]
     # constants defined in the parameter file
     defined_constants: Dict
 
@@ -72,28 +70,24 @@ class SnapshotDatasets:
                     "NamedColumns" not in file_handle["SubgridScheme"]
                 ):
                     continue
+
                 # As the snapshot filename is done first, if one of the extra-input
                 # files has a named column entry in common with the snapshot then
-                # we use then one from the extra-input file.
-                for name in file_handle["SubgridScheme"]["NamedColumns"]:
-                    column_names = file_handle["SubgridScheme"]["NamedColumns"][name][:]
-                    self.named_columns[name] = {}
-                    # turn the list into a dictionary that maps a column name to
-                    # a colum index
-                    for iname, colname in enumerate(column_names):
-                        self.named_columns[name][colname.decode("utf-8")] = iname
-
-                try:
-                    self.dust_grain_composition = file_handle["SubgridScheme"][
-                        "GrainToElementMapping"
-                    ][:]
-                except KeyError:
-                    try:
-                        self.dust_grain_composition = file_handle["SubgridScheme"][
-                            "DustMassFractionsToElementMassFractionsMapping"
-                        ][:]
-                    except KeyError:
-                        pass
+                # we use then one from the extra-input file. We append the ptype
+                # in case there of conflict (e.g. we use PartType0/SpeciesFractions
+                # from the snapshot file, but PartType4/SpeciesFractions from the
+                # extra-input files.
+                for dset in file_handle["SubgridScheme"]["NamedColumns"]:
+                    column_names = file_handle["SubgridScheme"]["NamedColumns"][dset][:]
+                    for group, datasets in self.datasets_in_file.items():
+                        if not dset in datasets:
+                            continue
+                        name = f"{group}/{dset}"
+                        self.named_columns[name] = {}
+                        # turn the list into a dictionary that maps a column name to
+                        # a colum index
+                        for iname, colname in enumerate(column_names):
+                            self.named_columns[name][colname.decode("utf-8")] = iname
 
     def setup_aliases(self, aliases: Dict):
         """
@@ -130,10 +124,8 @@ class SnapshotDatasets:
             SOAP_ptype, SOAP_dset = alias.split("/")
             snap_ptype, snap_dset = aliases[alias].split("/")
             self.dataset_map[alias] = (snap_ptype, snap_dset)
-            if (snap_dset in self.named_columns) and (
-                SOAP_dset not in self.named_columns
-            ):
-                self.named_columns[SOAP_dset] = dict(self.named_columns[snap_dset])
+            if aliases[alias] in self.named_columns:
+                self.named_columns[alias] = dict(self.named_columns[aliases[alias]])
 
     def setup_defined_constants(self, defined_constants: Dict):
         """
@@ -182,45 +174,18 @@ class SnapshotDatasets:
         try:
             ptype, dset = self.dataset_map[name]
         except KeyError as e:
-            print(f'Dataset "{name}" not found!')
-            print("The following properties require this dataset:")
-            full_property_list = property_table.PropertyTable.full_property_list
-            for k, v in full_property_list.items():
-                if name in v.particle_properties:
-                    print(f"  {k}")
-            raise e
+            # This should never occur since swift_cells.check_datasets_exist
+            # checks all the properties we require are indeed available
+            raise KeyError(f"Failed to read {name} from input files!")
         return data_dict[ptype][dset]
 
-    def get_dataset_column(
-        self, name: str, column_name: str, data_dict: Dict
-    ) -> unyt.unyt_array:
-        """
-        Get the data for the given named column in the dataset with the given
-        generic name.
-
-        Parameters:
-         - name: str
-           Generic name of a dataset, as used by halo property calculations.
-         - column_name: str
-           Name of a named column, as defined in the snapshot metadata and used
-           by halo property calculations.
-         - data_dict: Dict
-           Dictionary of particle properties, as read from the snapshot.
-
-        Returns the corresponding data, taking into account potential
-        aliases and the named column metadata.
-        """
-        ptype, dset = self.dataset_map[name]
-        column_index = self.named_columns[dset][column_name]
-        return data_dict[ptype][dset][:, column_index]
-
-    def get_column_index(self, dset: str, column_name: str) -> int:
+    def get_column_index(self, name: str, column_name: str) -> int:
         """
         Get the index of the given named column of the dataset
         with the given name.
 
         Parameters:
-         - dset: str
+         - name: str
            Generic name of a dataset, as used by halo property calculations.
          - column_name: str
            Name of a named column, as defined in the snapshot metadata and
@@ -230,20 +195,4 @@ class SnapshotDatasets:
         access that specific column in a data array that was obtained earlier
         using get_dataset().
         """
-        return self.named_columns[dset][column_name]
-
-    def get_dust_grain_composition(self, grain_name: str) -> NDArray[float]:
-        """
-        Get the composition of the grain with the given name.
-
-        Currently not used.
-
-        Parameters:
-         - grain_name: str
-           Name of a dust grain.
-
-        Returns the corresponding elemental composition of the grain.
-        """
-        return self.dust_grain_composition[
-            self.named_columns["DustMassFractions"][grain_name]
-        ]
+        return self.named_columns[name][column_name]

@@ -61,6 +61,7 @@ class ParameterFile:
                 self.parameters = {}
 
         self.snipshot = snipshot
+        self.aliases = None
 
         self.property_filters = {}
 
@@ -145,7 +146,7 @@ class ParameterFile:
             if isinstance(filters[property], str):
                 assert (filters[property] in self.parameters.get("filters", {})) or (
                     filters[property] == "basic"
-                )
+                ), f'Filter "{filters[property]}" is not defined in paramter file'
             else:
                 assert filters[property] == False
 
@@ -167,28 +168,37 @@ class ParameterFile:
             for base_halo_type, property in self.unregistered_parameters:
                 print(f"  {base_halo_type.ljust(30)}{property}")
 
-    def print_invalid_properties(self) -> None:
+    def print_invalid_properties(self, halo_prop_list) -> None:
         """
         Print a list of any properties in the parameter file that are not present in
         the property table. This doesn't check if the property is defined for a specific
         halo type.
         """
-        invalid_properties = []
-        full_property_list = property_table.PropertyTable.full_property_list
-        valid_properties = [prop.name for prop in full_property_list.values()]
+        invalid_properties = set()
         for key in self.parameters:
             # Skip keys which aren't halo types
             if "properties" not in self.parameters[key]:
                 continue
+            # Add all properties to the invalid list
             for prop in self.parameters[key]["properties"]:
-                if prop not in valid_properties:
-                    invalid_properties.append(prop)
+                invalid_properties.add((key, prop))
+            # Remove those which are valid for this particle halo type
+            for halo_type in halo_prop_list:
+                if key != halo_type.base_halo_type:
+                    continue
+                valid_properties = [
+                    prop.name for prop in halo_type.property_list.values()
+                ]
+                for prop in self.parameters[key]["properties"]:
+                    if prop in valid_properties:
+                        invalid_properties.discard((key, prop))
         if len(invalid_properties):
+            invalid_properties = sorted(invalid_properties, key=lambda x: (x[0], x[1]))
             print(
                 "The following properties were found in the parameter file, but are invalid:"
             )
-            for prop in invalid_properties:
-                print(f"  {prop}")
+            for base_halo_type, prop in invalid_properties:
+                print(f"  {base_halo_type}  {prop}")
 
     def get_halo_type_variations(
         self, base_halo_type: str, default_variations: Dict
@@ -242,9 +252,9 @@ class ParameterFile:
         Returns a tuple with the path of the actual dataset in the snapshot,
         e.g. ("PartType4", "Masses").
         """
-        if "aliases" in self.parameters:
-            if property_name in self.parameters["aliases"]:
-                property_name = self.parameters["aliases"][property_name]
+        aliases = self.get_aliases()
+        if property_name in aliases:
+            property_name = aliases[property_name]
         parts = property_name.split("/")
         if not len(parts) == 2:
             raise RuntimeError(
@@ -259,10 +269,20 @@ class ParameterFile:
         Returns the dictionary of aliases or an empty dictionary if no
         aliases were defined (there are no default aliases).
         """
-        if "aliases" in self.parameters:
-            return dict(self.parameters["aliases"])
-        else:
-            return dict()
+        if self.aliases is None:
+            if "aliases" in self.parameters:
+                if "snipshot" in self.parameters["aliases"]:
+                    if self.snipshot:
+                        self.aliases = dict(self.parameters["aliases"]["snipshot"])
+                    else:
+                        aliases = dict(self.parameters["aliases"])
+                        del aliases["snipshot"]
+                        self.aliases = aliases
+                else:
+                    self.aliases = dict(self.parameters["aliases"])
+            else:
+                self.aliases = dict()
+        return self.aliases
 
     def get_filters(self, default_filters: Dict) -> Dict:
         """

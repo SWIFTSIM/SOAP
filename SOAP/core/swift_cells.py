@@ -258,10 +258,8 @@ class SWIFTCellGrid:
             critical_density_z0_internal = 3 * (H0**2) / (8 * np.pi * G)
             # We use non-relativistic neutrinos when we compute the mass with
             # an SO, so consider them when we calculate the reference mean density
-            omega_m = self.cosmology["Omega_m"] + self.cosmology.get('Omega_nu_0', 0)
-            mean_density_z0_internal = (
-                critical_density_z0_internal * omega_m
-            )
+            omega_m = self.cosmology["Omega_m"] + self.cosmology.get("Omega_nu_0", 0)
+            mean_density_z0_internal = critical_density_z0_internal * omega_m
             mean_density_internal = mean_density_z0_internal / (self.a**3)
             self.mean_density = unyt.unyt_quantity(
                 mean_density_internal, units=internal_density_unit
@@ -449,6 +447,8 @@ class SWIFTCellGrid:
         # to output a list of properties that require the missing fields
         for ptype in set(self.ptypes).intersection(set(required_datasets.keys())):
             for name in required_datasets[ptype]:
+                # Note that the field names in required_datasets have already had
+                # any aliases applied, so we can check the raw files themselves
                 in_extra = (self.extra_filenames is not None) and (
                     name in self.extra_metadata_combined[ptype]
                 )

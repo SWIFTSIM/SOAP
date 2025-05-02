@@ -275,6 +275,10 @@ class PropertyTable:
             "LinearMassWeightedMagnesiumOverHydrogenOfStars",
             "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
         ],
+        "footnote_progenitor_descendant.tex": [
+            "SOAP/DescendantIndex",
+            "SOAP/ProgenitorIndex",
+        ],
     }
 
     # dictionary with human-friendly descriptions of the various lossy
@@ -848,6 +852,17 @@ class PropertyTable:
                 "PartType4/Velocities",
                 "PartType4/Masses",
                 "PartType4/Luminosities",
+        "DustMass": Property(
+            name="DustMass",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_mass",
+            description="Total dust mass.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Masses",
+                "PartType0/TotalDustMassFractions",
             ],
             output_physical=True,
             a_scale_exponent=0,
@@ -920,7 +935,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in graphite grains in atomic gas.",
+            description="Total dust mass in graphite grains in atomic gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -937,7 +952,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in graphite grains in molecular gas.",
+            description="Total dust mass in graphite grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -983,7 +998,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in large grains in molecular gas.",
+            description="Total dust mass in large grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1029,7 +1044,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in silicate grains in atomic gas.",
+            description="Total dust mass in silicate grains in atomic gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1046,7 +1061,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in silicate grains in molecular gas.",
+            description="Total dust mass in silicate grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1096,7 +1111,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in small grains in molecular gas.",
+            description="Total dust mass in small grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1242,6 +1257,22 @@ class PropertyTable:
             output_physical=False,
             a_scale_exponent=1,
         ),
+        "HalfMassRadiusDust": Property(
+            name="HalfMassRadiusDust",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Dust half mass radius.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType0/TotalDustMassFractions",
+            ],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         "HalfMassRadiusGas": Property(
             name="HalfMassRadiusGas",
             shape=1,
@@ -1364,7 +1395,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of baryons (gas and stars), relative to the centre of potential and baryonic centre of mass velocity.",
+            description="Total angular momentum of baryons (gas and stars), relative to the HaloCentre and baryonic centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1383,7 +1414,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of the dark matter, relative to the centre of potential and DM centre of mass velocity.",
+            description="Total angular momentum of the dark matter, relative to the HaloCentre and DM centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[
@@ -1399,7 +1430,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of the gas, relative to the centre of potential and gas centre of mass velocity.",
+            description="Total angular momentum of the gas, relative to the HaloCentre and gas centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1454,7 +1485,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of the stars, relative to the centre of potential and stellar centre of mass velocity.",
+            description="Total angular momentum of the stars, relative to the HaloCentre and stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3404,7 +3435,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Kappa-corot for baryons (gas and stars), relative to the centre of potential and the centre of mass velocity of the baryons.",
+            description="Kappa-corot for baryons (gas and stars), relative to the HaloCentre and the centre of mass velocity of the baryons.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3423,7 +3454,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Kappa-corot for gas, relative to the centre of potential and the centre of mass velocity of the gas.",
+            description="Kappa-corot for gas, relative to the HaloCentre and the centre of mass velocity of the gas.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3439,7 +3470,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Kappa-corot for stars, relative to the centre of potential and the centre of mass velocity of the stars.",
+            description="Kappa-corot for stars, relative to the HaloCentre and the centre of mass velocity of the stars.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4379,7 +4410,7 @@ class PropertyTable:
             shape=1,
             dtype=np.int64,
             unit="dimensionless",
-            description="Index (within the SOAP arrays) of the top level parent of this subhalo. -1 for central subhalos.",
+            description="Index (within the SOAP arrays) of the top level parent of this subhalo. -1 for hostless halos.",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
@@ -4392,6 +4423,30 @@ class PropertyTable:
             dtype=np.int32,
             unit="dimensionless",
             description="Whether this halo is included in the reduced snapshot.",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "SOAP/ProgenitorIndex": Property(
+            name="SOAP/ProgenitorIndex",
+            shape=1,
+            dtype=np.int32,
+            unit="dimensionless",
+            description="Index (within the previous snapshot SOAP arrays) of the main progenitor of this subhalo.",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "SOAP/DescendantIndex": Property(
+            name="SOAP/DescendantIndex",
+            shape=1,
+            dtype=np.int32,
+            unit="dimensionless",
+            description="Index (within the next snapshot SOAP arrays) of the main descendant of this subhalo.",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
@@ -4439,9 +4494,7 @@ class PropertyTable:
         # Get the property_filters dict, which says whether a property should be included,
         # and what category the property is in
         props = halo_property.property_list
-        base_halo_type = halo_type
-        if halo_type in ["ExclusiveSphereProperties", "InclusiveSphereProperties"]:
-            base_halo_type = "ApertureProperties"
+        base_halo_type = halo_property.base_halo_type
         if halo_type == "DummyProperties":
             property_filters = {
                 prop.name: prop.name.split("/")[0] for prop in props.values()
@@ -4552,7 +4605,7 @@ class PropertyTable:
             "dm",
             "star",
             "baryon",
-            "Input",
+            "InputHalos",
             "VR",
             "HBTplus",
             "FOF",
@@ -4591,6 +4644,8 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
             prop = self.properties[prop_name]
             footnotes = self.get_footnotes(prop_name)
             prop_outputname = f"{prop['name']}{footnotes}"
+            if prop_outputname.split('/')[0] in ['HBTplus', 'VR', 'FOF']:
+                prop_outputname = 'InputHalos/' + prop_outputname
             prop_outputname = word_wrap_name(prop_outputname)
             prop_shape = f'{prop["shape"]}'
             prop_dtype = prop["dtype"]
@@ -4778,8 +4833,10 @@ class DummyProperties:
     category (e.g. we have 'VR/ID' instead of 'ID')
     """
 
+    base_halo_type = "DummyProperties"
+
     def __init__(self, halo_finder):
-        categories = ["SOAP", "Input", halo_finder]
+        categories = ["SOAP", "InputHalos", halo_finder]
         # Currently FOF properties are only stored for HBT
         if halo_finder == "HBTplus":
             categories += ["FOF"]

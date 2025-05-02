@@ -448,7 +448,7 @@ def compute_halo_properties():
         if args.record_property_timings:
             print("Storing processing time for each property")
         parameter_file.print_unregistered_properties()
-        parameter_file.print_invalid_properties()
+        parameter_file.print_invalid_properties(halo_prop_list)
         category_filter.print_filters()
 
     # Ensure output dir exists

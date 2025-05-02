@@ -182,6 +182,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "ElectronNumberDensities",
                 "SpeciesFractions",
                 "DustMassFractions",
+                "TotalDustMassFractions",
                 "LastSNIIKineticFeedbackDensities",
                 "LastSNIIThermalFeedbackDensities",
                 "ElementMassFractionsDiffuse",
@@ -953,6 +954,12 @@ class DummyHaloGenerator:
                 10.0 ** (10.0 * np.random.random(Ngas) - 2.0),
                 dtype=np.float32,
                 units="snap_mass/(a**3*snap_length**3)",
+                registry=reg,
+            )
+            data["PartType0"]["TotalDustMassFractions"] = unyt.unyt_array(
+                np.random.random(Ngas),
+                dtype=np.float32,
+                units=unyt.dimensionless,
                 registry=reg,
             )
             dmf = np.zeros((Ngas, 6))
