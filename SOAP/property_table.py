@@ -836,7 +836,7 @@ class PropertyTable:
             a_scale_exponent=0,
         ),
         "DtoTstar_luminosity_weighted_luminosity_ratio": Property(
-            name="DiscToTotalLuminosityRatioLuminosityWeighted",
+            name="DiscToTotalLuminosityRatio_LuminosityWeighted",
             shape=9,
             dtype=np.float32,
             unit="dimensionless",
@@ -853,7 +853,7 @@ class PropertyTable:
             a_scale_exponent=0,
         ),
         "DtoTstar_luminosity_weighted_mass_ratio": Property(
-            name="DiscToTotalMassRatioLuminosityWeighted",
+            name="DiscToTotalMassRatio_LuminosityWeighted",
             shape=9,
             dtype=np.float32,
             unit="dimensionless",
@@ -870,7 +870,7 @@ class PropertyTable:
             a_scale_exponent=0,
         ),
         "kappa_corot_star_luminosity_weighted": Property(
-            name="KappaCorotStarsLuminosityWeighted",
+            name="KappaCorotStars_LuminosityWeighted",
             shape=9,
             dtype=np.float32,
             unit="dimensionless",
@@ -887,7 +887,7 @@ class PropertyTable:
             a_scale_exponent=0,
         ),
         "Lstar_luminosity_weighted": Property(
-            name="AngularMomentumStarsLuminosityWeighted",
+            name="AngularMomentumStars_LuminosityWeighted",
             shape=27, # 3D vector for each of the 9 GAMA bands
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
