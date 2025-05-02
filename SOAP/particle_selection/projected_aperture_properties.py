@@ -33,7 +33,7 @@ from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.dataset_names import mass_dataset
-from SOAP.property_calculation.half_mass_radius import get_half_mass_radius
+from SOAP.property_calculation.half_mass_radius import get_half_mass_radius, get_half_light_radius
 from SOAP.property_table import PropertyTable
 from SOAP.property_calculation.kinematic_properties import get_projected_inertia_tensor
 
@@ -1439,6 +1439,15 @@ class SingleProjectionProjectedApertureParticleData:
         """
         return get_half_mass_radius(
             self.proj_radius[self.proj_type == 4], self.proj_mass_star, self.Mstar
+        )
+
+    @lazy_property
+    def HalfLightRadiusStar(self) -> unyt.unyt_array:
+        """
+        Half light radius of stars for the 9 GAMA bands.
+        """
+        return get_half_light_radius(
+            self.proj_radius[self.proj_type == 4], self.stellar_luminosities, self.StellarLuminosity
         )
 
     @lazy_property
