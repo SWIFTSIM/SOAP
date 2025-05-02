@@ -529,7 +529,7 @@ def get_inertia_tensor_luminosity_weighted(
 
     # Set stopping criteria.
     tol = 0.0001
-    q = 1000
+    q = np.repeat(1000, number_luminosity_bands)
     is_converged = np.zeros(number_luminosity_bands, dtype=bool)
 
     # Ensure we have consistent units
@@ -547,18 +547,23 @@ def get_inertia_tensor_luminosity_weighted(
         s = np.sqrt(eig_val[:,0] / eig_val[:,2])
         p = np.sqrt(eig_val[:,0] / eig_val[:,1])
 
-        # Identify bands with converged results. The calculations will only be
-        # done for bands that are not yet converged. If all are converged, we are 
-        # done.
-        is_converged[np.abs((old_q - q) / q) < tol] = 1
+        # Handle bands with q = 0 (indicative of  <= 1 particle enclosed by its 
+        # current ellipsoid) by manually setting they are converged.
+        non_zero_q = q != 0
+        fractional_change = np.zeros(number_luminosity_bands)
+        fractional_change[non_zero_q] = np.abs((old_q[non_zero_q] - q[non_zero_q]) / q[non_zero_q])
+
+        # We can stop once all bands have converged results.
+        is_converged[fractional_change < tol] = 1
         if (~is_converged).sum() == 0:
           break
 
-        # Calculate ellipsoid per band, and determine which particles are inside. 
+        # Calculate ellipsoid for each non-converged band, and determine which 
+        # particles are inside.
         axis = R * np.array(
-            [1 * np.cbrt(s * p), 1 * np.cbrt(q / p), 1 / np.cbrt(q * s)]
+            [1 * np.cbrt(s * p)[~is_converged], 1 * np.cbrt(q / p)[~is_converged], 1 / np.cbrt(q * s)[~is_converged]]
         ).T
-        p = np.dot(position, eig_vec) / axis
+        p = np.dot(position, eig_vec[~is_converged]) / axis
         r = np.linalg.norm(p, axis=2)
 
         # We want to skip the calculation if we have less than "min_particles"
@@ -568,8 +573,8 @@ def get_inertia_tensor_luminosity_weighted(
             return None
 
         # Create a luminosity-weight array of the correct shape.
-        weight = np.zeros(luminosity.shape)
-        weight = np.where(r <= 1, luminosity, weight)
+        weight = np.zeros(luminosity[:,~is_converged].shape)
+        weight = np.where(r <= 1, luminosity[:,~is_converged], weight)
         weight /= weight.sum(axis=0)
 
         # Check if we have exceeded the search radius. For subhalo_properties we
@@ -577,19 +582,29 @@ def get_inertia_tensor_luminosity_weighted(
         if (search_radius is not None) and (np.max(R) > search_radius):
             raise SearchRadiusTooSmallError("Inertia tensor required more particles")
 
-        # Calculate inertia tensor for each band, shape (number_particles, number_bands, 3, 3)
-        tensor = weight[:,:, None, None] * (position[:, :, None] * position[:, None, :])[:, None, :, :]
+        # Calculate inertia tensor for each band and for each particle
+        individual_particle_tensor = weight[:,:, None, None] * (position[:, :, None] * position[:, None, :])[:, None, :, :]
 
         if reduced:
             raise NotImplementedError
-            tensor /= norm[:, None, None]
+            individual_particle_tensor /= norm[:, None, None]
 
-        tensor = tensor.sum(axis=0) # Shape (number_bands,3 ,3)
-        eig_val, eig_vec = np.linalg.eigh(tensor.value)
+        # Calculate total inertia tensor for bands that are not yet converged. We 
+        # do indexing on tensor beyond the first iteration so that the matricies 
+        # from converged bands are left intact.
+        if (i_iter == 0):
+          tensor = individual_particle_tensor.sum(axis=0)
+        else:
+          tensor[~is_converged] = individual_particle_tensor.sum(axis=0)
+
+        eig_val[~is_converged], eig_vec[~is_converged] = np.linalg.eigh(tensor[~is_converged].value)
 
         # We sometimes get very small eigenvalues that overflow into negative values. We 
         # only expect positive values for a real symmetric matrix, hence we take abs.
         eig_val = np.abs(eig_val)
+
+    # Set tensors associated to q = 0 to be invalid
+    tensor[q == 0] = 0
 
     # Flatten all inertia tensors computed in different luminosity bands
     flattened_matricies = []
@@ -818,7 +833,7 @@ def get_projected_inertia_tensor_luminosity_weighted(
 
         if reduced:
             raise NotImplementedError
-            tensor /= norm[:, None, None]
+            individual_particle_tensor /= norm[:, None, None]
 
         # Calculate total inertia tensor for bands that are not yet converged. We 
         # do indexing on tensor beyond the first iteration so that the matricies 
