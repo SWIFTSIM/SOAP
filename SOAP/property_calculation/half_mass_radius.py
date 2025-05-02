@@ -144,7 +144,7 @@ def get_half_light_radius(
     Returns the half light radius, defined as the radius at which the cumulative mass profile
     reaches 0.5 * total_luminosity, for each GAMA band.
     """
-    half_light_radii = np.zeros(luminosity.shape[1]) * radius.units
+    half_light_radii = np.zeros(total_band_luminosites.shape[0]) * radius.units
     for i_band, (luminosity, total_luminosity) in enumerate(zip(band_luminosity.T, total_band_luminosites)):
         half_light_radii[i_band] = get_half_weight_radius(radius, luminosity, total_luminosity)
     return half_light_radii

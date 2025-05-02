@@ -1501,6 +1501,7 @@ class ProjectedApertureProperties(HaloProperty):
         "HalfMassRadiusDust": False,
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
+        "HalfLightRadiusStar": False,
         "HalfMassRadiusBaryon": False,
         "proj_veldisp_gas": False,
         "proj_veldisp_dm": False,

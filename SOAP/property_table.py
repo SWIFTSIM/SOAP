@@ -1234,7 +1234,7 @@ class PropertyTable:
             a_scale_exponent=1,
         ),
         "HalfLightRadiusStar": Property(
-            name="HalfLightRadiusStar",
+            name="HalfLightRadiusStars",
             shape=9,
             dtype=np.float32,
             unit="snap_length",

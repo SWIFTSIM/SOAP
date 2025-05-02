@@ -3281,6 +3281,7 @@ class ApertureProperties(HaloProperty):
         "HalfMassRadiusDust": False,
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
+        "HalfLightRadiusStar": False,
         "HalfMassRadiusBaryon": False,
         "DtoTgas": False,
         "DtoTstar": False,
