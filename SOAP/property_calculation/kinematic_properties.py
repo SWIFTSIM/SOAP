@@ -508,7 +508,8 @@ def get_inertia_tensor_luminosity_weighted(
        The number of particles required within the initial sphere. The inertia tensor
        is not computed if this threshold is not met.
 
-    Returns the inertia tensor for each of the luminosity bands.
+    Returns an array of concatenated flattened inertia tensors, with each 6 consecutive 
+    entries corresponding to 3 diagonal and 3 off-diagonal terms.
     """
 
     # Check we have at least "min_particles" particles
@@ -559,6 +560,7 @@ def get_inertia_tensor_luminosity_weighted(
         ).T
         p = np.dot(position, eig_vec) / axis
         r = np.linalg.norm(p, axis=2)
+
         # We want to skip the calculation if we have less than "min_particles"
         # inside the initial sphere. We do the check here since this is the first
         # time we calculate how many particles are within the sphere.
@@ -583,12 +585,12 @@ def get_inertia_tensor_luminosity_weighted(
             tensor /= norm[:, None, None]
 
         tensor = tensor.sum(axis=0) # Shape (number_bands,3 ,3)
-
         eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
         # We sometimes get very small eigenvalues that overflow into negative values. We 
         # only expect positive values for a real symmetric matrix, hence we take abs.
         eig_val = np.abs(eig_val)
+
     # Flatten all inertia tensors computed in different luminosity bands
     flattened_matricies = []
     for i_band in range(number_luminosity_bands):
@@ -705,7 +707,8 @@ def get_projected_inertia_tensor_luminosity_weighted(
 ):
     """
     Takes in the particle distribution projected along a given axis, and calculates the inertia
-    tensor using the projected values and weighting by the luminosity of the particle.
+    tensor using the projected values and weighting it by the fractional contribution of a particle
+    to a given luminosity band.
 
     Unlike get_inertia_tensor, we don't need to check if we have exceeded the search radius. This
     is because all the bound particles are passed to this function.
@@ -730,7 +733,8 @@ def get_projected_inertia_tensor_luminosity_weighted(
        The number of particles required within the initial circle. The inertia tensor
        is not computed if this threshold is not met.
 
-    Returns the inertia tensor.
+    Returns an array of concatenated flattened inertia tensors, with each 3 consecutive 
+    entries corresponding to 2 diagonal and 1 off-diagonal terms.
     """
 
     # Check we have at least "min_particles" particles
