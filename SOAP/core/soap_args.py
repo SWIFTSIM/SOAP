@@ -122,6 +122,7 @@ def get_soap_args(comm):
     args.halo_basename = all_args["HaloFinder"]["filename"]
     args.halo_format = all_args["HaloFinder"]["type"]
     args.fof_group_filename = all_args["HaloFinder"].get("fof_filename", "")
+    args.fof_radius_filename = all_args["HaloFinder"].get("fof_radius_filename", "")
     args.output_file = all_args["HaloProperties"]["filename"]
     args.snapshot_nr = all_args["Parameters"]["snap_nr"]
     args.chunks = all_args["Parameters"]["chunks"]
@@ -178,6 +179,14 @@ def get_soap_args(comm):
             )
             if not os.path.exists(fof_filename):
                 print(f"Could not find FOF group catalogue: {fof_filename}")
+                comm.Abort(1)
+        if args.fof_radius_filename != "":
+            assert args.fof_group_filename != ""
+            fof_filename = args.fof_radius_filename.format(
+                snap_nr=args.snapshot_nr, file_nr=0
+            )
+            if not os.path.exists(fof_filename):
+                print(f"Could not find FOF radius catalogue: {fof_filename}")
                 comm.Abort(1)
 
     return args

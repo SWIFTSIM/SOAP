@@ -4232,6 +4232,18 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
+        "FOF/Radii": Property(
+            name="FOF/Radii",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Radius of the particle furthest from the FOF centre of mass. Zero for satellite and hostless subhalos. Missing for older runs.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         # SOAP properties
         "SOAP/SubhaloRankByBoundMass": Property(
             name="SOAP/SubhaloRankByBoundMass",
@@ -4484,8 +4496,8 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
             prop = self.properties[prop_name]
             footnotes = self.get_footnotes(prop_name)
             prop_outputname = f"{prop['name']}{footnotes}"
-            if prop_outputname.split('/')[0] in ['HBTplus', 'VR', 'FOF']:
-                prop_outputname = 'InputHalos/' + prop_outputname
+            if prop_outputname.split("/")[0] in ["HBTplus", "VR", "FOF"]:
+                prop_outputname = "InputHalos/" + prop_outputname
             prop_outputname = word_wrap_name(prop_outputname)
             prop_shape = f'{prop["shape"]}'
             prop_dtype = prop["dtype"]
