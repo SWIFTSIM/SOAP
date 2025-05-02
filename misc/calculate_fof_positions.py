@@ -148,8 +148,7 @@ fof_sizes = fof_file.read(f"Groups/Sizes")
 fof_centres = fof_file.read(f"Groups/Centres")
 
 # Initialise arrays for storing results
-fof_min_pos = np.inf * np.ones_like(fof_centres)
-fof_max_pos = -np.inf * np.ones_like(fof_centres)
+fof_radius = np.zeros_like(fof_centres[:, 0])
 total_part_counts = np.zeros_like(fof_sizes)
 
 # Open snapshot file
@@ -174,10 +173,9 @@ for ptype in ptypes:
     assert np.all(idx != -1), "FOFs could not be found for some particles"
     part_centre = psort.fetch_elements(fof_centres, idx, comm=comm)
 
-    # Move particles outside the box if required
+    # Centre the particles
     shift = (boxsize[None, :] / 2) - part_centre
-    part_pos = (part_pos + shift) % boxsize[None, :]
-    part_pos -= shift
+    part_pos = ((part_pos + shift) % boxsize[None, :]) - (boxsize[None, :] / 2)
 
     # Count the number of particles found for each FOF
     unique_fof_ids, unique_counts = psort.parallel_unique(
@@ -231,31 +229,21 @@ for ptype in ptypes:
     idx = psort.parallel_match(fof_group_ids, local_fof_ids, comm=comm)
     mask = idx != -1
 
-    for i in range(3):
-        # Calculate max and minimum particle positions for each FOF ID
-        local_min_pos = np.minimum.reduceat(part_pos[:, i], reduce_idx)
-        local_max_pos = np.maximum.reduceat(part_pos[:, i], reduce_idx)
+    # Calculate max particle radius for each FOF ID
+    part_radius = np.sqrt(np.sum(part_pos**2, axis=1))
+    local_radius = np.maximum.reduceat(part_radius, reduce_idx)
 
-        # Compare with values from other particle types
-        min_pos = psort.fetch_elements(local_min_pos, idx[mask], comm=comm)
-        max_pos = psort.fetch_elements(local_max_pos, idx[mask], comm=comm)
-        fof_min_pos[mask, i] = np.minimum(fof_min_pos[mask, i], min_pos)
-        fof_max_pos[mask, i] = np.maximum(fof_max_pos[mask, i], max_pos)
+    # Compare with values from other particle types
+    radius = psort.fetch_elements(local_radius, idx[mask], comm=comm)
+    fof_radius[mask] = np.maximum(fof_radius[mask], radius)
 
 # Carry out some sanity checks
 assert np.all(total_part_counts == fof_sizes), "Not all particles found for some FOFs"
-assert np.max(fof_min_pos) < np.inf
-assert np.min(fof_max_pos) > -np.inf
+assert np.min(fof_radius) > 0
 
 # Write data to file
-output_data = {
-    "MinParticlePosition": fof_min_pos,
-    "MaxParticlePosition": fof_max_pos,
-}
-attrs = {
-    "MinParticlePosition": coordinate_unit_attrs,
-    "MaxParticlePosition": coordinate_unit_attrs,
-}
+output_data = {"Radii": fof_radius}
+attrs = {"Radii": coordinate_unit_attrs}
 elements_per_file = fof_file.get_elements_per_file("Groups/GroupIDs")
 fof_file.write(
     output_data,

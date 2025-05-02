@@ -47,8 +47,8 @@ args = parser.parse_args()
 
 # Load the FOF file
 fof = sw.load(args.fof_filename)
-min_pos = fof.fof_groups.min_particle_position
-max_pos = fof.fof_groups.max_particle_position
+min_pos = fof.fof_groups.centres - fof.fof_groups.radii[:, None]
+max_pos = fof.fof_groups.centres + fof.fof_groups.radii[:, None]
 
 n_test = args.n_test if args.n_test != -1 else fof.fof_groups.sizes.shape[0]
 for i_fof in tqdm.tqdm(range(n_test)):
