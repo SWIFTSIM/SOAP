@@ -175,7 +175,10 @@ def combine_chunks(
     # Add metadata for FOF properties
     fof_metadata = []
     if (args.fof_group_filename != "") and (args.halo_format == "HBTplus"):
-        for fofkey in ["Centres", "Masses", "Sizes"]:
+        fof_keys = ["Centres", "Masses", "Sizes"]
+        if (args.fof_radius_filename != ""):
+            fof_keys.append('Radii')
+        for fofkey in fof_keys:
             prop = PropertyTable.full_property_list[f"FOF/{fofkey}"]
             name = f"InputHalos/{prop.name}"
             size = prop.shape
@@ -487,6 +490,43 @@ def combine_chunks(
             create_dataset=False,
             comm=comm_world,
         )
+
+        # Handle radius differently since SWIFT did not always output radius
+        # Assumes the FOF radii files are the same order as the other FOFs
+        read_radii = 'InputHalos/FOF/Radii' in [m[0] for m in fof_metadata]
+        if read_radii:
+            # Open file in parallel
+            pf = PartialFormatter()
+            fof_filename = pf.format(
+                args.fof_radius_filename, snap_nr=args.snapshot_nr, file_nr=None
+            )
+            fof_file = phdf5.MultiFile(
+                fof_filename,
+                file_nr_attr=("Header", "NumFilesPerSnapshot"),
+                comm=comm_world,
+            )
+
+            fof_radii = np.zeros(keep.shape[0], dtype=np.float32)
+            fof_radii[keep] = psort.fetch_elements(
+                fof_file.read("Groups/Radii"), indices, comm=comm_world
+            )
+            prop = PropertyTable.full_property_list[f"FOF/Radii"]
+            soap_radii_unit = cellgrid.get_unit(prop.unit)
+            physical = prop.output_physical
+            a_exponent = prop.a_scale_exponent
+            if not physical:
+                soap_radii_unit = soap_radii_unit * cellgrid.get_unit("a") ** a_exponent
+            fof_radii = (fof_radii * fof_com_unit).to(soap_radii_unit)
+            phdf5.collective_write(
+                outfile,
+                "InputHalos/FOF/Radii",
+                fof_radii,
+                create_dataset=False,
+                comm=comm_world,
+            )
+        else:
+            if comm_world.Get_rank() == 0:
+                print("Groups/Radii not found in FOF files")
 
     # Calculate the index in the SOAP output of the host field halo (VR) or the central subhalo of the host FOF group (HBTplus)
     if "SOAP/HostHaloIndex" in soap_props:
