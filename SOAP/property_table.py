@@ -1233,6 +1233,18 @@ class PropertyTable:
             output_physical=False,
             a_scale_exponent=1,
         ),
+        "HalfLightRadiusStar": Property(
+            name="HalfLightRadiusStars",
+            shape=9,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Stellar half light radius in the 9 GAMA bands.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         "HalfMassRadiusTot": Property(
             name="HalfMassRadiusTotal",
             shape=1,
