@@ -108,9 +108,7 @@ def save_evolution(redshift_evolution, property_evolution, output_file):
             phdf5.collective_write(group, dset_name, data_to_save, comm)
 
         # Save the redshift for future use
-        dset = outfile.create_dataset('Redshift', dtype=redshift_evolution.dtype)
-        if comm_rank == 0:
-            dset[...] = redshift_evolution
+        dset = outfile.create_dataset("Redshift", data=redshift_evolution)
 
     comm.Barrier()
     if comm_rank == 0:
