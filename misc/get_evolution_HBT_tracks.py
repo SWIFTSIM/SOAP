@@ -159,7 +159,7 @@ if __name__ == "__main__":
     parser = MPIArgumentParser(comm, description="Obtain the evolution of the specified SOAP properties for the provided TrackIds.")
     parser.add_argument("SOAP_basedir", type=str, help="Root directory of the the SOAP catalogues.")
     parser.add_argument("output_file",  type=str, help="File in which to write the output.")
-    parser.add_argument('-t', '--track_path', type=str, dest="track_path", help='Path to a text file containing in each row a TrackId whose evolution are interested in tracking.')
+    parser.add_argument('-t', '--tracks', type=str, dest="track_path", help='Path to a text file containing in each row a TrackId whose evolution are interested in tracking.')
     parser.add_argument('-p', '--properties', type=str, dest="property_path", help='Path to a text file containing in each row a SOAP property that we are interested in tracking.')
     args = parser.parse_args()
 

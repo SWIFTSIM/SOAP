@@ -7,14 +7,16 @@ subhaloes at a time, as above this limit h5py fancy indexing is much slower than
 loading the whole catalogue directly.
 
 The script works by opening in parallel each of the SOAP catalogue files available in
-the provided  base directory, finding the target `TrackIDs` and getting the values of each
+the provided base directory, finding the target `TrackIDs` and getting the values of each
 property of interest. After opening every available SOAP catalogue, the collected
 data is saved to an HDF5 file.
+
+It only supports SOAP catalogues generated using HBT-HERONS or HBT+.
 
 ### Running
 
 The MPI routines used to load the SOAP catalogues in parallel use the [VirgoDC](https://github.com/jchelly/VirgoDC) 
-package. If using COSMA, you can run `./scripts/cosma_python_env.sh` from the SOAP basefolder
+package. If using COSMA, you can run `./scripts/cosma_python_env.sh` from the SOAP base folder
 to install the required packages in a virtual enviroment.
 
 The following options need to be provided when running the scripts:
