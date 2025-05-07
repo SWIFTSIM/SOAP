@@ -114,7 +114,7 @@ def save_evolution(redshift_evolution, property_evolution, output_file):
     if comm_rank == 0:
         print("DONE")
 
-def get_track_evolution(SOAP_basedir, output_file, tracks, properties):
+def get_track_evolution(SOAP_basedir, output_file, track_path, property_path):
     """
     Loads in parallel the SOAP properties for each catalogue in the provided 
     base directory, retrieves the specified properties for each TrackID of interest.
@@ -126,14 +126,20 @@ def get_track_evolution(SOAP_basedir, output_file, tracks, properties):
         Path to the directory containing all SOAP catalogues.
     output_file: str
         Location the HDF5 containing the evolution of TrackIDs is saved.
-    tracks: np.ndarray
-        The TrackID of the subhaloes we are interesting in following.
-    properties: np.ndarray
-        The SOAP properties we are interested in following.
+    track_path: np.ndarray
+        Path to a text file containing in each row a different TrackId, which we 
+        use to flag which subhaloes we are interested in.
+    property_path: np.ndarray
+        Path to a text file containing in each row a different SOAP property, which we 
+        use to flag which properties we are interested in following.
     """
 
     # Get all paths by default
     SOAP_paths = sorted(glob(f"{SOAP_basedir}/halo_properties_*.hdf5"))
+
+    # Load which subhaloes and properties we are interested in.
+    tracks = np.loadtxt(track_path, int)
+    properties = np.loadtxt(property_path, str)
 
     if comm_rank ==0:
         print (f"Getting the evolution of {len(properties)} properties for {len(tracks)} TrackIDs. There are {len(SOAP_paths)} SOAP files available in the specified directory.")
@@ -153,10 +159,8 @@ if __name__ == "__main__":
     parser = MPIArgumentParser(comm, description="Obtain the evolution of the specified SOAP properties for the provided TrackIds.")
     parser.add_argument("SOAP_basedir", type=str, help="Root directory of the the SOAP catalogues.")
     parser.add_argument("output_file",  type=str, help="File in which to write the output.")
-    parser.add_argument('-t', '--tracks', help='Comma-separated string containing the TrackIDs to follow.',
-        type=lambda s: [int(item) for item in s.split(',')])
-    parser.add_argument('-p', '--properties', help='Comma-separated string containing which properties to follow.',
-        type=lambda s: [str(item) for item in s.split(',')])
+    parser.add_argument('-t', '--track_path', type=str, dest="track_path", help='Path to a text file containing in each row a TrackId whose evolution are interested in tracking.')
+    parser.add_argument('-p', '--properties', type=str, dest="property_path", help='Path to a text file containing in each row a SOAP property that we are interested in tracking.')
     args = parser.parse_args()
 
     get_track_evolution(**vars(args))
