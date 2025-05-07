@@ -852,6 +852,10 @@ class PropertyTable:
                 "PartType4/Velocities",
                 "PartType4/Masses",
                 "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
         "DustMass": Property(
             name="DustMass",
             shape=1,
