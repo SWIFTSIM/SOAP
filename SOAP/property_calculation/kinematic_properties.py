@@ -374,9 +374,9 @@ def get_vmax(
     return ordered_radius[imax], np.sqrt(v_over_G[imax] * G)
 
 
-def get_inertia_tensor(
-    mass,
-    position,
+def get_weighted_inertia_tensor(
+    particle_weights,
+    particle_positions,
     sphere_radius,
     search_radius=None,
     reduced=False,
@@ -384,13 +384,14 @@ def get_inertia_tensor(
     min_particles=20,
 ):
     """
-    Get the inertia tensor of the given particle distribution, computed as
-    I_{ij} = m*x_i*x_j / Mtot.
+    Get the inertia tensor of the given particle distribution weighted by a given
+    quantity. Computed as:
+    I_{ij} = w*x_i*x_j / Wtot.
 
     Parameters:
-     - mass: unyt.unyt_array
-       Masses of the particles.
-     - position: unyt.unyt_array
+     - particle_weights: unyt.unyt_array
+       Weight given to each particle.
+     - particle_positions: unyt.unyt_array
        Positions of the particles.
      - sphere_radius: unyt.unyt_quantity
        Use all particles within a sphere of this size for the calculation
@@ -406,20 +407,23 @@ def get_inertia_tensor(
        The number of particles required within the initial sphere. The inertia tensor
        is not computed if this threshold is not met.
 
-    Returns the inertia tensor.
+    Returns a flattened representation of the weighted inertia tensor, with the 
+    first 3 entries corresponding to the diagonal terms and the rest to the
+    off-diagonal terms.
     """
 
     # Check we have at least "min_particles" particles
-    if mass.shape[0] < min_particles:
+    if particle_weights.shape[0] < min_particles:
         return None
 
     # Remove particles at centre if calculating reduced tensor
     if reduced:
-        norm = np.linalg.norm(position, axis=1) ** 2
+        norm = np.linalg.norm(particle_positions, axis=1) ** 2
         mask = np.logical_not(np.isclose(norm, 0))
-        position = position[mask]
-        mass = mass[mask]
+
         norm = norm[mask]
+        particle_weights = particle_weights[mask]
+        particle_positions = particle_positions[mask]
 
     # Set stopping criteria
     tol = 0.0001
@@ -427,9 +431,9 @@ def get_inertia_tensor(
 
     # Ensure we have consistent units
     R = sphere_radius.to("kpc")
-    position = position.to("kpc")
+    particle_positions = particle_positions.to("kpc")
 
-    # Start with a sphere
+    # Start with a sphere of size equal to the initial aperture
     eig_val = [1, 1, 1]
     eig_vec = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
@@ -448,14 +452,15 @@ def get_inertia_tensor(
         axis = R * np.array(
             [1 * np.cbrt(s * p), 1 * np.cbrt(q / p), 1 / np.cbrt(q * s)]
         )
-        p = np.dot(position, eig_vec) / axis
+        p = np.dot(particle_positions, eig_vec) / axis
         r = np.linalg.norm(p, axis=1)
+
         # We want to skip the calculation if we have less than "min_particles"
         # inside the initial sphere. We do the check here since this is the first
         # time we calculate how many particles are within the sphere.
         if (i_iter == 0) and (np.sum(r <= 1) < min_particles):
             return None
-        weight = mass / np.sum(mass[r <= 1])
+        weight = particle_weights / np.sum(particle_weights[r <= 1])
         weight[r > 1] = 0
 
         # Check if we have exceeded the search radius. For subhalo_properties we
@@ -464,18 +469,22 @@ def get_inertia_tensor(
             raise SearchRadiusTooSmallError("Inertia tensor required more particles")
 
         # Calculate inertia tensor
-        tensor = weight[:, None, None] * position[:, :, None] * position[:, None, :]
+        tensor = weight[:, None, None] * particle_positions[:, :, None] * particle_positions[:, None, :]
         if reduced:
             tensor /= norm[:, None, None]
         tensor = tensor.sum(axis=0)
         eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
+        # Handle cases where there is only one particle after iterating.
+        if q == 0:
+          tensor.fill(0)
+          break
+
     return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
 
-def get_inertia_tensor_luminosity_weighted(
-    mass,
-    position,
-    luminosity,
+def get_inertia_tensor(
+    particle_masses,
+    particle_positions,
     sphere_radius,
     search_radius=None,
     reduced=False,
@@ -483,17 +492,15 @@ def get_inertia_tensor_luminosity_weighted(
     min_particles=20,
 ):
     """
-    Get the inertia tensor of the given particle distribution weighted by the 
-    luminosity of individual particles. Computed as:
-    I_{ij} = Li * x_i * x_j / Ltot.
+    Get the mass-weighted inertia tensor of the given particle distribution. 
+    Computed as:
+    I_{ij} = m*x_i*x_j / Mtot.
 
     Parameters:
-     - mass: unyt.unyt_array
+     - particle_masses: unyt.unyt_array
        Masses of the particles.
-     - position: unyt.unyt_array
+     - particle_positions: unyt.unyt_array
        Positions of the particles.
-     - luminosity: unyt.unyt_array
-       Luminosities of the particles in each of the provided bands.
      - sphere_radius: unyt.unyt_quantity
        Use all particles within a sphere of this size for the calculation
      - search_radius: unyt.unyt_quantity
@@ -508,110 +515,77 @@ def get_inertia_tensor_luminosity_weighted(
        The number of particles required within the initial sphere. The inertia tensor
        is not computed if this threshold is not met.
 
-    Returns an array of concatenated flattened inertia tensors, with each 6 consecutive 
-    entries corresponding to 3 diagonal and 3 off-diagonal terms.
+    Returns a flattened representation of the mass-weighted inertia tensor, with the 
+    first 3 entries corresponding to the diagonal terms and the rest to the
+    off-diagonal terms.
+    """
+    return get_weighted_inertia_tensor(particle_masses,
+          particle_positions,
+          sphere_radius,
+          search_radius,
+          reduced,
+          max_iterations,
+          min_particles)
+
+def get_inertia_tensor_luminosity_weighted(
+    particle_luminosities,
+    particle_positions,
+    sphere_radius,
+    search_radius=None,
+    reduced=False,
+    max_iterations=20,
+    min_particles=20,
+):
+    """
+    Get the luminosity-weighted inertia tensors of the given particle distribution
+    in each of the available luminosity bands. Computed as:
+    I_{ij} = Li * x_i * x_j / Ltot.
+
+    Parameters:
+     - particle_luminosities: unyt.unyt_array
+       Luminosities of the particles in each of the provided bands.
+     - particle_positions: unyt.unyt_array
+       Positions of the particles.
+     - sphere_radius: unyt.unyt_quantity
+       Use all particles within a sphere of this size for the calculation
+     - search_radius: unyt.unyt_quantity
+       Radius of the region of the simulation for which we have particle data
+       This function throws a SearchRadiusTooSmallError if we need particles outside
+       of this region.
+     - reduced: bool
+       Whether to calculate the reduced inertia tensor
+     - max_iterations: int
+       The maximum number of iterations to repeat the inertia tensor calculation
+     - min_particles: int
+       The number of particles required within the initial sphere. The inertia tensor
+       is not computed if this threshold is not met.
+
+    Returns an array of concatenated flattened luminosity-weighted inertia tensors, 
+    with each 6 consecutive  entries corresponding to 3 diagonal and 3 off-diagonal terms
+    in a given band.
     """
 
-    # Check we have at least "min_particles" particles
-    if mass.shape[0] < min_particles:
-        return None
+    number_luminosity_bands = particle_luminosities.shape[1]
 
-    number_luminosity_bands = luminosity.shape[1]
- 
-    # Remove particles at centre if calculating reduced tensor
-    if reduced:
-        norm = np.linalg.norm(position, axis=1) ** 2
-        mask = np.logical_not(np.isclose(norm, 0))
-        position = position[mask]
-        mass = mass[mask]
-        luminosity = luminosity[mask]
-        norm = norm[mask]
+    # We need 6 elements per luminosity band (3 diagonal + 3 off-diagonal terms)
+    # and inertia is proportional to distance squared.
+    flattened_inertia_tensors = np.zeros(6 * number_luminosity_bands) * particle_positions.units**2
+    for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
+        flattened_inertia_tensor_i_band = get_weighted_inertia_tensor(particle_luminosities_i_band,
+                                                              particle_positions,
+                                                              sphere_radius,
+                                                              search_radius,
+                                                              reduced,
+                                                              max_iterations,
+                                                              min_particles)
 
-    # Set stopping criteria.
-    tol = 0.0001
-    q = np.repeat(1000, number_luminosity_bands)
-    is_converged = np.zeros(number_luminosity_bands, dtype=bool)
+        # Not enough particles in the first band, which means not enough particles
+        # in the other bands.
+        if flattened_inertia_tensor_i_band is None:
+          return None
+        flattened_inertia_tensors[6 * i_band : 6 * (i_band + 1)] = flattened_inertia_tensor_i_band
 
-    # Ensure we have consistent units
-    R = sphere_radius.to("kpc")
-    position = position.to("kpc")
-
-    # Start with a sphere for each luminosity band.
-    eig_val = np.ones((number_luminosity_bands,3))
-    eig_vec = np.repeat(np.diag(np.ones(3))[np.newaxis, :, :], number_luminosity_bands, axis=0)
-
-    for i_iter in range(max_iterations):
-        # Calculate shape for each luminosity band
-        old_q = q
-        q = np.sqrt(eig_val[:,1] / eig_val[:,2])
-        s = np.sqrt(eig_val[:,0] / eig_val[:,2])
-        p = np.sqrt(eig_val[:,0] / eig_val[:,1])
-
-        # Handle bands with q = 0 (indicative of  <= 1 particle enclosed by its 
-        # current ellipsoid) by manually setting they are converged.
-        non_zero_q = q != 0
-        fractional_change = np.zeros(number_luminosity_bands)
-        fractional_change[non_zero_q] = np.abs((old_q[non_zero_q] - q[non_zero_q]) / q[non_zero_q])
-
-        # We can stop once all bands have converged results.
-        is_converged[fractional_change < tol] = 1
-        if (~is_converged).sum() == 0:
-          break
-
-        # Calculate ellipsoid for each non-converged band, and determine which 
-        # particles are inside.
-        axis = R * np.array(
-            [1 * np.cbrt(s * p)[~is_converged], 1 * np.cbrt(q / p)[~is_converged], 1 / np.cbrt(q * s)[~is_converged]]
-        ).T
-        p = np.dot(position, eig_vec[~is_converged]) / axis
-        r = np.linalg.norm(p, axis=2)
-
-        # We want to skip the calculation if we have less than "min_particles"
-        # inside the initial sphere. We do the check here since this is the first
-        # time we calculate how many particles are within the sphere.
-        if (i_iter == 0) and (np.all(np.sum(r <= 1,axis=0) < min_particles)):
-            return None
-
-        # Create a luminosity-weight array of the correct shape.
-        weight = np.zeros(luminosity[:,~is_converged].shape)
-        weight = np.where(r <= 1, luminosity[:,~is_converged], weight)
-        weight /= weight.sum(axis=0)
-
-        # Check if we have exceeded the search radius. For subhalo_properties we
-        # have all the bound particles, and so the search radius doesn't matter
-        if (search_radius is not None) and (np.max(R) > search_radius):
-            raise SearchRadiusTooSmallError("Inertia tensor required more particles")
-
-        # Calculate inertia tensor for each band and for each particle
-        individual_particle_tensor = weight[:,:, None, None] * (position[:, :, None] * position[:, None, :])[:, None, :, :]
-
-        if reduced:
-            raise NotImplementedError
-            individual_particle_tensor /= norm[:, None, None]
-
-        # Calculate total inertia tensor for bands that are not yet converged. We 
-        # do indexing on tensor beyond the first iteration so that the matricies 
-        # from converged bands are left intact.
-        if (i_iter == 0):
-          tensor = individual_particle_tensor.sum(axis=0)
-        else:
-          tensor[~is_converged] = individual_particle_tensor.sum(axis=0)
-
-        eig_val[~is_converged], eig_vec[~is_converged] = np.linalg.eigh(tensor[~is_converged].value)
-
-        # We sometimes get very small eigenvalues that overflow into negative values. We 
-        # only expect positive values for a real symmetric matrix, hence we take abs.
-        eig_val = np.abs(eig_val)
-
-    # Set tensors associated to q = 0 to be invalid
-    tensor[q == 0] = 0
-
-    # Flatten all inertia tensors computed in different luminosity bands
-    flattened_matricies = []
-    for i_band in range(number_luminosity_bands):
-        flattened_matricies.extend([np.diag(tensor[i_band]), tensor[i_band][np.triu_indices(3, 1)]])
-
-    return np.concatenate(flattened_matricies)
+    return flattened_inertia_tensors
 
 def get_projected_inertia_tensor(
     mass, position, axis, radius, reduced=False, max_iterations=20, min_particles=20

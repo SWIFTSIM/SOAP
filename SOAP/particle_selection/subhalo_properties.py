@@ -1458,7 +1458,7 @@ class SubhaloParticleData:
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
-            self.mass_star, self.pos_star, self.stellar_luminosities, self.HalfMassRadiusStar
+            self.stellar_luminosities, self.pos_star, self.HalfMassRadiusStar
         )
 
     @lazy_property
@@ -1472,7 +1472,7 @@ class SubhaloParticleData:
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
-            self.mass_star, self.pos_star, self.stellar_luminosities, self.HalfMassRadiusStar, reduced=True
+            self.stellar_luminosities, self.pos_star, self.HalfMassRadiusStar, reduced=True
         )
 
     @lazy_property
@@ -1485,7 +1485,7 @@ class SubhaloParticleData:
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
-            self.mass_star, self.pos_star, self.stellar_luminosities, self.HalfMassRadiusStar, max_iterations=1
+            self.stellar_luminosities, self.pos_star, self.HalfMassRadiusStar, max_iterations=1
         )
 
     @lazy_property
@@ -1498,9 +1498,8 @@ class SubhaloParticleData:
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
-            self.mass_star,
-            self.pos_star,
             self.stellar_luminosities,
+            self.pos_star,
             self.HalfMassRadiusStar,
             reduced=True,
             max_iterations=1,
