@@ -3702,7 +3702,7 @@ class ApertureProperties(HaloProperty):
                                 registry=registry,
                             )
                         else:
-                            err = f'Overflow for halo {input_halo["index"]} when'
+                            err = f'Overflow for halo {input_halo["index"].value} when '
                             err += f"calculating {name} in aperture_properties"
                             assert np.max(np.abs(val.to(unit).value)) < float(
                                 "inf"
