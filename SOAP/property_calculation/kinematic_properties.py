@@ -587,8 +587,8 @@ def get_inertia_tensor_luminosity_weighted(
 
     return flattened_inertia_tensors
 
-def get_projected_inertia_tensor(
-    mass, position, axis, radius, reduced=False, max_iterations=20, min_particles=20
+def get_weighted_projected_inertia_tensor(
+    particle_weights, particle_positions, axis, radius, reduced=False, max_iterations=20, min_particles=20
 ):
     """
     Takes in the particle distribution projected along a given axis, and calculates the inertia
@@ -598,9 +598,9 @@ def get_projected_inertia_tensor(
     is because all the bound particles are passed to this function.
 
     Parameters:
-     - mass: unyt.unyt_array
-       Masses of the particles.
-     - position: unyt.unyt_array
+     - particle_weights: unyt.unyt_array
+       Weight given to each particle.
+     - particle_positions: unyt.unyt_array
        Positions of the particles.
      - axis: 0, 1, 2
        Projection axis. Only the coordinates perpendicular to this axis are
@@ -619,21 +619,21 @@ def get_projected_inertia_tensor(
     """
 
     # Check we have at least "min_particles" particles
-    if mass.shape[0] < min_particles:
+    if particle_weights.shape[0] < min_particles:
         return None
 
     projected_position = unyt.unyt_array(
-        np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
+        np.zeros((particle_positions.shape[0], 2)), units=particle_positions.units, dtype=particle_positions.dtype
     )
     if axis == 0:
-        projected_position[:, 0] = position[:, 1]
-        projected_position[:, 1] = position[:, 2]
+        projected_position[:, 0] = particle_positions[:, 1]
+        projected_position[:, 1] = particle_positions[:, 2]
     elif axis == 1:
-        projected_position[:, 0] = position[:, 2]
-        projected_position[:, 1] = position[:, 0]
+        projected_position[:, 0] = particle_positions[:, 2]
+        projected_position[:, 1] = particle_positions[:, 0]
     elif axis == 2:
-        projected_position[:, 0] = position[:, 0]
-        projected_position[:, 1] = position[:, 1]
+        projected_position[:, 0] = particle_positions[:, 0]
+        projected_position[:, 1] = particle_positions[:, 1]
     else:
         raise AttributeError(f"Invalid axis: {axis}!")
 
@@ -641,9 +641,10 @@ def get_projected_inertia_tensor(
     if reduced:
         norm = np.linalg.norm(projected_position, axis=1) ** 2
         mask = np.logical_not(np.isclose(norm, 0))
-        projected_position = projected_position[mask]
-        mass = mass[mask]
+
         norm = norm[mask]
+        particle_weights = particle_weights[mask]
+        projected_position = projected_position[mask]
 
     # Set stopping criteria
     tol = 0.0001
@@ -653,7 +654,7 @@ def get_projected_inertia_tensor(
     R = radius.to("kpc")
     projected_position = projected_position.to("kpc")
 
-    # Start with a circle
+    # Start with a circle of size equal to the initial aperture
     eig_val = [1, 1]
     eig_vec = np.array([[1, 0], [0, 1]])
 
@@ -670,12 +671,13 @@ def get_projected_inertia_tensor(
         axis = R * np.array([1 * np.sqrt(q), 1 / np.sqrt(q)])
         p = np.dot(projected_position, eig_vec) / axis
         r = np.linalg.norm(p, axis=1)
+
         # We want to skip the calculation if we have less than "min_particles"
         # inside the initial circle. We do the check here since this is the first
         # time we calculate how many particles are within the circle.
         if (i_iter == 0) and (np.sum(r <= 1) < min_particles):
             return None
-        weight = mass / np.sum(mass[r <= 1])
+        weight = particle_weights / np.sum(particle_weights[r <= 1])
         weight[r > 1] = 0
 
         # Calculate inertia tensor
@@ -689,10 +691,53 @@ def get_projected_inertia_tensor(
         tensor = tensor.sum(axis=0)
         eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
+        # Handle cases where there is only one particle after iterating.
+        if q == 0:
+          tensor.fill(0)
+          break
+
     return np.concatenate([np.diag(tensor), [tensor[(0, 1)]]])
 
+def get_projected_inertia_tensor_mass_weighted(
+    particle_masses, particle_positions, axis, radius, reduced=False, max_iterations=20, min_particles=20
+):
+    """
+    Takes in the particle distribution projected along a given axis, and calculates the inertia
+    tensor using the projected values.
+
+    Unlike get_inertia_tensor, we don't need to check if we have exceeded the search radius. This
+    is because all the bound particles are passed to this function.
+
+    Parameters:
+     - particle_masses: unyt.unyt_array
+       Masses of the particles.
+     - particle_positions: unyt.unyt_array
+       Positions of the particles.
+     - axis: 0, 1, 2
+       Projection axis. Only the coordinates perpendicular to this axis are
+       taken into account.
+     - radius: unyt.unyt_quantity
+       Exclude particles outside this radius for the inertia tensor calculation
+     - reduced: bool
+       Whether to calculate the reduced inertia tensor
+     - max_iterations: int
+       The maximum number of iterations to repeat the inertia tensor calculation
+     - min_particles: int
+       The number of particles required within the initial circle. The inertia tensor
+       is not computed if this threshold is not met.
+
+    Returns the inertia tensor.
+    """
+    return get_weighted_projected_inertia_tensor(particle_masses, 
+                                                 particle_positions, 
+                                                 axis, 
+                                                 radius, 
+                                                 reduced, 
+                                                 max_iterations, 
+                                                 min_particles)
+
 def get_projected_inertia_tensor_luminosity_weighted(
-    mass, position, luminosity, axis, radius, reduced=False, max_iterations=20, min_particles=20
+    particle_luminosities, particle_positions, axis, radius, reduced=False, max_iterations=20, min_particles=20
 ):
     """
     Takes in the particle distribution projected along a given axis, and calculates the inertia
@@ -703,9 +748,9 @@ def get_projected_inertia_tensor_luminosity_weighted(
     is because all the bound particles are passed to this function.
 
     Parameters:
-     - mass: unyt.unyt_array
-       Masses of the particles.
-     - position: unyt.unyt_array
+     - particle_luminosities: unyt.unyt_array
+       Luminosities of the particles in each of the provided bands.
+     - particle_positions: unyt.unyt_array
        Positions of the particles.
      - luminosity: unyt.unyt_array
        Luminosities of the particles.
@@ -726,114 +771,27 @@ def get_projected_inertia_tensor_luminosity_weighted(
     entries corresponding to 2 diagonal and 1 off-diagonal terms.
     """
 
-    # Check we have at least "min_particles" particles
-    if mass.shape[0] < min_particles:
-        return None
+    number_luminosity_bands = particle_luminosities.shape[1]
 
-    number_luminosity_bands = luminosity.shape[1]
+    # We need 3 elements per luminosity band (2 diagonal + 1 off-diagonal terms)
+    # and inertia is proportional to distance squared.
+    flattened_inertia_tensors = np.zeros(3 * number_luminosity_bands) * particle_positions.units**2
+    for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
+        flattened_inertia_tensor_i_band = get_weighted_inertia_tensor(particle_luminosities_i_band,
+                                                              particle_positions,
+                                                              axis, 
+                                                              radius,
+                                                              reduced,
+                                                              max_iterations,
+                                                              min_particles)
 
-    projected_position = unyt.unyt_array(
-        np.zeros((position.shape[0], 2)), units=position.units, dtype=position.dtype
-    )
-    if axis == 0:
-        projected_position[:, 0] = position[:, 1]
-        projected_position[:, 1] = position[:, 2]
-    elif axis == 1:
-        projected_position[:, 0] = position[:, 2]
-        projected_position[:, 1] = position[:, 0]
-    elif axis == 2:
-        projected_position[:, 0] = position[:, 0]
-        projected_position[:, 1] = position[:, 1]
-    else:
-        raise AttributeError(f"Invalid axis: {axis}!")
+        # Not enough particles in the first band, which means not enough particles
+        # in the other bands.
+        if flattened_inertia_tensor_i_band is None:
+          return None
+        flattened_inertia_tensors[3 * i_band : 3 * (i_band + 1)] = flattened_inertia_tensor_i_band
 
-    # Remove particles at centre if calculating reduced tensor
-    if reduced:
-        norm = np.linalg.norm(projected_position, axis=1) ** 2
-        mask = np.logical_not(np.isclose(norm, 0))
-        projected_position = projected_position[mask]
-        mass = mass[mask]
-        norm = norm[mask]
-        luminosity = luminosity[mask]
-
-    # Set stopping criteria and arrays to track convergence.
-    tol = 0.0001
-    q = np.repeat(1000, number_luminosity_bands)
-    is_converged = np.zeros(number_luminosity_bands, dtype=bool)
-
-    # Ensure we have consistent units
-    R = radius.to("kpc")
-    projected_position = projected_position.to("kpc")
-
-    # Start with a circle for each luminosity band.
-    eig_val = np.ones((number_luminosity_bands,2))
-    eig_vec = np.repeat(np.diag(np.ones(2))[np.newaxis, :, :], number_luminosity_bands, axis=0)
-
-    for i_iter in range(max_iterations):
-        # Calculate shape for each luminosity band
-        old_q = q
-        q = np.sqrt(eig_val[:,0] / eig_val[:,1])
-
-        # Handle bands with q = 0 (indicative of  <= 1 particle enclosed by its 
-        # current ellipsoid) by manually setting they are converged.
-        non_zero_q = q != 0
-        fractional_change = np.zeros(number_luminosity_bands)
-        fractional_change[non_zero_q] = np.abs((old_q[non_zero_q] - q[non_zero_q]) / q[non_zero_q])
-
-        # We can stop once all bands have converged results.
-        is_converged[fractional_change < tol] = 1
-        if (~is_converged).sum() == 0:
-          break
-
-        # Calculate ellipsoid for each non-converged band, and determine which 
-        # particles are inside.
-        axis = R * np.array([1 * np.sqrt(q)[~is_converged], 1 / np.sqrt(q)[~is_converged]]).T
-        p = np.dot(projected_position, eig_vec[~is_converged]) / axis
-        r = np.linalg.norm(p, axis=2)
-
-        # We want to skip the calculation if we have less than "min_particles"
-        # inside the initial circle. We do the check here since this is the first
-        # time we calculate how many particles are within the circle.
-        if (i_iter == 0) and (np.all(np.sum(r <= 1,axis=0) < min_particles)):
-            return None
-
-        # Create a luminosity-weight array of the correct shape.
-        weight = np.zeros(luminosity[:,~is_converged].shape)
-        weight = np.where(r <= 1, luminosity[:,~is_converged], weight)
-        weight /= weight.sum(axis=0)
-
-        # Calculate inertia tensor for each band and for each particle
-        individual_particle_tensor = weight[:,:, None, None] * (projected_position[:, :, None] * projected_position[:, None, :])[:, None, :, :]
-
-        if reduced:
-            raise NotImplementedError
-            individual_particle_tensor /= norm[:, None, None]
-
-        # Calculate total inertia tensor for bands that are not yet converged. We 
-        # do indexing on tensor beyond the first iteration so that the matricies 
-        # from converged bands are left intact.
-        if (i_iter == 0):
-          tensor = individual_particle_tensor.sum(axis=0)
-        else:
-          tensor[~is_converged] = individual_particle_tensor.sum(axis=0)
-
-        # Get the eigenvalues and eigenvectors of the tensors with non-converged
-        # bands
-        eig_val[~is_converged], eig_vec[~is_converged] = np.linalg.eigh(tensor[~is_converged].value)
-
-        # We sometimes get very small eigenvalues that overflow into negative values. We 
-        # only expect positive values for a real symmetric matrix, hence we take abs.
-        eig_val = np.abs(eig_val)
-
-    # Set tensors associated to q = 0 to be invalid
-    tensor[q == 0] = 0
-
-    # Flatten all inertia tensors computed in different luminosity bands
-    flattened_matricies = []
-    for i_band in range(number_luminosity_bands):
-        flattened_matricies.extend([np.diag(tensor[i_band]), tensor[i_band][np.triu_indices(2, 1)]])
-
-    return np.concatenate(flattened_matricies)
+    return flattened_inertia_tensors
 
 if __name__ == "__main__":
     """

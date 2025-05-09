@@ -35,7 +35,7 @@ from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.dataset_names import mass_dataset
 from SOAP.property_calculation.half_mass_radius import get_half_mass_radius
 from SOAP.property_table import PropertyTable
-from SOAP.property_calculation.kinematic_properties import get_projected_inertia_tensor, get_projected_inertia_tensor_luminosity_weighted
+from SOAP.property_calculation.kinematic_properties import get_projected_inertia_tensor_mass_weighted, get_projected_inertia_tensor_luminosity_weighted
 
 
 class ProjectedApertureParticleData:
@@ -788,7 +788,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.part_props.mass,
             self.part_props.position,
             self.iproj,
@@ -804,7 +804,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.part_props.mass,
             self.part_props.position,
             self.iproj,
@@ -820,7 +820,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass,
             self.proj_position,
             self.iproj,
@@ -836,7 +836,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass,
             self.proj_position,
             self.iproj,
@@ -874,7 +874,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         mass = self.part_props.mass[self.part_props.types == 0]
         position = self.part_props.position[self.part_props.types == 0]
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             mass, position, self.iproj, self.aperture_radius, **kwargs
         )
 
@@ -908,7 +908,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass_gas,
             self.proj_pos_gas,
             self.iproj,
@@ -924,7 +924,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass_gas,
             self.proj_pos_gas,
             self.iproj,
@@ -985,7 +985,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         mass = self.part_props.mass[self.part_props.types == 4]
         position = self.part_props.position[self.part_props.types == 4]
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             mass, position, self.iproj, self.aperture_radius, **kwargs
         )
 
@@ -1004,7 +1004,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_mask_all
         ]
         return get_projected_inertia_tensor_luminosity_weighted(
-            mass, position, luminosity, self.iproj, self.aperture_radius, **kwargs
+            luminosity, position, self.iproj, self.aperture_radius, **kwargs
         )
 
     @lazy_property
@@ -1037,7 +1037,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass_star,
             self.proj_pos_star,
             self.iproj,
@@ -1053,7 +1053,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass_star,
             self.proj_pos_star,
             self.iproj,
@@ -1093,9 +1093,8 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor_luminosity_weighted(
-            self.proj_mass_star,
-            self.proj_pos_star,
             self.stellar_luminosities, # Bound and within initial aperture.
+            self.proj_pos_star,
             self.iproj,
             self.aperture_radius,
             max_iterations=1,
@@ -1110,9 +1109,8 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor_luminosity_weighted(
-            self.proj_mass_star,
-            self.proj_pos_star,
             self.stellar_luminosities, # Bound and within initial aperture.
+            self.proj_pos_star,
             self.iproj,
             self.aperture_radius,
             reduced=True,
