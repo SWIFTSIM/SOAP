@@ -482,7 +482,7 @@ def get_weighted_inertia_tensor(
 
     return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
 
-def get_inertia_tensor(
+def get_inertia_tensor_mass_weighted(
     particle_masses,
     particle_positions,
     sphere_radius,

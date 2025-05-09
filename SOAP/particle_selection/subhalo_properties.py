@@ -29,7 +29,7 @@ from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
-    get_inertia_tensor,
+    get_inertia_tensor_mass_weighted,
     get_inertia_tensor_luminosity_weighted,
     get_velocity_dispersion_matrix,
 )
@@ -911,7 +911,7 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_inertia_tensor(self.mass, self.position, self.HalfMassRadiusTot)
+        return get_inertia_tensor_mass_weighted(self.mass, self.position, self.HalfMassRadiusTot)
 
     @lazy_property
     def TotalInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -922,7 +922,7 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass, self.position, self.HalfMassRadiusTot, reduced=True
         )
 
@@ -934,7 +934,7 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass, self.position, self.HalfMassRadiusTot, max_iterations=1
         )
 
@@ -946,7 +946,7 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass,
             self.position,
             self.HalfMassRadiusTot,
@@ -1040,7 +1040,7 @@ class SubhaloParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas)
+        return get_inertia_tensor_mass_weighted(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas)
 
     @lazy_property
     def GasInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -1051,7 +1051,7 @@ class SubhaloParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, reduced=True
         )
 
@@ -1063,7 +1063,7 @@ class SubhaloParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, max_iterations=1
         )
 
@@ -1075,7 +1075,7 @@ class SubhaloParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_gas,
             self.pos_gas,
             self.HalfMassRadiusGas,
@@ -1134,7 +1134,7 @@ class SubhaloParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM)
+        return get_inertia_tensor_mass_weighted(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM)
 
     @lazy_property
     def DarkMatterInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -1145,7 +1145,7 @@ class SubhaloParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, reduced=True
         )
 
@@ -1157,7 +1157,7 @@ class SubhaloParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, max_iterations=1
         )
 
@@ -1169,7 +1169,7 @@ class SubhaloParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_dm,
             self.pos_dm,
             self.HalfMassRadiusDM,
@@ -1402,7 +1402,7 @@ class SubhaloParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_star, self.pos_star, self.HalfMassRadiusStar
         )
 
@@ -1415,7 +1415,7 @@ class SubhaloParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_star, self.pos_star, self.HalfMassRadiusStar, reduced=True
         )
 
@@ -1427,7 +1427,7 @@ class SubhaloParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_star, self.pos_star, self.HalfMassRadiusStar, max_iterations=1
         )
 
@@ -1439,7 +1439,7 @@ class SubhaloParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass_star,
             self.pos_star,
             self.HalfMassRadiusStar,
