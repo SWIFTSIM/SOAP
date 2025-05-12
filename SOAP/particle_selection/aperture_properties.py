@@ -141,7 +141,7 @@ import unyt
 
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
 from SOAP.core.dataset_names import mass_dataset
-from SOAP.property_calculation.half_mass_radius import get_half_mass_radius
+from SOAP.property_calculation.half_mass_radius import get_half_mass_radius, get_half_light_radius
 from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
     get_angular_momentum,
@@ -3276,6 +3276,15 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def HalfLightRadiusStar(self) -> unyt.unyt_array:
+        """
+        Half light radius of stars for the 9 GAMA bands.
+        """
+        return get_half_light_radius(
+            self.radius[self.type == 4], self.stellar_luminosities, self.StellarLuminosity
+        )
+
+    @lazy_property
     def HalfMassRadiusBaryon(self) -> unyt.unyt_quantity:
         """
         Half mass radius of baryons (gas + stars).
@@ -3370,6 +3379,7 @@ class ApertureProperties(HaloProperty):
         "HalfMassRadiusDust": False,
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
+        "HalfLightRadiusStar": False,
         "HalfMassRadiusBaryon": False,
         "DtoTgas": False,
         "DtoTstar": False,

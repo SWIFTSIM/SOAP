@@ -125,6 +125,7 @@ ApertureProperties:
     HalfMassRadiusGas: general
     HalfMassRadiusDust: general
     HalfMassRadiusStars: true
+    HalfLightRadiusStars: false
     HeliumMass: true
     HydrogenMass: true
     KappaCorotBaryons: general
@@ -330,6 +331,7 @@ ProjectedApertureProperties:
     HalfMassRadiusGas: general
     HalfMassRadiusDust: general
     HalfMassRadiusStars: true
+    HalfLightRadiusStars: false
     HeliumMass: true
     HydrogenMass: true
     MolecularHydrogenMass: true
@@ -598,6 +600,7 @@ SubhaloProperties:
     HalfMassRadiusGas: general
     HalfMassRadiusDust: general
     HalfMassRadiusStars: true
+    HalfLightRadiusStars: false
     HalfMassRadiusTotal: true
     EncloseRadius: true
     KappaCorotBaryons: general

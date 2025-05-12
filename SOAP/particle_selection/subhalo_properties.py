@@ -23,7 +23,7 @@ from numpy.typing import NDArray
 import unyt
 
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
-from SOAP.property_calculation.half_mass_radius import get_half_mass_radius
+from SOAP.property_calculation.half_mass_radius import get_half_mass_radius, get_half_light_radius
 from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot,
@@ -1967,6 +1967,16 @@ class SubhaloParticleData:
         )
 
     @lazy_property
+    def HalfLightRadiusStar(self) -> unyt.unyt_array:
+        """
+        Half-light radius of the star particle distribution in the subhalo, for
+        the 9 GAMA bands.
+        """
+        return get_half_light_radius(
+            self.radius[self.star_mask_sh], self.stellar_luminosities, self.StellarLuminosity
+        )
+
+    @lazy_property
     def HalfMassRadiusBaryon(self) -> unyt.unyt_quantity:
         """
         Half-mass radius of the baryon (gas + star) particle distribution in the
@@ -2072,6 +2082,7 @@ class SubhaloProperties(HaloProperty):
             "HalfMassRadiusGas",
             "HalfMassRadiusDM",
             "HalfMassRadiusStar",
+            "HalfLightRadiusStar",
             "HalfMassRadiusBaryon",
             "GasInertiaTensor",
             "DarkMatterInertiaTensor",
