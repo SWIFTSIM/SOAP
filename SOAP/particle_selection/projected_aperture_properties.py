@@ -1706,7 +1706,7 @@ class ProjectedApertureProperties(HaloProperty):
             i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
         else:
             i_radius = 0
-        if i_radius != 0:
+        if i_radius != 0 and ("BoundSubhalo/EncloseRadius" in halo_result):
             r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
             r_previous_kpc = self.all_radii_kpc[i_radius - 1]
             if r_previous_kpc * unyt.kpc > r_enclose:
@@ -1762,6 +1762,8 @@ class ProjectedApertureProperties(HaloProperty):
             if self.aperture_physical_radius_kpc is not None:
                 aperture_radius = self.aperture_physical_radius_kpc * unyt.kpc
             else:
+                if self.aperture_property[0] not in halo_result:
+                    raise RuntimeError(f'{self.aperture_property[0]} must be enabled in the parameter file if you want to use it to define an aperture')
                 aperture_radius = self.aperture_property[1] * halo_result[self.aperture_property[0]][0]
 
             types_present = [type for type in self.particle_properties if type in data]

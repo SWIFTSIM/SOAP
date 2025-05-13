@@ -523,6 +523,8 @@ def compute_halo_properties():
             print("Storing processing time for each property")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties(halo_prop_list)
+        if not parameter_file.renclose_enabled():
+            print("BoundSubhalo/EncloseRadius is not enabled. This means apertures with r > r_enclose will be calculated explicitly, rather than copying over values from smaller apertures")
         category_filter.print_filters()
 
     # Ensure output dir exists
