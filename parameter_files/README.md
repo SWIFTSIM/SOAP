@@ -75,7 +75,10 @@ SubhaloProperties:
 Define which fixed spherical apertures to compute, and what properties to compute within them.
 
 - **properties**: The same format as used for SubhaloProperties.
-- **variations**: A list of which apertures to compute. Each aperture must have a name, a boolean key `inclusive` to indicate whether to include unbound particles, and a key `radius_in_kpc` to indicate the **physical size** of the aperture. Each aperture can optionally be passed the `filter` key. If the filter key is set then the aperture will only be computed for subhalos that fulfill the filter criteria. If no `filter` key is passed then the aperture will be computed for all subhalos. For inclusive apertures the boolean flag `skip_gt_enclose_radius` can be set (defaults to False). If it is set then properties will not be calculated for any subhalos where all bound particles are within the aperture radius.
+- **variations**: A list of which apertures to compute. Each aperture must have a name, a boolean key `inclusive` to indicate whether to include unbound particles. The aperture can be specified in two different ways:
+  - Passing a value of `radius_in_kpc` to indicate the **physical size** of the aperture. 
+  - Passing a string as `property`, which is the name of another property which has been computed by SOAP. In this case each subhalo will use it's own value of that property as the aperture radius. `radius_muliple` can optionally be passed, in which case the aperture radius will be equal to the multiplier times the property value.
+Each aperture can optionally be passed the `filter` key. If the filter key is set then the aperture will only be computed for subhalos that fulfill the filter criteria. If no `filter` key is passed then the aperture will be computed for all subhalos. For inclusive apertures the boolean flag `skip_gt_enclose_radius` can be set (defaults to False). If it is set then properties will not be calculated for any subhalos where all bound particles are within the aperture radius.
 
 An example is as follows
 ```
@@ -91,6 +94,13 @@ ApertureProperties:
       radius_in_kpc: 50.0
       filter: general
       skip_gt_enclose_radius: false
+    exclusive_half_mass:
+      inclusive: false
+      property: BoundSubhalo/HalfMassRadiusTotal
+    exclusive_twice_half_mass:
+      inclusive: false
+      property: BoundSubhalo/HalfMassRadiusTotal
+      radius_multiple: 2.0
 ```
 
 If you do not wish to calculate any apertures then pass any empty dict to both the properties and the variations, e.g.
@@ -121,6 +131,9 @@ ProjectedApertureProperties:
     100_kpc:
       radius_in_kpc: 100.0
       filter: general
+    twice_half_mass:
+      property: BoundSubhalo/HalfMassRadiusTotal
+      radius_multiple: 2.0
 ```
 
 ### SOProperties

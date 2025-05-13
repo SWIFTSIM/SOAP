@@ -3351,7 +3351,8 @@ class ApertureProperties(HaloProperty):
         self,
         cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
-        physical_radius_kpc: float,
+        aperture_physical_radius_kpc: float | None,
+        aperture_property: tuple[str, float] | None,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
@@ -3372,9 +3373,17 @@ class ApertureProperties(HaloProperty):
          - parameters: ParameterFile
            Parameter file object containing the parameters from the parameter
            file.
-         - physical_radius_kpc: float
+         - aperture_physical_radius_kpc: float | None
            Physical radius of the aperture. Unitless and assumed to be expressed
-           in units of kpc.
+           in units of kpc. If not None then aperture_property must be None.
+           If None then aperture_property must be passed.
+         - aperture_property: tuple[str, float] | None,
+           Tuple to indicate the radius of this aperture based on a previous property
+           calculated by SOAP. The first element should be the full name of the
+           property to use (e.g. BoundSubhalo/HalfMassRadius). The second element
+           is a multipler (e.g. if you want the aperture radius to be twice the
+           value of the property, then pass 2). If not None then aperture_physical_radius_kpc
+           must be None. If None then aperture_physical_radius_kpc must be passed.
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
@@ -3395,7 +3404,7 @@ class ApertureProperties(HaloProperty):
            to the subhalo?
          - all_radii_kpc: list
            A list of all the radii for which we are computing an ApertureProperties.
-           This can allow us to skip property calculation for larger apertures
+           This can allow us to skip property calculation for larger apertures.
         """
 
         super().__init__(cellgrid)
@@ -3414,18 +3423,30 @@ class ApertureProperties(HaloProperty):
         self.all_radii_kpc = all_radii_kpc
         self.strict_halo_copy = parameters.strict_halo_copy()
         self.boxsize = cellgrid.boxsize
-
-        # Minimum physical radius to read in (pMpc)
-        self.physical_radius_mpc = 0.001 * physical_radius_kpc
-
+        self.aperture_physical_radius_kpc = aperture_physical_radius_kpc
+        self.aperture_property = aperture_property
         self.inclusive = inclusive
 
-        if self.inclusive:
-            self.name = f"inclusive_sphere_{physical_radius_kpc:.0f}kpc"
-            self.group_name = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+        if self.aperture_physical_radius_kpc is not None:
+            aperture_name = f'{self.aperture_physical_radius_kpc:.0f}kpc'
+            self.physical_radius_mpc = 0.001 * self.aperture_physical_radius_kpc
         else:
-            self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
-            self.group_name = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+            prop = self.aperture_property[0].split('/')[-1]
+            multiplier = self.aperture_property[1]
+            if multiplier == 1:
+                aperture_name = prop
+            else:
+                aperture_name = f'{multiplier}x{prop}'
+            # This value needs to be set since it's used to guess the initial
+            # load region for each particle
+            self.physical_radius_mpc = 0
+
+        if self.inclusive:
+            self.name = f"inclusive_sphere_{aperture_name}"
+            self.group_name = f"InclusiveSphere/{aperture_name}"
+        else:
+            self.name = f"exclusive_sphere_{aperture_name}"
+            self.group_name = f"ExclusiveSphere/{aperture_name}"
         self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
@@ -3521,9 +3542,13 @@ class ApertureProperties(HaloProperty):
         skip_gt_enclose_radius = False
         # Determine if the previous aperture already enclosed all
         # the bound particles of the subhalo
-        r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
-        i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
+        # We don't do this if we are passed a property
+        if self.aperture_physical_radius_kpc is not None:
+            i_radius = self.all_radii_kpc.index(self.aperture_physical_radius_kpc)
+        else:
+            i_radius = 0
         if i_radius != 0:
+            r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
             r_previous_kpc = self.all_radii_kpc[i_radius - 1]
             if r_previous_kpc * unyt.kpc > r_enclose:
                 # Skip if inclusive, don't copy over any values. Note this is
@@ -3555,7 +3580,12 @@ class ApertureProperties(HaloProperty):
         # Determine whether to skip this halo (because of the filter or because we
         # have copied over the values from the previous aperture)
         if do_calculation[self.halo_filter] and (not skip_gt_enclose_radius):
-            if search_radius < self.physical_radius_mpc * unyt.Mpc:
+            if self.aperture_physical_radius_kpc is not None:
+                aperture_radius = self.aperture_physical_radius_kpc * unyt.kpc
+            else:
+                aperture_radius = self.aperture_property[1] * halo_result[self.aperture_property[0]][0]
+
+            if search_radius < aperture_radius:
                 raise SearchRadiusTooSmallError(
                     "Search radius is smaller than aperture"
                 )
@@ -3566,7 +3596,7 @@ class ApertureProperties(HaloProperty):
                 data,
                 types_present,
                 self.inclusive,
-                self.physical_radius_mpc * unyt.Mpc,
+                aperture_radius,
                 self.stellar_ages,
                 self.recently_heated_gas_filter,
                 self.cold_dense_gas_filter,
@@ -3672,7 +3702,8 @@ class ExclusiveSphereProperties(ApertureProperties):
         self,
         cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
-        physical_radius_kpc: float,
+        aperture_physical_radius_kpc: float | None,
+        aperture_property: tuple[str, float] | None,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
@@ -3692,9 +3723,17 @@ class ExclusiveSphereProperties(ApertureProperties):
          - parameters: ParameterFile
            Parameter file object containing the parameters from the parameter
            file.
-         - physical_radius_kpc: float
+         - aperture_physical_radius_kpc: float | None
            Physical radius of the aperture. Unitless and assumed to be expressed
-           in units of kpc.
+           in units of kpc. If not None then aperture_property must be None.
+           If None then aperture_property must be passed.
+         - aperture_property: tuple[str, float] | None,
+           Tuple to indicate the radius of this aperture based on a previous property
+           calculated by SOAP. The first element should be the full name of the
+           property to use (e.g. BoundSubhalo/HalfMassRadius). The second element
+           is a multipler (e.g. if you want the aperture radius to be twice the
+           value of the property, then pass 2). If not None then aperture_physical_radius_kpc
+           must be None. If None then aperture_physical_radius_kpc must be passed.
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
@@ -3717,7 +3756,8 @@ class ExclusiveSphereProperties(ApertureProperties):
         super().__init__(
             cellgrid,
             parameters,
-            physical_radius_kpc,
+            aperture_physical_radius_kpc,
+            aperture_property,
             recently_heated_gas_filter,
             stellar_age_calculator,
             cold_dense_gas_filter,
@@ -3739,7 +3779,8 @@ class InclusiveSphereProperties(ApertureProperties):
         self,
         cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
-        physical_radius_kpc: float,
+        aperture_physical_radius_kpc: float | None,
+        aperture_property: tuple[str, float] | None,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
@@ -3759,9 +3800,17 @@ class InclusiveSphereProperties(ApertureProperties):
          - parameters: ParameterFile
            Parameter file object containing the parameters from the parameter
            file.
-         - physical_radius_kpc: float
+         - aperture_physical_radius_kpc: float | None
            Physical radius of the aperture. Unitless and assumed to be expressed
-           in units of kpc.
+           in units of kpc. If not None then aperture_property must be None.
+           If None then aperture_property must be passed.
+         - aperture_property: tuple[str, float] | None,
+           Tuple to indicate the radius of this aperture based on a previous property
+           calculated by SOAP. The first element should be the full name of the
+           property to use (e.g. BoundSubhalo/HalfMassRadius). The second element
+           is a multipler (e.g. if you want the aperture radius to be twice the
+           value of the property, then pass 2). If not None then aperture_physical_radius_kpc
+           must be None. If None then aperture_physical_radius_kpc must be passed.
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
@@ -3784,7 +3833,8 @@ class InclusiveSphereProperties(ApertureProperties):
         super().__init__(
             cellgrid,
             parameters,
-            physical_radius_kpc,
+            aperture_physical_radius_kpc,
+            aperture_property,
             recently_heated_gas_filter,
             stellar_age_calculator,
             cold_dense_gas_filter,

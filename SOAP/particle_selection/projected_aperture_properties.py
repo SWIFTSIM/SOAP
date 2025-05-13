@@ -1561,7 +1561,8 @@ class ProjectedApertureProperties(HaloProperty):
         self,
         cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
-        physical_radius_kpc: float,
+        aperture_physical_radius_kpc: float | None,
+        aperture_property: tuple[str, float] | None,
         category_filter: CategoryFilter,
         halo_filter: str,
         all_radii_kpc: list,
@@ -1577,6 +1578,18 @@ class ProjectedApertureProperties(HaloProperty):
          - parameters: ParameterFile
            Parameter file object containing the parameters from the parameter
            file.
+         - aperture_physical_radius_kpc: float | None
+           Physical radius of the aperture. Unitless and assumed to be expressed
+           in units of kpc. If not None then aperture_property must be None.
+           If None then aperture_property must be passed.
+         - aperture_property: tuple[str, float] | None,
+           Tuple to indicate the radius of this aperture based on a previous property
+           calculated by SOAP. The first element should be the full name of the
+           property to use (e.g. BoundSubhalo/HalfMassRadius). The second element
+           is a multipler (e.g. if you want the aperture radius to be twice the
+           value of the property, then pass 2). If not None then
+           aperture_physical_radius_kpc must be None. If None then
+           aperture_physical_radius_kpc must be passed.
          - physical_radius_kpc: float
            Physical radius of the aperture. Unitless and assumed to be expressed
            in units of kpc.
@@ -1598,19 +1611,32 @@ class ProjectedApertureProperties(HaloProperty):
             [prop.name for prop in self.property_list.values()],
         )
 
-        # Minimum physical radius to read in (pMpc)
-        self.physical_radius_mpc = 0.001 * physical_radius_kpc
-
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
+        self.aperture_physical_radius_kpc = aperture_physical_radius_kpc
+        self.aperture_property = aperture_property
         self.halo_filter = halo_filter
         self.record_timings = parameters.record_property_timings
         self.all_radii_kpc = all_radii_kpc
         self.strict_halo_copy = parameters.strict_halo_copy()
         self.boxsize = cellgrid.boxsize
 
-        self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
-        self.group_name = f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc"
+        if self.aperture_physical_radius_kpc is not None:
+            aperture_name = f'{self.aperture_physical_radius_kpc:.0f}kpc'
+            self.physical_radius_mpc = 0.001 * self.aperture_physical_radius_kpc
+        else:
+            prop = self.aperture_property[0].split('/')[-1]
+            multiplier = self.aperture_property[1]
+            if multiplier == 1:
+                aperture_name = prop
+            else:
+                aperture_name = f'{multiplier}x{prop}'
+            # This value needs to be set since it's used to guess the initial
+            # load region for each particle
+            self.physical_radius_mpc = 0
+
+        self.name = f"projected_aperture_{aperture_name}"
+        self.group_name = f"ProjectedAperture/{aperture_name}"
         self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
@@ -1676,9 +1702,12 @@ class ProjectedApertureProperties(HaloProperty):
         skip_gt_enclose_radius = False
         # Determine if the previous aperture already enclosed
         # all the bound particles of the subhalo
-        r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
-        i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
+        if self.aperture_physical_radius_kpc is not None:
+            i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
+        else:
+            i_radius = 0
         if i_radius != 0:
+            r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
             r_previous_kpc = self.all_radii_kpc[i_radius - 1]
             if r_previous_kpc * unyt.kpc > r_enclose:
                 skip_gt_enclose_radius = True
@@ -1728,15 +1757,19 @@ class ProjectedApertureProperties(HaloProperty):
         # have copied over the values from the previous aperture)
         if do_calculation[self.halo_filter] and (not skip_gt_enclose_radius):
             # For projected apertures we are only using bound particles
-            # Therefore we don't need to check if the serach_radius is large enough,
+            # Therefore we don't need to check if the search_radius is large enough,
             # because all particles will have been loaded
+            if self.aperture_physical_radius_kpc is not None:
+                aperture_radius = self.aperture_physical_radius_kpc * unyt.kpc
+            else:
+                aperture_radius = self.aperture_property[1] * halo_result[self.aperture_property[0]][0]
 
             types_present = [type for type in self.particle_properties if type in data]
             part_props = ProjectedApertureParticleData(
                 input_halo,
                 data,
                 types_present,
-                self.physical_radius_mpc * unyt.Mpc,
+                aperture_radius,
                 self.snapshot_datasets,
                 self.boxsize,
             )
