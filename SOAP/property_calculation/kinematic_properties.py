@@ -567,9 +567,9 @@ def get_inertia_tensor_luminosity_weighted(
 
     number_luminosity_bands = particle_luminosities.shape[1]
 
-    # We need 6 elements per luminosity band (3 diagonal + 3 off-diagonal terms)
-    # and inertia is proportional to distance squared.
-    flattened_inertia_tensors = np.zeros(6 * number_luminosity_bands) * particle_positions.units**2
+    # We need 6 elements per luminosity band (3 diagonal + 3 off-diagonal terms).
+    flattened_inertia_tensors = np.zeros(6 * number_luminosity_bands)
+
     for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
         flattened_inertia_tensor_i_band = get_weighted_inertia_tensor(particle_luminosities_i_band,
                                                               particle_positions,
@@ -583,6 +583,11 @@ def get_inertia_tensor_luminosity_weighted(
         # in the other bands.
         if flattened_inertia_tensor_i_band is None:
           return None
+
+        # Handle units automatically
+        if i_band == 0:
+          flattened_inertia_tensors *= flattened_inertia_tensor_i_band.units
+
         flattened_inertia_tensors[6 * i_band : 6 * (i_band + 1)] = flattened_inertia_tensor_i_band
 
     return flattened_inertia_tensors
@@ -774,10 +779,10 @@ def get_projected_inertia_tensor_luminosity_weighted(
     number_luminosity_bands = particle_luminosities.shape[1]
 
     # We need 3 elements per luminosity band (2 diagonal + 1 off-diagonal terms)
-    # and inertia is proportional to distance squared.
-    flattened_inertia_tensors = np.zeros(3 * number_luminosity_bands) * particle_positions.units**2
+    flattened_inertia_tensors = np.zeros(3 * number_luminosity_bands)
+
     for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
-        flattened_inertia_tensor_i_band = get_weighted_inertia_tensor(particle_luminosities_i_band,
+        flattened_inertia_tensor_i_band = get_weighted_projected_inertia_tensor(particle_luminosities_i_band,
                                                               particle_positions,
                                                               axis, 
                                                               radius,
@@ -789,6 +794,11 @@ def get_projected_inertia_tensor_luminosity_weighted(
         # in the other bands.
         if flattened_inertia_tensor_i_band is None:
           return None
+
+        # Handle units automatically
+        if i_band == 0:
+          flattened_inertia_tensors *= flattened_inertia_tensor_i_band.units
+
         flattened_inertia_tensors[3 * i_band : 3 * (i_band + 1)] = flattened_inertia_tensor_i_band
 
     return flattened_inertia_tensors
