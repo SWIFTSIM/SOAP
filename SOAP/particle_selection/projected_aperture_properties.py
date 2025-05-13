@@ -35,7 +35,7 @@ from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.dataset_names import mass_dataset
 from SOAP.property_calculation.half_mass_radius import get_half_mass_radius, get_half_light_radius
 from SOAP.property_table import PropertyTable
-from SOAP.property_calculation.kinematic_properties import get_projected_inertia_tensor_mass_weighted, get_projected_inertia_tensor_luminosity_weighted
+from SOAP.property_calculation.inertia_tensors import get_projected_inertia_tensor_mass_weighted, get_projected_inertia_tensor_luminosity_weighted
 
 
 class ProjectedApertureParticleData:

@@ -35,8 +35,8 @@ from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum_and_kappa_corot,
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
-    get_inertia_tensor_mass_weighted,
 )
+from SOAP.property_calculation.inertia_tensors import get_inertia_tensor_mass_weighted
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 from SOAP.property_table import PropertyTable
 from SOAP.core.dataset_names import mass_dataset
