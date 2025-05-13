@@ -208,9 +208,6 @@ def get_inertia_tensor_luminosity_weighted(
 
     number_luminosity_bands = particle_luminosities.shape[1]
 
-    # We need 6 elements per luminosity band (3 diagonal + 3 off-diagonal terms).
-    flattened_inertia_tensors = np.zeros(6 * number_luminosity_bands)
-
     for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
         flattened_inertia_tensor_i_band = get_weighted_inertia_tensor(particle_luminosities_i_band,
                                                               particle_positions,
@@ -226,6 +223,7 @@ def get_inertia_tensor_luminosity_weighted(
           return None
 
         # Create the array to output here, once we know the units of the inertia tensor.
+        # 6 elements per luminosity band (3 diagonal + 3 off-diagonal terms).
         if i_band == 0:
           flattened_inertia_tensors = unyt.unyt_array(
             np.zeros(6 * number_luminosity_bands), dtype=np.float32, units=flattened_inertia_tensor_i_band.units, 
@@ -421,9 +419,6 @@ def get_projected_inertia_tensor_luminosity_weighted(
 
     number_luminosity_bands = particle_luminosities.shape[1]
 
-    # We need 3 elements per luminosity band (2 diagonal + 1 off-diagonal terms)
-    flattened_inertia_tensors = np.zeros(3 * number_luminosity_bands)
-
     for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
         flattened_inertia_tensor_i_band = get_weighted_projected_inertia_tensor(particle_luminosities_i_band,
                                                               particle_positions,
@@ -439,6 +434,7 @@ def get_projected_inertia_tensor_luminosity_weighted(
           return None
 
         # Create the array to output here, once we know the units of the inertia tensor.
+        # 3 elements per luminosity band (2 diagonal + 1 off-diagonal terms)
         if i_band == 0:
           flattened_inertia_tensors = unyt.unyt_array(
             np.zeros(3 * number_luminosity_bands), dtype=np.float32, units=flattened_inertia_tensor_i_band.units, 

@@ -145,7 +145,7 @@ from SOAP.property_calculation.half_mass_radius import get_half_mass_radius, get
 from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
     get_angular_momentum,
-    get_angular_momentum_and_kappa_corot,
+    get_angular_momentum_and_kappa_corot_mass_weighted,
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
 )
@@ -1120,11 +1120,11 @@ class ApertureParticleData:
             self.internal_Lgas,
             self.internal_kappa_gas,
             self.internal_Mcountrot_gas,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.mass_gas,
             self.pos_gas,
             self.vel_gas,
-            ref_velocity=self.vcom_gas,
+            reference_velocity=self.vcom_gas,
             do_counterrot_mass=True,
         )
 
@@ -1268,11 +1268,11 @@ class ApertureParticleData:
             self.internal_Lstar,
             self.internal_kappa_star,
             self.internal_Mcountrot_star,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.mass_star,
             self.pos_star,
             self.vel_star,
-            ref_velocity=self.vcom_star,
+            reference_velocity=self.vcom_star,
             do_counterrot_mass=True,
         )
 
@@ -1297,7 +1297,7 @@ class ApertureParticleData:
             self.pos_star,
             self.vel_star,
             self.stellar_luminosities,
-            ref_velocity=self.vcom_star,
+            reference_velocity=self.vcom_star,
             do_counterrot_mass=True,
             do_counterrot_luminosity=True,
         )
@@ -1470,11 +1470,11 @@ class ApertureParticleData:
         (
             self.internal_Lbar,
             self.internal_kappa_bar,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.mass_baryons,
             self.pos_baryons,
             self.vel_baryons,
-            ref_velocity=self.vcom_bar,
+            reference_velocity=self.vcom_bar,
         )
 
     @lazy_property

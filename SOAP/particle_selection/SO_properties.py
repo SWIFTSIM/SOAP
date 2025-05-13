@@ -32,7 +32,7 @@ import unyt
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
 from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum,
-    get_angular_momentum_and_kappa_corot,
+    get_angular_momentum_and_kappa_corot_mass_weighted,
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
 )
@@ -759,11 +759,11 @@ class SOParticleData:
             self.internal_Lgas,
             _,
             self.internal_Mcountrot_gas,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.gas_masses,
             self.gas_pos,
             self.gas_vel,
-            ref_velocity=self.vcom_gas,
+            reference_velocity=self.vcom_gas,
             do_counterrot_mass=True,
         )
 
@@ -1037,11 +1037,11 @@ class SOParticleData:
             self.internal_Lstar,
             _,
             self.internal_Mcountrot_star,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.star_masses,
             self.star_pos,
             self.star_vel,
-            ref_velocity=self.vcom_star,
+            reference_velocity=self.vcom_star,
             do_counterrot_mass=True,
         )
 
@@ -1066,7 +1066,7 @@ class SOParticleData:
             self.star_pos,
             self.star_vel,
             self.get_dataset("PartType4/Luminosities")[self.star_selection],
-            ref_velocity=self.vcom_star,
+            reference_velocity=self.vcom_star,
             do_counterrot_mass=True,
             do_counterrot_luminosity=True,
         )
