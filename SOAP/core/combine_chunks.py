@@ -38,9 +38,10 @@ def spatial_sort(halo_cofp, halo_index, cellgrid, comm):
     cell_indices = (halo_cofp // cellgrid.cell_size).value.astype("int64")
     assert cellgrid.dimension[0] >= cellgrid.dimension[1] >= cellgrid.dimension[2]
     # Assert that all halos are within the box
-    assert np.min(cell_indices) >= 0
-    for i_cell in range(3):
-        assert np.max(cell_indices[:, i_cell]) < cellgrid.dimension[i_cell]
+    if cell_indices.shape[0] > 0:
+        assert np.min(cell_indices) >= 0
+        for i_cell in range(3):
+            assert np.max(cell_indices[:, i_cell]) < cellgrid.dimension[i_cell]
     # Sort first based on position, then on catalogue index
     sort_hash_dtype = [("cell_index", np.int64), ("catalogue_index", np.int64)]
     sort_hash = np.zeros(cell_indices.shape[0], dtype=sort_hash_dtype)
