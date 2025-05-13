@@ -225,9 +225,11 @@ def get_inertia_tensor_luminosity_weighted(
         if flattened_inertia_tensor_i_band is None:
           return None
 
-        # Handle units automatically
+        # Create the array to output here, once we know the units of the inertia tensor.
         if i_band == 0:
-          flattened_inertia_tensors *= flattened_inertia_tensor_i_band.units
+          flattened_inertia_tensors = unyt.unyt_array(
+            np.zeros(6 * number_luminosity_bands), dtype=np.float32, units=flattened_inertia_tensor_i_band.units, 
+            registry=flattened_inertia_tensor_i_band.units.registry)
 
         flattened_inertia_tensors[6 * i_band : 6 * (i_band + 1)] = flattened_inertia_tensor_i_band
 
@@ -436,9 +438,11 @@ def get_projected_inertia_tensor_luminosity_weighted(
         if flattened_inertia_tensor_i_band is None:
           return None
 
-        # Handle units automatically
+        # Create the array to output here, once we know the units of the inertia tensor.
         if i_band == 0:
-          flattened_inertia_tensors *= flattened_inertia_tensor_i_band.units
+          flattened_inertia_tensors = unyt.unyt_array(
+            np.zeros(3 * number_luminosity_bands), dtype=np.float32, units=flattened_inertia_tensor_i_band.units, 
+            registry=flattened_inertia_tensor_i_band.units.registry)
 
         flattened_inertia_tensors[3 * i_band : 3 * (i_band + 1)] = flattened_inertia_tensor_i_band
 
