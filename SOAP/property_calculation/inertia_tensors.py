@@ -133,28 +133,13 @@ def get_inertia_tensor_mass_weighted(
     min_particles=20,
 ):
     """
-    Get the mass-weighted inertia tensor of the given particle distribution. 
-    Computed as:
-    I_{ij} = m*x_i*x_j / Mtot.
+    Get the mass-weighted inertia tensors of the given particle distribution
+    in each of the available luminosity bands. Computed as:
+    I_{ij} = M * x_i * x_j / Mtot.
 
-    Parameters:
-     - particle_masses: unyt.unyt_array
-       Masses of the particles.
-     - particle_positions: unyt.unyt_array
-       Positions of the particles.
-     - sphere_radius: unyt.unyt_quantity
-       Use all particles within a sphere of this size for the calculation
-     - search_radius: unyt.unyt_quantity
-       Radius of the region of the simulation for which we have particle data
-       This function throws a SearchRadiusTooSmallError if we need particles outside
-       of this region.
-     - reduced: bool
-       Whether to calculate the reduced inertia tensor
-     - max_iterations: int
-       The maximum number of iterations to repeat the inertia tensor calculation
-     - min_particles: int
-       The number of particles required within the initial sphere. The inertia tensor
-       is not computed if this threshold is not met.
+    This function calls get_weighted_inertia_tensor and weights particles by 
+    their mass. See get_weighted_inertia_tensor for 
+    input parameters.
 
     Returns a flattened representation of the mass-weighted inertia tensor, with the 
     first 3 entries corresponding to the diagonal terms and the rest to the
@@ -182,24 +167,9 @@ def get_inertia_tensor_luminosity_weighted(
     in each of the available luminosity bands. Computed as:
     I_{ij} = Li * x_i * x_j / Ltot.
 
-    Parameters:
-     - particle_luminosities: unyt.unyt_array
-       Luminosities of the particles in each of the provided bands.
-     - particle_positions: unyt.unyt_array
-       Positions of the particles.
-     - sphere_radius: unyt.unyt_quantity
-       Use all particles within a sphere of this size for the calculation
-     - search_radius: unyt.unyt_quantity
-       Radius of the region of the simulation for which we have particle data
-       This function throws a SearchRadiusTooSmallError if we need particles outside
-       of this region.
-     - reduced: bool
-       Whether to calculate the reduced inertia tensor
-     - max_iterations: int
-       The maximum number of iterations to repeat the inertia tensor calculation
-     - min_particles: int
-       The number of particles required within the initial sphere. The inertia tensor
-       is not computed if this threshold is not met.
+    This function calls get_weighted_inertia_tensor and weights particles by 
+    their luminosity in a given band. See get_weighted_inertia_tensor for 
+    input parameters.
 
     Returns an array of concatenated flattened luminosity-weighted inertia tensors, 
     with each 6 consecutive  entries corresponding to 3 diagonal and 3 off-diagonal terms
@@ -237,8 +207,8 @@ def get_weighted_projected_inertia_tensor(
     particle_weights, particle_positions, axis, radius, reduced=False, max_iterations=20, min_particles=20
 ):
     """
-    Takes in the particle distribution projected along a given axis, and calculates the inertia
-    tensor using the projected values.
+    Takes in the particle distribution, projects it along a given axis, and 
+    calculates the 2D inertia tensor of the projected particle distribution. 
 
     Unlike get_inertia_tensor, we don't need to check if we have exceeded the search radius. This
     is because all the bound particles are passed to this function.
@@ -348,31 +318,16 @@ def get_projected_inertia_tensor_mass_weighted(
     particle_masses, particle_positions, axis, radius, reduced=False, max_iterations=20, min_particles=20
 ):
     """
-    Takes in the particle distribution projected along a given axis, and calculates the inertia
-    tensor using the projected values.
+    Takes in the particle distribution projected along a given axis, and 
+    calculates the inertia tensor using the projected values.
 
-    Unlike get_inertia_tensor, we don't need to check if we have exceeded the search radius. This
-    is because all the bound particles are passed to this function.
+    This function calls get_weighted_projected_inertia_tensor and weights
+    particles by their mass. See get_weighted_projected_inertia_tensor for 
+    input parameters.  
 
-    Parameters:
-     - particle_masses: unyt.unyt_array
-       Masses of the particles.
-     - particle_positions: unyt.unyt_array
-       Positions of the particles.
-     - axis: 0, 1, 2
-       Projection axis. Only the coordinates perpendicular to this axis are
-       taken into account.
-     - radius: unyt.unyt_quantity
-       Exclude particles outside this radius for the inertia tensor calculation
-     - reduced: bool
-       Whether to calculate the reduced inertia tensor
-     - max_iterations: int
-       The maximum number of iterations to repeat the inertia tensor calculation
-     - min_particles: int
-       The number of particles required within the initial circle. The inertia tensor
-       is not computed if this threshold is not met.
-
-    Returns the inertia tensor.
+    Returns a flattened representation of the mass-weighted inertia tensor, with the 
+    first 2 entries corresponding to the diagonal terms and the rest to the
+    off-diagonal terms.
     """
     return get_weighted_projected_inertia_tensor(particle_masses, 
                                                  particle_positions, 
@@ -386,35 +341,16 @@ def get_projected_inertia_tensor_luminosity_weighted(
     particle_luminosities, particle_positions, axis, radius, reduced=False, max_iterations=20, min_particles=20
 ):
     """
-    Takes in the particle distribution projected along a given axis, and calculates the inertia
-    tensor using the projected values and weighting it by the fractional contribution of a particle
-    to a given luminosity band.
+    Takes in the particle distribution projected along a given axis, and 
+    calculates the luminosity-weighted inertia tensor using the projected values.
 
-    Unlike get_inertia_tensor, we don't need to check if we have exceeded the search radius. This
-    is because all the bound particles are passed to this function.
+    This function calls get_weighted_projected_inertia_tensor and weights
+    particles by their luminosity in a given band. See 
+    get_weighted_projected_inertia_tensor for input parameters.
 
-    Parameters:
-     - particle_luminosities: unyt.unyt_array
-       Luminosities of the particles in each of the provided bands.
-     - particle_positions: unyt.unyt_array
-       Positions of the particles.
-     - luminosity: unyt.unyt_array
-       Luminosities of the particles.
-     - axis: 0, 1, 2
-       Projection axis. Only the coordinates perpendicular to this axis are
-       taken into account.
-     - radius: unyt.unyt_quantity
-       Exclude particles outside this radius for the inertia tensor calculation
-     - reduced: bool
-       Whether to calculate the reduced inertia tensor
-     - max_iterations: int
-       The maximum number of iterations to repeat the inertia tensor calculation
-     - min_particles: int
-       The number of particles required within the initial circle. The inertia tensor
-       is not computed if this threshold is not met.
-
-    Returns an array of concatenated flattened inertia tensors, with each 3 consecutive 
-    entries corresponding to 2 diagonal and 1 off-diagonal terms.
+    Returns an array of concatenated flattened luminosity-weighted inertia tensors, 
+    with each 3 consecutive  entries corresponding to 2 diagonal and 1 off-diagonal terms
+    in a given band. 
     """
 
     number_luminosity_bands = particle_luminosities.shape[1]
