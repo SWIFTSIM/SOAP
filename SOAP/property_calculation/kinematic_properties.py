@@ -235,6 +235,71 @@ def get_vmax(
     imax = np.argmax(v_over_G)
     return ordered_radius[imax], np.sqrt(v_over_G[imax] * G)
 
+def get_Vrot(
+    particle_masses: unyt.unyt_array, 
+    particle_positions: unyt.unyt_array,
+    particle_velocities: unyt.unyt_array,
+    rotation_axis: unyt.unyt_array,
+    reference_position: Union[None, unyt.unyt_array] = None,
+    reference_velocity: Union[None, unyt.unyt_array] = None,
+) -> unyt.unyt_quantity:
+    """
+    Get the average azimuthal (rotational) velocity of a given particle 
+    distribution.
+
+    The value is computed from the mass-weighted average of the polar velocity
+    of stellar particles in cylindrical coordinates.
+
+    Parameters:
+     - particle_masses: unyt.unyt_array
+       Mass of the particles.
+     - particle_positions: unyt.unyt_array
+       Coordinates of the particles in cartesian coordinates.
+     - particle_velocities: unyt.unyt_array
+       Velocity of the particles in cartesian coordinates.
+     - rotation_axis: unyt.unyt_array
+       Direction in box coordinates along which the z-axis of the cylindrical
+       coordinates will be placed.
+     - reference_position: unyt.unyt_array or None
+       Reference position used as centre for the cylindrical coordinate system.
+       position and reference_position are assumed to use the same reference point upon
+       entry into this function. If None, position is assumed to be already using
+       the desired reference point.
+     - reference_velocity: unyt.unyt_array or None
+       Reference position used as centre for the cylindrical coordinate system.
+       velocity and reference_velocity are assumed to use the same reference point upon
+       entry into this function. If None, velocity is assumed to be already using
+       the desired reference point.
+
+    Returns:
+     - The mass-weighted average of the rotational velocity.
+    """
+
+    if reference_position is None:
+        relative_positions = particle_positions
+    else:
+        relative_positions = particle_positions - reference_position[None, :]
+    if reference_velocity is None:
+        relative_velocities = particle_velocities
+    else:
+        relative_velocities = particle_velocities - reference_velocity[None, :]
+
+    # Define unit vectors to project velocity vectors along the (r,z) directions. 
+    unit_vector_rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
+    unit_vector_particle_position = relative_positions / np.linalg.norm(relative_positions)
+
+    # Get vector velocities corresponding to (r,z) directions.
+    relative_velocity_r = (relative_velocities * unit_vector_rotation_axis[None, :]).sum(axis=1)
+    relative_velocity_z = (relative_velocities * unit_vector_particle_position[None, :]).sum(axis=1)
+
+    # Subtract both from the total particle velocity to obtain rotational velocity.
+    relative_velocity_theta = relative_velocities - relative_velocity_r - relative_velocity_z
+
+    # We want the mass-weighted (scalar) rotational velocity.
+    magnitude_rotational_velocity = np.linalg.norm(relative_velocity_theta)
+    Vrot = (particle_masses * magnitude_rotational_velocity).sum() / particle_masses.sum()  
+
+    return Vrot
 
 def get_inertia_tensor(
     mass,
