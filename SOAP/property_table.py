@@ -907,7 +907,7 @@ class PropertyTable:
         ),
         "Lstar_luminosity_weighted": Property(
             name="AngularMomentumStars_LuminosityWeighted",
-            shape=27, # 3D vector for each of the 9 GAMA bands
+            shape=27,  # 3D vector for each of the 9 GAMA bands
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
             description="Luminosity-weighted total angular momentum of the stars, relative to the centre of potential and stellar centre of mass velocity. A different vector is computed for each of the saved luminosity bands.",
@@ -1309,7 +1309,11 @@ class PropertyTable:
             description="Stellar half light radius in the 9 GAMA bands.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=False,
             a_scale_exponent=1,
         ),
@@ -2057,7 +2061,11 @@ class PropertyTable:
             description="2D inertia tensor computed iteratively from the stellar luminosity distribution in different GAMA bands, relative to the halo centre. Diagonal components and one off-diagonal value as (1,1), (2,2), (1,2). Only calculated when we have more than 20 particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=True,
             a_scale_exponent=2,
         ),
@@ -2069,7 +2077,11 @@ class PropertyTable:
             description="Reduced 2D inertia tensor computed iteratively from the stellar luminosity distribution in different GAMA bands, relative to the halo centre. Diagonal components and one off-diagonal value as (1,1), (2,2), (1,2). Only calculated when we have more than 20 particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=True,
             a_scale_exponent=0,
         ),
@@ -2081,7 +2093,11 @@ class PropertyTable:
             description="2D inertia tensor computed in a single iteration from the stellar luminosity distribution in different GAMA bands, relative to the halo centre. Diagonal components and one off-diagonal value as (1,1), (2,2), (1,2). Only calculated when we have more than 20 particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=True,
             a_scale_exponent=2,
         ),
@@ -2093,7 +2109,11 @@ class PropertyTable:
             description="Reduced 2D inertia tensor computed in a single iteration from the stellar luminosity distribution in different GAMA bands, relative to the halo centre. Diagonal components and one off-diagonal value as (1,1), (2,2), (1,2). Only calculated when we have more than 20 particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=True,
             a_scale_exponent=0,
         ),
@@ -2171,49 +2191,65 @@ class PropertyTable:
         ),
         "StellarInertiaTensor_LuminosityWeighted": Property(
             name="StellarInertiaTensor_LuminosityWeighted",
-            shape=54, # 6 times each GAMA band
+            shape=54,  # 6 times each GAMA band
             dtype=np.float32,
             unit="snap_length**2",
             description="3D inertia tensor computed iteratively from the stellar luminosity distribution, relative to the halo centre and for each GAMA band. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3). Only calculated when we have more than 20 particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=True,
             a_scale_exponent=2,
         ),
         "StellarInertiaTensorReduced_LuminosityWeighted": Property(
             name="StellarInertiaTensorReduced_LuminosityWeighted",
-            shape=54, # 6 times each GAMA band
+            shape=54,  # 6 times each GAMA band
             dtype=np.float32,
             unit="dimensionless",
             description="Reduced 3D inertia tensor computed iteratively from the stellar luminosity distribution, relative to the halo centre and for each GAMA band. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3). Only calculated when we have more than 20 particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=True,
             a_scale_exponent=0,
         ),
         "StellarInertiaTensorNoniterative_LuminosityWeighted": Property(
             name="StellarInertiaTensorNoniterative_LuminosityWeighted",
-            shape=54, # 6 times each GAMA band
+            shape=54,  # 6 times each GAMA band
             dtype=np.float32,
             unit="snap_length**2",
             description="3D inertia tensor computed in a single iteration from the stellar luminosity distribution, relative to the halo centre and for each GAMA band. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3). Only calculated when we have more than 20 particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=True,
             a_scale_exponent=2,
         ),
         "StellarInertiaTensorReducedNoniterative_LuminosityWeighted": Property(
             name="StellarInertiaTensorReducedNoniterative_LuminosityWeighted",
-            shape=54, # 6 times each GAMA band
+            shape=54,  # 6 times each GAMA band
             dtype=np.float32,
             unit="dimensionless",
             description="Reduced 3D inertia tensor computed in a single iteration from the stellar luminosity distribution, relative to the halo centre and for each GAMA band. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3). Only calculated when we have more than 20 particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Coordinates", "PartType4/Masses", "PartType4/Luminosities"],
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=True,
             a_scale_exponent=0,
         ),

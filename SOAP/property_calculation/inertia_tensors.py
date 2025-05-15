@@ -3,7 +3,7 @@
 """
 inertia_tensors.py
 
-Some utility functions to compute inertia tensors for particle spatial 
+Some utility functions to compute inertia tensors for particle spatial
 distributions.
 
 We put them in a separate file to facilitate unit testing.
@@ -14,6 +14,7 @@ from typing import Union, Tuple
 import unyt
 
 from SOAP.particle_selection.halo_properties import SearchRadiusTooSmallError
+
 
 def get_weighted_inertia_tensor(
     particle_weights,
@@ -48,7 +49,7 @@ def get_weighted_inertia_tensor(
        The number of particles required within the initial sphere. The inertia tensor
        is not computed if this threshold is not met.
 
-    Returns a flattened representation of the weighted inertia tensor, with the 
+    Returns a flattened representation of the weighted inertia tensor, with the
     first 3 entries corresponding to the diagonal terms and the rest to the
     off-diagonal terms.
     """
@@ -110,7 +111,11 @@ def get_weighted_inertia_tensor(
             raise SearchRadiusTooSmallError("Inertia tensor required more particles")
 
         # Calculate inertia tensor
-        tensor = weight[:, None, None] * particle_positions[:, :, None] * particle_positions[:, None, :]
+        tensor = (
+            weight[:, None, None]
+            * particle_positions[:, :, None]
+            * particle_positions[:, None, :]
+        )
         if reduced:
             tensor /= norm[:, None, None]
         tensor = tensor.sum(axis=0)
@@ -118,10 +123,11 @@ def get_weighted_inertia_tensor(
 
         # Handle cases where there is only one particle after iterating.
         if q == 0:
-          tensor.fill(0)
-          break
+            tensor.fill(0)
+            break
 
     return np.concatenate([np.diag(tensor), tensor[np.triu_indices(3, 1)]])
+
 
 def get_inertia_tensor_mass_weighted(
     particle_masses,
@@ -137,21 +143,24 @@ def get_inertia_tensor_mass_weighted(
     in each of the available luminosity bands. Computed as:
     I_{ij} = M * x_i * x_j / Mtot.
 
-    This function calls get_weighted_inertia_tensor and weights particles by 
-    their mass. See get_weighted_inertia_tensor for 
+    This function calls get_weighted_inertia_tensor and weights particles by
+    their mass. See get_weighted_inertia_tensor for
     input parameters.
 
-    Returns a flattened representation of the mass-weighted inertia tensor, with the 
+    Returns a flattened representation of the mass-weighted inertia tensor, with the
     first 3 entries corresponding to the diagonal terms and the rest to the
     off-diagonal terms.
     """
-    return get_weighted_inertia_tensor(particle_masses,
-          particle_positions,
-          sphere_radius,
-          search_radius,
-          reduced,
-          max_iterations,
-          min_particles)
+    return get_weighted_inertia_tensor(
+        particle_masses,
+        particle_positions,
+        sphere_radius,
+        search_radius,
+        reduced,
+        max_iterations,
+        min_particles,
+    )
+
 
 def get_inertia_tensor_luminosity_weighted(
     particle_luminosities,
@@ -167,11 +176,11 @@ def get_inertia_tensor_luminosity_weighted(
     in each of the available luminosity bands. Computed as:
     I_{ij} = Li * x_i * x_j / Ltot.
 
-    This function calls get_weighted_inertia_tensor and weights particles by 
-    their luminosity in a given band. See get_weighted_inertia_tensor for 
+    This function calls get_weighted_inertia_tensor and weights particles by
+    their luminosity in a given band. See get_weighted_inertia_tensor for
     input parameters.
 
-    Returns an array of concatenated flattened luminosity-weighted inertia tensors, 
+    Returns an array of concatenated flattened luminosity-weighted inertia tensors,
     with each 6 consecutive  entries corresponding to 3 diagonal and 3 off-diagonal terms
     in a given band.
     """
@@ -179,36 +188,50 @@ def get_inertia_tensor_luminosity_weighted(
     number_luminosity_bands = particle_luminosities.shape[1]
 
     for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
-        flattened_inertia_tensor_i_band = get_weighted_inertia_tensor(particle_luminosities_i_band,
-                                                              particle_positions,
-                                                              sphere_radius,
-                                                              search_radius,
-                                                              reduced,
-                                                              max_iterations,
-                                                              min_particles)
+        flattened_inertia_tensor_i_band = get_weighted_inertia_tensor(
+            particle_luminosities_i_band,
+            particle_positions,
+            sphere_radius,
+            search_radius,
+            reduced,
+            max_iterations,
+            min_particles,
+        )
 
         # Not enough particles in the first band, which means not enough particles
         # in the other bands.
         if flattened_inertia_tensor_i_band is None:
-          return None
+            return None
 
         # Create the array to output here, once we know the units of the inertia tensor.
         # 6 elements per luminosity band (3 diagonal + 3 off-diagonal terms).
         if i_band == 0:
-          flattened_inertia_tensors = unyt.unyt_array(
-            np.zeros(6 * number_luminosity_bands), dtype=np.float32, units=flattened_inertia_tensor_i_band.units, 
-            registry=flattened_inertia_tensor_i_band.units.registry)
+            flattened_inertia_tensors = unyt.unyt_array(
+                np.zeros(6 * number_luminosity_bands),
+                dtype=np.float32,
+                units=flattened_inertia_tensor_i_band.units,
+                registry=flattened_inertia_tensor_i_band.units.registry,
+            )
 
-        flattened_inertia_tensors[6 * i_band : 6 * (i_band + 1)] = flattened_inertia_tensor_i_band
+        flattened_inertia_tensors[6 * i_band : 6 * (i_band + 1)] = (
+            flattened_inertia_tensor_i_band
+        )
 
     return flattened_inertia_tensors
 
+
 def get_weighted_projected_inertia_tensor(
-    particle_weights, particle_positions, axis, radius, reduced=False, max_iterations=20, min_particles=20
+    particle_weights,
+    particle_positions,
+    axis,
+    radius,
+    reduced=False,
+    max_iterations=20,
+    min_particles=20,
 ):
     """
-    Takes in the particle distribution, projects it along a given axis, and 
-    calculates the 2D inertia tensor of the projected particle distribution. 
+    Takes in the particle distribution, projects it along a given axis, and
+    calculates the 2D inertia tensor of the projected particle distribution.
 
     Unlike get_inertia_tensor, we don't need to check if we have exceeded the search radius. This
     is because all the bound particles are passed to this function.
@@ -239,7 +262,9 @@ def get_weighted_projected_inertia_tensor(
         return None
 
     projected_position = unyt.unyt_array(
-        np.zeros((particle_positions.shape[0], 2)), units=particle_positions.units, dtype=particle_positions.dtype
+        np.zeros((particle_positions.shape[0], 2)),
+        units=particle_positions.units,
+        dtype=particle_positions.dtype,
     )
     if axis == 0:
         projected_position[:, 0] = particle_positions[:, 1]
@@ -309,76 +334,100 @@ def get_weighted_projected_inertia_tensor(
 
         # Handle cases where there is only one particle after iterating.
         if q == 0:
-          tensor.fill(0)
-          break
+            tensor.fill(0)
+            break
 
     return np.concatenate([np.diag(tensor), [tensor[(0, 1)]]])
 
+
 def get_projected_inertia_tensor_mass_weighted(
-    particle_masses, particle_positions, axis, radius, reduced=False, max_iterations=20, min_particles=20
+    particle_masses,
+    particle_positions,
+    axis,
+    radius,
+    reduced=False,
+    max_iterations=20,
+    min_particles=20,
 ):
     """
-    Takes in the particle distribution projected along a given axis, and 
+    Takes in the particle distribution projected along a given axis, and
     calculates the inertia tensor using the projected values.
 
     This function calls get_weighted_projected_inertia_tensor and weights
-    particles by their mass. See get_weighted_projected_inertia_tensor for 
-    input parameters.  
+    particles by their mass. See get_weighted_projected_inertia_tensor for
+    input parameters.
 
-    Returns a flattened representation of the mass-weighted inertia tensor, with the 
+    Returns a flattened representation of the mass-weighted inertia tensor, with the
     first 2 entries corresponding to the diagonal terms and the rest to the
     off-diagonal terms.
     """
-    return get_weighted_projected_inertia_tensor(particle_masses, 
-                                                 particle_positions, 
-                                                 axis, 
-                                                 radius, 
-                                                 reduced, 
-                                                 max_iterations, 
-                                                 min_particles)
+    return get_weighted_projected_inertia_tensor(
+        particle_masses,
+        particle_positions,
+        axis,
+        radius,
+        reduced,
+        max_iterations,
+        min_particles,
+    )
+
 
 def get_projected_inertia_tensor_luminosity_weighted(
-    particle_luminosities, particle_positions, axis, radius, reduced=False, max_iterations=20, min_particles=20
+    particle_luminosities,
+    particle_positions,
+    axis,
+    radius,
+    reduced=False,
+    max_iterations=20,
+    min_particles=20,
 ):
     """
-    Takes in the particle distribution projected along a given axis, and 
+    Takes in the particle distribution projected along a given axis, and
     calculates the luminosity-weighted inertia tensor using the projected values.
 
     This function calls get_weighted_projected_inertia_tensor and weights
-    particles by their luminosity in a given band. See 
+    particles by their luminosity in a given band. See
     get_weighted_projected_inertia_tensor for input parameters.
 
-    Returns an array of concatenated flattened luminosity-weighted inertia tensors, 
+    Returns an array of concatenated flattened luminosity-weighted inertia tensors,
     with each 3 consecutive  entries corresponding to 2 diagonal and 1 off-diagonal terms
-    in a given band. 
+    in a given band.
     """
 
     number_luminosity_bands = particle_luminosities.shape[1]
 
     for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
-        flattened_inertia_tensor_i_band = get_weighted_projected_inertia_tensor(particle_luminosities_i_band,
-                                                              particle_positions,
-                                                              axis, 
-                                                              radius,
-                                                              reduced,
-                                                              max_iterations,
-                                                              min_particles)
+        flattened_inertia_tensor_i_band = get_weighted_projected_inertia_tensor(
+            particle_luminosities_i_band,
+            particle_positions,
+            axis,
+            radius,
+            reduced,
+            max_iterations,
+            min_particles,
+        )
 
         # Not enough particles in the first band, which means not enough particles
         # in the other bands.
         if flattened_inertia_tensor_i_band is None:
-          return None
+            return None
 
         # Create the array to output here, once we know the units of the inertia tensor.
         # 3 elements per luminosity band (2 diagonal + 1 off-diagonal terms)
         if i_band == 0:
-          flattened_inertia_tensors = unyt.unyt_array(
-            np.zeros(3 * number_luminosity_bands), dtype=np.float32, units=flattened_inertia_tensor_i_band.units, 
-            registry=flattened_inertia_tensor_i_band.units.registry)
+            flattened_inertia_tensors = unyt.unyt_array(
+                np.zeros(3 * number_luminosity_bands),
+                dtype=np.float32,
+                units=flattened_inertia_tensor_i_band.units,
+                registry=flattened_inertia_tensor_i_band.units.registry,
+            )
 
-        flattened_inertia_tensors[3 * i_band : 3 * (i_band + 1)] = flattened_inertia_tensor_i_band
+        flattened_inertia_tensors[3 * i_band : 3 * (i_band + 1)] = (
+            flattened_inertia_tensor_i_band
+        )
 
     return flattened_inertia_tensors
+
 
 if __name__ == "__main__":
     """

@@ -33,9 +33,15 @@ from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.dataset_names import mass_dataset
-from SOAP.property_calculation.half_mass_radius import get_half_mass_radius, get_half_light_radius
+from SOAP.property_calculation.half_mass_radius import (
+    get_half_mass_radius,
+    get_half_light_radius,
+)
 from SOAP.property_table import PropertyTable
-from SOAP.property_calculation.inertia_tensors import get_projected_inertia_tensor_mass_weighted, get_projected_inertia_tensor_luminosity_weighted
+from SOAP.property_calculation.inertia_tensors import (
+    get_projected_inertia_tensor_mass_weighted,
+    get_projected_inertia_tensor_luminosity_weighted,
+)
 
 
 class ProjectedApertureParticleData:
@@ -996,8 +1002,8 @@ class SingleProjectionProjectedApertureParticleData:
         mass = self.part_props.mass[self.part_props.types == 4]
         position = self.part_props.position[self.part_props.types == 4]
 
-        # self.stellar_luminosities correspond to bound particles within the 
-        # initial aperture. In the iterative case we want all bound, regardless 
+        # self.stellar_luminosities correspond to bound particles within the
+        # initial aperture. In the iterative case we want all bound, regardless
         # of whether they are within the initial projected aperture. Hence, we
         # cannot use self.stellar_luminosities directly.
         luminosity = self.part_props.get_dataset("PartType4/Luminosities")[
@@ -1074,7 +1080,9 @@ class SingleProjectionProjectedApertureParticleData:
         return self.stellar_inertia_tensor_luminosity_weighted()
 
     @lazy_property
-    def ProjectedStellarInertiaTensorReduced_LuminosityWeighted(self) -> unyt.unyt_array:
+    def ProjectedStellarInertiaTensorReduced_LuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the stellar luminosity distribution for each GAMA band in projection.
         Computed iteratively using an ellipse with area equal to that of a circle with radius
@@ -1085,7 +1093,9 @@ class SingleProjectionProjectedApertureParticleData:
         return self.stellar_inertia_tensor_luminosity_weighted(reduced=True)
 
     @lazy_property
-    def ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted(self) -> unyt.unyt_array:
+    def ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar luminosity distribution for each GAMA band in projection.
         Computed using all bound star particles within the projected aperture.
@@ -1093,7 +1103,7 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor_luminosity_weighted(
-            self.stellar_luminosities, # Bound and within initial aperture.
+            self.stellar_luminosities,  # Bound and within initial aperture.
             self.proj_pos_star,
             self.iproj,
             self.aperture_radius,
@@ -1101,7 +1111,9 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
-    def ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted(self) -> unyt.unyt_array:
+    def ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the stellar luminosity distribution for each GAMA band in projection.
         Computed using all bound star particles within the projected aperture.
@@ -1109,7 +1121,7 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Mstar == 0:
             return None
         return get_projected_inertia_tensor_luminosity_weighted(
-            self.stellar_luminosities, # Bound and within initial aperture.
+            self.stellar_luminosities,  # Bound and within initial aperture.
             self.proj_pos_star,
             self.iproj,
             self.aperture_radius,
@@ -1520,7 +1532,9 @@ class SingleProjectionProjectedApertureParticleData:
         Half light radius of stars for the 9 GAMA bands.
         """
         return get_half_light_radius(
-            self.proj_radius[self.proj_type == 4], self.stellar_luminosities, self.StellarLuminosity
+            self.proj_radius[self.proj_type == 4],
+            self.stellar_luminosities,
+            self.StellarLuminosity,
         )
 
     @lazy_property

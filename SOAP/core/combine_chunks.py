@@ -176,8 +176,8 @@ def combine_chunks(
     fof_metadata = []
     if (args.fof_group_filename != "") and (args.halo_format == "HBTplus"):
         fof_keys = ["Centres", "Masses", "Sizes"]
-        if (args.fof_radius_filename != ""):
-            fof_keys.append('Radii')
+        if args.fof_radius_filename != "":
+            fof_keys.append("Radii")
         for fofkey in fof_keys:
             prop = PropertyTable.full_property_list[f"FOF/{fofkey}"]
             name = f"InputHalos/{prop.name}"
@@ -493,7 +493,7 @@ def combine_chunks(
 
         # Handle radius differently since SWIFT did not always output radius
         # Assumes the FOF radii files are the same order as the other FOFs
-        read_radii = 'InputHalos/FOF/Radii' in [m[0] for m in fof_metadata]
+        read_radii = "InputHalos/FOF/Radii" in [m[0] for m in fof_metadata]
         if read_radii:
             # Open file in parallel
             pf = PartialFormatter()

@@ -23,7 +23,10 @@ from numpy.typing import NDArray
 import unyt
 
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
-from SOAP.property_calculation.half_mass_radius import get_half_mass_radius, get_half_light_radius
+from SOAP.property_calculation.half_mass_radius import (
+    get_half_mass_radius,
+    get_half_light_radius,
+)
 from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot_mass_weighted,
@@ -913,7 +916,9 @@ class SubhaloParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_inertia_tensor_mass_weighted(self.mass, self.position, self.HalfMassRadiusTot)
+        return get_inertia_tensor_mass_weighted(
+            self.mass, self.position, self.HalfMassRadiusTot
+        )
 
     @lazy_property
     def TotalInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -1042,7 +1047,9 @@ class SubhaloParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor_mass_weighted(self.mass_gas, self.pos_gas, self.HalfMassRadiusGas)
+        return get_inertia_tensor_mass_weighted(
+            self.mass_gas, self.pos_gas, self.HalfMassRadiusGas
+        )
 
     @lazy_property
     def GasInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -1136,7 +1143,9 @@ class SubhaloParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor_mass_weighted(self.mass_dm, self.pos_dm, self.HalfMassRadiusDM)
+        return get_inertia_tensor_mass_weighted(
+            self.mass_dm, self.pos_dm, self.HalfMassRadiusDM
+        )
 
     @lazy_property
     def DarkMatterInertiaTensorReduced(self) -> unyt.unyt_array:
@@ -1300,9 +1309,9 @@ class SubhaloParticleData:
     @lazy_property
     def Lstar_luminosity_weighted(self) -> unyt.unyt_array:
         """
-        Luminosity-weighted angular momentum of star particles for different 
-        luminosity bands. NOTE: we reshape the 2D array of shape 
-        (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,) 
+        Luminosity-weighted angular momentum of star particles for different
+        luminosity bands. NOTE: we reshape the 2D array of shape
+        (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,)
 
         This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
@@ -1361,7 +1370,7 @@ class SubhaloParticleData:
     @lazy_property
     def DtoTstar_luminosity_weighted_luminosity_ratio(self) -> unyt.unyt_array:
         """
-        Disk to total luminosity ratio for all provided stellar luminosity bands. 
+        Disk to total luminosity ratio for all provided stellar luminosity bands.
         Each band uses the luminosity-weighted angular momentum as defined in that
         band.
 
@@ -1374,13 +1383,18 @@ class SubhaloParticleData:
         if not hasattr(self, "internal_Lcountrot_star_luminosity_weighted"):
             self.compute_Lstar_luminosity_weighted_props()
 
-        # How does this handle bands with 0 luminosity? Is that possible?        
-        return 1.0 - 2.0 * self.internal_Lcountrot_star_luminosity_weighted / self.StellarLuminosity
+        # How does this handle bands with 0 luminosity? Is that possible?
+        return (
+            1.0
+            - 2.0
+            * self.internal_Lcountrot_star_luminosity_weighted
+            / self.StellarLuminosity
+        )
 
     @lazy_property
     def DtoTstar_luminosity_weighted_mass_ratio(self) -> unyt.unyt_array:
         """
-        Disk to total mass ratio for all provided stellar luminosity bands. 
+        Disk to total mass ratio for all provided stellar luminosity bands.
         Each band uses the luminosity-weighted angular momentum as defined in that
         band.
 
@@ -1474,7 +1488,10 @@ class SubhaloParticleData:
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
-            self.stellar_luminosities, self.pos_star, self.HalfMassRadiusStar, reduced=True
+            self.stellar_luminosities,
+            self.pos_star,
+            self.HalfMassRadiusStar,
+            reduced=True,
         )
 
     @lazy_property
@@ -1487,11 +1504,16 @@ class SubhaloParticleData:
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
-            self.stellar_luminosities, self.pos_star, self.HalfMassRadiusStar, max_iterations=1
+            self.stellar_luminosities,
+            self.pos_star,
+            self.HalfMassRadiusStar,
+            max_iterations=1,
         )
 
     @lazy_property
-    def StellarInertiaTensorReducedNoniterative_LuminosityWeighted(self) -> unyt.unyt_array:
+    def StellarInertiaTensorReducedNoniterative_LuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed using all bound star particles within HalfMassRadiusStar.
@@ -1975,7 +1997,9 @@ class SubhaloParticleData:
         the 9 GAMA bands.
         """
         return get_half_light_radius(
-            self.radius[self.star_mask_sh], self.stellar_luminosities, self.StellarLuminosity
+            self.radius[self.star_mask_sh],
+            self.stellar_luminosities,
+            self.StellarLuminosity,
         )
 
     @lazy_property

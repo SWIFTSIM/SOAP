@@ -141,7 +141,10 @@ import unyt
 
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
 from SOAP.core.dataset_names import mass_dataset
-from SOAP.property_calculation.half_mass_radius import get_half_mass_radius, get_half_light_radius
+from SOAP.property_calculation.half_mass_radius import (
+    get_half_mass_radius,
+    get_half_light_radius,
+)
 from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
     get_angular_momentum,
@@ -1319,9 +1322,9 @@ class ApertureParticleData:
     @lazy_property
     def Lstar_luminosity_weighted(self) -> unyt.unyt_array:
         """
-        Luminosity-weighted angular momentum of star particles for different 
-        luminosity bands. NOTE: we reshape the 2D array of shape 
-        (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,) 
+        Luminosity-weighted angular momentum of star particles for different
+        luminosity bands. NOTE: we reshape the 2D array of shape
+        (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,)
 
         This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
         Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
@@ -1381,7 +1384,7 @@ class ApertureParticleData:
     @lazy_property
     def DtoTstar_luminosity_weighted_luminosity_ratio(self) -> unyt.unyt_array:
         """
-        Disk to total luminosity ratio for all provided stellar luminosity bands. 
+        Disk to total luminosity ratio for all provided stellar luminosity bands.
         Each band uses the luminosity-weighted angular momentum as defined in that
         band.
 
@@ -1394,13 +1397,18 @@ class ApertureParticleData:
         if not hasattr(self, "internal_Lcountrot_star_luminosity_weighted"):
             self.compute_Lstar_luminosity_weighted_props()
 
-        # How does this handle bands with 0 luminosity? Is that possible?        
-        return 1.0 - 2.0 * self.internal_Lcountrot_star_luminosity_weighted / self.StellarLuminosity
+        # How does this handle bands with 0 luminosity? Is that possible?
+        return (
+            1.0
+            - 2.0
+            * self.internal_Lcountrot_star_luminosity_weighted
+            / self.StellarLuminosity
+        )
 
     @lazy_property
     def DtoTstar_luminosity_weighted_mass_ratio(self) -> unyt.unyt_array:
         """
-        Disk to total mass ratio for all provided stellar luminosity bands. 
+        Disk to total mass ratio for all provided stellar luminosity bands.
         Each band uses the luminosity-weighted angular momentum as defined in that
         band.
 
@@ -3281,7 +3289,9 @@ class ApertureParticleData:
         Half light radius of stars for the 9 GAMA bands.
         """
         return get_half_light_radius(
-            self.radius[self.type == 4], self.stellar_luminosities, self.StellarLuminosity
+            self.radius[self.type == 4],
+            self.stellar_luminosities,
+            self.StellarLuminosity,
         )
 
     @lazy_property

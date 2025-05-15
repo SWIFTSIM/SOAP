@@ -13,6 +13,7 @@ import numpy as np
 from typing import Union, Tuple
 import unyt
 
+
 def get_velocity_dispersion_matrix(
     mass_fraction: unyt.unyt_array,
     velocity: unyt.unyt_array,
@@ -50,6 +51,7 @@ def get_velocity_dispersion_matrix(
     result[5] += (mass_fraction * vrel[:, 1] * vrel[:, 2]).sum()
 
     return result
+
 
 def get_angular_momentum(
     mass: unyt.unyt_array,
@@ -94,6 +96,7 @@ def get_angular_momentum(
         vrel = velocity - ref_velocity[None, :]
     return (mass[:, None] * np.cross(prel, vrel)).sum(axis=0)
 
+
 def get_angular_momentum_and_kappa_corot_weighted(
     particle_masses: unyt.unyt_array,
     particle_positions: unyt.unyt_array,
@@ -109,14 +112,14 @@ def get_angular_momentum_and_kappa_corot_weighted(
     Tuple[unyt.unyt_array, unyt.unyt_array, unyt.unyt_array, unyt.unyt_array],
 ]:
     """
-    Get the total angular momentum vector and kappa_corot (Correa et al., 2017) 
+    Get the total angular momentum vector and kappa_corot (Correa et al., 2017)
     for the particles with the given masses, positions, velocities and weights.
-    It uses the given reference position and velocity as the spatial and velocity 
+    It uses the given reference position and velocity as the spatial and velocity
     centres. It optionally returns the total mass and total weight value of
-    counterrotating particles. 
+    counterrotating particles.
 
-    We use this function if both kappa_corot and the angular momentum vector are 
-    requested, as it is more efficient than get_angular_momentum() and 
+    We use this function if both kappa_corot and the angular momentum vector are
+    requested, as it is more efficient than get_angular_momentum() and
     get_kappa_corot() (if that would even exist).
 
     Parameters:
@@ -127,7 +130,7 @@ def get_angular_momentum_and_kappa_corot_weighted(
      - particle_velocities: unyt.unyt_array
        Velocities of the particles.
      - particle_weights: unyt.unyt_array or None
-       Weights given to each particle when computing the total angular momentum. 
+       Weights given to each particle when computing the total angular momentum.
        If not provided, this function returns the mass-weighted inertia tensor.
      - reference_position: unyt.unyt_array or None
        Reference position used as centre for the angular momentum calculation.
@@ -162,23 +165,25 @@ def get_angular_momentum_and_kappa_corot_weighted(
     else:
         vrel = particle_velocities - reference_velocity[None, :]
 
-    # We compute the normal angular momentum because we require it for the 
+    # We compute the normal angular momentum because we require it for the
     # kinetic energy calculation in kappa_corot.
     Lpart = particle_masses[:, None] * np.cross(prel, vrel)
 
-    # If we weight the angular momentum, divide by the particle mass so that 
+    # If we weight the angular momentum, divide by the particle mass so that
     # it L_i = w_i * (r_i x v_i). We also estimate a total weighted mass in order
     # to return an angular momentum with the correct units.
-    if (particle_weights is not None):
+    if particle_weights is not None:
         weights = particle_weights / particle_weights.sum() / particle_masses
-        weighted_total_mass = (particle_weights / particle_weights.sum() * particle_masses).sum() * len(particle_masses)
+        weighted_total_mass = (
+            particle_weights / particle_weights.sum() * particle_masses
+        ).sum() * len(particle_masses)
 
     # Normal (mass-weighted) definition of the angular momentum.
     else:
         weights = np.ones(1)
         weighted_total_mass = 1
 
-    # Weighted average of the (specific) angular momentum. We multiply by the 
+    # Weighted average of the (specific) angular momentum. We multiply by the
     # weighted total mass to have the correct units for angular momentum, but we
     # are only really interested in its direction.
     Ltot = weighted_total_mass * (weights[:, None] * Lpart).sum(axis=0)
@@ -187,22 +192,31 @@ def get_angular_momentum_and_kappa_corot_weighted(
     # Define the output variables that we will use. Unit registry is the same for
     # all fields, hence why we use particle_masses.units.registry
     kappa_corot = unyt.unyt_array(
-        0.0, dtype=np.float32, units="dimensionless", registry=particle_masses.units.registry
+        0.0,
+        dtype=np.float32,
+        units="dimensionless",
+        registry=particle_masses.units.registry,
     )
 
     if do_counterrot_mass:
         M_counterrot = unyt.unyt_array(
-            0.0, dtype=np.float32, units=particle_masses.units, registry=particle_masses.units.registry
+            0.0,
+            dtype=np.float32,
+            units=particle_masses.units,
+            registry=particle_masses.units.registry,
         )
 
     if do_counterrot_weight:
         W_counterrot = unyt.unyt_array(
-            0.0, dtype=np.float32, units=particle_weights.units, registry=particle_masses.units.registry
+            0.0,
+            dtype=np.float32,
+            units=particle_weights.units,
+            registry=particle_masses.units.registry,
         )
 
     if Lnrm > 0.0 * Lnrm.units:
 
-        # Total kinetic energy 
+        # Total kinetic energy
         K = 0.5 * (particle_masses[:, None] * vrel**2).sum()
 
         # Angular momentum of individual particles projected along the weighted
@@ -212,14 +226,14 @@ def get_angular_momentum_and_kappa_corot_weighted(
             Li = (Lpart * Ldir[None, :]).sum(axis=1)
 
         if K > 0.0 * K.units:
-            
+
             # Distance to origin of the coordinate system.
             r2 = prel[:, 0] ** 2 + prel[:, 1] ** 2 + prel[:, 2] ** 2
 
             # Get distance to axis of rotation for each particle.
             rdotL = (prel * Ldir[None, :]).sum(axis=1)
             Ri2 = r2 - rdotL**2
- 
+
             # Deal with division by zero (the first particle may be in the centre)
             mask = Ri2 == 0.0
             Ri2[mask] = 1.0 * Ri2.units
@@ -244,6 +258,7 @@ def get_angular_momentum_and_kappa_corot_weighted(
     else:
         return Ltot, kappa_corot
 
+
 def get_angular_momentum_and_kappa_corot_mass_weighted(
     particle_masses: unyt.unyt_array,
     particle_positions: unyt.unyt_array,
@@ -256,21 +271,24 @@ def get_angular_momentum_and_kappa_corot_mass_weighted(
     Tuple[unyt.unyt_array, unyt.unyt_quantity, unyt.unyt_quantity],
 ]:
     """
-    Get the total angular momentum vector and kappa_corot (Correa et al., 2017) 
-    for the particles with the given masses, positions and velocities, and using 
+    Get the total angular momentum vector and kappa_corot (Correa et al., 2017)
+    for the particles with the given masses, positions and velocities, and using
     the given reference position and velocity as centre of mass (velocity). It
     optionally returns the total mass of counterrotating particles.
 
     This function calls get_angular_momentum_and_kappa_corot_weighted without
-    weighting particles. See get_angular_momentum_and_kappa_corot_weighted for 
+    weighting particles. See get_angular_momentum_and_kappa_corot_weighted for
     input parameters and outputs.
     """
-    return get_angular_momentum_and_kappa_corot_weighted(particle_masses     = particle_masses,
-                                                         particle_positions  = particle_positions,
-                                                         particle_velocities = particle_velocities,
-                                                         reference_position  = reference_position,
-                                                         reference_velocity  = reference_velocity,
-                                                         do_counterrot_mass  = do_counterrot_mass) 
+    return get_angular_momentum_and_kappa_corot_weighted(
+        particle_masses=particle_masses,
+        particle_positions=particle_positions,
+        particle_velocities=particle_velocities,
+        reference_position=reference_position,
+        reference_velocity=reference_velocity,
+        do_counterrot_mass=do_counterrot_mass,
+    )
+
 
 def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     particle_masses: unyt.unyt_array,
@@ -287,47 +305,63 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
     Tuple[unyt.unyt_array, unyt.unyt_array, unyt.unyt_array, unyt.unyt_array],
 ]:
     """
-    Get the total angular momentum vector and kappa_corot (Correa et al., 2017) 
+    Get the total angular momentum vector and kappa_corot (Correa et al., 2017)
     for the particles with the given masses, positions, velocities and luminosities,
-    and using the given reference position and velocity as the spatial and velocity 
+    and using the given reference position and velocity as the spatial and velocity
     centres. It optionally returns the total mass and total luminosity of counterrotating
     particles.
 
     This function calls get_angular_momentum_and_kappa_corot_weighted and weights
-    particles by their luminosity in a given band. See 
-    get_angular_momentum_and_kappa_corot_weighted for input parameters and outputs.  
+    particles by their luminosity in a given band. See
+    get_angular_momentum_and_kappa_corot_weighted for input parameters and outputs.
     """
 
     number_luminosity_bands = particle_luminosities.shape[1]
 
     # Create output arrays depending on what we have requested.
     Ltot = unyt.unyt_array(
-        np.zeros(3 * number_luminosity_bands), dtype=np.float32, units=particle_masses.units * particle_positions.units * particle_velocities.units, registry=particle_masses.units.registry
+        np.zeros(3 * number_luminosity_bands),
+        dtype=np.float32,
+        units=particle_masses.units
+        * particle_positions.units
+        * particle_velocities.units,
+        registry=particle_masses.units.registry,
     )
     kappa_corot = unyt.unyt_array(
-        np.zeros(number_luminosity_bands), dtype=np.float32, units="dimensionless", registry=particle_masses.units.registry
+        np.zeros(number_luminosity_bands),
+        dtype=np.float32,
+        units="dimensionless",
+        registry=particle_masses.units.registry,
     )
     if do_counterrot_mass:
         M_counterrot = unyt.unyt_array(
-            np.zeros(number_luminosity_bands), dtype=np.float32, units=particle_masses.units, registry=particle_masses.units.registry
+            np.zeros(number_luminosity_bands),
+            dtype=np.float32,
+            units=particle_masses.units,
+            registry=particle_masses.units.registry,
         )
     if do_counterrot_luminosity:
         L_counterrot = unyt.unyt_array(
-            np.zeros(number_luminosity_bands), dtype=np.float32, units=particle_luminosities.units, registry=particle_luminosities.units.registry
+            np.zeros(number_luminosity_bands),
+            dtype=np.float32,
+            units=particle_luminosities.units,
+            registry=particle_luminosities.units.registry,
         )
 
     for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
-        output = get_angular_momentum_and_kappa_corot_weighted(particle_masses      = particle_masses,
-                                                               particle_positions   = particle_positions,
-                                                               particle_velocities  = particle_velocities,
-                                                               particle_weights     = particle_luminosities_i_band,
-                                                               reference_position   = reference_position,
-                                                               reference_velocity   = reference_velocity,
-                                                               do_counterrot_mass   = do_counterrot_mass, 
-                                                               do_counterrot_weight = do_counterrot_luminosity) 
+        output = get_angular_momentum_and_kappa_corot_weighted(
+            particle_masses=particle_masses,
+            particle_positions=particle_positions,
+            particle_velocities=particle_velocities,
+            particle_weights=particle_luminosities_i_band,
+            reference_position=reference_position,
+            reference_velocity=reference_velocity,
+            do_counterrot_mass=do_counterrot_mass,
+            do_counterrot_weight=do_counterrot_luminosity,
+        )
 
-        # These entries are always in the same order.  
-        Ltot[3*i_band: 3*(i_band+1)] = output[0]
+        # These entries are always in the same order.
+        Ltot[3 * i_band : 3 * (i_band + 1)] = output[0]
         kappa_corot[i_band] = output[1]
 
         # Need to handle different combinations of output requests.
@@ -350,6 +384,7 @@ def get_angular_momentum_and_kappa_corot_luminosity_weighted(
         return Ltot, kappa_corot, M_counterrot
     else:
         return Ltot, kappa_corot
+
 
 def get_vmax(
     mass: unyt.unyt_array, radius: unyt.unyt_array, nskip: int = 0
@@ -390,6 +425,7 @@ def get_vmax(
     v_over_G = cumulative_mass / ordered_radius
     imax = np.argmax(v_over_G)
     return ordered_radius[imax], np.sqrt(v_over_G[imax] * G)
+
 
 if __name__ == "__main__":
     """

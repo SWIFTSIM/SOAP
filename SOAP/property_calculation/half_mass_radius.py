@@ -3,7 +3,7 @@
 """
 half_mass_radius.py
 
-Utility functions to compute the half mass or half light radius of a particle 
+Utility functions to compute the half mass or half light radius of a particle
 distribution.
 
 We put this in a separate file to facilitate unit testing.
@@ -11,6 +11,7 @@ We put this in a separate file to facilitate unit testing.
 
 import numpy as np
 import unyt
+
 
 def get_half_weight_radius(
     radius: unyt.unyt_array, weights: unyt.unyt_array, total_weight: unyt.unyt_quantity
@@ -33,7 +34,7 @@ def get_half_weight_radius(
        because this value might already have been computed before. If it was not, then
        computing it in the function call is still an efficient way to do this.
 
-    Returns the radius that encloses half of the summed weight, defined as the radius 
+    Returns the radius that encloses half of the summed weight, defined as the radius
     at which the cumulative weight profile reaches 0.5 * total_weight.
     """
     if total_weight == 0.0 * total_weight.units or len(weights) < 1:
@@ -69,12 +70,14 @@ def get_half_weight_radius(
     rmax = sorted_radius[ihalf]
     WeightMax = cumulative_weights[ihalf]
 
-    # Now get the radius by linearly interpolating. If the bin edges coincide 
+    # Now get the radius by linearly interpolating. If the bin edges coincide
     # (two particles at exactly the same radius) then we simply take that radius
     if WeightMin == WeightMax:
         half_weight_radius = 0.5 * (rmin + rmax)
     else:
-        half_weight_radius = rmin + (target_weight - WeightMin) / (WeightMax - WeightMin) * (rmax - rmin)
+        half_weight_radius = rmin + (target_weight - WeightMin) / (
+            WeightMax - WeightMin
+        ) * (rmax - rmin)
 
     # Consistency check.
     # We cannot use '>=', since equality would happen if half_mass_radius == 0.
@@ -92,6 +95,7 @@ def get_half_weight_radius(
         )
 
     return half_weight_radius
+
 
 def get_half_mass_radius(
     radius: unyt.unyt_array, mass: unyt.unyt_array, total_mass: unyt.unyt_quantity
@@ -117,13 +121,16 @@ def get_half_mass_radius(
     Returns the half mass radius, defined as the radius at which the cumulative mass profile
     reaches 0.5 * total_mass.
     """
-    return get_half_weight_radius(radius, mass, total_mass) 
+    return get_half_weight_radius(radius, mass, total_mass)
+
 
 def get_half_light_radius(
-    radius: unyt.unyt_array, band_luminosity: unyt.unyt_array, total_band_luminosites: unyt.unyt_array
+    radius: unyt.unyt_array,
+    band_luminosity: unyt.unyt_array,
+    total_band_luminosites: unyt.unyt_array,
 ) -> unyt.unyt_quantity:
     """
-    Get the half light radius of the given particle distribution for the 9 GAMA 
+    Get the half light radius of the given particle distribution for the 9 GAMA
     bands.
 
     We obtain the half light radius by sorting the particles on radius and then computing
@@ -137,14 +144,18 @@ def get_half_light_radius(
      - band_luminosity: unyt.unyt_array
        Luminosity of the particles in each GAMA band.
      - total_band_luminosites: unyt.unyt_array
-       Total luminosisty of the particles in each GAMA band. Should be luminosity.sum(axis=0). 
-       We pass this on as an argument because this value might already have been computed before. 
+       Total luminosisty of the particles in each GAMA band. Should be luminosity.sum(axis=0).
+       We pass this on as an argument because this value might already have been computed before.
        If it was not, then computing it in the function call is still an efficient way to do this.
 
     Returns the half light radius, defined as the radius at which the cumulative mass profile
     reaches 0.5 * total_luminosity, for each GAMA band.
     """
     half_light_radii = np.zeros(total_band_luminosites.shape[0]) * radius.units
-    for i_band, (luminosity, total_luminosity) in enumerate(zip(band_luminosity.T, total_band_luminosites)):
-        half_light_radii[i_band] = get_half_weight_radius(radius, luminosity, total_luminosity)
+    for i_band, (luminosity, total_luminosity) in enumerate(
+        zip(band_luminosity.T, total_band_luminosites)
+    ):
+        half_light_radii[i_band] = get_half_weight_radius(
+            radius, luminosity, total_luminosity
+        )
     return half_light_radii
