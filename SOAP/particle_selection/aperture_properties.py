@@ -1397,7 +1397,6 @@ class ApertureParticleData:
         if not hasattr(self, "internal_Lcountrot_star_luminosity_weighted"):
             self.compute_Lstar_luminosity_weighted_props()
 
-        # How does this handle bands with 0 luminosity? Is that possible?
         return (
             1.0
             - 2.0
