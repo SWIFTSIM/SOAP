@@ -35,6 +35,7 @@ ApertureProperties:
     AngularMomentumDarkMatter: general
     AngularMomentumGas: general
     AngularMomentumStars: general
+    AngularMomentumStars_LuminosityWeighted: false
     AtomicHydrogenMass: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
@@ -62,6 +63,8 @@ ApertureProperties:
       snipshot: false
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
+    DiscToTotalMassRatio_LuminosityWeighted: false
+    DiscToTotalLuminosityRatio_LuminosityWeighted: false
     DustMass: true
     DustGraphiteMass:
       snapshot: true
@@ -128,6 +131,7 @@ ApertureProperties:
     KappaCorotBaryons: general
     KappaCorotGas: general
     KappaCorotStars: general
+    KappaCorotStars_LuminosityWeighted: false
     KineticEnergyGas: general
     KineticEnergyStars: general
     LinearMassWeightedDiffuseOxygenOverHydrogenOfGas:
@@ -214,6 +218,26 @@ ApertureProperties:
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
+    TotalInertiaTensor: false
+    GasInertiaTensor: false
+    DarkMatterInertiaTensor: false
+    StellarInertiaTensor: false
+    StellarInertiaTensor_LuminosityWeighted: false
+    TotalInertiaTensorReduced: false
+    GasInertiaTensorReduced: false
+    DarkMatterInertiaTensorReduced: false
+    StellarInertiaTensorReduced: false
+    StellarInertiaTensorReduced_LuminosityWeighted: false
+    TotalInertiaTensorNoniterative: general
+    GasInertiaTensorNoniterative: general
+    DarkMatterInertiaTensorNoniterative: general
+    StellarInertiaTensorNoniterative: general
+    StellarInertiaTensorNoniterative_LuminosityWeighted: false
+    TotalInertiaTensorReducedNoniterative: false
+    GasInertiaTensorReducedNoniterative: false
+    DarkMatterInertiaTensorReducedNoniterative: false
+    StellarInertiaTensorReducedNoniterative: false
+    StellarInertiaTensorReducedNoniterative_LuminosityWeighted: false
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true
@@ -345,9 +369,13 @@ ProjectedApertureProperties:
     ProjectedGasInertiaTensorNoniterative: general
     ProjectedGasInertiaTensorReducedNoniterative: false
     ProjectedStellarInertiaTensor: false
+    ProjectedStellarInertiaTensor_LuminosityWeighted: false
     ProjectedStellarInertiaTensorReduced: false
+    ProjectedStellarInertiaTensorReduced_LuminosityWeighted: false
     ProjectedStellarInertiaTensorNoniterative: general
+    ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted: false
     ProjectedStellarInertiaTensorReducedNoniterative: false
+    ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted: false
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true
@@ -402,6 +430,9 @@ SOProperties:
     DarkMatterMass: true
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
+    DiscToTotalLuminosityRatio_LuminosityWeighted: false
+    DiscToTotalMassRatio_LuminosityWeighted: false
+    AngularMomentumStars_LuminosityWeighted: false
     DopplerB: false
     GasCentreOfMass: true
     GasCentreOfMassVelocity: true
@@ -542,6 +573,7 @@ SubhaloProperties:
     AngularMomentumDarkMatter: general
     AngularMomentumGas: general
     AngularMomentumStars: general
+    AngularMomentumStars_LuminosityWeighted: false
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -553,6 +585,8 @@ SubhaloProperties:
     DarkMatterVelocityDispersionMatrix: general
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
+    DiscToTotalMassRatio_LuminosityWeighted: false
+    DiscToTotalLuminosityRatio_LuminosityWeighted: false
     DustMass: true
     GasMass: true
     GasMassFractionInMetals: true
@@ -572,6 +606,7 @@ SubhaloProperties:
     KappaCorotBaryons: general
     KappaCorotGas: general
     KappaCorotStars: general
+    KappaCorotStars_LuminosityWeighted: false
     LastSupernovaEventMaximumGasDensity:
       snapshot: true
       snipshot: false

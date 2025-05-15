@@ -141,11 +141,15 @@ import unyt
 
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
 from SOAP.core.dataset_names import mass_dataset
-from SOAP.property_calculation.half_mass_radius import get_half_mass_radius, get_half_light_radius
+from SOAP.property_calculation.half_mass_radius import (
+    get_half_mass_radius,
+    get_half_light_radius,
+)
 from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
     get_angular_momentum,
-    get_angular_momentum_and_kappa_corot,
+    get_angular_momentum_and_kappa_corot_mass_weighted,
+    get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
 )
 
@@ -1119,11 +1123,11 @@ class ApertureParticleData:
             self.internal_Lgas,
             self.internal_kappa_gas,
             self.internal_Mcountrot_gas,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.mass_gas,
             self.pos_gas,
             self.vel_gas,
-            ref_velocity=self.vcom_gas,
+            reference_velocity=self.vcom_gas,
             do_counterrot_mass=True,
         )
 
@@ -1267,12 +1271,38 @@ class ApertureParticleData:
             self.internal_Lstar,
             self.internal_kappa_star,
             self.internal_Mcountrot_star,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.mass_star,
             self.pos_star,
             self.vel_star,
-            ref_velocity=self.vcom_star,
+            reference_velocity=self.vcom_star,
             do_counterrot_mass=True,
+        )
+
+    def compute_Lstar_luminosity_weighted_props(self):
+        """
+        Compute the angular momentum and related properties for star particles,
+        weighted by their luminosity in a given GAMA band.
+
+        We need this method because Lstar, kappa_star and Mcountrot_star are
+        computed together.
+        """
+
+        # Contrary to compute_Lstar_props, each of the output arrays contains a
+        # value for each GAMA filter, hence they will have shape (9,)
+        (
+            self.internal_Lstar_luminosity_weighted,
+            self.internal_kappa_star_luminosity_weighted,
+            self.internal_Mcountrot_star_luminosity_weighted,
+            self.internal_Lcountrot_star_luminosity_weighted,
+        ) = get_angular_momentum_and_kappa_corot_luminosity_weighted(
+            self.mass_star,
+            self.pos_star,
+            self.vel_star,
+            self.stellar_luminosities,
+            reference_velocity=self.vcom_star,
+            do_counterrot_mass=True,
+            do_counterrot_luminosity=True,
         )
 
     @lazy_property
@@ -1290,6 +1320,23 @@ class ApertureParticleData:
         return self.internal_Lstar
 
     @lazy_property
+    def Lstar_luminosity_weighted(self) -> unyt.unyt_array:
+        """
+        Luminosity-weighted angular momentum of star particles for different
+        luminosity bands. NOTE: we reshape the 2D array of shape
+        (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,)
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Lstar_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+        return self.internal_Lstar_luminosity_weighted.flatten()
+
+    @lazy_property
     def kappa_corot_star(self) -> unyt.unyt_quantity:
         """
         Kinetic energy fraction of co-rotating star particles.
@@ -1304,6 +1351,23 @@ class ApertureParticleData:
         return self.internal_kappa_star
 
     @lazy_property
+    def kappa_corot_star_luminosity_weighted(self) -> unyt.unyt_array:
+        """
+        Kinetic energy fraction of co-rotating star particles, measured for
+        different luminosity-weighted angular momentum vectors.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_kappa_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return self.internal_kappa_star_luminosity_weighted
+
+    @lazy_property
     def DtoTstar(self) -> unyt.unyt_quantity:
         """
         Disk to total ratio of the stars.
@@ -1316,6 +1380,47 @@ class ApertureParticleData:
         if not hasattr(self, "internal_Mcountrot_star"):
             self.compute_Lstar_props()
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
+
+    @lazy_property
+    def DtoTstar_luminosity_weighted_luminosity_ratio(self) -> unyt.unyt_array:
+        """
+        Disk to total luminosity ratio for all provided stellar luminosity bands.
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Lcountrot_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return (
+            1.0
+            - 2.0
+            * self.internal_Lcountrot_star_luminosity_weighted
+            / self.StellarLuminosity
+        )
+
+    @lazy_property
+    def DtoTstar_luminosity_weighted_mass_ratio(self) -> unyt.unyt_array:
+        """
+        Disk to total mass ratio for all provided stellar luminosity bands.
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Mcountrot_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return 1.0 - 2.0 * self.internal_Mcountrot_star_luminosity_weighted / self.Mstar
 
     @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
@@ -1372,11 +1477,11 @@ class ApertureParticleData:
         (
             self.internal_Lbar,
             self.internal_kappa_bar,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.mass_baryons,
             self.pos_baryons,
             self.vel_baryons,
-            ref_velocity=self.vcom_bar,
+            reference_velocity=self.vcom_bar,
         )
 
     @lazy_property
@@ -3183,7 +3288,9 @@ class ApertureParticleData:
         Half light radius of stars for the 9 GAMA bands.
         """
         return get_half_light_radius(
-            self.radius[self.type == 4], self.stellar_luminosities, self.StellarLuminosity
+            self.radius[self.type == 4],
+            self.stellar_luminosities,
+            self.StellarLuminosity,
         )
 
     @lazy_property
@@ -3285,6 +3392,10 @@ class ApertureProperties(HaloProperty):
         "HalfMassRadiusBaryon": False,
         "DtoTgas": False,
         "DtoTstar": False,
+        "DtoTstar_luminosity_weighted_luminosity_ratio": False,
+        "DtoTstar_luminosity_weighted_mass_ratio": False,
+        "kappa_corot_star_luminosity_weighted": False,
+        "Lstar_luminosity_weighted": False,
         "starOfrac": False,
         "starFefrac": False,
         "stellar_age_mw": False,
@@ -3610,7 +3721,7 @@ class ApertureProperties(HaloProperty):
                                 registry=registry,
                             )
                         else:
-                            err = f'Overflow for halo {input_halo["index"]} when'
+                            err = f'Overflow for halo {input_halo["index"].value} when '
                             err += f"calculating {name} in aperture_properties"
                             assert np.max(np.abs(val.to(unit).value)) < float(
                                 "inf"
