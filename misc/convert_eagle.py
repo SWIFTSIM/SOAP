@@ -83,6 +83,14 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
+    "--subfind-basename",
+    type=str,
+    required=True,
+    help=(
+        "The basename for the subfind files"
+    ),
+)
+parser.add_argument(
     "--output-basename",
     type=str,
     required=True,
@@ -96,6 +104,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 snap_filename = args.snap_basename + ".{file_nr}.hdf5"
+subfind_filename = args.subfind_basename + ".{file_nr}.hdf5"
 output_filename = args.output_basename + ".{file_nr}.hdf5"
 membership_filename = args.membership_basename + ".{file_nr}.hdf5"
 os.makedirs(os.path.dirname(output_filename), exist_ok=True)
@@ -182,6 +191,10 @@ if comm_rank == 0:
             "Gravity:max_physical_baryon_softening": runtime.attrs[
                 "SofteningGasMaxPhys"
             ],
+            "EAGLE:InitAbundance_Hydrogen": runtime.attrs['InitAbundance_Hydrogen'],
+            "EAGLE:InitAbundance_Helium": runtime.attrs['InitAbundance_Helium'],
+            "EAGLE:EOS_Jeans_GammaEffective": runtime.attrs['EOS_Jeans_GammaEffective'],
+            "EAGLE:EOS_Jeans_TempNorm_K": runtime.attrs['EOS_Jeans_TempNorm_K'],
         }
 
         # Check units are indeed what we are assuming below, since HO,
@@ -244,8 +257,8 @@ if comm_rank == 0:
 #                         should be h-free
 #
 # In the case of EAGLE snapshots most of this information is available
-# in the metadata of the snapshots themselves. We therefore leave those
-# values blank in the properties dictionary, and read them in directly.
+# in the metadata of the snapshots themselves. We therefore set those
+# values as None in the properties dictionary, and read them in directly.
 properties = {
     "PartType0": {
         "Coordinates": {
@@ -283,6 +296,58 @@ properties = {
             "description": None,
             "conversion_factor": None,
         },
+        "Density": {
+            "swift_name": "Densities",
+            "exponents": {"L": -3, "M": 1, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "InternalEnergy": {
+            "swift_name": "InternalEnergies",
+            "exponents": {"L": 2, "M": 0, "T": 0, "t": -2},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "IronMassFracFromSNIa": {
+            "swift_name": "IronMassFractionsFromSNIa",
+            "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "Metallicity": {
+            "swift_name": "MetalMassFractions",
+            "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "StarFormationRate": {
+            "swift_name": "StarFormationRates",
+            "exponents": {"L": 0, "M": 1, "T": 0, "t": -1},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "Temperature": {
+            "swift_name": "Temperatures",
+            "exponents": {"L": 0, "M": 0, "T": 1, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        # Note this is handled differently to normal properties.
+        # EAGLE stores each element in its own group, SWIFT expects
+        # all elements to be in a 2D array
+        "ElementMassFractions": {
+            "swift_name": "ElementMassFractions",
+            "exponents": None,
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
     },
     "PartType1": {
         "Coordinates": {
@@ -299,7 +364,9 @@ properties = {
             "description": None,
             "conversion_factor": None,
         },
-        # Note this is different to all other properties
+        # Note this is handled differently to normal properties.
+        # All particles have the same mass in EAGLE, so there
+        # is no mass dataset for dark matter.
         "Mass": {
             "swift_name": "Masses",
             "exponents": {"L": 0, "M": 1, "T": 0, "t": 0},
@@ -358,6 +425,51 @@ properties = {
             "description": None,
             "conversion_factor": None,
         },
+        "BirthDensity": {
+            "swift_name": "BirthDensities",
+            "exponents": {"L": -3, "M": 1, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "InitialMass": {
+            "swift_name": "InitialMasses",
+            "exponents": {"L": 0, "M": 1, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "IronMassFracFromSNIa": {
+            "swift_name": "IronMassFractionsFromSNIa",
+            "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "Metallicity": {
+            "swift_name": "MetalMassFractions",
+            "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "StellarFormationTime": {
+            "swift_name": "BirthScaleFactors",
+            "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        # Note this is handled differently to normal properties.
+        # EAGLE stores each element in its own group, SWIFT expects
+        # all elements to be in a 2D array
+        "ElementMassFractions": {
+            "swift_name": "ElementMassFractions",
+            "exponents": None,
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
     },
     "PartType5": {
         "Coordinates": {
@@ -398,6 +510,13 @@ properties = {
         "ParticleIDs": {
             "swift_name": "ParticleIDs",
             "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "BH_Mdot": {
+            "swift_name": "AccretionRates",
+            "exponents": {"L": 0, "M": 1, "T": 0, "t": -1},
             "a_exponent": None,
             "description": None,
             "conversion_factor": None,
@@ -447,6 +566,18 @@ if comm_rank == 0:
         if "Mass" in properties.get(f"PartType1", {}):
             dm_mass = infile["Header"].attrs["MassTable"][1] / h
             properties["PartType1"]["Mass"]["conversion_factor"] = dm_mass
+
+        # Get list of elements for ElementMassFractions
+        if "ElementMassFractions" in properties.get(f"PartType0", {}):
+            elements = sorted(infile['PartType0/ElementAbundance'].keys())
+        else:
+            elements = None
+        if "ElementMassFractions" in properties.get(f"PartType4", {}):
+            star_elements = sorted(infile['PartType4/ElementAbundance'].keys())
+            if elements is not None:
+                for i in range(len(elements)):
+                    assert elements[i] == star_elements[i]
+            elements = star_elements
 properties = comm.bcast(properties)
 
 
@@ -466,6 +597,16 @@ cell_centres += cell_size_cmpc / 2
 snap_file = phdf5.MultiFile(
     snap_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
 )
+# Load the SubFind catalogue and create an array that links the GroupNumber
+# and SubGroupNumber of a subhalo to its index within the subhalo catalogue
+# (for creating the membership files)
+subfind_file = phdf5.MultiFile(
+    subfind_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
+)
+subfind_id = subfind_file.read("Subhalo/GroupNumber").astype(np.int64)
+subfind_id <<= 32
+subfind_id += subfind_file.read("Subhalo/SubGroupNumber").astype(np.int64)
+
 create_output_file = True
 create_membership_file = True
 for ptype in ptypes:
@@ -567,16 +708,67 @@ for ptype in ptypes:
             attrs={prop_info["swift_name"]: attrs},
         )
 
+    # Handle ElementMassFractions as a special case
+    if 'ElementMassFractions' in properties[f"PartType{ptype}"]:
+        if comm_rank == 0:
+            print(f"Converting PartType{ptype}/ElementMassFractions")
+        else:
+            elements = None
+        elements = comm.bcast(elements)
+
+        # Read in the array for each element
+        arr = np.zeros((pos.shape[0], len(elements)))
+        for i_element, element in enumerate(elements):
+            element_arr = snap_file.read(f"PartType{ptype}/ElementAbundance/{element}")
+            element_arr = psort.fetch_elements(element_arr, order, comm=comm)
+            arr[:, i_element] = element_arr
+
+        # Create attributes
+        exponents = {"L": 0, "M": 0, "T": 0, "t": 0}
+        a_exponent = 0
+        unit = 1
+        unit *= unyt.Unit("snap_length", registry=reg) ** exponents["L"]
+        unit *= unyt.Unit("snap_mass", registry=reg) ** exponents["M"]
+        unit *= unyt.Unit("snap_time", registry=reg) ** exponents["t"]
+        unit *= unyt.Unit("snap_temperature", registry=reg) ** exponents["T"]
+        unit *= unyt.Unit("a", registry=reg) ** a_exponent
+        unit_attrs = swift_units.attributes_from_units(unit.units, False, a_exponent)
+        attrs = {
+            "original_name": 'ElementAbundance',
+            "Description": 'Fraction of mass in each element',
+        }
+        attrs.update(unit_attrs)
+
+        # Write to the output file
+        arr = psort.repartition(arr, elements_per_file, comm=comm)
+        if create_output_file:
+            mode = "w"
+            create_output_file = False
+        else:
+            mode = "r+"
+        snap_file.write(
+            {'ElementMassFractions': arr},
+            elements_per_file,
+            filenames=output_filename,
+            mode=mode,
+            group=f"PartType{ptype}",
+            attrs={'ElementMassFractions': attrs},
+        )
+
     # Create a subhalo id for each particle by combining the
     # group number and subgroup number
-    group = snap_file.read(f"PartType{ptype}/GroupNumber")
     sub_group = snap_file.read(f"PartType{ptype}/SubGroupNumber")
-
-    subhalo = group.astype(np.int64)
+    subhalo = snap_file.read(f"PartType{ptype}/GroupNumber").astype(np.int64)
     subhalo <<= 32
-    subhalo += sub_group
+    subhalo += sub_group.astype(np.int64)
     # Indicate unbound particles with -1
-    subhalo[sub_group == 1073741824] = -1
+    bound = sub_group != 1073741824
+    subhalo[np.logical_not(bound)] = -1
+    # Get SubFind index of bound particles
+    subhalo[bound] = psort.parallel_match(
+        subhalo[bound], subfind_id, comm=comm
+    )
+    assert np.all(subhalo[bound] != -1)
 
     # Sort, add units, and write to file (same as for other properties)
     subhalo = psort.fetch_elements(subhalo, order, comm=comm)
@@ -617,6 +809,9 @@ if comm_rank == 0:
                 for ptype in ptypes:
                     n_part[ptype] = outfile[f"PartType{ptype}/Coordinates"].shape[0]
                 header.attrs["NumPart_ThisFile"] = n_part
+            header.attrs["ThisFile"] = [i_file]
+            header.attrs['NumPart_Total'] = nr_parts
+            header.attrs['NumPart_Total_HighWord'] = nr_parts_hw
 
             cosmo = outfile.create_group("Cosmology")
             for name, value in cosmology_header.items():
@@ -649,12 +844,21 @@ if comm_rank == 0:
                 [cell_size_cmpc, cell_size_cmpc, cell_size_cmpc]
             )
             cells.create_dataset("Centres", data=cell_centres)
-
             for ptype in ptypes:
                 cells.create_dataset(f"Counts/PartType{ptype}", data=cell_counts[ptype])
                 cells.create_dataset(f"Files/PartType{ptype}", data=cell_files[ptype])
                 cells.create_dataset(
                     f"OffsetsInFile/PartType{ptype}", data=cell_offsets[ptype]
+                )
+
+            # Store the order used for ElementMassFractions
+            if elements is not None:
+                subgrid_scheme = outfile.create_group("SubgridScheme")
+                named_columns = subgrid_scheme.create_group("NamedColumns")
+                encoded_elements = [element.encode() for element in elements]
+                named_columns.create_dataset(
+                    'ElementMassFractions',
+                    data=encoded_elements,
                 )
 
 if comm_rank == 0:
