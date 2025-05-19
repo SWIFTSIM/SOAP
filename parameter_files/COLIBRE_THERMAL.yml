@@ -62,6 +62,10 @@ ApertureProperties:
       snipshot: false
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
+    DiscToTotalLuminosityRatio_LuminosityWeighted: false
+    DiscToTotalMassRatio_LuminosityWeighted: false
+    KappaCorotStars_LuminosityWeighted: false
+    AngularMomentumStars_LuminosityWeighted: false
     DustMass: true
     DustGraphiteMass:
       snapshot: true
@@ -356,6 +360,10 @@ ProjectedApertureProperties:
     ProjectedStellarInertiaTensorReduced: false
     ProjectedStellarInertiaTensorNoniterative: general
     ProjectedStellarInertiaTensorReducedNoniterative: false
+    ProjectedStellarInertiaTensor_LuminosityWeighted: false
+    ProjectedStellarInertiaTensorReduced_LuminosityWeighted: false
+    ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted: false
+    ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted: false
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true
@@ -393,6 +401,7 @@ SOProperties:
     AngularMomentumDarkMatter: general
     AngularMomentumGas: general
     AngularMomentumStars: general
+    AngularMomentumStars_LuminosityWeighted: false
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -413,6 +422,8 @@ SOProperties:
     DarkMatterMass: true
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
+    DiscToTotalLuminosityRatio_LuminosityWeighted: false
+    DiscToTotalMassRatio_LuminosityWeighted: false
     DopplerB: false
     GasCentreOfMass: true
     GasCentreOfMassVelocity: true
@@ -583,6 +594,10 @@ SubhaloProperties:
     KappaCorotBaryons: general
     KappaCorotGas: general
     KappaCorotStars: general
+    DiscToTotalLuminosityRatio_LuminosityWeighted: false
+    DiscToTotalMassRatio_LuminosityWeighted: false
+    KappaCorotStars_LuminosityWeighted: false
+    AngularMomentumStars_LuminosityWeighted: false
     LastSupernovaEventMaximumGasDensity:
       snapshot: true
       snipshot: false
@@ -632,18 +647,22 @@ SubhaloProperties:
     GasInertiaTensor: false
     DarkMatterInertiaTensor: false
     StellarInertiaTensor: false
+    StellarInertiaTensor_LuminosityWeighted: false
     TotalInertiaTensorReduced: false
     GasInertiaTensorReduced: false
     DarkMatterInertiaTensorReduced: false
     StellarInertiaTensorReduced: false
+    StellarInertiaTensorReduced_LuminosityWeighted: false
     TotalInertiaTensorNoniterative: general
     GasInertiaTensorNoniterative: general
     DarkMatterInertiaTensorNoniterative: general
     StellarInertiaTensorNoniterative: general
+    StellarInertiaTensorNoniterative_LuminosityWeighted: false
     TotalInertiaTensorReducedNoniterative: false
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
+    StellarInertiaTensorReducedNoniterative_LuminosityWeighted: false
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true

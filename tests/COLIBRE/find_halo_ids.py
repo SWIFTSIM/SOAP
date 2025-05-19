@@ -2,7 +2,7 @@
 #
 # Find IDs of halos in a corner of the simulation box
 #
-# Run with e.g. `python3 ./find_halo_ids.py L0025N0376/Thermal_fiducial 123 1`
+# Run with e.g. `python ./find_halo_ids.py L0050N0376/Thermal 127 3`
 #
 import sys
 import numpy as np
@@ -10,7 +10,7 @@ import h5py
 
 
 def find_halo_indices(sim, snap_nr, boxsize):
-    soap_file = f"/cosma8/data/dp004/jlvc76/COLIBRE/ScienceRuns/{sim}/SOAP/SOAP_uncompressed/halo_properties_{snap_nr:04d}.hdf5"
+    soap_file = f"/cosma8/data/dp004/colibre/Runs//{sim}/SOAP/halo_properties_{snap_nr:04d}.hdf5"
     with h5py.File(soap_file, "r") as f:
         pos = f["InputHalos/HaloCentre"][()]
         mask = np.all(pos < boxsize, axis=1)
