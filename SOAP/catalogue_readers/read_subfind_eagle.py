@@ -85,10 +85,16 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
 
     # Store GroupNumber and SubGroupNumber
     group_nr = unyt.unyt_array(
-        data["Subhalo/GroupNumber"], dtype=int, units=unyt.dimensionless, registry=registry
+        data["Subhalo/GroupNumber"],
+        dtype=int,
+        units=unyt.dimensionless,
+        registry=registry,
     )
     sub_group_nr = unyt.unyt_array(
-        data["Subhalo/SubGroupNumber"], dtype=int, units=unyt.dimensionless, registry=registry
+        data["Subhalo/SubGroupNumber"],
+        dtype=int,
+        units=unyt.dimensionless,
+        registry=registry,
     )
 
     # Get position in comoving Mpc

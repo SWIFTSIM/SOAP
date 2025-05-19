@@ -4857,35 +4857,55 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         variations_ES, variations_IS = {}, {}
         apertures = self.parameters.parameters.get("ApertureProperties", {})
         for _, variation in apertures.get("variations", {}).items():
-            if variation["inclusive"]:
-                variations_IS[int(variation["radius_in_kpc"])] = variation.get(
-                    "filter", "basic"
-                )
+            if "radius_in_kpc" in variation:
+                aperture_name = f'{int(variation["radius_in_kpc"])}kpc'
             else:
-                variations_ES[int(variation["radius_in_kpc"])] = variation.get(
-                    "filter", "basic"
-                )
+                prop = variation["property"].split("/")[-1]
+                multiplier = variation.get("radius_multiple", 1)
+                if multiplier == 1:
+                    aperture_name = prop
+                else:
+                    aperture_name = f"{int(multiplier)}x{prop}"
+            if variation["inclusive"]:
+                variations_IS[aperture_name] = variation.get("filter", "basic")
+            else:
+                variations_ES[aperture_name] = variation.get("filter", "basic")
         # Add ExclusiveSphere apertures to table in sorted order
-        for radius in sorted(variations_ES.keys()):
-            filter = "-" if variations_ES[radius] == "basic" else variations_ES[radius]
-            tablestr += f"\\verb+ExclusiveSphere/{radius}kpc+ & \\verb+exclusive_sphere_{radius}kpc+ & \\ding{{53}} & {filter} \\\\*\n"
+        for aperture_name in sorted(variations_ES.keys()):
+            filter = (
+                "-"
+                if variations_ES[aperture_name] == "basic"
+                else variations_ES[aperture_name]
+            )
+            tablestr += f"\\verb+ExclusiveSphere/{aperture_name}+ & \\verb+exclusive_sphere_{aperture_name}+ & \\ding{{53}} & {filter} \\\\*\n"
         # Add InclusiveSphere apertures to table in sorted order
         for radius in sorted(variations_IS.keys()):
-            filter = "-" if variations_IS[radius] == "basic" else variations_IS[radius]
-            tablestr += f"\\verb+InclusiveSphere/{radius}kpc+ & \\verb+inclusive_sphere_{radius}kpc+ & \\ding{{51}} & {filter} \\\\*\n"
+            filter = (
+                "-"
+                if variations_IS[aperture_name] == "basic"
+                else variations_IS[aperture_name]
+            )
+            tablestr += f"\\verb+InclusiveSphere/{aperture_name}+ & \\verb+inclusive_sphere_{aperture_name}+ & \\ding{{51}} & {filter} \\\\*\n"
         # Determine which projected apertures are present
         variations_proj = {}
         apertures = self.parameters.parameters.get("ProjectedApertureProperties", {})
         for _, variation in apertures.get("variations", {}).items():
-            variations_proj[int(variation["radius_in_kpc"])] = variation.get(
-                "filter", "basic"
-            )
+            if "radius_in_kpc" in variation:
+                aperture_name = f'{int(variation["radius_in_kpc"])}kpc'
+            else:
+                prop = variation["property"].split("/")[-1]
+                multiplier = variation.get("radius_multiple", 1)
+                if multiplier == 1:
+                    aperture_name = prop
+                else:
+                    aperture_name = f"{int(multiplier)}x{prop}"
+            variations_proj[aperture_name] = variation.get("filter", "basic")
         # Add ProjectedApertures to table in sorted order
         for radius in sorted(variations_proj.keys()):
             filter = (
                 "-" if variations_proj[radius] == "basic" else variations_proj[radius]
             )
-            tablestr += f"\\verb+ProjectedAperture/{radius}kpc/projP+ & \\verb+projected_aperture_{radius}kpc_projP+ & \\ding{{53}} & {filter} \\\\*\n"
+            tablestr += f"\\verb+ProjectedAperture/{aperture_name}/projP+ & \\verb+projected_aperture_{aperture_name}_projP+ & \\ding{{53}} & {filter} \\\\*\n"
         # Add others groups
         tablestr += f"\\verb+SOAP+ & \\verb+soap+ & - & - \\\\*\n"
         tablestr += f"\\verb+InputHalos+ & \\verb+input_halos+ & - & - \\\\*\n"

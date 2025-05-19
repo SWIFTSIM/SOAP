@@ -266,6 +266,10 @@ ApertureProperties:
     exclusive_100_kpc:
       inclusive: false
       radius_in_kpc: 100.0
+    exclusive_twice_stellar_half_mass:
+      inclusive: false
+      property: BoundSubhalo/HalfMassRadiusStars
+      radius_multiple: 2.0
     inclusive_1_kpc:
       inclusive: true
       radius_in_kpc: 1.0
@@ -290,6 +294,10 @@ ApertureProperties:
       inclusive: true
       radius_in_kpc: 100.0
       skip_gt_enclose_radius: true
+    inclusive_twice_stellar_half_mass:
+      inclusive: true
+      property: BoundSubhalo/HalfMassRadiusStars
+      radius_multiple: 2.0
 ProjectedApertureProperties:
   properties:
     AtomicHydrogenMass: true
@@ -384,6 +392,9 @@ ProjectedApertureProperties:
       radius_in_kpc: 50.0
     100_kpc:
       radius_in_kpc: 100.0
+    twice_stellar_half_mass:
+      property: BoundSubhalo/HalfMassRadiusStars
+      radius_multiple: 2.0
 SOProperties:
   properties:
     AngularMomentumBaryons: general

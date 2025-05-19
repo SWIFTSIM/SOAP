@@ -336,3 +336,9 @@ class ParameterFile:
         """
         calculations = self.parameters.get("calculations", {})
         return calculations.get("strict_halo_copy", False)
+
+    def renclose_enabled(self) -> bool:
+        """
+        Returns a bool indicating if BoundSubhalo/EncloseRadius is enabled
+        """
+        return self.parameters["SubhaloProperties"]["properties"].get("EncloseRadius", False)

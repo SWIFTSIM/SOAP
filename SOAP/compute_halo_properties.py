@@ -336,11 +336,14 @@ def compute_halo_properties():
     # of all apertures. This is required since we can skip some of the larger
     # apertures if all the particles were already included in the previous aperture
     aperture_variations = dict(
-        sorted(aperture_variations.items(), key=lambda x: x[1]["radius_in_kpc"])
+        sorted(aperture_variations.items(), key=lambda x: x[1].get("radius_in_kpc", 0))
     )
     inclusive_radii_kpc = []
     exclusive_radii_kpc = []
     for variation in aperture_variations:
+        # We don't consider this for apertures defined based on properties
+        if "radius_in_kpc" not in aperture_variations[variation]:
+            continue
         if aperture_variations[variation]["inclusive"]:
             inclusive_radii_kpc.append(aperture_variations[variation]["radius_in_kpc"])
         else:
@@ -348,7 +351,12 @@ def compute_halo_properties():
     assert inclusive_radii_kpc == sorted(inclusive_radii_kpc)
     assert exclusive_radii_kpc == sorted(exclusive_radii_kpc)
 
+    # Add the apertures defined with fixed physical radii
     for variation in aperture_variations:
+        if "radius_in_kpc" not in aperture_variations[variation]:
+            continue
+        assert "property" not in aperture_variations[variation]
+        assert "radius_multiple" not in aperture_variations[variation]
         if aperture_variations[variation]["inclusive"]:
             # If skip_gt_enclose_radius is False (which is the default) then
             # we always want to calculate its properties, regardless of the
@@ -362,6 +370,7 @@ def compute_halo_properties():
                     cellgrid,
                     parameter_file,
                     aperture_variations[variation]["radius_in_kpc"],
+                    None,
                     recently_heated_gas_filter,
                     stellar_age_calculator,
                     cold_dense_gas_filter,
@@ -376,12 +385,53 @@ def compute_halo_properties():
                     cellgrid,
                     parameter_file,
                     aperture_variations[variation]["radius_in_kpc"],
+                    None,
                     recently_heated_gas_filter,
                     stellar_age_calculator,
                     cold_dense_gas_filter,
                     category_filter,
                     aperture_variations[variation].get("filter", "basic"),
                     exclusive_radii_kpc,
+                )
+            )
+
+    # Add the apertures based on SOAP properties
+    for variation in aperture_variations:
+        if "radius_in_kpc" in aperture_variations[variation]:
+            continue
+        assert "property" in aperture_variations[variation]
+        radius_multiple = aperture_variations[variation].get("radius_multiple", 1)
+        # Only allow integer radius mutiples, otherwise swiftsimio will
+        # struggle to handle the group names
+        assert int(radius_multiple) == radius_multiple
+        if aperture_variations[variation]["inclusive"]:
+            halo_prop_list.append(
+                aperture_properties.InclusiveSphereProperties(
+                    cellgrid,
+                    parameter_file,
+                    None,
+                    (aperture_variations[variation]["property"], radius_multiple),
+                    recently_heated_gas_filter,
+                    stellar_age_calculator,
+                    cold_dense_gas_filter,
+                    category_filter,
+                    aperture_variations[variation].get("filter", "basic"),
+                    [],
+                )
+            )
+        else:
+            halo_prop_list.append(
+                aperture_properties.ExclusiveSphereProperties(
+                    cellgrid,
+                    parameter_file,
+                    None,
+                    (aperture_variations[variation]["property"], radius_multiple),
+                    recently_heated_gas_filter,
+                    stellar_age_calculator,
+                    cold_dense_gas_filter,
+                    category_filter,
+                    aperture_variations[variation].get("filter", "basic"),
+                    [],
                 )
             )
 
@@ -399,21 +449,51 @@ def compute_halo_properties():
     # apertures if all the particles were already included in the previous aperture
     projected_aperture_variations = dict(
         sorted(
-            projected_aperture_variations.items(), key=lambda x: x[1]["radius_in_kpc"]
+            projected_aperture_variations.items(),
+            key=lambda x: x[1].get("radius_in_kpc", 0),
         )
     )
     projected_radii_kpc = []
     for variation in projected_aperture_variations:
+        # We don't consider this for apertures defined based on properties
+        if "radius_in_kpc" not in projected_aperture_variations[variation]:
+            continue
         projected_radii_kpc.append(
             projected_aperture_variations[variation]["radius_in_kpc"]
         )
     assert projected_radii_kpc == sorted(projected_radii_kpc)
+    # Add the apertures defined with fixed physical radii
     for variation in projected_aperture_variations:
+        if "radius_in_kpc" not in projected_aperture_variations[variation]:
+            continue
+        assert "property" not in projected_aperture_variations[variation]
+        assert "radius_multiple" not in projected_aperture_variations[variation]
         halo_prop_list.append(
             projected_aperture_properties.ProjectedApertureProperties(
                 cellgrid,
                 parameter_file,
                 projected_aperture_variations[variation]["radius_in_kpc"],
+                None,
+                category_filter,
+                projected_aperture_variations[variation].get("filter", "basic"),
+                projected_radii_kpc,
+            )
+        )
+    # Add the apertures based on SOAP properties
+    for variation in projected_aperture_variations:
+        if "radius_in_kpc" in projected_aperture_variations[variation]:
+            continue
+        assert "property" in projected_aperture_variations[variation]
+        radius_multiple = projected_aperture_variations[variation].get(
+            "radius_multiple", 1
+        )
+        assert int(radius_multiple) == radius_multiple
+        halo_prop_list.append(
+            projected_aperture_properties.ProjectedApertureProperties(
+                cellgrid,
+                parameter_file,
+                None,
+                (projected_aperture_variations[variation]["property"], radius_multiple),
                 category_filter,
                 projected_aperture_variations[variation].get("filter", "basic"),
                 projected_radii_kpc,
@@ -449,6 +529,10 @@ def compute_halo_properties():
             print("Storing processing time for each property")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties(halo_prop_list)
+        if not parameter_file.renclose_enabled():
+            print(
+                "BoundSubhalo/EncloseRadius is not enabled. This means apertures with r > r_enclose will be calculated explicitly, rather than copying over values from smaller apertures"
+            )
         category_filter.print_filters()
 
     # Ensure output dir exists

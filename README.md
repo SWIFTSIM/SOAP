@@ -177,6 +177,16 @@ flag. This specifies the index of the required halos in the halo catalogue. E.g.
 python3 -Werror -m pdb ./compute_halo_properties.py --halo-indices 1 2 3 ...
 ```
 
+### Timing
+
+The flag `--record-halo-timings` can be passed to record the total amount of time
+spent calculating properties for subhalos of different masses, and can be useful for
+identifying what objects/apertures are dominating the SOAP runtime. The flag
+`--record-property-timings` can be passed to record the amount of time spent
+calculating each property for each subhalo. Note that this will double the size
+of the final output catalogue. The timings can be analysed with the script
+`misc/plot_times.py`.
+
 ### Profiling
 
 The code can be profiled by running with the `--profile` flag, which uses the
