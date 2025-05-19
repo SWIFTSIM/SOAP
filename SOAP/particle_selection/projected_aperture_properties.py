@@ -1713,15 +1713,15 @@ class ProjectedApertureProperties(HaloProperty):
         self.boxsize = cellgrid.boxsize
 
         if self.aperture_physical_radius_kpc is not None:
-            aperture_name = f'{self.aperture_physical_radius_kpc:.0f}kpc'
+            aperture_name = f"{self.aperture_physical_radius_kpc:.0f}kpc"
             self.physical_radius_mpc = 0.001 * self.aperture_physical_radius_kpc
         else:
-            prop = self.aperture_property[0].split('/')[-1]
+            prop = self.aperture_property[0].split("/")[-1]
             multiplier = self.aperture_property[1]
             if multiplier == 1:
                 aperture_name = prop
             else:
-                aperture_name = f'{int(multiplier)}x{prop}'
+                aperture_name = f"{int(multiplier)}x{prop}"
             # This value needs to be set since it's used to guess the initial
             # load region for each particle
             self.physical_radius_mpc = 0
@@ -1854,8 +1854,13 @@ class ProjectedApertureProperties(HaloProperty):
                 aperture_radius = self.aperture_physical_radius_kpc * unyt.kpc
             else:
                 if self.aperture_property[0] not in halo_result:
-                    raise RuntimeError(f'{self.aperture_property[0]} must be enabled in the parameter file if you want to use it to define an aperture')
-                aperture_radius = self.aperture_property[1] * halo_result[self.aperture_property[0]][0]
+                    raise RuntimeError(
+                        f"{self.aperture_property[0]} must be enabled in the parameter file if you want to use it to define an aperture"
+                    )
+                aperture_radius = (
+                    self.aperture_property[1]
+                    * halo_result[self.aperture_property[0]][0]
+                )
 
             types_present = [type for type in self.particle_properties if type in data]
             part_props = ProjectedApertureParticleData(

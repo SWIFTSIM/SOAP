@@ -86,9 +86,7 @@ parser.add_argument(
     "--subfind-basename",
     type=str,
     required=True,
-    help=(
-        "The basename for the subfind files"
-    ),
+    help=("The basename for the subfind files"),
 )
 parser.add_argument(
     "--output-basename",
@@ -191,10 +189,10 @@ if comm_rank == 0:
             "Gravity:max_physical_baryon_softening": runtime.attrs[
                 "SofteningGasMaxPhys"
             ],
-            "EAGLE:InitAbundance_Hydrogen": runtime.attrs['InitAbundance_Hydrogen'],
-            "EAGLE:InitAbundance_Helium": runtime.attrs['InitAbundance_Helium'],
-            "EAGLE:EOS_Jeans_GammaEffective": runtime.attrs['EOS_Jeans_GammaEffective'],
-            "EAGLE:EOS_Jeans_TempNorm_K": runtime.attrs['EOS_Jeans_TempNorm_K'],
+            "EAGLE:InitAbundance_Hydrogen": runtime.attrs["InitAbundance_Hydrogen"],
+            "EAGLE:InitAbundance_Helium": runtime.attrs["InitAbundance_Helium"],
+            "EAGLE:EOS_Jeans_GammaEffective": runtime.attrs["EOS_Jeans_GammaEffective"],
+            "EAGLE:EOS_Jeans_TempNorm_K": runtime.attrs["EOS_Jeans_TempNorm_K"],
         }
 
         # Check units are indeed what we are assuming below, since HO,
@@ -569,11 +567,11 @@ if comm_rank == 0:
 
         # Get list of elements for ElementMassFractions
         if "ElementMassFractions" in properties.get(f"PartType0", {}):
-            elements = sorted(infile['PartType0/ElementAbundance'].keys())
+            elements = sorted(infile["PartType0/ElementAbundance"].keys())
         else:
             elements = None
         if "ElementMassFractions" in properties.get(f"PartType4", {}):
-            star_elements = sorted(infile['PartType4/ElementAbundance'].keys())
+            star_elements = sorted(infile["PartType4/ElementAbundance"].keys())
             if elements is not None:
                 for i in range(len(elements)):
                     assert elements[i] == star_elements[i]
@@ -709,7 +707,7 @@ for ptype in ptypes:
         )
 
     # Handle ElementMassFractions as a special case
-    if 'ElementMassFractions' in properties[f"PartType{ptype}"]:
+    if "ElementMassFractions" in properties[f"PartType{ptype}"]:
         if comm_rank == 0:
             print(f"Converting PartType{ptype}/ElementMassFractions")
         else:
@@ -734,8 +732,8 @@ for ptype in ptypes:
         unit *= unyt.Unit("a", registry=reg) ** a_exponent
         unit_attrs = swift_units.attributes_from_units(unit.units, False, a_exponent)
         attrs = {
-            "original_name": 'ElementAbundance',
-            "Description": 'Fraction of mass in each element',
+            "original_name": "ElementAbundance",
+            "Description": "Fraction of mass in each element",
         }
         attrs.update(unit_attrs)
 
@@ -747,12 +745,12 @@ for ptype in ptypes:
         else:
             mode = "r+"
         snap_file.write(
-            {'ElementMassFractions': arr},
+            {"ElementMassFractions": arr},
             elements_per_file,
             filenames=output_filename,
             mode=mode,
             group=f"PartType{ptype}",
-            attrs={'ElementMassFractions': attrs},
+            attrs={"ElementMassFractions": attrs},
         )
 
     # Create a subhalo id for each particle by combining the
@@ -765,9 +763,7 @@ for ptype in ptypes:
     bound = sub_group != 1073741824
     subhalo[np.logical_not(bound)] = -1
     # Get SubFind index of bound particles
-    subhalo[bound] = psort.parallel_match(
-        subhalo[bound], subfind_id, comm=comm
-    )
+    subhalo[bound] = psort.parallel_match(subhalo[bound], subfind_id, comm=comm)
     assert np.all(subhalo[bound] != -1)
 
     # Sort, add units, and write to file (same as for other properties)
@@ -810,8 +806,8 @@ if comm_rank == 0:
                     n_part[ptype] = outfile[f"PartType{ptype}/Coordinates"].shape[0]
                 header.attrs["NumPart_ThisFile"] = n_part
             header.attrs["ThisFile"] = [i_file]
-            header.attrs['NumPart_Total'] = nr_parts
-            header.attrs['NumPart_Total_HighWord'] = nr_parts_hw
+            header.attrs["NumPart_Total"] = nr_parts
+            header.attrs["NumPart_Total_HighWord"] = nr_parts_hw
 
             cosmo = outfile.create_group("Cosmology")
             for name, value in cosmology_header.items():
@@ -857,7 +853,7 @@ if comm_rank == 0:
                 named_columns = subgrid_scheme.create_group("NamedColumns")
                 encoded_elements = [element.encode() for element in elements]
                 named_columns.create_dataset(
-                    'ElementMassFractions',
+                    "ElementMassFractions",
                     data=encoded_elements,
                 )
 

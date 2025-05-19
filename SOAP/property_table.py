@@ -4857,47 +4857,49 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         variations_ES, variations_IS = {}, {}
         apertures = self.parameters.parameters.get("ApertureProperties", {})
         for _, variation in apertures.get("variations", {}).items():
-            if 'radius_in_kpc' in variation:
+            if "radius_in_kpc" in variation:
                 aperture_name = f'{int(variation["radius_in_kpc"])}kpc'
             else:
-                prop = variation['property'].split('/')[-1]
-                multiplier = variation.get('radius_multiple', 1)
+                prop = variation["property"].split("/")[-1]
+                multiplier = variation.get("radius_multiple", 1)
                 if multiplier == 1:
                     aperture_name = prop
                 else:
-                    aperture_name = f'{int(multiplier)}x{prop}'
+                    aperture_name = f"{int(multiplier)}x{prop}"
             if variation["inclusive"]:
-                variations_IS[aperture_name] = variation.get(
-                    "filter", "basic"
-                )
+                variations_IS[aperture_name] = variation.get("filter", "basic")
             else:
-                variations_ES[aperture_name] = variation.get(
-                    "filter", "basic"
-                )
+                variations_ES[aperture_name] = variation.get("filter", "basic")
         # Add ExclusiveSphere apertures to table in sorted order
         for aperture_name in sorted(variations_ES.keys()):
-            filter = "-" if variations_ES[aperture_name] == "basic" else variations_ES[aperture_name]
+            filter = (
+                "-"
+                if variations_ES[aperture_name] == "basic"
+                else variations_ES[aperture_name]
+            )
             tablestr += f"\\verb+ExclusiveSphere/{aperture_name}+ & \\verb+exclusive_sphere_{aperture_name}+ & \\ding{{53}} & {filter} \\\\*\n"
         # Add InclusiveSphere apertures to table in sorted order
         for radius in sorted(variations_IS.keys()):
-            filter = "-" if variations_IS[aperture_name] == "basic" else variations_IS[aperture_name]
+            filter = (
+                "-"
+                if variations_IS[aperture_name] == "basic"
+                else variations_IS[aperture_name]
+            )
             tablestr += f"\\verb+InclusiveSphere/{aperture_name}+ & \\verb+inclusive_sphere_{aperture_name}+ & \\ding{{51}} & {filter} \\\\*\n"
         # Determine which projected apertures are present
         variations_proj = {}
         apertures = self.parameters.parameters.get("ProjectedApertureProperties", {})
         for _, variation in apertures.get("variations", {}).items():
-            if 'radius_in_kpc' in variation:
+            if "radius_in_kpc" in variation:
                 aperture_name = f'{int(variation["radius_in_kpc"])}kpc'
             else:
-                prop = variation['property'].split('/')[-1]
-                multiplier = variation.get('radius_multiple', 1)
+                prop = variation["property"].split("/")[-1]
+                multiplier = variation.get("radius_multiple", 1)
                 if multiplier == 1:
                     aperture_name = prop
                 else:
-                    aperture_name = f'{int(multiplier)}x{prop}'
-            variations_proj[aperture_name] = variation.get(
-                "filter", "basic"
-            )
+                    aperture_name = f"{int(multiplier)}x{prop}"
+            variations_proj[aperture_name] = variation.get("filter", "basic")
         # Add ProjectedApertures to table in sorted order
         for radius in sorted(variations_proj.keys()):
             filter = (

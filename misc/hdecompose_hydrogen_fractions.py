@@ -42,9 +42,7 @@ from Hdecompose.BlitzRosolowsky2006 import molecular_frac as calculate_molecular
 
 # Parse arguments
 parser = argparse.ArgumentParser(
-    description=(
-        "Script to estimate HI and H2 species fractions."
-    )
+    description=("Script to estimate HI and H2 species fractions.")
 )
 parser.add_argument(
     "--snap-basename",
@@ -68,31 +66,36 @@ os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
 # List of gas properties we require from the input snapshots
 property_list = [
-    'Densities', 
-    'StarFormationRates', 
-    'ElementMassFractions', 
-    'Temperatures',
+    "Densities",
+    "StarFormationRates",
+    "ElementMassFractions",
+    "Temperatures",
 ]
 
 if comm_rank == 0:
-    print('Reading in run parameters and units')
+    print("Reading in run parameters and units")
     params = {}
     units = {}
     with h5py.File(snap_filename.format(file_nr=0), "r") as file:
-        params['z'] = file['Cosmology'].attrs['Redshift']
-        params['fH'] = file['Parameters'].attrs['EAGLE:InitAbundance_Hydrogen']
-        params['fHe'] = file['Parameters'].attrs['EAGLE:InitAbundance_Helium']
-        params['gamma'] = file['Parameters'].attrs['EAGLE:EOS_Jeans_GammaEffective']
-        params['T0'] = file['Parameters'].attrs['EAGLE:EOS_Jeans_TempNorm_K'] * astropy.units.K
+        params["z"] = file["Cosmology"].attrs["Redshift"]
+        params["fH"] = file["Parameters"].attrs["EAGLE:InitAbundance_Hydrogen"]
+        params["fHe"] = file["Parameters"].attrs["EAGLE:InitAbundance_Helium"]
+        params["gamma"] = file["Parameters"].attrs["EAGLE:EOS_Jeans_GammaEffective"]
+        params["T0"] = (
+            file["Parameters"].attrs["EAGLE:EOS_Jeans_TempNorm_K"] * astropy.units.K
+        )
 
         reg = swift_units.unit_registry_from_snapshot(file)
         for prop in property_list:
-            attrs = file[f'PartType0/{prop}'].attrs
+            attrs = file[f"PartType0/{prop}"].attrs
             units[prop] = swift_units.units_from_attributes(attrs, reg)
-        elements = [e.decode() for e in file['SubgridScheme/NamedColumns/ElementMassFractions'][:]]
-        i_H = elements.index('Hydrogen')
+        elements = [
+            e.decode()
+            for e in file["SubgridScheme/NamedColumns/ElementMassFractions"][:]
+        ]
+        i_H = elements.index("Hydrogen")
 
-        n_file = file['Header'].attrs['NumFilesPerSnapshot'][0]
+        n_file = file["Header"].attrs["NumFilesPerSnapshot"][0]
 else:
     params = None
     units = None
@@ -102,29 +105,33 @@ units = comm.bcast(units)
 i_H = comm.bcast(i_H)
 
 if comm_rank == 0:
-    print('Loading data')
+    print("Loading data")
 
 # Load raw arrays from file
 snap_file = phdf5.MultiFile(
     snap_filename, file_nr_attr=("Header", "NumFilesPerSnapshot")
 )
-raw_properties = snap_file.read(property_list, 'PartType0')
+raw_properties = snap_file.read(property_list, "PartType0")
 
 # Convert to astropy arrays (physical not comoving)
-densities = (raw_properties['Densities'] * units['Densities']).to('g/cm**3').to_astropy()
-temperatures = (raw_properties['Temperatures'] * units['Temperatures']).to('K').to_astropy()
+densities = (
+    (raw_properties["Densities"] * units["Densities"]).to("g/cm**3").to_astropy()
+)
+temperatures = (
+    (raw_properties["Temperatures"] * units["Temperatures"]).to("K").to_astropy()
+)
 # SFR units don't matter, we just need to know if they are nonzero
-sfr = raw_properties['StarFormationRates']
-Habundance = raw_properties['ElementMassFractions'][:, i_H]
+sfr = raw_properties["StarFormationRates"]
+Habundance = raw_properties["ElementMassFractions"][:, i_H]
 
 # Free up some memory
 del raw_properties
 
 if comm_rank == 0:
-    print('Calculating neutral fraction')
-mu = 1 / (params['fH'] + 0.25 * params['fHe'])
+    print("Calculating neutral fraction")
+mu = 1 / (params["fH"] + 0.25 * params["fHe"])
 neutral_frac = calculate_neutral_frac(
-    params['z'],
+    params["z"],
     densities * Habundance / (mu * astropy.constants.m_p),
     temperatures,
     onlyA1=True,
@@ -136,35 +143,35 @@ neutral_frac = calculate_neutral_frac(
     TNG_corrections=False,
     SFR=sfr,
     mu=mu,
-    gamma=params['gamma'],
-    fH=params['fH'],
+    gamma=params["gamma"],
+    fH=params["fH"],
     Habundance=Habundance,
-    T0=params['T0'],
+    T0=params["T0"],
     rho=densities,
 )
 
 if comm_rank == 0:
-    print('Calculating molecular fraction')
+    print("Calculating molecular fraction")
 molecular_mass_frac = calculate_molecular_frac(
     temperatures,
     densities,
     EAGLE_corrections=True,
     SFR=sfr,
     mu=mu,
-    gamma=params['gamma'],
-    fH=params['fH'],
-    T0=params['T0'],
+    gamma=params["gamma"],
+    fH=params["fH"],
+    T0=params["T0"],
 )
 
 if comm_rank == 0:
-    print('Writing output')
-species_names = ['HI', 'H2']
+    print("Writing output")
+species_names = ["HI", "H2"]
 species_fractions = np.zeros((neutral_frac.shape[0], 2))
 species_fractions[:, 0] = (1.0 - molecular_mass_frac) * neutral_frac
 species_fractions[:, 1] = molecular_mass_frac / 2
-attrs = {'SpeciesFractions':
-    {
-        'Description': 'The fraction of species i in terms of its number density relative to hydrogen, i.e. n_i / n_H_tot.',
+attrs = {
+    "SpeciesFractions": {
+        "Description": "The fraction of species i in terms of its number density relative to hydrogen, i.e. n_i / n_H_tot.",
         "Conversion factor to CGS (not including cosmological corrections)": [1.0],
         "Conversion factor to physical CGS (including cosmological corrections)": [1.0],
         "U_I exponent": [0.0],
@@ -174,17 +181,17 @@ attrs = {'SpeciesFractions':
         "U_T exponent": [0.0],
         "a-scale exponent": [0.0],
         "h-scale exponent": [0.0],
-        'Property can be converted to comoving': [1],
-        'Value stored as physical': [0],
+        "Property can be converted to comoving": [1],
+        "Value stored as physical": [0],
     }
 }
-elements_per_file = snap_file.get_elements_per_file("ParticleIDs", group='PartType0')
+elements_per_file = snap_file.get_elements_per_file("ParticleIDs", group="PartType0")
 snap_file.write(
-    {'SpeciesFractions': species_fractions},
+    {"SpeciesFractions": species_fractions},
     elements_per_file,
     filenames=output_filename,
-    mode='w',
-    group='PartType0',
+    mode="w",
+    group="PartType0",
     attrs=attrs,
 )
 comm.barrier()
@@ -197,7 +204,7 @@ if comm_rank == 0:
             named_columns = subgrid_scheme.create_group("NamedColumns")
             encoded_species = [species.encode() for species in species_names]
             named_columns.create_dataset(
-                'SpeciesFractions',
+                "SpeciesFractions",
                 data=encoded_species,
             )
     print("Done!")
