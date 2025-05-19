@@ -1630,7 +1630,7 @@ class ProjectedApertureProperties(HaloProperty):
             if multiplier == 1:
                 aperture_name = prop
             else:
-                aperture_name = f'{multiplier}x{prop}'
+                aperture_name = f'{int(multiplier)}x{prop}'
             # This value needs to be set since it's used to guess the initial
             # load region for each particle
             self.physical_radius_mpc = 0

@@ -401,6 +401,9 @@ def compute_halo_properties():
             continue
         assert 'property' in aperture_variations[variation]
         radius_multiple = aperture_variations[variation].get('radius_multiple', 1)
+        # Only allow integer radius mutiples, otherwise swiftsimio will
+        # struggle to handle the group names
+        assert int(radius_multiple) == radius_multiple
         if aperture_variations[variation]["inclusive"]:
             halo_prop_list.append(
                 aperture_properties.InclusiveSphereProperties(
@@ -465,6 +468,7 @@ def compute_halo_properties():
             continue
         assert 'property' not in projected_aperture_variations[variation]
         assert 'radius_multiple' not in projected_aperture_variations[variation]
+        assert int(radius_multiple) == radius_multiple
         halo_prop_list.append(
             projected_aperture_properties.ProjectedApertureProperties(
                 cellgrid,

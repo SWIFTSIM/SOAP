@@ -3432,11 +3432,12 @@ class ApertureProperties(HaloProperty):
             self.physical_radius_mpc = 0.001 * self.aperture_physical_radius_kpc
         else:
             prop = self.aperture_property[0].split('/')[-1]
+            assert self.aperture_property[0].split('/')[0] == 'BoundSubhalo'
             multiplier = self.aperture_property[1]
             if multiplier == 1:
                 aperture_name = prop
             else:
-                aperture_name = f'{multiplier}x{prop}'
+                aperture_name = f'{int(multiplier)}x{prop}'
             # This value needs to be set since it's used to guess the initial
             # load region for each particle
             self.physical_radius_mpc = 0
