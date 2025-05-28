@@ -1,17 +1,24 @@
 # SOAP: Spherical Overdensity and Aperture Processor
 
 This repository contains programs which can be used to compute
-properties of halos in spherical apertures in SWIFT snapshots.
+properties of halos in spherical apertures in SWIFT[https://swift.strw.leidenuniv.nl/] snapshots.
+The resulting output halo catalogues can be read using the
+[swiftsimio](https://swiftsimio.readthedocs.io/en/latest/)
+python package.
 
 ## Installation
 
 The code is written in python and uses mpi4py for parallelism.
-IO is carried out in parallel, and so [parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is required. A full list of requirements can be
-found in `requirements.txt`.
-
-SOAP and it's dependencies can also be installed directly using the command
+IO is carried out in parallel, and so [parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is required. SOAP and it's dependencies can also be 
+installed directly using the command
 `pip install git+https://github.com/SWIFTSIM/SOAP.git@soap_runtime`
-but this may install a serial version of h5py.
+but this may install a serial version of h5py. Therefore the following
+steps are recommended for install
+```
+pip install mpi4py
+HDF5_MPI="ON"; CC=mpicc; pip install --no-binary=h5py h5py
+pip install git+https://github.com/SWIFTSIM/SOAP.git@soap_runtime
+```
 
 ### Installation on COSMA
 
@@ -22,8 +29,10 @@ you can install an SOAP virtual environment by running
 ## Running SOAP
 
 The command `./tests/run_small_volume.sh` will download a small example
-simulation, run the group membership and halo properties scripts on it,
-and generate the pdf documentation to describe the output file.
+simulation, run the group membership and halo properties scripts on it (the
+resulting catalogue is placed in the `output` directory), and generate the 
+pdf documentation to describe the output file (which is written to
+`documentation/SOAP.pdf`).
 
 ### Computing halo membership for particles in the snapshot
 
@@ -39,7 +48,7 @@ the snapshot number, and a parameter file. For example:
 snapnum=0077
 sim=L1000N0900/DMO_FIDUCIAL
 mpirun python -u SOAP/group_membership.py \
-    --sim-name=${sim} --snap-nr${snapnum} parameter_files/FLAMINGO.yml
+    --dmo --sim-name=${sim} --snap-nr${snapnum} parameter_files/FLAMINGO.yml
 ```
 
 ### Computing halo properties
@@ -123,6 +132,13 @@ the job name with the slurm sbatch -J flag.
 
 ## Modifying the code
 
+You can install an editable version of SOAP by cloning this repository and running:
+```
+pip install mpi4py
+HDF5_MPI="ON"; CC=mpicc; pip install --no-binary=h5py h5py
+pip install -e .
+```
+
 The property calculations are defined in the following files in the `SOAP/particle_selection` directory:
 
   * Properties of particles in subhalos `subhalo_properties.py`
@@ -150,7 +166,7 @@ require MPI. They can be run with
 
 ```
 cd tests
-pytest -m "not mpi" -W error; pytest -m mpi --with-mpi -W error
+pytest -m "not mpi" -W error; mpirun -np 4 pytest -m mpi --with-mpi -W error
 ```
 
 The scripts in `tests/FLAMINGO` and `tests/COLIBRE` run SOAP on a few

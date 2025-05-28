@@ -5,6 +5,12 @@ This file describes the structure of a parameter file, including all possible fi
 This file does not detail what the differences are between the various aperture types, for that
 see the main pdf documenation.
 
+### DMO runs
+
+SOAP does not require separate parameter files for DMO & HYDRO runs. Instead you
+must pass the `--dmo` flag when running on a DMO simulation, and in that case
+any hydro-only properties will be skipped.
+
 ### Parameters
 
 The section is used to set variables which are subtituted into the filepath templates in the other sections of the parameter file.
