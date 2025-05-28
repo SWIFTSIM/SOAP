@@ -11,11 +11,11 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 from virgo.util.partial_formatter import PartialFormatter
 
-from catalogue_readers import read_hbtplus
-from property_calculation.subhalo_rank import compute_subhalo_rank
+from SOAP.catalogue_readers import read_hbtplus
+from SOAP.property_calculation.subhalo_rank import compute_subhalo_rank
+from SOAP.property_table import PropertyTable
 from . import swift_units
 from .mpi_timer import MPITimer
-from SOAP.property_table import PropertyTable
 
 
 def sub_snapnum(filename, snapnum):

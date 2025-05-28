@@ -12,11 +12,13 @@ import virgo.util.match
 import virgo.mpi.gather_array as g
 import virgo.mpi.parallel_sort as psort
 
-from catalogue_readers import read_vr
-from catalogue_readers import read_hbtplus
-from catalogue_readers import read_subfind
-from catalogue_readers import read_subfind_eagle
-from catalogue_readers import read_rockstar
+from SOAP.catalogue_readers import (
+    read_vr,
+    read_hbtplus,
+    read_subfind,
+    read_subfind_eagle,
+    read_rockstar,
+)
 from . import domain_decomposition
 from .combine_chunks import sub_snapnum
 from .mpi_tags import HALO_REQUEST_TAG, HALO_RESPONSE_TAG

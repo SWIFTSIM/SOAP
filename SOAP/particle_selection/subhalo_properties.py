@@ -1468,7 +1468,6 @@ class SubhaloParticleData:
         Inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed iteratively using an ellipsoid with volume equal to that of
         a sphere with radius HalfMassRadiusStar. Only considers bound particles.
-        # TODO: change to be within HalfLightRadiusStar
         """
         if self.Mstar == 0:
             return None
@@ -1482,7 +1481,6 @@ class SubhaloParticleData:
         Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed iteratively using an ellipsoid with volume equal to that of
         a sphere with radius HalfMassRadiusStar. Only considers bound particles.
-        # TODO: change to be within HalfLightRadiusStar
         """
         if self.Mstar == 0:
             return None
@@ -1498,7 +1496,6 @@ class SubhaloParticleData:
         """
         Inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed using all bound star particles within HalfMassRadiusStar.
-        # TODO: change to be within HalfLightRadiusStar
         """
         if self.Mstar == 0:
             return None
@@ -1516,7 +1513,6 @@ class SubhaloParticleData:
         """
         Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed using all bound star particles within HalfMassRadiusStar.
-        # TODO: change to be within HalfLightRadiusStar
         """
         if self.Mstar == 0:
             return None
@@ -1995,6 +1991,8 @@ class SubhaloParticleData:
         Half-light radius of the star particle distribution in the subhalo, for
         the 9 GAMA bands.
         """
+        if self.Nstar == 0:
+            return None
         return get_half_light_radius(
             self.radius[self.star_mask_sh],
             self.stellar_luminosities,
@@ -2337,7 +2335,7 @@ class SubhaloProperties(HaloProperty):
                             registry=registry,
                         )
                     else:
-                        err = f'Overflow for halo {input_halo["index"].value} when '
+                        err = f'Overflow for halo {input_halo["index"]} when '
                         err += f"calculating {name} in subhalo_properties"
                         assert np.max(np.abs(val.to(unit).value)) < float("inf"), err
                         subhalo[name] += val

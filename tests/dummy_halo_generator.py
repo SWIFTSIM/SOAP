@@ -250,8 +250,8 @@ class DummySnapshotDatasets(SnapshotDatasets):
         }
 
         self.named_columns = {
-            "Luminosities": {"GAMA_r": 2},
-            "SmoothedElementMassFractions": {
+            "PartType4/Luminosities": {"GAMA_r": 2},
+            "PartType0/SmoothedElementMassFractions": {
                 "Hydrogen": 0,
                 "Helium": 1,
                 "Carbon": 2,
@@ -262,7 +262,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Silicon": 7,
                 "Iron": 8,
             },
-            "SpeciesFractions": {
+            "PartType0/SpeciesFractions": {
                 "elec": 0,
                 "HI": 1,
                 "HII": 2,
@@ -274,7 +274,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "H2p": 8,
                 "H3p": 9,
             },
-            "DustMassFractions": {
+            "PartType0/DustMassFractions": {
                 "GraphiteLarge": 0,
                 "MgSilicatesLarge": 1,
                 "FeSilicatesLarge": 2,
@@ -283,6 +283,9 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "FeSilicatesSmall": 5,
             },
         }
+        self.named_columns["PartType4/ElementMassFractions"] = self.named_columns[
+            "PartType0/SmoothedElementMassFractions"
+        ]
 
         self.dust_grain_composition = np.array(
             [
