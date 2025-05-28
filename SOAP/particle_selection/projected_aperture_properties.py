@@ -1531,6 +1531,8 @@ class SingleProjectionProjectedApertureParticleData:
         """
         Half light radius of stars for the 9 GAMA bands.
         """
+        if self.Nstar == 0:
+            return None
         return get_half_light_radius(
             self.proj_radius[self.proj_type == 4],
             self.stellar_luminosities,
@@ -1910,7 +1912,7 @@ class ProjectedApertureProperties(HaloProperty):
                                     registry=registry,
                                 )
                             else:
-                                err = f'Overflow for halo {input_halo["index"].value} when '
+                                err = f'Overflow for halo {input_halo["index"]} when '
                                 err += f"calculating {name} in projected_properties"
                                 assert np.max(np.abs(val.to(unit).value)) < float(
                                     "inf"

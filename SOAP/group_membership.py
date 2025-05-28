@@ -10,11 +10,11 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 from virgo.util.partial_formatter import PartialFormatter
 
-from core import combine_args, lustre
-from catalogue_readers import read_vr
-from catalogue_readers import read_hbtplus
-from catalogue_readers import read_subfind
-from catalogue_readers import read_rockstar
+from SOAP.core import combine_args, lustre
+from SOAP.catalogue_readers import read_vr
+from SOAP.catalogue_readers import read_hbtplus
+from SOAP.catalogue_readers import read_subfind
+from SOAP.catalogue_readers import read_rockstar
 
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
@@ -30,6 +30,7 @@ def process_particle_type(
     fof_ptypes,
     fof_file,
     create_file,
+    output_filename,
 ):
     """
     Compute group membership for one particle type
@@ -124,15 +125,14 @@ def process_particle_type(
     snap_file.write(
         output,
         elements_per_file,
-        filenames=output_file,
+        filenames=output_filename,
         mode=mode,
         group=ptype,
         attrs=attrs,
     )
 
 
-if __name__ == "__main__":
-
+def main():
     # Read parameters from command line and config file
     from virgo.mpi.util import MPIArgumentParser
 
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     swift_filename = args["Snapshots"]["filename"]
     halo_format = args["HaloFinder"]["type"]
     halo_basename = args["HaloFinder"]["filename"]
-    output_file = args["GroupMembership"]["filename"]
+    output_filename = args["GroupMembership"]["filename"]
 
     if comm_rank == 0:
         print(f"Input snapshot is {swift_filename}")
@@ -167,19 +167,19 @@ if __name__ == "__main__":
     swift_filename = pf.format(swift_filename, snap_nr=snap_nr, file_nr=None)
     fof_filename = pf.format(fof_filename, snap_nr=snap_nr, file_nr=None)
     halo_basename = pf.format(halo_basename, snap_nr=snap_nr, file_nr=None)
-    output_file = pf.format(output_file, snap_nr=snap_nr, file_nr=None)
+    output_filename = pf.format(output_filename, snap_nr=snap_nr, file_nr=None)
 
     # Check both swift and output filenames are (not) chunk files
     if "file_nr" in swift_filename:
-        assert "file_nr" in output_file, "Membership filenames require {file_nr}"
+        assert "file_nr" in output_filename, "Membership filenames require {file_nr}"
     else:
         assert (
-            "file_nr" not in output_file
+            "file_nr" not in output_filename
         ), "Membership filenames shouldn't have {file_nr}"
 
     # Ensure output dir exists
     if comm_rank == 0:
-        lustre.ensure_output_dir(output_file)
+        lustre.ensure_output_dir(output_filename)
     comm.barrier()
 
     # Find group number for each particle ID in the halo finder output
@@ -295,6 +295,7 @@ if __name__ == "__main__":
             fof_ptypes,
             fof_file,
             create_file,
+            output_filename,
         )
         create_file = False
     comm.barrier()
@@ -306,7 +307,7 @@ if __name__ == "__main__":
     for file_nr in range(
         first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
     ):
-        with h5py.File(output_file.format(file_nr=file_nr), "r+") as infile:
+        with h5py.File(output_filename.format(file_nr=file_nr), "r+") as infile:
             group = infile.create_group("Header")
             for k, v in header.items():
                 group.attrs[k] = v
@@ -314,3 +315,6 @@ if __name__ == "__main__":
     comm.barrier()
     if comm_rank == 0:
         print("Done.")
+
+if __name__ == "__main__":
+    main()
