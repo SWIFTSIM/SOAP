@@ -65,6 +65,14 @@ parser.add_argument(
     default=2147483647,
     help=("The FOFGroupIDs of particles not in a FOF group"),
 )
+parser.add_argument(
+    "--n-test",
+    type=int,
+    required=False,
+    default=0,
+    help="The number of FOFs to check. If -1 all objects will be checked",
+)
+
 args = parser.parse_args()
 snap_filename = args.snap_basename + ".{file_nr}.hdf5"
 fof_filename = args.fof_basename + ".{file_nr}.hdf5"
@@ -301,4 +309,34 @@ if comm_rank == 0:
             for k, v in attrs[prop].items():
                 dset.attrs[k] = v
 
-    print("Done")
+    print("Done generating new files")
+
+    if args.n_test != 0:
+        print('Testing we can load all particles')
+        # Load the FOF file
+        fof = sw.load(args.fof_basename + ".hdf5")
+        min_pos = fof.fof_groups.centres - fof.fof_groups.radii[:, None]
+        max_pos = fof.fof_groups.centres + fof.fof_groups.radii[:, None]
+
+        n_test = args.n_test if args.n_test != -1 else fof.fof_groups.sizes.shape[0]
+        for i_fof in tqdm.tqdm(range(n_test)):
+
+            # Create mask and load data
+            snap_filename = args.snap_basename + ".hdf5"
+            mask = sw.mask(snap_filename)
+            load_region = [
+                [min_pos[i_fof, 0], max_pos[i_fof, 0]],
+                [min_pos[i_fof, 1], max_pos[i_fof, 1]],
+                [min_pos[i_fof, 2], max_pos[i_fof, 2]],
+            ]
+            mask.constrain_spatial(load_region)
+            snap = sw.load(snap_filename, mask=mask)
+
+            # Check we loaded all the particles
+            n_total = 0
+            for ptype in ["gas", "dark_matter", "stars", "black_holes"]:
+                fof_id = fof.fof_groups.group_ids[i_fof].value
+                part_fof_ids = getattr(snap, ptype).fofgroup_ids.value
+                n_total += np.sum(part_fof_ids == fof_id)
+            msg = f"Failed for object {i_fof}"
+            assert n_total == fof.fof_groups.sizes[i_fof].value, msg
