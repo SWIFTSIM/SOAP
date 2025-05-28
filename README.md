@@ -16,7 +16,7 @@ but this may install a serial version of h5py. Therefore the following
 steps are recommended for install
 ```
 pip install mpi4py
-HDF5_MPI="ON"; CC=mpicc; pip install --no-binary=h5py h5py
+export HDF5_MPI="ON"; export CC=mpicc; pip install --no-binary=h5py h5py
 pip install git+https://github.com/SWIFTSIM/SOAP.git@soap_runtime
 ```
 
@@ -47,8 +47,8 @@ the snapshot number, and a parameter file. For example:
 ```
 snapnum=0077
 sim=L1000N0900/DMO_FIDUCIAL
-mpirun python -u SOAP/group_membership.py \
-    --dmo --sim-name=${sim} --snap-nr${snapnum} parameter_files/FLAMINGO.yml
+mpirun python soap-group-membership \
+    --sim-name=${sim} --snap-nr${snapnum} parameter_files/FLAMINGO.yml
 ```
 
 ### Computing halo properties
@@ -85,7 +85,7 @@ be passed. For example:
 ```
 snapnum=0077
 sim=L1000N0900/DMO_FIDUCIAL
-mpirun python -u SOAP/compute_halo_properties.py \
+mpirun python -u soap-compute-halo-properties \
        --sim-name=${sim} --snap-nr=${snapnum} --chunks=1 --dmo \
        parameter_files/FLAMINGO.yml
 ```
@@ -135,7 +135,7 @@ the job name with the slurm sbatch -J flag.
 You can install an editable version of SOAP by cloning this repository and running:
 ```
 pip install mpi4py
-HDF5_MPI="ON"; CC=mpicc; pip install --no-binary=h5py h5py
+export HDF5_MPI="ON"; export CC=mpicc; pip install --no-binary=h5py h5py
 pip install -e .
 ```
 

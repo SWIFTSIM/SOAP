@@ -283,7 +283,9 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "FeSilicatesSmall": 5,
             },
         }
-        self.named_columns['PartType4/ElementMassFractions'] = self.named_columns["PartType0/SmoothedElementMassFractions"]
+        self.named_columns["PartType4/ElementMassFractions"] = self.named_columns[
+            "PartType0/SmoothedElementMassFractions"
+        ]
 
         self.dust_grain_composition = np.array(
             [

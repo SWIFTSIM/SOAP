@@ -42,13 +42,25 @@ def test_projected_aperture_properties():
     )
 
     pc_projected = ProjectedApertureProperties(
-        dummy_halos.get_cell_grid(), parameters, 30.0, None, category_filter, "basic", [30.0]
+        dummy_halos.get_cell_grid(),
+        parameters,
+        30.0,
+        None,
+        category_filter,
+        "basic",
+        [30.0],
     )
 
     # Create a filter that no halos will satisfy
     fail_filter = CategoryFilter(dummy_halos.get_filters({"general": 10000000}))
     pc_filter_test = ProjectedApertureProperties(
-        dummy_halos.get_cell_grid(), parameters, 30.0, None, fail_filter, "general", [30.0]
+        dummy_halos.get_cell_grid(),
+        parameters,
+        30.0,
+        None,
+        fail_filter,
+        "general",
+        [30.0],
     )
 
     for i in range(100):

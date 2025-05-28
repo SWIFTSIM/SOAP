@@ -312,7 +312,7 @@ if comm_rank == 0:
     print("Done generating new files")
 
     if args.n_test != 0:
-        print('Testing we can load all particles')
+        print("Testing we can load all particles")
         # Load the FOF file
         fof = sw.load(args.fof_basename + ".hdf5")
         min_pos = fof.fof_groups.centres - fof.fof_groups.radii[:, None]
