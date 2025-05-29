@@ -48,7 +48,7 @@ the snapshot number, and a parameter file. For example:
 snapnum=0077
 sim=L1000N0900/DMO_FIDUCIAL
 mpirun python soap-group-membership \
-    --sim-name=${sim} --snap-nr${snapnum} parameter_files/FLAMINGO.yml
+    --sim-name=${sim} --snap-nr=${snapnum} parameter_files/FLAMINGO.yml
 ```
 
 ### Computing halo properties
