@@ -17,19 +17,28 @@ import traceback
 import numpy as np
 import unyt
 
-from core import halo_centres
-from core import chunk_tasks, lustre, result_set, soap_args, swift_cells, task_queue
-from core.parameter_file import ParameterFile
-from core.mpi_timer import MPITimer
-from core.combine_chunks import combine_chunks, sub_snapnum
-from core.category_filter import CategoryFilter
-from particle_selection import SO_properties
-from particle_selection import aperture_properties
-from particle_selection import projected_aperture_properties
-from particle_selection import subhalo_properties
-from property_calculation.stellar_age_calculator import StellarAgeCalculator
-from particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
-from particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
+from SOAP.core import (
+    chunk_tasks,
+    halo_centres,
+    lustre,
+    result_set,
+    soap_args,
+    swift_cells,
+    task_queue,
+)
+from SOAP.core.parameter_file import ParameterFile
+from SOAP.core.mpi_timer import MPITimer
+from SOAP.core.combine_chunks import combine_chunks, sub_snapnum
+from SOAP.core.category_filter import CategoryFilter
+from SOAP.particle_selection import (
+    aperture_properties,
+    SO_properties,
+    projected_aperture_properties,
+    subhalo_properties,
+)
+from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculator
+from SOAP.particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
+from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 
 
 # Set numpy to raise divide by zero, overflow and invalid operation errors as exceptions
