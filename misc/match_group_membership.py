@@ -1,7 +1,7 @@
 #!/bin/env python
 
-"""
 # TODO: Rewrite
+"""
 calculate_fof_positions.py
 
 This script calculates the maximum and minimum particles positions for each FOF.
@@ -73,6 +73,7 @@ parser.add_argument(
         "name without the .{file_nr}.hdf5 suffix)"
     ),
 )
+# TODO:
 parser.add_argument(
     "--soap-filename1",
     type=str,
@@ -84,7 +85,7 @@ parser.add_argument(
 )
 # TODO:
 parser.add_argument(
-    "--soap-filename",
+    "--soap-filename2",
     type=str,
     required=True,
     help=(
@@ -123,10 +124,6 @@ parser.add_argument(
     help="Only match central halos",
 )
 args = parser.parse_args()
-snap_filename1 = args.snap_basename1 + ".{file_nr}.hdf5"
-snap_filename2 = args.snap_basename2 + ".{file_nr}.hdf5"
-membership_filename1 = args.membership_basename1 + ".{file_nr}.hdf5"
-membership_filename2 = args.membership_basename2 + ".{file_nr}.hdf5"
 
 # TODO: 
 ptypes = [1]
@@ -139,23 +136,25 @@ def load_particle_data(snap_basename, membership_basename, ptypes, comm):
 
     # Load particle IDs
     snap_filename = snap_basename + ".{file_nr}.hdf5"
-    snap_file = phdf5.MultiFile(
+    file = phdf5.MultiFile(
         snap_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
     )
     particle_ids = []
     for ptype in ptypes:
-        particle_ids.append(file.read(f"PartType{particle_type}/ParticleIDs"))
+        particle_ids.append(file.read(f"PartType{ptype}/ParticleIDs"))
     particle_ids = np.concatenate(particle_ids)
 
+    # Membership files don't have a header, so create a list of filenames
+    n_file = len(file.filenames)
+    membership_filenames = [f'{membership_basename}.{i}.hdf5' for i in range(n_file)]
     # Load membership information
-    membership_filename = membership_basename + ".{file_nr}.hdf5"
-    membership_file = phdf5.MultiFile(
-        membership_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
+    file = phdf5.MultiFile(
+        membership_filenames, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
     )
     halo_catalogue_idx, rank_bound = [], []
     for ptype in ptypes:
-        halo_catalogue_idx.append(file.read(f"PartType{particle_type}/GroupNr_bound"))
-        rank_bound.append(file.read(f"PartType{particle_type}/Rank_bound"))
+        halo_catalogue_idx.append(file.read(f"PartType{ptype}/GroupNr_bound"))
+        rank_bound.append(file.read(f"PartType{ptype}/Rank_bound"))
     halo_catalogue_idx, rank_bound = np.concatenate(halo_catalogue_idx), np.concatenate(rank_bound)
 
     # Check the two files are partitioned the same way
@@ -173,22 +172,21 @@ def load_particle_data(snap_basename, membership_basename, ptypes, comm):
         'rank_bound': rank_bound,
     }
 
-data_1 = load_particle_data(args.snap_basename_1, args.membership_basename_1, ptypes, comm)
-data_2 = load_particle_data(args.snap_basename_2, args.membership_basename_2, ptypes, comm)
-datasets = list(data_1.keys())
 
-# Remove particles which are not bound in both snapshots
-match_1 = psort.parallel_match(data_1['particle_ids'], data_2['particle_ids'], comm=comm)
-for dset in datasets:
-    data_1[dset] = data_1[dst][match_1 != -1]
+def load_soap(soap_filename, comm):
+    '''
+    Loads the required fields from a SOAP catalogue
+    '''
+    # Load particle IDs
+    file = phdf5.MultiFile(
+        soap_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
+    )
+    return {
+        'halo_catalogue_idx': file.read(f"InputHalos/HaloCatalogueIndex"),
+        'host_halo_idx': file.read(f"SOAP/HostHaloIndex"),
+        'is_central': file.read(f"InputHalos/IsCentral") == 1,
+    }
 
-match_2 = psort.parallel_match(data_2['particle_ids'], data_1['particle_ids'], comm=comm)
-for dset in datasets:
-    data_2[dset] = data_2[dst][match_2 != -1]
-
-# TODO: To function, be careful about passing copies of numpy arrays
-
-# TODO: Overwrite satellites with host halo index
 
 def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match, particle_halo_ids_to_match):
     '''
@@ -197,6 +195,10 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
 
     Returns halo_ids, matched_halo_ids, n_match
     '''
+
+    # TODO: Centrals only
+    #   Remove particles in simulation 1 which are bound to a satellite
+    #   Replace satellite halo_ids of particles in simulation with their host halo_id
 
     # Sort particles
     sort_hash_dtype = [
@@ -227,12 +229,13 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
 
         n_part_target = np.sum(gathered_counts) / comm_size
         cumsum = np.cumsum(gathered_counts)
-        ranks = np.floor(cumsum / n_part_target).astype(int)
+        ranks = np.floor(cumsum / n_part_target).astype(np.int64)
         ranks = np.clip(ranks, 0, comm_size - 1)
         n_part_per_rank = np.bincount(
             ranks, weights=gathered_counts, minlength=comm_size
-        )
+        ).astype(np.int64)
         assert np.sum(n_part_per_rank) == np.sum(gathered_counts)
+        print(n_part_per_rank)
     else:
         n_part_per_rank = None
     n_part_per_rank = comm.bcast(n_part_per_rank)
@@ -243,8 +246,7 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
 
     # Return if we don't have any particles on this rank
     if particle_ids.shape[0] == 0:
-        # TODO: What are we returning?
-        return
+        return np.ones(0, dtype=np.int32), np.ones(0, dtype=np.int32), np.ones(0, dtype=np.int64)
 
     # Only keep the first {args.nr_particles} particles for each subhalo
     # We can't just do a cut on rank_bound since we might be missing some ptypes
@@ -252,11 +254,11 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
         # Count how many particles we have for each subhalo
         unique, counts = np.unique(particle_halo_ids, return_counts=True)
         argsort = np.argsort(unique)
-        counts = unique[argsort]
+        counts = counts[argsort]
 
         # Calculate a running sum
         cumsum = np.cumsum(counts)
-        n_part_before_group_i = np.concatenate(np.array([0]), cumsum[:-1])
+        n_part_before_group_i = np.concatenate([np.array([0]), cumsum[:-1]])
 
         # Calculate the position of each particle within its group
         group_position = np.arange(particle_ids.shape[0])
@@ -283,7 +285,7 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
     matched_halo_ids = combined_ids.astype(np.int32)
     combined_ids -= matched_halo_ids
     combined_ids >>= 32
-    halo_ids = combined_ids
+    halo_ids = combined_ids.astype(np.int32)
 
     # Sort first based on halo_ids, then by count, then by matched_halo_ids
     idx = np.lexsort((matched_halo_ids, -combined_counts, halo_ids))
@@ -296,24 +298,42 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
     matched_halo_ids = matched_halo_ids[idx]
     combined_counts = combined_counts[idx]
 
-    return halo_ids, matched_halo_idx, combined_counts
+    return halo_ids, matched_halo_ids, combined_counts
 
+if comm_rank == 0:
+    print('Loading data from simulation 1')
+data_1 = load_particle_data(args.snap_basename1, args.membership_basename1, ptypes, comm)
+soap_1 = load_soap(args.soap_filename1, comm)
 
+if comm_rank == 0:
+    print('Loading data from simulation 2')
+data_2 = load_particle_data(args.snap_basename2, args.membership_basename2, ptypes, comm)
 
+# Remove particles which are not bound in both snapshots
+idx = psort.parallel_match(data_1['particle_ids'], data_2['particle_ids'], comm=comm)
+for dset in data_1:
+    data_1[dset] = data_1[dset][idx != -1]
 
+idx = psort.parallel_match(data_2['particle_ids'], data_1['particle_ids'], comm=comm)
+for dset in data_2:
+    data_2[dset] = data_2[dset][idx != -1]
 
+if comm_rank == 0:
+    print('Matching simulation 1 to simulation 2')
+output = match_sim(
+    data_1['particle_ids'],
+    data_1['halo_catalogue_idx'],
+    data_1['rank_bound'],
+    data_2['particle_ids'],
+    data_2['halo_catalogue_idx'],
+)
 
+# TODO: Save (same format as before?)
+# TODO: Test compared with John's script
 
-
-
-
-
-
-
-
-
-
-
-
-
+if comm_rank == 0:
+    # TODO: Remove
+    halo_ids, matched_halo_ids, combined_counts = output
+    print(halo_ids[:10])
+    print(matched_halo_ids[:10])
     print("Done")
