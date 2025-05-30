@@ -1,20 +1,25 @@
 #!/bin/env python
 
-# TODO: Rewrite
 """
-calculate_fof_positions.py
+match_group_membership.py
 
-This script calculates the maximum and minimum particles positions for each FOF.
+This script matches halos between different simulations run from the
+same initial conditions.
+
 Usage:
 
-  mpirun -- python misc/calculate_fof_positions.py \
-          --snap-basename=SNAPSHOT \
-          --fof-basename=FOF \
-          --output-basename=OUTPUT
+  mpirun -- python -u misc/match_group_membership \
+            --snap-basename1 SNAP_BASENAME1 \
+            --snap-basename2 SNAP_BASENAME2 \
+            --membership-basename1 MEMBERSHIP_BASENAME1 \
+            --membership-basename2 MEMBERSHIP_BASENAME2 \
+            --soap-filename1 SOAP_FILENAME1 \
+            --soap-filename2 SOAP_FILENAME2 \
+            --output-filename OUTPUT_FILENAME
 
-where SNAPSHOT is the basename of the snapshot files (the snapshot
-name without the .{file_nr}.hdf5 suffix), FOF is the basename of the
-fof catalogues, and OUTPUT is the basename of the output fof catalogues.
+Run "python misc/match_group_membership.py -h" for a discription
+of the arguments.
+
 """
 
 import argparse
@@ -100,21 +105,21 @@ parser.add_argument(
     required=False,
     nargs='+',
     default=[1],
-    help="Particle types to use for the matching",
+    help="Particle types to use for the matching. Defaults to [1]",
 )
 parser.add_argument(
     "--nr_particles",
     type=int,
     required=False,
     default=50,
-    help="Number of particles to use when matching. -1 to use all particles",
+    help="Number of particles to use when matching. Defaults to 50. -1 to use all particles",
 )
 parser.add_argument(
     "--centrals-only",
     type=bool,
     required=False,
     default=True,
-    help="Only match central halos",
+    help="Only match central halos. Defaults to True",
 )
 args = parser.parse_args()
 
