@@ -38,90 +38,6 @@ import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5
 from virgo.mpi.gather_array import gather_array
 
-# Parse arguments
-parser = argparse.ArgumentParser(
-    description=("Script to calculate extent of FoF groups.")
-)
-parser.add_argument(
-    "--snap-basename1",
-    type=str,
-    required=True,
-    help=(
-        "The basename of the snapshot files (the snapshot "
-        "name without the .{file_nr}.hdf5 suffix) for simulation 1"
-    ),
-)
-parser.add_argument(
-    "--snap-basename2",
-    type=str,
-    required=True,
-    help=(
-        "The basename of the snapshot files for simulation 2"
-    ),
-)
-parser.add_argument(
-    "--membership-basename1",
-    type=str,
-    required=True,
-    help=(
-        "The basename of the membership files for simulation 1"
-    ),
-)
-parser.add_argument(
-    "--membership-basename2",
-    type=str,
-    required=True,
-    help=(
-        "The basename of the membership files for simulation 2"
-    ),
-)
-parser.add_argument(
-    "--soap-filename1",
-    type=str,
-    required=True,
-    help=(
-        "The filename of the SOAP catalogue for simulation 1"
-    ),
-)
-parser.add_argument(
-    "--soap-filename2",
-    type=str,
-    required=True,
-    help=(
-        "The filename of the SOAP catalogue for simulation 2"
-    ),
-)
-parser.add_argument(
-    "--output-filename",
-    type=str,
-    required=True,
-    help=(
-        "The filename of the output file"
-    ),
-)
-parser.add_argument(
-    "--ptypes",
-    type=int,
-    required=False,
-    nargs='+',
-    default=[1],
-    help="Particle types to use for the matching. Defaults to [1]",
-)
-parser.add_argument(
-    "--nr_particles",
-    type=int,
-    required=False,
-    default=50,
-    help="Number of particles to use when matching. Defaults to 50. -1 to use all particles",
-)
-parser.add_argument(
-    "--centrals-only",
-    type=bool,
-    required=False,
-    default=True,
-    help="Only match central halos. Defaults to True",
-)
-args = parser.parse_args()
 
 def load_particle_data(snap_basename, membership_basename, ptypes, comm):
     '''
@@ -359,76 +275,162 @@ def mpi_print(string, comm_rank):
     if comm_rank == 0:
         print(string)
 
-mpi_print('Loading data from simulation 1', comm_rank)
-data_1 = load_particle_data(args.snap_basename1, args.membership_basename1, args.ptypes, comm)
-soap_1 = load_soap(args.soap_filename1, comm)
+if __name__ == '__main__':
 
-mpi_print('Loading data from simulation 2', comm_rank)
-data_2 = load_particle_data(args.snap_basename2, args.membership_basename2, args.ptypes, comm)
-soap_2 = load_soap(args.soap_filename2, comm)
+    parser = argparse.ArgumentParser(
+        description=("Script to calculate extent of FoF groups.")
+    )
+    parser.add_argument(
+        "--snap-basename1",
+        type=str,
+        required=True,
+        help=(
+            "The basename of the snapshot files (the snapshot "
+            "name without the .{file_nr}.hdf5 suffix) for simulation 1"
+        ),
+    )
+    parser.add_argument(
+        "--snap-basename2",
+        type=str,
+        required=True,
+        help=(
+            "The basename of the snapshot files for simulation 2"
+        ),
+    )
+    parser.add_argument(
+        "--membership-basename1",
+        type=str,
+        required=True,
+        help=(
+            "The basename of the membership files for simulation 1"
+        ),
+    )
+    parser.add_argument(
+        "--membership-basename2",
+        type=str,
+        required=True,
+        help=(
+            "The basename of the membership files for simulation 2"
+        ),
+    )
+    parser.add_argument(
+        "--soap-filename1",
+        type=str,
+        required=True,
+        help=(
+            "The filename of the SOAP catalogue for simulation 1"
+        ),
+    )
+    parser.add_argument(
+        "--soap-filename2",
+        type=str,
+        required=True,
+        help=(
+            "The filename of the SOAP catalogue for simulation 2"
+        ),
+    )
+    parser.add_argument(
+        "--output-filename",
+        type=str,
+        required=True,
+        help=(
+            "The filename of the output file"
+        ),
+    )
+    parser.add_argument(
+        "--ptypes",
+        type=int,
+        required=False,
+        nargs='+',
+        default=[1],
+        help="Particle types to use for the matching. Defaults to [1]",
+    )
+    parser.add_argument(
+        "--nr_particles",
+        type=int,
+        required=False,
+        default=50,
+        help="Number of particles to use when matching. Defaults to 50. -1 to use all particles",
+    )
+    parser.add_argument(
+        "--centrals-only",
+        type=bool,
+        required=False,
+        default=True,
+        help="Only match central halos. Defaults to True",
+    )
+    args = parser.parse_args()
 
-mpi_print('Removing particles which are not bound in both snapshots', comm_rank)
-idx = psort.parallel_match(data_1['particle_ids'], data_2['particle_ids'], comm=comm)
-for dset in data_1:
-    data_1[dset] = data_1[dset][idx != -1]
+    mpi_print('Loading data from simulation 1', comm_rank)
+    data_1 = load_particle_data(args.snap_basename1, args.membership_basename1, args.ptypes, comm)
+    soap_1 = load_soap(args.soap_filename1, comm)
 
-idx = psort.parallel_match(data_2['particle_ids'], data_1['particle_ids'], comm=comm)
-for dset in data_2:
-    data_2[dset] = data_2[dset][idx != -1]
+    mpi_print('Loading data from simulation 2', comm_rank)
+    data_2 = load_particle_data(args.snap_basename2, args.membership_basename2, args.ptypes, comm)
+    soap_2 = load_soap(args.soap_filename2, comm)
 
-mpi_print('Matching simulation 1 to simulation 2', comm_rank)
-match_index_12, match_count_12 = match_sim(
-    data_1['particle_ids'],
-    data_1['halo_catalogue_idx'],
-    data_1['rank_bound'],
-    data_2['particle_ids'],
-    data_2['halo_catalogue_idx'],
-    soap_1,
-    soap_2,
-)
+    mpi_print('Removing particles which are not bound in both snapshots', comm_rank)
+    idx = psort.parallel_match(data_1['particle_ids'], data_2['particle_ids'], comm=comm)
+    for dset in data_1:
+        data_1[dset] = data_1[dset][idx != -1]
 
-mpi_print('Matching simulation 2 to simulation 1', comm_rank)
-match_index_21, match_count_21 = match_sim(
-    data_2['particle_ids'],
-    data_2['halo_catalogue_idx'],
-    data_2['rank_bound'],
-    data_1['particle_ids'],
-    data_1['halo_catalogue_idx'],
-    soap_2,
-    soap_1,
-)
+    idx = psort.parallel_match(data_2['particle_ids'], data_1['particle_ids'], comm=comm)
+    for dset in data_2:
+        data_2[dset] = data_2[dset][idx != -1]
 
-mpi_print('Checking matches for consistency', comm_rank)
-consistent_12 = consistent_match(match_index_12, match_index_21)
-consistent_21 = consistent_match(match_index_21, match_index_12)
+    mpi_print('Matching simulation 1 to simulation 2', comm_rank)
+    match_index_12, match_count_12 = match_sim(
+        data_1['particle_ids'],
+        data_1['halo_catalogue_idx'],
+        data_1['rank_bound'],
+        data_2['particle_ids'],
+        data_2['halo_catalogue_idx'],
+        soap_1,
+        soap_2,
+    )
 
-mpi_print('Writing output', comm_rank)
-if comm_rank == 0:
-    os.makedirs(os.path.dirname(args.output_filename), exist_ok=True)
-    with h5py.File(args.output_filename, 'w') as file:
-        header = file.create_group("Header")
-        for k, v in [
-                ("snap-basename1", args.snap_basename1),
-                ("snap-basename2", args.snap_basename2),
-                ("membership-basename1", args.membership_basename1),
-                ("membership-basename2", args.membership_basename2),
-                ("soap-filename1", args.soap_filename1),
-                ("soap-filename2", args.soap_filename2),
-                ("output-filename", args.output_filename),
-                ("ptypes", args.ptypes),
-                ("nr_particles", args.nr_particles),
-                ("centrals-only", args.centrals_only),
-            ]:
-            header.attrs[k] = v
-comm.barrier()
+    mpi_print('Matching simulation 2 to simulation 1', comm_rank)
+    match_index_21, match_count_21 = match_sim(
+        data_2['particle_ids'],
+        data_2['halo_catalogue_idx'],
+        data_2['rank_bound'],
+        data_1['particle_ids'],
+        data_1['halo_catalogue_idx'],
+        soap_2,
+        soap_1,
+    )
 
-with h5py.File(args.output_filename, 'r+', driver='mpio', comm=comm) as file:
-    phdf5.collective_write(file, "MatchIndex1to2", match_index_12, comm=comm)
-    phdf5.collective_write(file, "MatchCount1to2", match_count_12, comm=comm)
-    phdf5.collective_write(file, "Consistent1to2", consistent_12, comm=comm)
-    phdf5.collective_write(file, "MatchIndex2to1", match_index_21, comm=comm)
-    phdf5.collective_write(file, "MatchCount2to1", match_count_21, comm=comm)
-    phdf5.collective_write(file, "Consistent2to1", consistent_21, comm=comm)
+    mpi_print('Checking matches for consistency', comm_rank)
+    consistent_12 = consistent_match(match_index_12, match_index_21)
+    consistent_21 = consistent_match(match_index_21, match_index_12)
 
-mpi_print('Done!', comm_rank)
+    mpi_print('Writing output', comm_rank)
+    if comm_rank == 0:
+        os.makedirs(os.path.dirname(args.output_filename), exist_ok=True)
+        with h5py.File(args.output_filename, 'w') as file:
+            header = file.create_group("Header")
+            for k, v in [
+                    ("snap-basename1", args.snap_basename1),
+                    ("snap-basename2", args.snap_basename2),
+                    ("membership-basename1", args.membership_basename1),
+                    ("membership-basename2", args.membership_basename2),
+                    ("soap-filename1", args.soap_filename1),
+                    ("soap-filename2", args.soap_filename2),
+                    ("output-filename", args.output_filename),
+                    ("ptypes", args.ptypes),
+                    ("nr_particles", args.nr_particles),
+                    ("centrals-only", args.centrals_only),
+                ]:
+                header.attrs[k] = v
+    comm.barrier()
+
+    with h5py.File(args.output_filename, 'r+', driver='mpio', comm=comm) as file:
+        phdf5.collective_write(file, "MatchIndex1to2", match_index_12, comm=comm)
+        phdf5.collective_write(file, "MatchCount1to2", match_count_12, comm=comm)
+        phdf5.collective_write(file, "Consistent1to2", consistent_12, comm=comm)
+        phdf5.collective_write(file, "MatchIndex2to1", match_index_21, comm=comm)
+        phdf5.collective_write(file, "MatchCount2to1", match_count_21, comm=comm)
+        phdf5.collective_write(file, "Consistent2to1", consistent_21, comm=comm)
+
+    mpi_print('Done!', comm_rank)
 
