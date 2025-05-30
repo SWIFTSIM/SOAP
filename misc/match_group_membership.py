@@ -42,8 +42,8 @@ parser.add_argument(
     type=str,
     required=True,
     help=(
-        "The basename for the snapshot files (the snapshot "
-        "name without the .{file_nr}.hdf5 suffix)"
+        "The basename of the snapshot files (the snapshot "
+        "name without the .{file_nr}.hdf5 suffix) for simulation 1"
     ),
 )
 parser.add_argument(
@@ -51,8 +51,7 @@ parser.add_argument(
     type=str,
     required=True,
     help=(
-        "The basename for the snapshot files (the snapshot "
-        "name without the .{file_nr}.hdf5 suffix)"
+        "The basename of the snapshot files for simulation 2"
     ),
 )
 parser.add_argument(
@@ -60,8 +59,7 @@ parser.add_argument(
     type=str,
     required=True,
     help=(
-        "The basename for the snapshot files (the snapshot "
-        "name without the .{file_nr}.hdf5 suffix)"
+        "The basename of the membership files for simulation 1"
     ),
 )
 parser.add_argument(
@@ -69,8 +67,7 @@ parser.add_argument(
     type=str,
     required=True,
     help=(
-        "The basename for the snapshot files (the snapshot "
-        "name without the .{file_nr}.hdf5 suffix)"
+        "The basename of the membership files for simulation 2"
     ),
 )
 # TODO:
@@ -79,7 +76,7 @@ parser.add_argument(
     type=str,
     required=True,
     help=(
-        "The basename for the snapshot files (the snapshot "
+        "The  for the snapshot files (the snapshot "
         "name without the .{file_nr}.hdf5 suffix)"
     ),
 )
@@ -188,10 +185,13 @@ def load_soap(soap_filename, comm):
     }
 
 
-def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match, particle_halo_ids_to_match):
+def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match, particle_halo_ids_to_match, soap, soap_to_match):
     '''
-    Takes in particle_ids, particle_halo_ids, and rank_bound from simulation 1
-    and particle_ids_to_match, and particle_halo_ids_to_match from simulation 2.
+    Input:
+        - particle_ids, particle_halo_ids, and rank_bound from simulation 1
+        - particle_ids_to_match, and particle_halo_ids_to_match from simulation 2
+        - soap catalogue from simulation 1
+        - soap_to_match catalogue from simulation 2
 
     Returns halo_ids, matched_halo_ids, n_match
     '''
@@ -235,7 +235,6 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
             ranks, weights=gathered_counts, minlength=comm_size
         ).astype(np.int64)
         assert np.sum(n_part_per_rank) == np.sum(gathered_counts)
-        print(n_part_per_rank)
     else:
         n_part_per_rank = None
     n_part_per_rank = comm.bcast(n_part_per_rank)
@@ -298,18 +297,33 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
     matched_halo_ids = matched_halo_ids[idx]
     combined_counts = combined_counts[idx]
 
-    return halo_ids, matched_halo_ids, combined_counts
+    # Get the SOAP index of each object in matched_halo_ids
+    matched_soap_idx = psort.parallel_match(matched_halo_ids, soap_to_match['halo_catalogue_idx'], comm=comm)
 
-if comm_rank == 0:
-    print('Loading data from simulation 1')
+    # Create arrays we will return. These have the same length as the arrays in `soap`
+    match_index = -1 * np.ones_like(soap['halo_catalogue_idx'])
+    match_count = np.zeros_like(soap['halo_catalogue_idx'])
+
+    # Retrieve the values we require, skipping halos which don't have a match
+    idx = psort.parallel_match(soap['halo_catalogue_idx'], halo_ids)
+    match_index[idx != -1] = psort.fetch_elements(matched_soap_idx, idx[idx!=-1], comm=comm)
+    match_count[idx != -1] = psort.fetch_elements(combined_counts, idx[idx!=-1], comm=comm)
+
+    return match_index, match_count
+
+def mpi_print(string, comm_rank):
+    if comm_rank == 0:
+        print(string)
+
+mpi_print('Loading data from simulation 1')
 data_1 = load_particle_data(args.snap_basename1, args.membership_basename1, ptypes, comm)
 soap_1 = load_soap(args.soap_filename1, comm)
 
-if comm_rank == 0:
-    print('Loading data from simulation 2')
+mpi_print('Loading data from simulation 2')
 data_2 = load_particle_data(args.snap_basename2, args.membership_basename2, ptypes, comm)
+soap_2 = load_soap(args.soap_filename2, comm)
 
-# Remove particles which are not bound in both snapshots
+mpi_print('Removing particles which are not bound in both snapshots')
 idx = psort.parallel_match(data_1['particle_ids'], data_2['particle_ids'], comm=comm)
 for dset in data_1:
     data_1[dset] = data_1[dset][idx != -1]
@@ -318,22 +332,38 @@ idx = psort.parallel_match(data_2['particle_ids'], data_1['particle_ids'], comm=
 for dset in data_2:
     data_2[dset] = data_2[dset][idx != -1]
 
-if comm_rank == 0:
-    print('Matching simulation 1 to simulation 2')
-output = match_sim(
+mpi_print('Matching simulation 1 to simulation 2')
+match_index_12, match_count_12 = match_sim(
     data_1['particle_ids'],
     data_1['halo_catalogue_idx'],
     data_1['rank_bound'],
     data_2['particle_ids'],
     data_2['halo_catalogue_idx'],
+    soap_1,
+    soap_2,
 )
 
-# TODO: Save (same format as before?)
+mpi_print('Matching simulation 2 to simulation 1')
+match_index_21, match_count_21 = match_sim(
+    data_2['particle_ids'],
+    data_2['halo_catalogue_idx'],
+    data_2['rank_bound'],
+    data_1['particle_ids'],
+    data_1['halo_catalogue_idx'],
+    soap_2,
+    soap_1,
+)
+
+# TODO: Check for consistency
+
+# TODO: Save
+#  is_central and nr_particles to header
+
 # TODO: Test compared with John's script
 
 if comm_rank == 0:
     # TODO: Remove
-    halo_ids, matched_halo_ids, combined_counts = output
-    print(halo_ids[:10])
-    print(matched_halo_ids[:10])
+    print(match_index_12)
+    print(match_index_21)
+
     print("Done")
