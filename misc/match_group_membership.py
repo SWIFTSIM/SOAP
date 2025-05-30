@@ -70,42 +70,37 @@ parser.add_argument(
         "The basename of the membership files for simulation 2"
     ),
 )
-# TODO:
 parser.add_argument(
     "--soap-filename1",
     type=str,
     required=True,
     help=(
-        "The  for the snapshot files (the snapshot "
-        "name without the .{file_nr}.hdf5 suffix)"
+        "The filename of the SOAP catalogue for simulation 1"
     ),
 )
-# TODO:
 parser.add_argument(
     "--soap-filename2",
     type=str,
     required=True,
     help=(
-        "The basename for the snapshot files (the snapshot "
-        "name without the .{file_nr}.hdf5 suffix)"
+        "The filename of the SOAP catalogue for simulation 2"
     ),
 )
-# TODO:
 parser.add_argument(
     "--output-filename",
     type=str,
     required=True,
     help=(
-        "The basename for the snapshot files (the snapshot "
-        "name without the .{file_nr}.hdf5 suffix)"
+        "The filename of the output file"
     ),
 )
-# TODO:
 parser.add_argument(
     "--ptypes",
-    type=bool,
+    type=int,
     required=False,
-    help="Only match central halos",
+    nargs='+',
+    default=[1],
+    help="Particle types to use for the matching",
 )
 parser.add_argument(
     "--nr_particles",
@@ -118,12 +113,10 @@ parser.add_argument(
     "--centrals-only",
     type=bool,
     required=False,
+    default=True,
     help="Only match central halos",
 )
 args = parser.parse_args()
-
-# TODO: 
-ptypes = [1]
 
 def load_particle_data(snap_basename, membership_basename, ptypes, comm):
     '''
@@ -349,15 +342,15 @@ def mpi_print(string, comm_rank):
     if comm_rank == 0:
         print(string)
 
-mpi_print('Loading data from simulation 1')
-data_1 = load_particle_data(args.snap_basename1, args.membership_basename1, ptypes, comm)
+mpi_print('Loading data from simulation 1', comm_rank)
+data_1 = load_particle_data(args.snap_basename1, args.membership_basename1, args.ptypes, comm)
 soap_1 = load_soap(args.soap_filename1, comm)
 
-mpi_print('Loading data from simulation 2')
-data_2 = load_particle_data(args.snap_basename2, args.membership_basename2, ptypes, comm)
+mpi_print('Loading data from simulation 2', comm_rank)
+data_2 = load_particle_data(args.snap_basename2, args.membership_basename2, args.ptypes, comm)
 soap_2 = load_soap(args.soap_filename2, comm)
 
-mpi_print('Removing particles which are not bound in both snapshots')
+mpi_print('Removing particles which are not bound in both snapshots', comm_rank)
 idx = psort.parallel_match(data_1['particle_ids'], data_2['particle_ids'], comm=comm)
 for dset in data_1:
     data_1[dset] = data_1[dset][idx != -1]
@@ -366,7 +359,7 @@ idx = psort.parallel_match(data_2['particle_ids'], data_1['particle_ids'], comm=
 for dset in data_2:
     data_2[dset] = data_2[dset][idx != -1]
 
-mpi_print('Matching simulation 1 to simulation 2')
+mpi_print('Matching simulation 1 to simulation 2', comm_rank)
 match_index_12, match_count_12 = match_sim(
     data_1['particle_ids'],
     data_1['halo_catalogue_idx'],
@@ -377,7 +370,7 @@ match_index_12, match_count_12 = match_sim(
     soap_2,
 )
 
-mpi_print('Matching simulation 2 to simulation 1')
+mpi_print('Matching simulation 2 to simulation 1', comm_rank)
 match_index_21, match_count_21 = match_sim(
     data_2['particle_ids'],
     data_2['halo_catalogue_idx'],
@@ -388,31 +381,39 @@ match_index_21, match_count_21 = match_sim(
     soap_1,
 )
 
-mpi_print('Checking matches for consistency')
+mpi_print('Checking matches for consistency', comm_rank)
 consistent_12 = consistent_match(match_index_12, match_index_21)
 consistent_21 = consistent_match(match_index_21, match_index_12)
 
+mpi_print('Writing output', comm_rank)
+if comm_rank == 0:
+    os.makedirs(os.path.dirname(args.output_filename), exist_ok=True)
+    with h5py.File(args.output_filename, 'w') as file:
+        header = file.create_group("Header")
+        for k, v in [
+                ("snap-basename1", args.snap_basename1),
+                ("snap-basename2", args.snap_basename2),
+                ("membership-basename1", args.membership_basename1),
+                ("membership-basename2", args.membership_basename2),
+                ("soap-filename1", args.soap_filename1),
+                ("soap-filename2", args.soap_filename2),
+                ("output-filename", args.output_filename),
+                ("ptypes", args.ptypes),
+                ("nr_particles", args.nr_particles),
+                ("centrals-only", args.centrals_only),
+            ]:
+            header.attrs[k] = v
+comm.barrier()
 
-if comm_rank == 0
-    with h5py.File(file_path, 'w', driver='mpio', comm=comm) as file:
-        group = file.create_group("Matches")
+with h5py.File(args.output_filename, 'r+', driver='mpio', comm=comm) as file:
+    phdf5.collective_write(file, "MatchIndex1to2", match_index_12, comm=comm)
+    phdf5.collective_write(file, "MatchCount1to2", match_count_12, comm=comm)
+    phdf5.collective_write(file, "Consistent1to2", match_count_12, comm=comm)
+    phdf5.collective_write(file, "MatchIndex2to1", match_index_21, comm=comm)
+    phdf5.collective_write(file, "MatchCount2to1", match_count_21, comm=comm)
+    phdf5.collective_write(file, "Consistent2to1", match_count_21, comm=comm)
 
-   comm.barrier()
-
-    with h5py.File(file_path, 'r+', driver='mpio', comm=comm) as file:
-        phdf5.collective_write(group, "HaloCatalogueIndex", matches, comm=MPI.COMM_WORLD)
-        phdf5.collective_write(group, "IsConsistent", consistent, comm=MPI.COMM_WORLD)
-
-    comm.barrier()
-
-# TODO: Save
-#  is_central and nr_particles to header
+mpi_print('Done!', comm_rank)
 
 # TODO: Test compared with John's script
 
-if comm_rank == 0:
-    # TODO: Remove
-    print(match_index_12)
-    print(match_index_21)
-
-    print("Done")
