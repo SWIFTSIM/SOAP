@@ -120,8 +120,8 @@ args = parser.parse_args()
 
 def load_particle_data(snap_basename, membership_basename, ptypes, comm):
     '''
-    Load the particle IDs and halo membership for the particle types we will use to match
-    Removes particles which are not bound
+    Load the particle IDs and halo membership for the particle types
+    we will use to match. Removes unbound particles.
     '''
 
     # Load particle IDs
@@ -322,12 +322,12 @@ def consistent_match(match_index_12, match_index_21):
     nr_local_halos = len(match_index_12)
     local_halo_offset = comm.scan(nr_local_halos) - nr_local_halos
     local_halo_index = np.arange(
-        local_halo_offset, local_halo_offset + nr_local_halos, dtype=int
+        local_halo_offset, local_halo_offset + nr_local_halos, dtype=np.int32
     )
 
     # For each halo, find the halo that its match in the other 
     # catalogue was matched with
-    match_back = -np.ones(nr_local_halos, dtype=int)
+    match_back = -np.ones(nr_local_halos, dtype=np.int32)
     has_match = match_index_12 >= 0
     match_back[has_match] = psort.fetch_elements(
         match_index_21, match_index_12[has_match], comm=comm
@@ -408,12 +408,10 @@ comm.barrier()
 with h5py.File(args.output_filename, 'r+', driver='mpio', comm=comm) as file:
     phdf5.collective_write(file, "MatchIndex1to2", match_index_12, comm=comm)
     phdf5.collective_write(file, "MatchCount1to2", match_count_12, comm=comm)
-    phdf5.collective_write(file, "Consistent1to2", match_count_12, comm=comm)
+    phdf5.collective_write(file, "Consistent1to2", consistent_12, comm=comm)
     phdf5.collective_write(file, "MatchIndex2to1", match_index_21, comm=comm)
     phdf5.collective_write(file, "MatchCount2to1", match_count_21, comm=comm)
-    phdf5.collective_write(file, "Consistent2to1", match_count_21, comm=comm)
+    phdf5.collective_write(file, "Consistent2to1", consistent_21, comm=comm)
 
 mpi_print('Done!', comm_rank)
-
-# TODO: Test compared with John's script
 
