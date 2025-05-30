@@ -194,9 +194,21 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
     Returns halo_ids, matched_halo_ids, n_match
     '''
 
-    # TODO: Centrals only
-    #   Remove particles in simulation 1 which are bound to a satellite
-    #   Replace satellite halo_ids of particles in simulation with their host halo_id
+    if args.centrals_only:
+        #  Only keep particles in simulation 1 which are bound to a central
+        idx = psort.parallel_match(particle_halo_ids, soap['halo_catalogue_idx'], comm=comm)
+        assert np.all(idx >= 0), 'Some subhalos could not be found in the SOAP catalogue'
+        particle_is_cen = psort.fetch_elements(soap['is_central'], idx, comm=comm)
+        particle_ids = particle_ids[particle_is_cen]
+        particle_halo_ids = particle_halo_ids[particle_is_cen]
+        rank_bound = rank_bound[particle_is_cen]
+
+        #  Replace satellite halo_ids of particles in simulation 2 with their host halo_id
+        idx = psort.parallel_match(particle_halo_ids_to_match, soap_to_match['halo_catalogue_idx'], comm=comm)
+        is_sat = np.logical_not(psort.fetch_elements(soap_to_match['is_central'], idx, comm=comm))
+        host_halo_idx = psort.fetch_elements(soap_to_match['host_halo_idx'], idx[is_sat], comm=comm)
+        host_halo_catalogue_idx = psort.fetch_elements(soap_to_match['halo_catalogue_idx'], host_halo_idx, comm=comm)
+        particle_halo_ids_to_match[is_sat] = host_halo_catalogue_idx
 
     # Sort particles
     sort_hash_dtype = [
