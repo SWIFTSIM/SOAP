@@ -311,6 +311,40 @@ def match_sim(particle_ids, particle_halo_ids, rank_bound, particle_ids_to_match
 
     return match_index, match_count
 
+def consistent_match(match_index_12, match_index_21):
+    """
+    For each halo in catalogue 1, determine if its match in catalogue 2
+    points back at it.
+
+    match_index_12 has one entry for each halo in catalogue 1 and
+    specifies the matching halo in catalogue 2 (or -1 for not match)
+
+    match_index_21 has one entry for each halo in catalogue 2 and
+    specifies the matching halo in catalogue 1 (or -1 for not match)
+
+    Returns an array with 1 for a match and 0 otherwise.
+    """
+
+    # Find the global array indexes of halos stored on this rank
+    nr_local_halos = len(match_index_12)
+    local_halo_offset = comm.scan(nr_local_halos) - nr_local_halos
+    local_halo_index = np.arange(
+        local_halo_offset, local_halo_offset + nr_local_halos, dtype=int
+    )
+
+    # For each halo, find the halo that its match in the other 
+    # catalogue was matched with
+    match_back = -np.ones(nr_local_halos, dtype=int)
+    has_match = match_index_12 >= 0
+    match_back[has_match] = psort.fetch_elements(
+        match_index_21, match_index_12[has_match], comm=comm
+    )
+
+    # If we retrieved our own halo index, we have a match
+    consistent_matches = match_back == local_halo_index
+
+    return consistent_matches.astype(np.int32)
+
 def mpi_print(string, comm_rank):
     if comm_rank == 0:
         print(string)
@@ -354,7 +388,22 @@ match_index_21, match_count_21 = match_sim(
     soap_1,
 )
 
-# TODO: Check for consistency
+mpi_print('Checking matches for consistency')
+consistent_12 = consistent_match(match_index_12, match_index_21)
+consistent_21 = consistent_match(match_index_21, match_index_12)
+
+
+if comm_rank == 0
+    with h5py.File(file_path, 'w', driver='mpio', comm=comm) as file:
+        group = file.create_group("Matches")
+
+   comm.barrier()
+
+    with h5py.File(file_path, 'r+', driver='mpio', comm=comm) as file:
+        phdf5.collective_write(group, "HaloCatalogueIndex", matches, comm=MPI.COMM_WORLD)
+        phdf5.collective_write(group, "IsConsistent", consistent, comm=MPI.COMM_WORLD)
+
+    comm.barrier()
 
 # TODO: Save
 #  is_central and nr_particles to header
