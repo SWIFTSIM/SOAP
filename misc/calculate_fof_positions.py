@@ -313,8 +313,11 @@ if comm_rank == 0:
 
     if args.n_test != 0:
         print("Testing we can load all particles")
+        import swiftsimio as sw
+        import tqdm
+
         # Load the FOF file
-        fof = sw.load(args.fof_basename + ".hdf5")
+        fof = sw.load(args.output_basename + ".hdf5")
         min_pos = fof.fof_groups.centres - fof.fof_groups.radii[:, None]
         max_pos = fof.fof_groups.centres + fof.fof_groups.radii[:, None]
 
