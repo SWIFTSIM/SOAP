@@ -24,7 +24,7 @@ dependencies = [
     "h5py",
     "numpy>=2",
     "unyt>=3",
-    "astropy",
+    "astropy>=6",
     "numba",
     "scipy",
     "matplotlib",

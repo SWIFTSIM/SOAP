@@ -162,7 +162,7 @@ described in the debugging section below.
 ### Tests
 
 The directory `tests` contains a number of unit tests for SOAP, some of which
-require MPI. They can be run with
+require MPI. They require the optional dependency `pytest-mpi`, and can be run with
 
 ```
 cd tests

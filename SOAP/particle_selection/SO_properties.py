@@ -2842,7 +2842,6 @@ class SOParticleData:
                 0.3: self.vcom_thirty_percent,
                 1: self.vcom,
             }[R_frac]
-            mask = self.radius < R_frac * self.SO_r
 
             # This shouldn't happen, but HaloCentre doesn't actually need to
             # be on top of a particle

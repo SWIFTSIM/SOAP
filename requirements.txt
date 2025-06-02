@@ -1,8 +1,8 @@
 mpi4py
 h5py
-numpy
+numpy>=2
 unyt>=3
-astropy
+astropy>=6
 numba
 scipy
 pytest-mpi
