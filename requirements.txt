@@ -3,9 +3,9 @@ h5py
 numpy>=2
 unyt>=3
 astropy>=6
-numba
 scipy
-pytest-mpi
 matplotlib
 psutil
 virgodc
+numba
+pytest-mpi

@@ -29,10 +29,11 @@ you can install an SOAP virtual environment by running
 ## Running SOAP
 
 The command `./tests/run_small_volume.sh` will download a small example
-simulation, run the group membership and halo properties scripts on it (the
-resulting catalogue is placed in the `output` directory), and generate the 
+simulation, run the group membership and halo properties scripts on it.
+This uses the parameter file at `./tests/run_small_volume.yml`, and the
+resulting catalogue is placed in the `output` directory. It also generates the
 pdf documentation to describe the output file (which is written to
-`documentation/SOAP.pdf`).
+`documentation/SOAP.pdf`). 
 
 ### Computing halo membership for particles in the snapshot
 
@@ -47,7 +48,7 @@ the snapshot number, and a parameter file. For example:
 ```
 snapnum=0077
 sim=L1000N0900/DMO_FIDUCIAL
-mpirun python soap-group-membership \
+mpirun python python SOAP/group_membership.py \
     --sim-name=${sim} --snap-nr=${snapnum} parameter_files/FLAMINGO.yml
 ```
 
@@ -85,7 +86,7 @@ be passed. For example:
 ```
 snapnum=0077
 sim=L1000N0900/DMO_FIDUCIAL
-mpirun python -u soap-compute-halo-properties \
+mpirun python -u SOAP/compute_halo_properties.py \
        --sim-name=${sim} --snap-nr=${snapnum} --chunks=1 --dmo \
        parameter_files/FLAMINGO.yml
 ```

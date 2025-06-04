@@ -25,7 +25,6 @@ dependencies = [
     "numpy>=2",
     "unyt>=3",
     "astropy>=6",
-    "numba",
     "scipy",
     "matplotlib",
     "psutil",
@@ -35,12 +34,9 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     "pytest-mpi",
+    "numba",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/SWIFTSIM/SOAP"
 "Bug Tracker" = "https://github.com/SWIFTSIM/SOAP/issues"
-
-[project.scripts]
-soap-group-membership = "SOAP.group_membership:main"
-soap-compute-halo-properties = "SOAP.compute_halo_properties:compute_halo_properties"
