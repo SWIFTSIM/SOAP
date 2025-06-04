@@ -840,7 +840,7 @@ class PropertyTable:
             a_scale_exponent=0,
         ),
         "DtoTstar_luminosity_weighted_luminosity_ratio": Property(
-            name="DiscToTotalLuminosityRatio_LuminosityWeighted",
+            name="DiscToTotalLuminosityRatioLuminosityWeighted",
             shape=9,
             dtype=np.float32,
             unit="dimensionless",
@@ -872,7 +872,7 @@ class PropertyTable:
             a_scale_exponent=0,
         ),
         "DtoTstar_luminosity_weighted_mass_ratio": Property(
-            name="DiscToTotalMassRatio_LuminosityWeighted",
+            name="DiscToTotalMassRatioLuminosityWeighted",
             shape=9,
             dtype=np.float32,
             unit="dimensionless",
@@ -889,7 +889,7 @@ class PropertyTable:
             a_scale_exponent=0,
         ),
         "kappa_corot_star_luminosity_weighted": Property(
-            name="KappaCorotStars_LuminosityWeighted",
+            name="KappaCorotStarsLuminosityWeighted",
             shape=9,
             dtype=np.float32,
             unit="dimensionless",
@@ -906,7 +906,7 @@ class PropertyTable:
             a_scale_exponent=0,
         ),
         "Lstar_luminosity_weighted": Property(
-            name="AngularMomentumStars_LuminosityWeighted",
+            name="AngularMomentumStarsLuminosityWeighted",
             shape=27,  # 3D vector for each of the 9 GAMA bands
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
@@ -2053,8 +2053,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
-        "ProjectedStellarInertiaTensor_LuminosityWeighted": Property(
-            name="ProjectedStellarInertiaTensor_LuminosityWeighted",
+        "ProjectedStellarInertiaTensorLuminosityWeighted": Property(
+            name="ProjectedStellarInertiaTensorLuminosityWeighted",
             shape=27,
             dtype=np.float32,
             unit="snap_length**2",
@@ -2069,8 +2069,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=2,
         ),
-        "ProjectedStellarInertiaTensorReduced_LuminosityWeighted": Property(
-            name="ProjectedStellarInertiaTensorReduced_LuminosityWeighted",
+        "ProjectedStellarInertiaTensorReducedLuminosityWeighted": Property(
+            name="ProjectedStellarInertiaTensorReducedLuminosityWeighted",
             shape=27,
             dtype=np.float32,
             unit="dimensionless",
@@ -2085,8 +2085,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
-        "ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted": Property(
-            name="ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted",
+        "ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted": Property(
+            name="ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted",
             shape=27,
             dtype=np.float32,
             unit="snap_length**2",
@@ -2101,8 +2101,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=2,
         ),
-        "ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted": Property(
-            name="ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted",
+        "ProjectedStellarInertiaTensorReducedNoniterativeLuminosityWeighted": Property(
+            name="ProjectedStellarInertiaTensorReducedNoniterativeLuminosityWeighted",
             shape=27,
             dtype=np.float32,
             unit="dimensionless",
@@ -2189,8 +2189,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
-        "StellarInertiaTensor_LuminosityWeighted": Property(
-            name="StellarInertiaTensor_LuminosityWeighted",
+        "StellarInertiaTensorLuminosityWeighted": Property(
+            name="StellarInertiaTensorLuminosityWeighted",
             shape=54,  # 6 times each GAMA band
             dtype=np.float32,
             unit="snap_length**2",
@@ -2205,8 +2205,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=2,
         ),
-        "StellarInertiaTensorReduced_LuminosityWeighted": Property(
-            name="StellarInertiaTensorReduced_LuminosityWeighted",
+        "StellarInertiaTensorReducedLuminosityWeighted": Property(
+            name="StellarInertiaTensorReducedLuminosityWeighted",
             shape=54,  # 6 times each GAMA band
             dtype=np.float32,
             unit="dimensionless",
@@ -2221,8 +2221,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
-        "StellarInertiaTensorNoniterative_LuminosityWeighted": Property(
-            name="StellarInertiaTensorNoniterative_LuminosityWeighted",
+        "StellarInertiaTensorNoniterativeLuminosityWeighted": Property(
+            name="StellarInertiaTensorNoniterativeLuminosityWeighted",
             shape=54,  # 6 times each GAMA band
             dtype=np.float32,
             unit="snap_length**2",
@@ -2237,8 +2237,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=2,
         ),
-        "StellarInertiaTensorReducedNoniterative_LuminosityWeighted": Property(
-            name="StellarInertiaTensorReducedNoniterative_LuminosityWeighted",
+        "StellarInertiaTensorReducedNoniterativeLuminosityWeighted": Property(
+            name="StellarInertiaTensorReducedNoniterativeLuminosityWeighted",
             shape=54,  # 6 times each GAMA band
             dtype=np.float32,
             unit="dimensionless",
@@ -4956,6 +4956,70 @@ class DummyProperties:
         }
 
 
+def get_parameter_file_all_properties():
+    """
+    Returns a parameter file that can be used to generate a full list of
+    available properties in SOAP, and also return a standard unit_cgs dict
+    """
+    mock_parameters = {
+        "HaloFinder": {"type": "HBTplus"},
+        "ApertureProperties": {"properties": {}, "variations": {}},
+        "ProjectedApertureProperties": {"properties": {}, "variations": {}},
+        "SOProperties": {"properties": {}, "variations": {}},
+        "SubhaloProperties": {"properties": {}},
+        "filters": {
+            "general": {
+                "limit": 100,
+                "properties": [
+                    "BoundSubhalo/NumberOfGasParticles",
+                    "BoundSubhalo/NumberOfDarkMatterParticles",
+                    "BoundSubhalo/NumberOfStarParticles",
+                    "BoundSubhalo/NumberOfBlackHoleParticles",
+                ],
+                "combine_properties": "sum",
+            },
+            "baryon": {
+                "limit": 100,
+                "properties": [
+                    "BoundSubhalo/NumberOfGasParticles",
+                    "BoundSubhalo/NumberOfStarParticles",
+                ],
+                "combine_properties": "sum",
+            },
+            "dm": {
+                "limit": 100,
+                "properties": ["BoundSubhalo/NumberOfDarkMatterParticles"],
+            },
+            "gas": {"limit": 100, "properties": ["BoundSubhalo/NumberOfGasParticles"]},
+            "star": {
+                "limit": 100,
+                "properties": ["BoundSubhalo/NumberOfStarParticles"],
+            },
+        },
+        "calculations": {
+            "calculate_missing_properties": True,
+            "min_read_radius_cmpc": 5,
+        },
+    }
+    os.makedirs("test_data", exist_ok=True)
+    with open("test_data/mock_parameter_file.yml", "w") as file:
+        yaml.dump(mock_parameters, file)
+    parameters = ParameterFile(
+        file_name="test_data/mock_parameter_file.yml", snipshot=False
+    )
+    snipshot_parameters = ParameterFile(
+        file_name="test_data/mock_parameter_file.yml", snipshot=True
+    )
+    units_cgs = {
+        "Unit current in cgs (U_I)": 1.0,
+        "Unit length in cgs (U_L)": 3.08567758e24,
+        "Unit mass in cgs (U_M)": 1.98841e43,
+        "Unit temperature in cgs (U_T)": 1.0,
+        "Unit time in cgs (U_t)": 3.08567758e19,
+    }
+    return parameters, snipshot_parameters, units_cgs
+
+
 if __name__ == "__main__":
     """
     Standalone script execution:
@@ -4969,6 +5033,7 @@ if __name__ == "__main__":
 
     import sys
     import h5py
+    import yaml
 
     from core.parameter_file import ParameterFile
 
@@ -4988,39 +5053,41 @@ if __name__ == "__main__":
     try:
         parameters = ParameterFile(file_name=sys.argv[1], snipshot=False)
         snipshot_parameters = ParameterFile(file_name=sys.argv[1], snipshot=True)
-    except IndexError:
-        print("A valid parameter file was not passed.")
-        exit()
 
-    # Parse snapshot file to extract base units
-    try:
-        with h5py.File(sys.argv[2]) as snap:
-            units_cgs = {
-                name: float(value[0]) for name, value in snap["Units"].attrs.items()
-            }
-            unyt.define_unit(
-                "snap_length",
-                units_cgs["Unit length in cgs (U_L)"] * unyt.cm,
-                tex_repr="\\rm{L}",
-            )
-            unyt.define_unit(
-                "snap_mass",
-                units_cgs["Unit mass in cgs (U_M)"] * unyt.g,
-                tex_repr="\\rm{M}",
-            )
-            unyt.define_unit(
-                "snap_time",
-                units_cgs["Unit time in cgs (U_t)"] * unyt.s,
-                tex_repr="\\rm{t}",
-            )
-            unyt.define_unit(
-                "snap_temperature",
-                units_cgs["Unit temperature in cgs (U_T)"] * unyt.K,
-                tex_repr="\\rm{T}",
-            )
+        # Parse snapshot file to extract base units
+        try:
+            with h5py.File(sys.argv[2]) as snap:
+                units_cgs = {
+                    name: float(value[0]) for name, value in snap["Units"].attrs.items()
+                }
+        except IndexError:
+            print("No snapshot file passed.")
+            exit()
+
     except IndexError:
-        print("No snapshot file passed.")
-        exit()
+        print("No parameter file passed. Outputting all possible properties")
+        parameters, snipshot_parameters, units_cgs = get_parameter_file_all_properties()
+
+    unyt.define_unit(
+        "snap_length",
+        units_cgs["Unit length in cgs (U_L)"] * unyt.cm,
+        tex_repr="\\rm{L}",
+    )
+    unyt.define_unit(
+        "snap_mass",
+        units_cgs["Unit mass in cgs (U_M)"] * unyt.g,
+        tex_repr="\\rm{M}",
+    )
+    unyt.define_unit(
+        "snap_time",
+        units_cgs["Unit time in cgs (U_t)"] * unyt.s,
+        tex_repr="\\rm{t}",
+    )
+    unyt.define_unit(
+        "snap_temperature",
+        units_cgs["Unit temperature in cgs (U_T)"] * unyt.K,
+        tex_repr="\\rm{T}",
+    )
     # Define scale factor unit
     unyt.define_unit("a", 1 * unyt.dimensionless, tex_repr="\\rm{a}")
 

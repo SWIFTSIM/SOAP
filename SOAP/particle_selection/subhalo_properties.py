@@ -1463,7 +1463,7 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def StellarInertiaTensor_LuminosityWeighted(self) -> unyt.unyt_array:
+    def StellarInertiaTensorLuminosityWeighted(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed iteratively using an ellipsoid with volume equal to that of
@@ -1476,7 +1476,7 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def StellarInertiaTensorReduced_LuminosityWeighted(self) -> unyt.unyt_array:
+    def StellarInertiaTensorReducedLuminosityWeighted(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed iteratively using an ellipsoid with volume equal to that of
@@ -1492,7 +1492,7 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def StellarInertiaTensorNoniterative_LuminosityWeighted(self) -> unyt.unyt_array:
+    def StellarInertiaTensorNoniterativeLuminosityWeighted(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed using all bound star particles within HalfMassRadiusStar.
@@ -1507,7 +1507,7 @@ class SubhaloParticleData:
         )
 
     @lazy_property
-    def StellarInertiaTensorReducedNoniterative_LuminosityWeighted(
+    def StellarInertiaTensorReducedNoniterativeLuminosityWeighted(
         self,
     ) -> unyt.unyt_array:
         """
@@ -2110,22 +2110,22 @@ class SubhaloProperties(HaloProperty):
             "GasInertiaTensor",
             "DarkMatterInertiaTensor",
             "StellarInertiaTensor",
-            "StellarInertiaTensor_LuminosityWeighted",
+            "StellarInertiaTensorLuminosityWeighted",
             "TotalInertiaTensor",
             "GasInertiaTensorReduced",
             "DarkMatterInertiaTensorReduced",
             "StellarInertiaTensorReduced",
-            "StellarInertiaTensorReduced_LuminosityWeighted",
+            "StellarInertiaTensorReducedLuminosityWeighted",
             "TotalInertiaTensorReduced",
             "GasInertiaTensorNoniterative",
             "DarkMatterInertiaTensorNoniterative",
             "StellarInertiaTensorNoniterative",
-            "StellarInertiaTensorNoniterative_LuminosityWeighted",
+            "StellarInertiaTensorNoniterativeLuminosityWeighted",
             "TotalInertiaTensorNoniterative",
             "GasInertiaTensorReducedNoniterative",
             "DarkMatterInertiaTensorReducedNoniterative",
             "StellarInertiaTensorReducedNoniterative",
-            "StellarInertiaTensorReducedNoniterative_LuminosityWeighted",
+            "StellarInertiaTensorReducedNoniterativeLuminosityWeighted",
             "TotalInertiaTensorReducedNoniterative",
             "veldisp_matrix_gas",
             "veldisp_matrix_dm",

@@ -1069,7 +1069,7 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
-    def ProjectedStellarInertiaTensor_LuminosityWeighted(self) -> unyt.unyt_array:
+    def ProjectedStellarInertiaTensorLuminosityWeighted(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar luminosity distribution for each GAMA band in projection.
         Computed iteratively using an ellipse with area equal to that of a circle with radius
@@ -1080,7 +1080,7 @@ class SingleProjectionProjectedApertureParticleData:
         return self.stellar_inertia_tensor_luminosity_weighted()
 
     @lazy_property
-    def ProjectedStellarInertiaTensorReduced_LuminosityWeighted(
+    def ProjectedStellarInertiaTensorReducedLuminosityWeighted(
         self,
     ) -> unyt.unyt_array:
         """
@@ -1093,7 +1093,7 @@ class SingleProjectionProjectedApertureParticleData:
         return self.stellar_inertia_tensor_luminosity_weighted(reduced=True)
 
     @lazy_property
-    def ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted(
+    def ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted(
         self,
     ) -> unyt.unyt_array:
         """
@@ -1111,7 +1111,7 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
-    def ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted(
+    def ProjectedStellarInertiaTensorReducedNoniterativeLuminosityWeighted(
         self,
     ) -> unyt.unyt_array:
         """
@@ -1622,19 +1622,19 @@ class ProjectedApertureProperties(HaloProperty):
         "ProjectedTotalInertiaTensor": True,
         "ProjectedGasInertiaTensor": True,
         "ProjectedStellarInertiaTensor": True,
-        "ProjectedStellarInertiaTensor_LuminosityWeighted": True,
+        "ProjectedStellarInertiaTensorLuminosityWeighted": True,
         "ProjectedTotalInertiaTensorReduced": True,
         "ProjectedGasInertiaTensorReduced": True,
         "ProjectedStellarInertiaTensorReduced": True,
-        "ProjectedStellarInertiaTensorReduced_LuminosityWeighted": True,
+        "ProjectedStellarInertiaTensorReducedLuminosityWeighted": True,
         "ProjectedTotalInertiaTensorNoniterative": False,
         "ProjectedGasInertiaTensorNoniterative": False,
         "ProjectedStellarInertiaTensorNoniterative": False,
-        "ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted": False,
+        "ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted": False,
         "ProjectedTotalInertiaTensorReducedNoniterative": False,
         "ProjectedGasInertiaTensorReducedNoniterative": False,
         "ProjectedStellarInertiaTensorReducedNoniterative": False,
-        "ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted": False,
+        "ProjectedStellarInertiaTensorReducedNoniterativeLuminosityWeighted": False,
         "HydrogenMass": False,
         "HeliumMass": False,
         "MolecularHydrogenMass": False,
