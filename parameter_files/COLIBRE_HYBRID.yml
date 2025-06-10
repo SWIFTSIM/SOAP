@@ -35,7 +35,7 @@ ApertureProperties:
     AngularMomentumDarkMatter: general
     AngularMomentumGas: general
     AngularMomentumStars: general
-    AngularMomentumStars_LuminosityWeighted: false
+    AngularMomentumStarsLuminosityWeighted: false
     AtomicHydrogenMass: true
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
@@ -45,6 +45,7 @@ ApertureProperties:
     CentreOfMass: true
     CentreOfMassVelocity: true
     DarkMatterMass: true
+    DarkMatterCentreOfMass: true
     DarkMatterVelocityDispersionMatrix: general
     DiffuseCarbonMass:
       snapshot: true
@@ -63,8 +64,8 @@ ApertureProperties:
       snipshot: false
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
-    DiscToTotalMassRatio_LuminosityWeighted: false
-    DiscToTotalLuminosityRatio_LuminosityWeighted: false
+    DiscToTotalMassRatioLuminosityWeighted: false
+    DiscToTotalLuminosityRatioLuminosityWeighted: false
     DustMass: true
     DustGraphiteMass:
       snapshot: true
@@ -131,7 +132,7 @@ ApertureProperties:
     KappaCorotBaryons: general
     KappaCorotGas: general
     KappaCorotStars: general
-    KappaCorotStars_LuminosityWeighted: false
+    KappaCorotStarsLuminosityWeighted: false
     KineticEnergyGas: general
     KineticEnergyStars: general
     LinearMassWeightedDiffuseOxygenOverHydrogenOfGas:
@@ -222,22 +223,22 @@ ApertureProperties:
     GasInertiaTensor: false
     DarkMatterInertiaTensor: false
     StellarInertiaTensor: false
-    StellarInertiaTensor_LuminosityWeighted: false
+    StellarInertiaTensorLuminosityWeighted: false
     TotalInertiaTensorReduced: false
     GasInertiaTensorReduced: false
     DarkMatterInertiaTensorReduced: false
     StellarInertiaTensorReduced: false
-    StellarInertiaTensorReduced_LuminosityWeighted: false
+    StellarInertiaTensorReducedLuminosityWeighted: false
     TotalInertiaTensorNoniterative: general
     GasInertiaTensorNoniterative: general
     DarkMatterInertiaTensorNoniterative: general
     StellarInertiaTensorNoniterative: general
-    StellarInertiaTensorNoniterative_LuminosityWeighted: false
+    StellarInertiaTensorNoniterativeLuminosityWeighted: false
     TotalInertiaTensorReducedNoniterative: false
     GasInertiaTensorReducedNoniterative: false
     DarkMatterInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterative: false
-    StellarInertiaTensorReducedNoniterative_LuminosityWeighted: false
+    StellarInertiaTensorReducedNoniterativeLuminosityWeighted: false
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true
@@ -268,6 +269,12 @@ ApertureProperties:
       snipshot: false
     StellarCentreOfMassVelocity: true
   variations:
+    exclusive_100_pc:
+      inclusive: false
+      radius_in_kpc: 0.1
+    exclusive_300_pc:
+      inclusive: false
+      radius_in_kpc: 0.3
     exclusive_1_kpc:
       inclusive: false
       radius_in_kpc: 1.0
@@ -290,6 +297,12 @@ ApertureProperties:
       inclusive: false
       property: BoundSubhalo/HalfMassRadiusStars
       radius_multiple: 2.0
+    inclusive_100_pc:
+      inclusive: true
+      radius_in_kpc: 0.1
+    inclusive_300_pc:
+      inclusive: true
+      radius_in_kpc: 0.3
     inclusive_1_kpc:
       inclusive: true
       radius_in_kpc: 1.0
@@ -377,13 +390,13 @@ ProjectedApertureProperties:
     ProjectedGasInertiaTensorNoniterative: general
     ProjectedGasInertiaTensorReducedNoniterative: false
     ProjectedStellarInertiaTensor: false
-    ProjectedStellarInertiaTensor_LuminosityWeighted: false
+    ProjectedStellarInertiaTensorLuminosityWeighted: false
     ProjectedStellarInertiaTensorReduced: false
-    ProjectedStellarInertiaTensorReduced_LuminosityWeighted: false
+    ProjectedStellarInertiaTensorReducedLuminosityWeighted: false
     ProjectedStellarInertiaTensorNoniterative: general
-    ProjectedStellarInertiaTensorNoniterative_LuminosityWeighted: false
+    ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted: false
     ProjectedStellarInertiaTensorReducedNoniterative: false
-    ProjectedStellarInertiaTensorReducedNoniterative_LuminosityWeighted: false
+    ProjectedStellarInertiaTensorReducedNoniterativeLuminosityWeighted: false
     StarFormationRate: true
     AveragedStarFormationRate:
       snapshot: true
@@ -400,6 +413,10 @@ ProjectedApertureProperties:
     StellarProjectedVelocityDispersion: general
     TotalMass: true
   variations:
+    100_pc:
+      radius_in_kpc: 0.1
+    300_pc:
+      radius_in_kpc: 0.3
     1_kpc:
       radius_in_kpc: 1.0
     3_kpc:
@@ -441,9 +458,9 @@ SOProperties:
     DarkMatterMass: true
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
-    DiscToTotalLuminosityRatio_LuminosityWeighted: false
-    DiscToTotalMassRatio_LuminosityWeighted: false
-    AngularMomentumStars_LuminosityWeighted: false
+    DiscToTotalLuminosityRatioLuminosityWeighted: false
+    DiscToTotalMassRatioLuminosityWeighted: false
+    AngularMomentumStarsLuminosityWeighted: false
     DopplerB: false
     GasCentreOfMass: true
     GasCentreOfMassVelocity: true
@@ -584,7 +601,7 @@ SubhaloProperties:
     AngularMomentumDarkMatter: general
     AngularMomentumGas: general
     AngularMomentumStars: general
-    AngularMomentumStars_LuminosityWeighted: false
+    AngularMomentumStarsLuminosityWeighted: false
     BlackHolesDynamicalMass: true
     BlackHolesLastEventScalefactor: true
     BlackHolesSubgridMass: true
@@ -596,8 +613,8 @@ SubhaloProperties:
     DarkMatterVelocityDispersionMatrix: general
     DiscToTotalGasMassFraction: general
     DiscToTotalStellarMassFraction: general
-    DiscToTotalMassRatio_LuminosityWeighted: false
-    DiscToTotalLuminosityRatio_LuminosityWeighted: false
+    DiscToTotalMassRatioLuminosityWeighted: false
+    DiscToTotalLuminosityRatioLuminosityWeighted: false
     DustMass: true
     GasMass: true
     GasMassFractionInMetals: true
@@ -617,7 +634,7 @@ SubhaloProperties:
     KappaCorotBaryons: general
     KappaCorotGas: general
     KappaCorotStars: general
-    KappaCorotStars_LuminosityWeighted: false
+    KappaCorotStarsLuminosityWeighted: false
     LastSupernovaEventMaximumGasDensity:
       snapshot: true
       snipshot: false

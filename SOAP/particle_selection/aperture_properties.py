@@ -1241,6 +1241,17 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def com_dm(self) -> unyt.unyt_array:
+        """
+        Centre of mass of DM particles in the aperture.
+        """
+        if self.Mdm == 0:
+            return None
+        return (
+            (self.dm_mass_fraction[:, None] * self.pos_dm).sum(axis=0) + self.centre
+        ) % self.boxsize
+
+    @lazy_property
     def com_star(self) -> unyt.unyt_array:
         """
         Centre of mass of star particles in the aperture.
@@ -3362,6 +3373,7 @@ class ApertureProperties(HaloProperty):
         "MostMassiveBlackHoleTotalAccretedMass": False,
         "MostMassiveBlackHoleFormationScalefactor": False,
         "com": False,
+        "com_dm": False,
         "com_star": False,
         "vcom": False,
         "vcom_star": False,
