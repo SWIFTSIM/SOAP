@@ -1925,9 +1925,9 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return self.get_dataset("PartType0/TotalDustMassFractions")[self.gas_mask_all][
-            self.gas_mask_ap
-        ]
+        mass_frac = self.get_dataset("PartType0/TotalDustMassFractions")[self.gas_mask_all][self.gas_mask_ap]
+        mass_frac[mass_frac < 10**(-10)] = 0 * unyt.dimensionless
+        return mass_frac
 
     @lazy_property
     def gas_dust_mass_fractions(self) -> unyt.unyt_array:
@@ -1936,9 +1936,9 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][
-            self.gas_mask_ap
-        ]
+        mass_frac = self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][self.gas_mask_ap]
+        mass_frac[mass_frac < 10**(-10)] = 0 * unyt.dimensionless
+        return mass_frac
 
     @lazy_property
     def gas_dust_mass_fractions_graphite_large(self) -> unyt.unyt_array:
