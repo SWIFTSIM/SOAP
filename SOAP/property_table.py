@@ -3358,6 +3358,18 @@ class PropertyTable:
             output_physical=False,
             a_scale_exponent=1,
         ),
+        "com_dm": Property(
+            name="DarkMatterCentreOfMass",
+            shape=3,
+            dtype=np.float64,
+            unit="snap_length",
+            description="Centre of mass of dark matter.",
+            lossy_compression_filter="DScale6",
+            dmo_property=False,
+            particle_properties=["PartType1/Coordinates", "PartType1/Masses"],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         "com_star": Property(
             name="StellarCentreOfMass",
             shape=3,
