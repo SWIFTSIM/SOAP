@@ -247,7 +247,8 @@ for ptype in ptypes:
 
 # Carry out some sanity checks
 assert np.all(total_part_counts == fof_sizes), "Not all particles found for some FOFs"
-assert np.min(fof_radius) > 0
+if fof_radius.shape[0] > 0:
+    assert np.min(fof_radius) > 0
 
 # Write data to file
 output_data = {"Radii": fof_radius}
