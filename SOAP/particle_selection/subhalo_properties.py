@@ -341,8 +341,10 @@ class SubhaloParticleData:
         """
         if self.Ngas == 0:
             return None
-        mass_frac = self.get_dataset("PartType0/TotalDustMassFractions")[self.gas_mask_all]
-        mass_frac[mass_frac < 10**(-10)] = 0 * unyt.dimensionless
+        mass_frac = self.get_dataset("PartType0/TotalDustMassFractions")[
+            self.gas_mask_all
+        ]
+        mass_frac[mass_frac < 10 ** (-10)] = 0 * unyt.dimensionless
         return mass_frac
 
     @lazy_property

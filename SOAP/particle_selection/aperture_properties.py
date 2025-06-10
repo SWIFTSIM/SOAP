@@ -1925,8 +1925,10 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        mass_frac = self.get_dataset("PartType0/TotalDustMassFractions")[self.gas_mask_all][self.gas_mask_ap]
-        mass_frac[mass_frac < 10**(-10)] = 0 * unyt.dimensionless
+        mass_frac = self.get_dataset("PartType0/TotalDustMassFractions")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+        mass_frac[mass_frac < 10 ** (-10)] = 0 * unyt.dimensionless
         return mass_frac
 
     @lazy_property
@@ -1936,8 +1938,10 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        mass_frac = self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][self.gas_mask_ap]
-        mass_frac[mass_frac < 10**(-10)] = 0 * unyt.dimensionless
+        mass_frac = self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][
+            self.gas_mask_ap
+        ]
+        mass_frac[mass_frac < 10 ** (-10)] = 0 * unyt.dimensionless
         return mass_frac
 
     @lazy_property
