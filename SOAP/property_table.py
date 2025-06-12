@@ -23,7 +23,7 @@ import unyt
 import subprocess
 import datetime
 import os
-from dataclasses import dataclass
+from dataclasses    import dataclass
 from typing import Dict, List
 
 from SOAP.particle_selection.halo_properties import HaloProperty
