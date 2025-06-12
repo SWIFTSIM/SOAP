@@ -27,4 +27,4 @@ jobs:
 
       # Runs the formatting script
       - name: Formatting
-        run: bash format.sh
+        run: bash format.sh --check
