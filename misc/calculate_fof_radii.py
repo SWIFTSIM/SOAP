@@ -51,7 +51,7 @@ parser.add_argument(
     "--fof-basename",
     type=str,
     required=True,
-    help="The basename for the output files",
+    help="The basename for the input FoF files",
 )
 parser.add_argument(
     "--output-basename",
@@ -65,6 +65,13 @@ parser.add_argument(
     required=False,
     default=2147483647,
     help=("The FOFGroupIDs of particles not in a FOF group"),
+)
+parser.add_argument(
+    "--copy-datasets",
+    type=bool,
+    required=False,
+    default=False,
+    help=("Copy datasets from input FoF files (otherwise a link is created)"),
 )
 parser.add_argument(
     "--n-test",
@@ -112,13 +119,16 @@ def copy_object(src_obj, dst_obj, src_filename, prefix="", skip_datasets=False):
         if isinstance(item, h5py.Dataset):
             if skip_datasets and (item.name != "/Header/PartTypeNames"):
                 continue
-            shape = item.shape
-            dtype = item.dtype
-            layout = h5py.VirtualLayout(shape=shape, dtype=dtype)
-            vsource = h5py.VirtualSource(src_filename, prefix + name, shape=shape)
-            layout[...] = vsource
-            vds = dst_obj.create_virtual_dataset(name, layout)
-            copy_attrs(item, vds)
+            if args.copy_datasets:
+                src_obj.copy(name, dst_obj)
+            else:
+                shape = item.shape
+                dtype = item.dtype
+                layout = h5py.VirtualLayout(shape=shape, dtype=dtype)
+                vsource = h5py.VirtualSource(src_filename, prefix + name, shape=shape)
+                layout[...] = vsource
+                dst_obj.create_virtual_dataset(name, layout)
+            copy_attrs(item, dst_obj[name])
         elif isinstance(item, h5py.Group):
             new_group = dst_obj.create_group(name)
             copy_object(
