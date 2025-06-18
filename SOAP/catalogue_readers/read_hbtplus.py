@@ -257,12 +257,6 @@ def read_hbtplus_catalogue(
     depth = unyt.unyt_array(
         subhalo["Depth"][keep], units=unyt.dimensionless, dtype=int, registry=registry
     )
-    snapshot_birth = unyt.unyt_array(
-        subhalo["SnapshotIndexOfBirth"][keep],
-        units=unyt.dimensionless,
-        dtype=int,
-        registry=registry,
-    )
     parent_id = unyt.unyt_array(
         subhalo["NestedParentTrackId"][keep],
         units=unyt.dimensionless,
@@ -278,17 +272,9 @@ def read_hbtplus_catalogue(
 
     # Peak mass
     max_mass = (subhalo["LastMaxMass"][keep] * MassInMsunh / h) * swift_msun
-    snapshot_max_mass = subhalo["SnapshotIndexOfLastMaxMass"][keep]
-    snapshot_max_mass = unyt.unyt_array(
-        snapshot_max_mass, units=unyt.dimensionless, dtype=int, registry=registry
-    )
 
     # Peak vmax
     max_vmax = (subhalo["LastMaxVmaxPhysical"][keep] * VelInKmS) * kms
-    snapshot_max_vmax = subhalo["SnapshotIndexOfLastMaxVmax"][keep]
-    snapshot_max_vmax = unyt.unyt_array(
-        snapshot_max_vmax, units=unyt.dimensionless, dtype=int, registry=registry
-    )
 
     # Number of bound particles
     nr_bound_part = nr_bound_part[keep]
@@ -302,12 +288,34 @@ def read_hbtplus_catalogue(
         "HostHaloId": host_halo_id,
         "Depth": depth,
         "TrackId": track_id,
-        "SnapshotIndexOfBirth": snapshot_birth,
         "NestedParentTrackId": parent_id,
         "DescendantTrackId": descendant_id,
         "LastMaxMass": max_mass,
-        "SnapshotIndexOfLastMaxMass": snapshot_max_mass,
         "LastMaxVmaxPhysical": max_vmax,
-        "SnapshotIndexOfLastMaxVmax": snapshot_max_vmax,
     }
+
+    if "SnapshotIndexOfBirth" in subhalo.dtype.names:
+        snapshot_birth = subhalo["SnapshotIndexOfBirth"][keep]
+        snapshot_max_mass = subhalo["SnapshotIndexOfLastMaxMass"][keep]
+        snapshot_max_vmax = subhalo["SnapshotIndexOfLastMaxVmax"][keep]
+        snapshot_isolation = subhalo["SnapshotIndexOfLastIsolation"][keep]
+    else:
+        snapshot_birth = subhalo["SnapshotOfBirth"][keep]
+        snapshot_max_mass = subhalo["SnapshotOfLastMaxMass"][keep]
+        snapshot_max_vmax = subhalo["SnapshotOfLastMaxVmax"][keep]
+        snapshot_isolation = subhalo["SnapshotOfLastIsolation"][keep]
+
+    local_halo["SnapshotOfBirth"] = unyt.unyt_array(
+        snapshot_birth, units=unyt.dimensionless, dtype=int, registry=registry
+    )
+    local_halo["SnapshotOfLastMaxMass"] = unyt.unyt_array(
+        snapshot_max_mass, units=unyt.dimensionless, dtype=int, registry=registry
+    )
+    local_halo["SnapshotOfLastMaxVmax"] = unyt.unyt_array(
+        snapshot_max_vmax, units=unyt.dimensionless, dtype=int, registry=registry
+    )
+    local_halo["SnapshotOfLastIsolation"] = unyt.unyt_array(
+        snapshot_isolation, units=unyt.dimensionless, dtype=int, registry=registry
+    )
+
     return local_halo
