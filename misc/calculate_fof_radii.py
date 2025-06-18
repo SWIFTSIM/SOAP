@@ -18,6 +18,7 @@ fof catalogues, and OUTPUT is the basename of the output fof catalogues.
 
 import argparse
 import os
+import time
 
 from mpi4py import MPI
 
@@ -80,6 +81,12 @@ output_filename = args.output_basename + ".{file_nr}.hdf5"
 os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
 if comm_rank == 0:
+    start_time = time.time()
+    print(f"Running with {comm_size} ranks")
+    print(f"snap_filename: {snap_filename}")
+    print(f"fof_filename: {fof_filename}")
+    print(f"output_filename: {output_filename}")
+    print(f"null_fof_id: {args.null_fof_id}")
     with h5py.File(snap_filename.format(file_nr=0), "r") as file:
         header = dict(file["Header"].attrs)
         coordinate_unit_attrs = dict(file["PartType1/Coordinates"].attrs)
@@ -309,7 +316,8 @@ if comm_rank == 0:
             for k, v in attrs[prop].items():
                 dset.attrs[k] = v
 
-    print("Done generating new files")
+    print("New files generated!")
+    print(f"Took {int(time.time() - start_time)} seconds")
 
     if args.n_test != 0:
         print("Testing we can load all particles")

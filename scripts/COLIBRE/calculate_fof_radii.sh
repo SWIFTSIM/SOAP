@@ -40,4 +40,7 @@ mpirun -- python -u misc/calculate_fof_radii.py \
   --fof-basename "${fof_basename}" \
   --output-basename "${output_basename}" \
 
+echo "Setting files to read-only"
+chmod a=r "${output_basename}"*
+
 echo "Job complete!"
