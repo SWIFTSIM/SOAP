@@ -4360,8 +4360,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
-        "HBTplus/SnapshotIndexOfBirth": Property(
-            name="HBTplus/SnapshotIndexOfBirth",
+        "HBTplus/SnapshotOfBirth": Property(
+            name="HBTplus/SnapshotOfBirth",
             shape=1,
             dtype=np.int64,
             unit="dimensionless",
@@ -4408,8 +4408,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
-        "HBTplus/SnapshotIndexOfLastMaxMass": Property(
-            name="HBTplus/SnapshotIndexOfLastMaxMass",
+        "HBTplus/SnapshotOfLastMaxMass": Property(
+            name="HBTplus/SnapshotOfLastMaxMass",
             shape=1,
             dtype=np.uint64,
             unit="dimensionless",
@@ -4432,12 +4432,24 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
-        "HBTplus/SnapshotIndexOfLastMaxVmax": Property(
-            name="HBTplus/SnapshotIndexOfLastMaxVmax",
+        "HBTplus/SnapshotOfLastMaxVmax": Property(
+            name="HBTplus/SnapshotOfLastMaxVmax",
             shape=1,
             dtype=np.uint64,
             unit="dimensionless",
             description="Latest snapshot when this subhalo had its largest maximum circular velocity.",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "HBTplus/SnapshotOfLastIsolation": Property(
+            name="HBTplus/SnapshotOfLastIsolation",
+            shape=1,
+            dtype=np.uint64,
+            unit="dimensionless",
+            description="Latest snapshot when this subhalo was a central. -1 if the subhalo has always been a central.",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
