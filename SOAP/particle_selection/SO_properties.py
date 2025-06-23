@@ -1936,6 +1936,43 @@ class SOParticleData:
         return self.gas_xraylum[self.gas_selection_core_excision].sum(axis=0)
 
     @lazy_property
+    def gas_selection_exclude_sat(self):
+        """
+        Mask which removes particles bound to satellites
+        """
+        if self.Ngas == 0:
+            return None
+        groupnr_bound = self.get_dataset("PartType0/GroupNr_bound")[self.gas_selection]
+        return (groupnr_bound == self.index) | (groupnr_bound == -1)
+
+    @lazy_property
+    def XRayLuminosityNoSat(self) -> unyt.unyt_array:
+        """
+        Total observer-frame X-ray luminosities of gas,
+        excluding those bound to satellites.
+
+        Note that this is an array, since there are multiple luminosity bands.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.gas_xraylum[self.gas_selection_exclude_sat].sum(axis=0)
+
+    @lazy_property
+    def XRayLuminosityCoreExcisionNoSat(self) -> unyt.unyt_array:
+        """
+        Total observer-frame X-ray luminosities of gas,
+        excluding contributions from gas particles in the inner core,
+        and those bound to satellites.
+
+        Note that this is an array, since there are multiple luminosity bands.
+        """
+
+        if self.Ngas_core_excision == 0:
+            return None
+        mask = self.gas_selection_exclude_sat & self.gas_selection_core_excision
+        return self.gas_xraylum[mask].sum(axis=0)
+
+    @lazy_property
     def Xrayphlum_core_excision(self) -> unyt.unyt_array:
         """
         Total observer-frame X-ray photon luminosities of gas particles,
@@ -3743,6 +3780,8 @@ class CoreExcisedSOProperties(SOProperties):
             "SpectroscopicLikeTemperature_core_excision",
             "SpectroscopicLikeTemperature_no_agn_core_excision",
             "Xraylum_core_excision",
+            "XRayLuminosityNoSat",
+            "XRayLuminosityCoreExcisionNoSat",
             "Xraylum_no_agn_core_excision",
             "Xrayphlum_core_excision",
             "Xrayphlum_no_agn_core_excision",
