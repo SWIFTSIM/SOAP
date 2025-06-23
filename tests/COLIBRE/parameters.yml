@@ -13,6 +13,8 @@ HaloFinder:
   type: HBTplus
   filename: "{sim_dir}/{sim_name}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
   fof_filename: "{sim_dir}/{sim_name}/fof/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
+  # TODO: Update to a run with potential energies stored
+  read_potential_energies: false
 
 # Where to find the group membership files
 GroupMembership:

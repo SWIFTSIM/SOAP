@@ -2202,23 +2202,15 @@ class SOParticleData:
         return numerator / denominator
 
     @lazy_property
-    def Ekin_gas(self) -> unyt.unyt_quantity:
+    def KineticEnergyGas(self) -> unyt.unyt_quantity:
         """
         Total kinetic energy of gas particles.
-
-        Note that we need to be careful with the units here to avoid numerical
-        overflow.
         """
         if self.Ngas == 0:
             return None
-        # below we need to force conversion to np.float64 before summing up particles
-        # to avoid overflow
-        ekin_gas = self.gas_masses * ((self.gas_vel - self.vcom_gas[None, :]) ** 2).sum(
-            axis=1
-        )
-        ekin_gas = unyt.unyt_array(
-            ekin_gas.value, dtype=np.float64, units=ekin_gas.units
-        )
+        v_gas = self.gas_vel - self.vcom[None, :]
+        v_gas += self.gas_pos * self.cosmology["H"]
+        ekin_gas = self.gas_masses * (v_gas**2).sum(axis=1)
         return 0.5 * ekin_gas.sum()
 
     @lazy_property
@@ -2235,7 +2227,7 @@ class SOParticleData:
         return self.get_dataset("PartType0/ElectronNumberDensities")[self.gas_selection]
 
     @lazy_property
-    def Etherm_gas(self) -> unyt.unyt_array:
+    def ThermalEnergyGas(self) -> unyt.unyt_array:
         """
         Total thermal energy of gas particles.
 
@@ -2244,9 +2236,6 @@ class SOParticleData:
          P = (gamma-1) * rho * u
         (with gamma=5/3) because some simulations (read: FLAMINGO) do not output
         the internal energies.
-
-        Note that we need to be careful with the units here to avoid numerical
-        overflow.
         """
         if self.Ngas == 0:
             return None
@@ -2255,9 +2244,6 @@ class SOParticleData:
             * self.gas_masses
             * self.get_dataset("PartType0/Pressures")[self.gas_selection]
             / self.gas_densities
-        )
-        etherm_gas = unyt.unyt_array(
-            etherm_gas.value, dtype=np.float64, units=etherm_gas.units
         )
         return etherm_gas.sum()
 
@@ -2390,23 +2376,16 @@ class SOParticleData:
         )
 
     @lazy_property
-    def Ekin_star(self) -> unyt.unyt_quantity:
+    def KineticEnergyStars(self) -> unyt.unyt_quantity:
         """
         Total kinetic energy of star particles.
-
-        Note that we need to be careful with units here to avoid numerical
-        overflow.
         """
         if self.Nstar == 0:
             return None
-        # below we need to force conversion to np.float64 before summing up particles
-        # to avoid overflow
-        ekin_star = self.star_masses * (
-            (self.star_vel - self.vcom_star[None, :]) ** 2
-        ).sum(axis=1)
-        ekin_star = unyt.unyt_array(
-            ekin_star.value, dtype=np.float64, units=ekin_star.units
-        )
+
+        v_star = self.star_vel - self.vcom[None, :]
+        v_star += self.star_pos * self.cosmology["H"]
+        ekin_star = self.star_masses * (v_star**2).sum(axis=1)
         return 0.5 * ekin_star.sum()
 
     @lazy_property
@@ -3306,7 +3285,6 @@ class SOProperties(HaloProperty):
             "Lgas",
             "com_gas",
             "vcom_gas",
-            #            "veldisp_matrix_gas",
             "gasmetalfrac",
             "Mhotgas",
             "Tgas",
@@ -3327,21 +3305,19 @@ class SOProperties(HaloProperty):
             "Xraylum_restframe_no_agn",
             "Xrayphlum_restframe_no_agn",
             "compY_no_agn",
-            "Ekin_gas",
-            "Etherm_gas",
+            "KineticEnergyGas",
+            "ThermalEnergyGas",
             "Mdm",
             "Ldm",
-            #            "veldisp_matrix_dm",
             "Mstar",
             "com_star",
             "vcom_star",
-            #            "veldisp_matrix_star",
             "Lstar",
             "Lstar_luminosity_weighted",
             "Mstar_init",
             "starmetalfrac",
             "StellarLuminosity",
-            "Ekin_star",
+            "KineticEnergyStars",
             "Lbaryons",
             "Mbh_dynamical",
             "Mbh_subgrid",

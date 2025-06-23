@@ -121,6 +121,9 @@ def get_soap_args(comm):
     args.scratch_dir = all_args["HaloProperties"]["chunk_dir"]
     args.halo_basename = all_args["HaloFinder"]["filename"]
     args.halo_format = all_args["HaloFinder"]["type"]
+    args.read_potential_energies = all_args["HaloFinder"].get(
+        "read_potential_energies", False
+    )
     args.fof_group_filename = all_args["HaloFinder"].get("fof_filename", "")
     args.fof_radius_filename = all_args["HaloFinder"].get("fof_radius_filename", "")
     args.output_file = all_args["HaloProperties"]["filename"]

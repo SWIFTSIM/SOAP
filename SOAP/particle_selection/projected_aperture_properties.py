@@ -1516,8 +1516,11 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Ngas == 0:
             return None
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == 0], self.gas_mass_HI, self.AtomicHydrogenMass
+            self.proj_radius[self.proj_type == 0],
+            self.gas_mass_HI,
+            self.AtomicHydrogenMass,
         )
+
     @lazy_property
     def HalfMassRadiusMolecularHydrogen(self) -> unyt.unyt_quantity:
         """
@@ -1526,7 +1529,9 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Ngas == 0:
             return None
         return get_half_mass_radius(
-            self.proj_radius[self.proj_type == 0], self.gas_mass_H2, self.MolecularHydrogenMass
+            self.proj_radius[self.proj_type == 0],
+            self.gas_mass_H2,
+            self.MolecularHydrogenMass,
         )
 
     @lazy_property

@@ -74,6 +74,7 @@ class SubhaloParticleData:
         snapshot_datasets: SnapshotDatasets,
         softening_of_parttype: unyt.unyt_array,
         boxsize: unyt.unyt_quantity,
+        cosmology: dict,
     ):
         """
         Constructor.
@@ -97,6 +98,8 @@ class SubhaloParticleData:
            appropriate aliases and column names.
          - boxsize: unyt.unyt_quantity
            Boxsize for correcting periodic boundary conditions
+         - cosmology: dict
+           Cosmological parameters required for SO calculation
         """
         self.input_halo = input_halo
         self.data = data
@@ -106,6 +109,7 @@ class SubhaloParticleData:
         self.snapshot_datasets = snapshot_datasets
         self.softening_of_parttype = softening_of_parttype
         self.boxsize = boxsize
+        self.cosmology = cosmology
         self.compute_basics()
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
@@ -817,6 +821,140 @@ class SubhaloParticleData:
         if self.Mtot == 0:
             return None
         return (self.total_mass_fraction[:, None] * self.velocity).sum(axis=0)
+
+    @lazy_property
+    def KineticEnergyTotal(self) -> unyt.unyt_quantity:
+        """
+        Total kinetic energy of all particles.
+        """
+        if self.Mtot == 0:
+            return None
+        v_tot = self.velocity - self.vcom[None, :]
+        v_tot += self.position * self.cosmology["H"]
+        ekin_tot = self.mass * (v_tot**2).sum(axis=1)
+        return 0.5 * ekin_tot.sum()
+
+    @lazy_property
+    def pressure_gas(self) -> unyt.unyt_array:
+        """
+        Pressure of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/Pressures")[self.gas_mask_all]
+
+    @lazy_property
+    def density_gas(self) -> unyt.unyt_array:
+        """
+        Density of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.get_dataset("PartType0/Densities")[self.gas_mask_all]
+
+    @lazy_property
+    def ThermalEnergyGas(self) -> unyt.unyt_array:
+        """
+        Total thermal energy of gas particles.
+
+        While this could be computed from PartType0/InternalEnergies, we use
+        the equation of state
+         P = (gamma-1) * rho * u
+        (with gamma=5/3) because some simulations (read: FLAMINGO) do not output
+        the internal energies.
+        """
+        if self.Ngas == 0:
+            return None
+        etherm_gas = 1.5 * self.mass_gas * self.pressure_gas / self.density_gas
+        return etherm_gas.sum()
+
+    @lazy_property
+    def potential_energy_gas(self) -> unyt.unyt_array:
+        """
+        Potential energy of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return (
+            self.mass_gas
+            * self.get_dataset("PartType0/SpecificPotentialEnergies")[self.gas_mask_all]
+        )
+
+    @lazy_property
+    def dm_mask_all(self) -> NDArray[bool]:
+        """
+        Mask that can be used to filter out DM particles that belong to this
+        subhalo in raw particle arrays, like PartType0/Masses.
+        """
+        return self.get_dataset(f"PartType1/GroupNr_bound") == self.index
+
+    @lazy_property
+    def potential_energy_dm(self) -> unyt.unyt_array:
+        """
+        Potential energy of the DM particles in the subhalo.
+        """
+        if self.Ndm == 0:
+            return None
+        return (
+            self.mass_dm
+            * self.get_dataset("PartType1/SpecificPotentialEnergies")[self.dm_mask_all]
+        )
+
+    @lazy_property
+    def potential_energy_star(self) -> unyt.unyt_array:
+        """
+        Potential energy of the star particles in the subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+        return (
+            self.mass_star
+            * self.get_dataset("PartType4/SpecificPotentialEnergies")[
+                self.star_mask_all
+            ]
+        )
+
+    @lazy_property
+    def potential_energy_bh(self) -> unyt.unyt_array:
+        """
+        Potential energy of the BH particles in the subhalo.
+        """
+        if self.Nbh == 0:
+            return None
+        return (
+            self.mass[self.bh_mask_sh]
+            * self.get_dataset("PartType5/SpecificPotentialEnergies")[self.bh_mask_all]
+        )
+
+    @lazy_property
+    def PotentialEnergyTotal(self) -> unyt.unyt_quantity:
+        """
+        Total potential energy of the subhalo.
+        """
+        if self.Mtot == 0:
+            return None
+        # Create unyt array with correct units
+        epot_tot = unyt.unyt_array(
+            0,
+            dtype=np.float32,
+            units=unyt.Unit("snap_mass", registry=self.mass.units.registry)
+            * (
+                unyt.Unit("snap_length", registry=self.mass.units.registry)
+                / unyt.Unit("snap_time", registry=self.mass.units.registry)
+            )
+            ** 2,
+        )
+        # Add contribution from each particle type
+        if self.Ngas != 0:
+            epot_tot += self.potential_energy_gas.sum()
+        if self.Ndm != 0:
+            epot_tot += self.potential_energy_dm.sum()
+        if self.Nstar != 0:
+            epot_tot += self.potential_energy_star.sum()
+        if self.Nbh != 0:
+            epot_tot += self.potential_energy_bh.sum()
+        # Factor of 2 since we should only be summing over each pair of particles
+        return epot_tot / 2
 
     @lazy_property
     def R_vmax_unsoft(self) -> unyt.unyt_quantity:
@@ -2081,6 +2219,9 @@ class SubhaloProperties(HaloProperty):
             "com",
             "com_star",
             "vcom",
+            "KineticEnergyTotal",
+            "ThermalEnergyGas",
+            "PotentialEnergyTotal",
             "Lgas",
             "Ldm",
             "Lstar",
@@ -2201,6 +2342,11 @@ class SubhaloProperties(HaloProperty):
         self.record_timings = parameters.record_property_timings
         self.boxsize = cellgrid.boxsize
 
+        self.cosmology = {}
+        self.cosmology["H"] = cellgrid.cosmology[
+            "H [internal units]"
+        ] / cellgrid.get_unit("code_time")
+
         # Minimum physical radius to read in (pMpc)
         self.physical_radius_mpc = 0.0
 
@@ -2275,6 +2421,7 @@ class SubhaloProperties(HaloProperty):
             self.snapshot_datasets,
             self.softening_of_parttype,
             self.boxsize,
+            self.cosmology,
         )
 
         # this is the halo type that we use for the filter particle numbers,
@@ -2288,6 +2435,26 @@ class SubhaloProperties(HaloProperty):
                 "BoundSubhalo/NumberOfBlackHoleParticles": part_props.Nbh,
             },
         )
+
+        # Check that we found the expected number of halo member particles:
+        # If not, we need to try again with a larger search radius.
+        # For HBT this should not happen since we use the radius of the most distant
+        # bound particle.
+        Ntot = part_props.Ngas + part_props.Ndm + part_props.Nstar + part_props.Nbh
+        Nexpected = input_halo["nr_bound_part"]
+        if Ntot < Nexpected:
+            # Try again with a larger search radius
+            # print(
+            #     f"Ntot = {Ntot}, Nexpected = {Nexpected}, search_radius = {search_radius}"
+            # )
+            raise SearchRadiusTooSmallError(
+                "Search radius does not contain expected number of particles!"
+            )
+        elif Ntot > Nexpected:
+            # This would indicate a bug somewhere
+            raise RuntimeError(
+                f'Found more particles than expected for halo {input_halo["index"]}'
+            )
 
         subhalo = {}
         timings = {}
@@ -2344,24 +2511,6 @@ class SubhaloProperties(HaloProperty):
                         assert np.max(np.abs(val.to(unit).value)) < float("inf"), err
                         subhalo[name] += val
                     timings[name] = time.time() - t0_calc
-
-        # Check that we found the expected number of halo member particles:
-        # If not, we need to try again with a larger search radius.
-        # For HBT this should not happen since we use the radius of the most distant
-        # bound particle.
-        Ntot = part_props.Ngas + part_props.Ndm + part_props.Nstar + part_props.Nbh
-        Nexpected = input_halo["nr_bound_part"]
-        if Ntot < Nexpected:
-            # Try again with a larger search radius
-            # print(f"Ntot = {Ntot}, Nexpected = {Nexpected}, search_radius = {search_radius}")
-            raise SearchRadiusTooSmallError(
-                "Search radius does not contain expected number of particles!"
-            )
-        elif Ntot > Nexpected:
-            # This would indicate a bug somewhere
-            raise RuntimeError(
-                f'Found more particles than expected for halo {input_halo["index"]}'
-            )
 
         # Add these properties to the output
         for name, prop in self.property_list.items():

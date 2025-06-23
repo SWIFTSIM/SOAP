@@ -158,8 +158,12 @@ class PropertyTable:
             "HalfMassRadiusStar",
         ],
         "footnote_satfrac.tex": ["Mfrac_satellites", "Mfrac_external"],
-        "footnote_Ekin.tex": ["Ekin_gas", "Ekin_star"],
-        "footnote_Etherm.tex": ["Etherm_gas"],
+        "footnote_Ekin.tex": [
+            "KineticEnergyGas",
+            "KineticEnergyStars",
+            "KineticEnergyTotal",
+        ],
+        "footnote_Etherm.tex": ["ThermalEnergyGas"],
         "footnote_Mnu.tex": ["Mnu", "MnuNS"],
         "footnote_Xray.tex": [
             "Xraylum",
@@ -215,9 +219,9 @@ class PropertyTable:
             "DiffuseIronMass",
         ],
         "footnote_concentration.tex": [
-            "concentration",
+            "concentration_unsoft",
             "concentration_soft",
-            "concentration_dmo",
+            "concentration_dmo_unsoft",
             "concentration_dmo_soft",
         ],
         "footnote_flow_rates.tex": [
@@ -1144,37 +1148,91 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
-        "Ekin_gas": Property(
+        "KineticEnergyGas": Property(
             name="KineticEnergyGas",
             shape=1,
-            dtype=np.float64,
+            dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**2",
             description="Total kinetic energy of the gas, relative to the gas centre of mass velocity.",
-            lossy_compression_filter="DMantissa9",
+            lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType0/Masses", "PartType0/Velocities"],
+            particle_properties=[
+                "PartType0/Masses",
+                "PartType0/Velocities",
+                "PartType0/Coordinates",
+            ],
             output_physical=True,
-            a_scale_exponent=-2,
+            a_scale_exponent=None,
         ),
-        "Ekin_star": Property(
+        "KineticEnergyStars": Property(
             name="KineticEnergyStars",
             shape=1,
-            dtype=np.float64,
+            dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**2",
             description="Total kinetic energy of the stars, relative to the stellar centre of mass velocity.",
-            lossy_compression_filter="DMantissa9",
+            lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType4/Masses", "PartType4/Velocities"],
+            particle_properties=[
+                "PartType4/Masses",
+                "PartType4/Velocities",
+                "PartType4/Coordinates",
+            ],
             output_physical=True,
-            a_scale_exponent=-2,
+            a_scale_exponent=None,
         ),
-        "Etherm_gas": Property(
+        "KineticEnergyTotal": Property(
+            name="KineticEnergyTotal",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_mass*snap_length**2/snap_time**2",
+            description="Total kinetic energy of the particles, relative to the centre of mass velocity.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Masses",
+                "PartType0/Velocities",
+                "PartType0/Coordinates",
+                "PartType1/Masses",
+                "PartType1/Velocities",
+                "PartType1/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Velocities",
+                "PartType4/Coordinates",
+                "PartType5/DynamicalMasses",
+                "PartType5/Velocities",
+                "PartType5/Coordinates",
+            ],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "PotentialEnergyTotal": Property(
+            name="PotentialEnergyTotal",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_mass*snap_length**2/snap_time**2",
+            description="Total potential energy of the subhalo.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/SpecificPotentialEnergies",
+                "PartType0/Masses",
+                "PartType1/SpecificPotentialEnergies",
+                "PartType1/Masses",
+                "PartType4/SpecificPotentialEnergies",
+                "PartType4/Masses",
+                "PartType5/SpecificPotentialEnergies",
+                "PartType5/DynamicalMasses",
+            ],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "ThermalEnergyGas": Property(
             name="ThermalEnergyGas",
             shape=1,
-            dtype=np.float64,
+            dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**2",
             description="Total thermal energy of the gas.",
-            lossy_compression_filter="DMantissa9",
+            lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
                 "PartType0/Densities",
@@ -1182,7 +1240,7 @@ class PropertyTable:
                 "PartType0/Masses",
             ],
             output_physical=True,
-            a_scale_exponent=-2,
+            a_scale_exponent=None,
         ),
         "GasInertiaTensor": Property(
             name="GasInertiaTensor",
@@ -4635,6 +4693,12 @@ class PropertyTable:
         self.parameters = parameters
         self.snipshot_parameters = snipshot_parameters
         self.units_cgs = units_cgs
+
+        # Check all footnotes actually correspond to a property in the table
+        for prop_names in self.explanation.values():
+            for prop_name in prop_names:
+                err_msg = f"{prop_name} missing from property_list"
+                assert prop_name in self.full_property_list, err_msg
 
     def get_footnotes(self, name: str):
         """
