@@ -120,12 +120,14 @@ ApertureProperties:
       snipshot: false
     GasMassInColdDenseGas: true
     GasTemperature: true
-    GasTemperatureWithoutRecentAGNHeating: true
+    GasTemperatureWithoutRecentAGNHeating: false
     GasVelocityDispersionMatrix: general
     HalfMassRadiusBaryons: general
     HalfMassRadiusDarkMatter: general
     HalfMassRadiusGas: general
     HalfMassRadiusDust: general
+    HalfMassRadiusAtomicHydrogen: true
+    HalfMassRadiusMolecularHydrogen: true
     HalfMassRadiusStars: true
     HalfLightRadiusStars: false
     HeliumMass: true
@@ -331,6 +333,8 @@ ProjectedApertureProperties:
     HalfMassRadiusDarkMatter: general
     HalfMassRadiusGas: general
     HalfMassRadiusDust: general
+    HalfMassRadiusAtomicHydrogen: true
+    HalfMassRadiusMolecularHydrogen: true
     HalfMassRadiusStars: true
     HalfLightRadiusStars: false
     HeliumMass: true
@@ -429,9 +433,7 @@ SOProperties:
     ComptonY:
       snapshot: true
       snipshot: false
-    ComptonYWithoutRecentAGNHeating:
-      snapshot: true
-      snipshot: false
+    ComptonYWithoutRecentAGNHeating: false
     Concentration: true
     ConcentrationUnsoftened: true
     DarkMatterConcentration: general
@@ -454,10 +456,16 @@ SOProperties:
       snipshot: false
     GasComptonYTemperature: false
     GasComptonYTemperatureWithoutRecentAGNHeating: false
+    GasComptonYTemperatureCoreExcision: false
+    GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision: false
     GasTemperature: true
-    GasTemperatureWithoutCoolGas: true
-    GasTemperatureWithoutCoolGasAndRecentAGNHeating: true
-    GasTemperatureWithoutRecentAGNHeating: true
+    GasTemperatureWithoutCoolGas: false
+    GasTemperatureWithoutCoolGasAndRecentAGNHeating: false
+    GasTemperatureWithoutRecentAGNHeating: false
+    GasTemperatureWithoutCoolGasCoreExcision: false
+    GasTemperatureCoreExcision: true
+    GasTemperatureWithoutCoolGasAndRecentAGNHeatingCoreExcision: false
+    GasTemperatureWithoutRecentAGNHeatingCoreExcision: false
     HotGasMass: true
     KineticEnergyGas: general
     KineticEnergyStars: general
@@ -529,21 +537,37 @@ SOProperties:
     XRayLuminosity:
       snapshot: true
       snipshot: false
-    XRayLuminosityWithoutRecentAGNHeating:
+    XRayLuminosityWithoutRecentAGNHeating: false
+    XRayLuminosityCoreExcision:
       snapshot: true
       snipshot: false
+    XRayLuminosityNoSat:
+      snapshot: true
+      snipshot: false
+    XRayLuminosityCoreExcisionNoSat:
+      snapshot: true
+      snipshot: false
+    XRayLuminosityWithoutRecentAGNHeatingCoreExcision: false
     XRayLuminosityInRestframe: false
     XRayLuminosityInRestframeWithoutRecentAGNHeating: false
+    XRayLuminosityInRestframeCoreExcision: false
+    XRayLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: false
     XRayPhotonLuminosity:
       snapshot: true
       snipshot: false
-    XRayPhotonLuminosityWithoutRecentAGNHeating:
+    XRayPhotonLuminosityWithoutRecentAGNHeating: false
+    XRayPhotonLuminosityCoreExcision:
       snapshot: true
       snipshot: false
+    XRayPhotonLuminosityWithoutRecentAGNHeatingCoreExcision: false
     XRayPhotonLuminosityInRestframe: false
     XRayPhotonLuminosityInRestframeWithoutRecentAGNHeating: false
+    XRayPhotonLuminosityInRestframeCoreExcision: false
+    XRayPhotonLuminosityInRestframeWithoutRecentAGNHeatingCoreExcision: false
     SpectroscopicLikeTemperature: true
-    SpectroscopicLikeTemperatureWithoutRecentAGNHeating: true
+    SpectroscopicLikeTemperatureWithoutRecentAGNHeating: false
+    SpectroscopicLikeTemperatureCoreExcision: true
+    SpectroscopicLikeTemperatureWithoutRecentAGNHeatingCoreExcision: false
     DarkMatterMassFlowRate: general
     ColdGasMassFlowRate: general
     CoolGasMassFlowRate: general
@@ -565,16 +589,20 @@ SOProperties:
     200_crit:
       type: crit
       value: 200.0
+      core_excision_fraction: 0.15
     200_mean:
       type: mean
       value: 200.0
+      core_excision_fraction: 0.15
     500_crit:
       type: crit
       value: 500.0
+      core_excision_fraction: 0.15
     BN98:
       type: BN98
       value: 0.0
       filter: general
+      core_excision_fraction: 0.15
 SubhaloProperties:
   properties:
     AngularMomentumBaryons: general
