@@ -32,10 +32,11 @@ import unyt
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
 from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum,
-    get_angular_momentum_and_kappa_corot,
+    get_angular_momentum_and_kappa_corot_mass_weighted,
+    get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
-    get_inertia_tensor,
 )
+from SOAP.property_calculation.inertia_tensors import get_inertia_tensor_mass_weighted
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 from SOAP.property_table import PropertyTable
 from SOAP.core.dataset_names import mass_dataset
@@ -627,7 +628,7 @@ class SOParticleData:
             return None
         mass = np.concatenate([self.mass, self.surrounding_mass], axis=0)
         position = np.concatenate([self.position, self.surrounding_position], axis=0)
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             mass, position, self.SO_r, search_radius=self.search_radius
         )
 
@@ -642,7 +643,7 @@ class SOParticleData:
             return None
         mass = np.concatenate([self.mass, self.surrounding_mass], axis=0)
         position = np.concatenate([self.position, self.surrounding_position], axis=0)
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             mass, position, self.SO_r, search_radius=self.search_radius, reduced=True
         )
 
@@ -654,7 +655,9 @@ class SOParticleData:
         """
         if self.Mtotpart == 0:
             return None
-        return get_inertia_tensor(self.mass, self.position, self.SO_r, max_iterations=1)
+        return get_inertia_tensor_mass_weighted(
+            self.mass, self.position, self.SO_r, max_iterations=1
+        )
 
     @lazy_property
     def TotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
@@ -664,7 +667,7 @@ class SOParticleData:
         """
         if self.Mtotpart == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.mass, self.position, self.SO_r, reduced=True, max_iterations=1
         )
 
@@ -758,11 +761,11 @@ class SOParticleData:
             self.internal_Lgas,
             _,
             self.internal_Mcountrot_gas,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.gas_masses,
             self.gas_pos,
             self.gas_vel,
-            ref_velocity=self.vcom_gas,
+            reference_velocity=self.vcom_gas,
             do_counterrot_mass=True,
         )
 
@@ -800,7 +803,7 @@ class SOParticleData:
         surrounding_position = self.surrounding_position[self.surrounding_types == 0]
         mass = np.concatenate([self.gas_masses, surrounding_mass], axis=0)
         position = np.concatenate([self.gas_pos, surrounding_position], axis=0)
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             mass, position, self.SO_r, search_radius=self.search_radius, **kwargs
         )
 
@@ -834,7 +837,7 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.gas_masses, self.gas_pos, self.SO_r, max_iterations=1
         )
 
@@ -846,7 +849,7 @@ class SOParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.gas_masses, self.gas_pos, self.SO_r, reduced=True, max_iterations=1
         )
 
@@ -917,7 +920,7 @@ class SOParticleData:
         surrounding_position = self.surrounding_position[self.surrounding_types == 1]
         mass = np.concatenate([self.dm_masses, surrounding_mass], axis=0)
         position = np.concatenate([self.dm_pos, surrounding_position], axis=0)
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             mass, position, self.SO_r, search_radius=self.search_radius, **kwargs
         )
 
@@ -951,7 +954,7 @@ class SOParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.dm_masses, self.dm_pos, self.SO_r, max_iterations=1
         )
 
@@ -963,7 +966,7 @@ class SOParticleData:
         """
         if self.Mdm == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.dm_masses, self.dm_pos, self.SO_r, reduced=True, max_iterations=1
         )
 
@@ -1036,12 +1039,38 @@ class SOParticleData:
             self.internal_Lstar,
             _,
             self.internal_Mcountrot_star,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.star_masses,
             self.star_pos,
             self.star_vel,
-            ref_velocity=self.vcom_star,
+            reference_velocity=self.vcom_star,
             do_counterrot_mass=True,
+        )
+
+    def compute_Lstar_luminosity_weighted_props(self):
+        """
+        Compute the angular momentum and related properties for star particles,
+        weighted by their luminosity in a given GAMA band.
+
+        We need this method because Lstar, kappa_star and Mcountrot_star are
+        computed together.
+        """
+
+        # Contrary to compute_Lstar_props, each of the output arrays contains a
+        # value for each GAMA filter, hence they will have shape (9,)
+        (
+            self.internal_Lstar_luminosity_weighted,
+            _,
+            self.internal_Mcountrot_star_luminosity_weighted,
+            self.internal_Lcountrot_star_luminosity_weighted,
+        ) = get_angular_momentum_and_kappa_corot_luminosity_weighted(
+            self.star_masses,
+            self.star_pos,
+            self.star_vel,
+            self.get_dataset("PartType4/Luminosities")[self.star_selection],
+            reference_velocity=self.vcom_star,
+            do_counterrot_mass=True,
+            do_counterrot_luminosity=True,
         )
 
     @lazy_property
@@ -1058,6 +1087,23 @@ class SOParticleData:
         return self.internal_Lstar
 
     @lazy_property
+    def Lstar_luminosity_weighted(self) -> unyt.unyt_array:
+        """
+        Luminosity-weighted angular momentum of star particles for different
+        luminosity bands. NOTE: we reshape the 2D array of shape
+        (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,)
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Lstar_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+        return self.internal_Lstar_luminosity_weighted.flatten()
+
+    @lazy_property
     def DtoTstar(self) -> unyt.unyt_quantity:
         """
         Disc to total mass ratio for star particles.
@@ -1070,6 +1116,47 @@ class SOParticleData:
             self.compute_Lstar_props()
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
 
+    @lazy_property
+    def DtoTstar_luminosity_weighted_luminosity_ratio(self) -> unyt.unyt_array:
+        """
+        Disk to total luminosity ratio for all provided stellar luminosity bands.
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Lcountrot_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return (
+            1.0
+            - 2.0
+            * self.internal_Lcountrot_star_luminosity_weighted
+            / self.StellarLuminosity
+        )
+
+    @lazy_property
+    def DtoTstar_luminosity_weighted_mass_ratio(self) -> unyt.unyt_array:
+        """
+        Disk to total mass ratio for all provided stellar luminosity bands.
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Mcountrot_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return 1.0 - 2.0 * self.internal_Mcountrot_star_luminosity_weighted / self.Mstar
+
     def stellar_inertia_tensor(self, **kwargs) -> unyt.unyt_array:
         """
         Helper function for calculating stellar inertia tensors
@@ -1078,7 +1165,7 @@ class SOParticleData:
         surrounding_position = self.surrounding_position[self.surrounding_types == 4]
         mass = np.concatenate([self.star_masses, surrounding_mass], axis=0)
         position = np.concatenate([self.star_pos, surrounding_position], axis=0)
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             mass, position, self.SO_r, search_radius=self.search_radius, **kwargs
         )
 
@@ -1112,7 +1199,7 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.star_masses, self.star_pos, self.SO_r, max_iterations=1
         )
 
@@ -1124,7 +1211,7 @@ class SOParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_inertia_tensor(
+        return get_inertia_tensor_mass_weighted(
             self.star_masses, self.star_pos, self.SO_r, reduced=True, max_iterations=1
         )
 
@@ -1329,7 +1416,7 @@ class SOParticleData:
             * self.get_dataset("PartType0/ElementMassFractions")[self.gas_selection][
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType0/ElementMassFractions", "Oxygen"
                 ),
             ]
         ).sum() / self.Mgas
@@ -1348,7 +1435,9 @@ class SOParticleData:
             self.gas_masses
             * self.get_dataset("PartType0/ElementMassFractions")[self.gas_selection][
                 :,
-                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/ElementMassFractions", "Iron"
+                ),
             ]
         ).sum() / self.Mgas
 
@@ -1847,6 +1936,43 @@ class SOParticleData:
         return self.gas_xraylum[self.gas_selection_core_excision].sum(axis=0)
 
     @lazy_property
+    def gas_selection_exclude_sat(self):
+        """
+        Mask which removes particles bound to satellites
+        """
+        if self.Ngas == 0:
+            return None
+        groupnr_bound = self.get_dataset("PartType0/GroupNr_bound")[self.gas_selection]
+        return (groupnr_bound == self.index) | (groupnr_bound == -1)
+
+    @lazy_property
+    def XRayLuminosityNoSat(self) -> unyt.unyt_array:
+        """
+        Total observer-frame X-ray luminosities of gas,
+        excluding those bound to satellites.
+
+        Note that this is an array, since there are multiple luminosity bands.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.gas_xraylum[self.gas_selection_exclude_sat].sum(axis=0)
+
+    @lazy_property
+    def XRayLuminosityCoreExcisionNoSat(self) -> unyt.unyt_array:
+        """
+        Total observer-frame X-ray luminosities of gas,
+        excluding contributions from gas particles in the inner core,
+        and those bound to satellites.
+
+        Note that this is an array, since there are multiple luminosity bands.
+        """
+
+        if self.Ngas_core_excision == 0:
+            return None
+        mask = self.gas_selection_exclude_sat & self.gas_selection_core_excision
+        return self.gas_xraylum[mask].sum(axis=0)
+
+    @lazy_property
     def Xrayphlum_core_excision(self) -> unyt.unyt_array:
         """
         Total observer-frame X-ray photon luminosities of gas particles,
@@ -2212,7 +2338,7 @@ class SOParticleData:
             * self.get_dataset("PartType4/ElementMassFractions")[self.star_selection][
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType4/ElementMassFractions", "Oxygen"
                 ),
             ]
         ).sum() / self.Mstar
@@ -2230,7 +2356,9 @@ class SOParticleData:
             self.star_masses
             * self.get_dataset("PartType4/ElementMassFractions")[self.star_selection][
                 :,
-                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType4/ElementMassFractions", "Iron"
+                ),
             ]
         ).sum() / self.Mstar
 
@@ -2730,7 +2858,6 @@ class SOParticleData:
                 0.3: self.vcom_thirty_percent,
                 1: self.vcom,
             }[R_frac]
-            mask = self.radius < R_frac * self.SO_r
 
             # This shouldn't happen, but HaloCentre doesn't actually need to
             # be on top of a particle
@@ -2833,9 +2960,11 @@ class SOParticleData:
         pos = self.get_dataset(f"PartType0/Coordinates") - self.centre[None, :]
         vel = self.get_dataset("PartType0/Velocities")
         i_H = self.snapshot_datasets.get_column_index(
-            "ElementMassFractions", "Hydrogen"
+            "PartType0/ElementMassFractions", "Hydrogen"
         )
-        i_HI = self.snapshot_datasets.get_column_index("SpeciesFractions", "HI")
+        i_HI = self.snapshot_datasets.get_column_index(
+            "PartType0/SpeciesFractions", "HI"
+        )
         mass = (
             self.get_dataset("PartType0/Masses")
             * self.get_dataset("PartType0/ElementMassFractions")[:, i_H]
@@ -2857,9 +2986,11 @@ class SOParticleData:
         pos = self.get_dataset(f"PartType0/Coordinates") - self.centre[None, :]
         vel = self.get_dataset("PartType0/Velocities")
         i_H = self.snapshot_datasets.get_column_index(
-            "ElementMassFractions", "Hydrogen"
+            "PartType0/ElementMassFractions", "Hydrogen"
         )
-        i_H2 = self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
+        i_H2 = self.snapshot_datasets.get_column_index(
+            "PartType0/SpeciesFractions", "H2"
+        )
         # Factor of two needed since we want mass fraction not number
         mass = (
             self.get_dataset("PartType0/Masses")
@@ -3098,6 +3229,7 @@ class SOProperties(HaloProperty):
     Each property should have a corresponding method/property/lazy_property in
     the SOParticleData class above.
     """
+    base_halo_type = "SOProperties"
     property_list = {
         name: PropertyTable.full_property_list[name]
         for name in [
@@ -3181,6 +3313,7 @@ class SOProperties(HaloProperty):
             "com_star",
             "vcom_star",
             "Lstar",
+            "Lstar_luminosity_weighted",
             "Mstar_init",
             "starmetalfrac",
             "StellarLuminosity",
@@ -3222,6 +3355,8 @@ class SOProperties(HaloProperty):
             "gasFefrac",
             "DtoTgas",
             "DtoTstar",
+            "DtoTstar_luminosity_weighted_luminosity_ratio",
+            "DtoTstar_luminosity_weighted_mass_ratio",
             "starOfrac",
             "starFefrac",
             "gasmetalfrac_SF",
@@ -3556,7 +3691,7 @@ class SOProperties(HaloProperty):
                                     registry=registry,
                                 )
                             else:
-                                err = f'Overflow for halo {input_halo["index"]} when'
+                                err = f'Overflow for halo {input_halo["index"]} when '
                                 err += f"calculating {name} in SO_properties"
                                 assert np.max(np.abs(val.to(unit).value)) < float(
                                     "inf"
@@ -3621,6 +3756,8 @@ class CoreExcisedSOProperties(SOProperties):
             "SpectroscopicLikeTemperature_core_excision",
             "SpectroscopicLikeTemperature_no_agn_core_excision",
             "Xraylum_core_excision",
+            "XRayLuminosityNoSat",
+            "XRayLuminosityCoreExcisionNoSat",
             "Xraylum_no_agn_core_excision",
             "Xrayphlum_core_excision",
             "Xrayphlum_no_agn_core_excision",

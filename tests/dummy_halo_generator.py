@@ -183,6 +183,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "ElectronNumberDensities",
                 "SpeciesFractions",
                 "DustMassFractions",
+                "TotalDustMassFractions",
                 "LastSNIIKineticFeedbackDensities",
                 "LastSNIIThermalFeedbackDensities",
                 "ElementMassFractionsDiffuse",
@@ -253,8 +254,8 @@ class DummySnapshotDatasets(SnapshotDatasets):
         }
 
         self.named_columns = {
-            "Luminosities": {"GAMA_r": 2},
-            "SmoothedElementMassFractions": {
+            "PartType4/Luminosities": {"GAMA_r": 2},
+            "PartType0/SmoothedElementMassFractions": {
                 "Hydrogen": 0,
                 "Helium": 1,
                 "Carbon": 2,
@@ -265,7 +266,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Silicon": 7,
                 "Iron": 8,
             },
-            "SpeciesFractions": {
+            "PartType0/SpeciesFractions": {
                 "elec": 0,
                 "HI": 1,
                 "HII": 2,
@@ -277,7 +278,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "H2p": 8,
                 "H3p": 9,
             },
-            "DustMassFractions": {
+            "PartType0/DustMassFractions": {
                 "GraphiteLarge": 0,
                 "MgSilicatesLarge": 1,
                 "FeSilicatesLarge": 2,
@@ -286,6 +287,9 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "FeSilicatesSmall": 5,
             },
         }
+        self.named_columns["PartType4/ElementMassFractions"] = self.named_columns[
+            "PartType0/SmoothedElementMassFractions"
+        ]
 
         self.dust_grain_composition = np.array(
             [
@@ -957,6 +961,12 @@ class DummyHaloGenerator:
                 10.0 ** (10.0 * np.random.random(Ngas) - 2.0),
                 dtype=np.float32,
                 units="snap_mass/(a**3*snap_length**3)",
+                registry=reg,
+            )
+            data["PartType0"]["TotalDustMassFractions"] = unyt.unyt_array(
+                np.random.random(Ngas),
+                dtype=np.float32,
+                units=unyt.dimensionless,
                 registry=reg,
             )
             dmf = np.zeros((Ngas, 6))

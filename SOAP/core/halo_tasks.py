@@ -5,11 +5,10 @@ import time
 import numpy as np
 import unyt
 
-from core import memory_use
-from core import shared_array
-from core.dataset_names import mass_dataset, ptypes_for_so_masses
-from particle_selection.halo_properties import SearchRadiusTooSmallError
-from property_table import PropertyTable
+from SOAP.core import memory_use, shared_array
+from SOAP.core.dataset_names import mass_dataset, ptypes_for_so_masses
+from SOAP.particle_selection.halo_properties import SearchRadiusTooSmallError
+from SOAP.property_table import PropertyTable
 
 
 # Factor by which to increase search radius when looking for density threshold

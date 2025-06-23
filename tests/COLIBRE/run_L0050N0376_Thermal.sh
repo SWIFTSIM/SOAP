@@ -15,13 +15,15 @@ module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
 source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Which simulation to do
-sim="L0025N0188/Thermal"
+sim="L0050N0376/Thermal"
 
 # Snapshot number to do
-snapnum=127
+snapnum=0127
 
-# Halo indices to do: all halos with x<1, y<1, and z<1 cMpc in snap 123
-halo_indices="1474 1668 1819 1995 2087 2114 2174 2314 2332 2386 2389 2390 2392 2439 2441 2444 2496 2498 2528 14937 78314"
+# Halo indices to do: all halos with x<3, y<3, and z<3 cMpc in snap 127
+halo_indices="2257 2664 3070 4086 4131 4307 5166 6418 6662 8644 9353 9480 10148 11102 11320 11902 12009 12123 13023 102778 312594 3251 4486 5352 5822 6682 8674 10975 12699 13133 64 10641 102411 1252 10511 1833 2524 5195 5756 5829 8224 10544 12046 195631 488 2576 4916 7732 7994 8008 8676 9320 10424 10506 10711 484989 10637"
+# Most massive objects by stellar mass
+# halo_indices="103157 570605 248813 485276 418106 315992  17677 570675 230431 605684"
 
 # Create parameters files
 python tests/COLIBRE/create_parameters_file.py

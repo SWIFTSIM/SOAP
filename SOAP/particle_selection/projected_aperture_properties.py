@@ -33,9 +33,15 @@ from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.dataset_names import mass_dataset
-from SOAP.property_calculation.half_mass_radius import get_half_mass_radius
+from SOAP.property_calculation.half_mass_radius import (
+    get_half_mass_radius,
+    get_half_light_radius,
+)
 from SOAP.property_table import PropertyTable
-from SOAP.property_calculation.kinematic_properties import get_projected_inertia_tensor
+from SOAP.property_calculation.inertia_tensors import (
+    get_projected_inertia_tensor_mass_weighted,
+    get_projected_inertia_tensor_luminosity_weighted,
+)
 
 
 class ProjectedApertureParticleData:
@@ -759,6 +765,18 @@ class SingleProjectionProjectedApertureParticleData:
         ) % self.part_props.boxsize
 
     @lazy_property
+    def com_star(self) -> unyt.unyt_array:
+        """
+        Centre of mass of star particles in the subhalo.
+        """
+        if self.Mstar == 0:
+            return None
+        return (
+            (self.star_mass_fraction[:, None] * self.proj_pos_star).sum(axis=0)
+            + self.centre
+        ) % self.part_props.boxsize
+
+    @lazy_property
     def vcom(self) -> unyt.unyt_array:
         """
         Centre of mass velocity of all particles in the projected aperture.
@@ -776,7 +794,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.part_props.mass,
             self.part_props.position,
             self.iproj,
@@ -792,7 +810,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.part_props.mass,
             self.part_props.position,
             self.iproj,
@@ -808,7 +826,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass,
             self.proj_position,
             self.iproj,
@@ -824,7 +842,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mtot == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass,
             self.proj_position,
             self.iproj,
@@ -862,7 +880,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         mass = self.part_props.mass[self.part_props.types == 0]
         position = self.part_props.position[self.part_props.types == 0]
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             mass, position, self.iproj, self.aperture_radius, **kwargs
         )
 
@@ -896,7 +914,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass_gas,
             self.proj_pos_gas,
             self.iproj,
@@ -912,7 +930,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mgas == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass_gas,
             self.proj_pos_gas,
             self.iproj,
@@ -973,8 +991,26 @@ class SingleProjectionProjectedApertureParticleData:
         """
         mass = self.part_props.mass[self.part_props.types == 4]
         position = self.part_props.position[self.part_props.types == 4]
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             mass, position, self.iproj, self.aperture_radius, **kwargs
+        )
+
+    def stellar_inertia_tensor_luminosity_weighted(self, **kwargs) -> unyt.unyt_array:
+        """
+        Helper function for calculating projected luminosity-weighted stellar inertia tensors
+        """
+        mass = self.part_props.mass[self.part_props.types == 4]
+        position = self.part_props.position[self.part_props.types == 4]
+
+        # self.stellar_luminosities correspond to bound particles within the
+        # initial aperture. In the iterative case we want all bound, regardless
+        # of whether they are within the initial projected aperture. Hence, we
+        # cannot use self.stellar_luminosities directly.
+        luminosity = self.part_props.get_dataset("PartType4/Luminosities")[
+            self.star_mask_all
+        ]
+        return get_projected_inertia_tensor_luminosity_weighted(
+            luminosity, position, self.iproj, self.aperture_radius, **kwargs
         )
 
     @lazy_property
@@ -1007,7 +1043,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass_star,
             self.proj_pos_star,
             self.iproj,
@@ -1023,8 +1059,69 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Mstar == 0:
             return None
-        return get_projected_inertia_tensor(
+        return get_projected_inertia_tensor_mass_weighted(
             self.proj_mass_star,
+            self.proj_pos_star,
+            self.iproj,
+            self.aperture_radius,
+            reduced=True,
+            max_iterations=1,
+        )
+
+    @lazy_property
+    def ProjectedStellarInertiaTensorLuminosityWeighted(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar luminosity distribution for each GAMA band in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor_luminosity_weighted()
+
+    @lazy_property
+    def ProjectedStellarInertiaTensorReducedLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar luminosity distribution for each GAMA band in projection.
+        Computed iteratively using an ellipse with area equal to that of a circle with radius
+        equal to the aperture radius. Only considers bound particles within the projected aperture.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor_luminosity_weighted(reduced=True)
+
+    @lazy_property
+    def ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar luminosity distribution for each GAMA band in projection.
+        Computed using all bound star particles within the projected aperture.
+        """
+        if self.Mstar == 0:
+            return None
+        return get_projected_inertia_tensor_luminosity_weighted(
+            self.stellar_luminosities,  # Bound and within initial aperture.
+            self.proj_pos_star,
+            self.iproj,
+            self.aperture_radius,
+            max_iterations=1,
+        )
+
+    @lazy_property
+    def ProjectedStellarInertiaTensorReducedNoniterativeLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar luminosity distribution for each GAMA band in projection.
+        Computed using all bound star particles within the projected aperture.
+        """
+        if self.Mstar == 0:
+            return None
+        return get_projected_inertia_tensor_luminosity_weighted(
+            self.stellar_luminosities,  # Bound and within initial aperture.
             self.proj_pos_star,
             self.iproj,
             self.aperture_radius,
@@ -1041,6 +1138,33 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Ngas == 0:
             return None
         return self.part_props.get_dataset("PartType0/GroupNr_bound") == self.index
+
+    @lazy_property
+    def gas_total_dust_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Total dust mass fractions in gas particles in the projection.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.part_props.get_dataset("PartType0/TotalDustMassFractions")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+
+    @lazy_property
+    def proj_mass_dust(self) -> unyt.unyt_array:
+        """
+        Dust masses of the gas particles in the subhalo.
+        """
+        return self.gas_total_dust_mass_fractions * self.proj_mass_gas
+
+    @lazy_property
+    def DustMass(self) -> unyt.unyt_quantity:
+        """
+        Total dust mass of the gas particles in the subhalo.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.proj_mass_dust.sum()
 
     @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
@@ -1156,7 +1280,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.gas_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Hydrogen"
+                    "PartType0/ElementMassFractions", "Hydrogen"
                 ),
             ]
             * self.proj_mass_gas
@@ -1173,7 +1297,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.gas_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Helium"
+                    "PartType0/ElementMassFractions", "Helium"
                 ),
             ]
             * self.proj_mass_gas
@@ -1202,7 +1326,7 @@ class SingleProjectionProjectedApertureParticleData:
             * self.gas_species_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "SpeciesFractions", "HI"
+                    "PartType0/SpeciesFractions", "HI"
                 ),
             ]
         )
@@ -1219,7 +1343,7 @@ class SingleProjectionProjectedApertureParticleData:
             * self.gas_species_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "SpeciesFractions", "H2"
+                    "PartType0/SpeciesFractions", "H2"
                 ),
             ]
             * 2.0
@@ -1283,7 +1407,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType4/ElementMassFractions", "Oxygen"
                 ),
             ]
             * self.proj_mass_star
@@ -1300,7 +1424,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Magnesium"
+                    "PartType4/ElementMassFractions", "Magnesium"
                 ),
             ]
             * self.proj_mass_star
@@ -1317,7 +1441,7 @@ class SingleProjectionProjectedApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.part_props.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Iron"
+                    "PartType4/ElementMassFractions", "Iron"
                 ),
             ]
             * self.proj_mass_star
@@ -1374,6 +1498,38 @@ class SingleProjectionProjectedApertureParticleData:
         )
 
     @lazy_property
+    def HalfMassRadiusDust(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the dust.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.proj_radius[self.proj_type == 0], self.proj_mass_dust, self.DustMass
+        )
+
+    @lazy_property
+    def HalfMassRadiusAtomicHydrogen(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the atomic hydrogen.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.proj_radius[self.proj_type == 0], self.gas_mass_HI, self.AtomicHydrogenMass
+        )
+    @lazy_property
+    def HalfMassRadiusMolecularHydrogen(self) -> unyt.unyt_quantity:
+        """
+        Half-mass radius of the molecular hydrogen.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.proj_radius[self.proj_type == 0], self.gas_mass_H2, self.MolecularHydrogenMass
+        )
+
+    @lazy_property
     def HalfMassRadiusDM(self) -> unyt.unyt_quantity:
         """
         Half mass radius of dark matter.
@@ -1389,6 +1545,19 @@ class SingleProjectionProjectedApertureParticleData:
         """
         return get_half_mass_radius(
             self.proj_radius[self.proj_type == 4], self.proj_mass_star, self.Mstar
+        )
+
+    @lazy_property
+    def HalfLightRadiusStar(self) -> unyt.unyt_array:
+        """
+        Half light radius of stars for the 9 GAMA bands.
+        """
+        if self.Nstar == 0:
+            return None
+        return get_half_light_radius(
+            self.proj_radius[self.proj_type == 4],
+            self.stellar_luminosities,
+            self.StellarLuminosity,
         )
 
     @lazy_property
@@ -1413,6 +1582,7 @@ class ProjectedApertureProperties(HaloProperty):
     the halo along the projection axis.
     """
 
+    base_halo_type = "ProjectedApertureProperties"
     # Properties to calculate. The key is the name of the property,
     # the value indicates the property has a direct dependence on aperture size.
     # This is needed since for larger apertures we sometimes copy across the
@@ -1426,18 +1596,24 @@ class ProjectedApertureProperties(HaloProperty):
         "Mstar_init": False,
         "Mbh_dynamical": False,
         "Mbh_subgrid": False,
+        "DustMass": True,
         "Ngas": False,
         "Ndm": False,
         "Nstar": False,
         "Nbh": False,
         "com": False,
+        "com_star": False,
         "vcom": False,
         "SFR": False,
         "AveragedStarFormationRate": False,
         "StellarLuminosity": False,
         "HalfMassRadiusGas": False,
+        "HalfMassRadiusDust": False,
+        "HalfMassRadiusAtomicHydrogen": False,
+        "HalfMassRadiusMolecularHydrogen": False,
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
+        "HalfLightRadiusStar": False,
         "HalfMassRadiusBaryon": False,
         "proj_veldisp_gas": False,
         "proj_veldisp_dm": False,
@@ -1469,15 +1645,19 @@ class ProjectedApertureProperties(HaloProperty):
         "ProjectedTotalInertiaTensor": True,
         "ProjectedGasInertiaTensor": True,
         "ProjectedStellarInertiaTensor": True,
+        "ProjectedStellarInertiaTensorLuminosityWeighted": True,
         "ProjectedTotalInertiaTensorReduced": True,
         "ProjectedGasInertiaTensorReduced": True,
         "ProjectedStellarInertiaTensorReduced": True,
+        "ProjectedStellarInertiaTensorReducedLuminosityWeighted": True,
         "ProjectedTotalInertiaTensorNoniterative": False,
         "ProjectedGasInertiaTensorNoniterative": False,
         "ProjectedStellarInertiaTensorNoniterative": False,
+        "ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted": False,
         "ProjectedTotalInertiaTensorReducedNoniterative": False,
         "ProjectedGasInertiaTensorReducedNoniterative": False,
         "ProjectedStellarInertiaTensorReducedNoniterative": False,
+        "ProjectedStellarInertiaTensorReducedNoniterativeLuminosityWeighted": False,
         "HydrogenMass": False,
         "HeliumMass": False,
         "MolecularHydrogenMass": False,
@@ -1497,7 +1677,8 @@ class ProjectedApertureProperties(HaloProperty):
         self,
         cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
-        physical_radius_kpc: float,
+        aperture_physical_radius_kpc: float | None,
+        aperture_property: tuple[str, float] | None,
         category_filter: CategoryFilter,
         halo_filter: str,
         all_radii_kpc: list,
@@ -1513,6 +1694,18 @@ class ProjectedApertureProperties(HaloProperty):
          - parameters: ParameterFile
            Parameter file object containing the parameters from the parameter
            file.
+         - aperture_physical_radius_kpc: float | None
+           Physical radius of the aperture. Unitless and assumed to be expressed
+           in units of kpc. If not None then aperture_property must be None.
+           If None then aperture_property must be passed.
+         - aperture_property: tuple[str, float] | None,
+           Tuple to indicate the radius of this aperture based on a previous property
+           calculated by SOAP. The first element should be the full name of the
+           property to use (e.g. BoundSubhalo/HalfMassRadius). The second element
+           is a multipler (e.g. if you want the aperture radius to be twice the
+           value of the property, then pass 2). If not None then
+           aperture_physical_radius_kpc must be None. If None then
+           aperture_physical_radius_kpc must be passed.
          - physical_radius_kpc: float
            Physical radius of the aperture. Unitless and assumed to be expressed
            in units of kpc.
@@ -1534,19 +1727,32 @@ class ProjectedApertureProperties(HaloProperty):
             [prop.name for prop in self.property_list.values()],
         )
 
-        # Minimum physical radius to read in (pMpc)
-        self.physical_radius_mpc = 0.001 * physical_radius_kpc
-
         self.category_filter = category_filter
         self.snapshot_datasets = cellgrid.snapshot_datasets
+        self.aperture_physical_radius_kpc = aperture_physical_radius_kpc
+        self.aperture_property = aperture_property
         self.halo_filter = halo_filter
         self.record_timings = parameters.record_property_timings
         self.all_radii_kpc = all_radii_kpc
         self.strict_halo_copy = parameters.strict_halo_copy()
         self.boxsize = cellgrid.boxsize
 
-        self.name = f"projected_aperture_{physical_radius_kpc:.0f}kpc"
-        self.group_name = f"ProjectedAperture/{self.physical_radius_mpc*1000.:.0f}kpc"
+        if self.aperture_physical_radius_kpc is not None:
+            aperture_name = f"{self.aperture_physical_radius_kpc:.0f}kpc"
+            self.physical_radius_mpc = 0.001 * self.aperture_physical_radius_kpc
+        else:
+            prop = self.aperture_property[0].split("/")[-1]
+            multiplier = self.aperture_property[1]
+            if multiplier == 1:
+                aperture_name = prop
+            else:
+                aperture_name = f"{int(multiplier)}x{prop}"
+            # This value needs to be set since it's used to guess the initial
+            # load region for each particle
+            self.physical_radius_mpc = 0
+
+        self.name = f"projected_aperture_{aperture_name}"
+        self.group_name = f"ProjectedAperture/{aperture_name}"
         self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
@@ -1612,9 +1818,12 @@ class ProjectedApertureProperties(HaloProperty):
         skip_gt_enclose_radius = False
         # Determine if the previous aperture already enclosed
         # all the bound particles of the subhalo
-        r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
-        i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
-        if i_radius != 0:
+        if self.aperture_physical_radius_kpc is not None:
+            i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
+        else:
+            i_radius = 0
+        if i_radius != 0 and ("BoundSubhalo/EncloseRadius" in halo_result):
+            r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
             r_previous_kpc = self.all_radii_kpc[i_radius - 1]
             if r_previous_kpc * unyt.kpc > r_enclose:
                 skip_gt_enclose_radius = True
@@ -1664,15 +1873,26 @@ class ProjectedApertureProperties(HaloProperty):
         # have copied over the values from the previous aperture)
         if do_calculation[self.halo_filter] and (not skip_gt_enclose_radius):
             # For projected apertures we are only using bound particles
-            # Therefore we don't need to check if the serach_radius is large enough,
+            # Therefore we don't need to check if the search_radius is large enough,
             # because all particles will have been loaded
+            if self.aperture_physical_radius_kpc is not None:
+                aperture_radius = self.aperture_physical_radius_kpc * unyt.kpc
+            else:
+                if self.aperture_property[0] not in halo_result:
+                    raise RuntimeError(
+                        f"{self.aperture_property[0]} must be enabled in the parameter file if you want to use it to define an aperture"
+                    )
+                aperture_radius = (
+                    self.aperture_property[1]
+                    * halo_result[self.aperture_property[0]][0]
+                )
 
             types_present = [type for type in self.particle_properties if type in data]
             part_props = ProjectedApertureParticleData(
                 input_halo,
                 data,
                 types_present,
-                self.physical_radius_mpc * unyt.Mpc,
+                aperture_radius,
                 self.snapshot_datasets,
                 self.boxsize,
             )
@@ -1715,7 +1935,7 @@ class ProjectedApertureProperties(HaloProperty):
                                     registry=registry,
                                 )
                             else:
-                                err = f'Overflow for halo {input_halo["index"]} when'
+                                err = f'Overflow for halo {input_halo["index"]} when '
                                 err += f"calculating {name} in projected_properties"
                                 assert np.max(np.abs(val.to(unit).value)) < float(
                                     "inf"

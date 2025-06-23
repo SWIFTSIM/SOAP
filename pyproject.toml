@@ -24,8 +24,7 @@ dependencies = [
     "h5py",
     "numpy>=2",
     "unyt>=3",
-    "astropy",
-    "numba",
+    "astropy>=6",
     "scipy",
     "matplotlib",
     "psutil",
@@ -35,6 +34,7 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     "pytest-mpi",
+    "numba",
 ]
 
 [project.urls]

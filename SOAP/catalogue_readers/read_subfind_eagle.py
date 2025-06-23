@@ -75,14 +75,23 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
     )
     data = sub_file.read(datasets)
 
-    # Create a halo index by combining the GroupNumber and SubGroupNumber
-    group = data["Subhalo/GroupNumber"]
-    sub_group = data["Subhalo/SubGroupNumber"]
-    index = group.astype(np.int64)
-    index <<= 32
-    index += sub_group
+    # Assign indexes to the subhalos
+    nr_local_halos = data["Subhalo/CentreOfPotential"].shape[0]
+    local_offset = comm.scan(nr_local_halos) - nr_local_halos
+    index = np.arange(nr_local_halos, dtype=int) + local_offset
     index = unyt.unyt_array(
-        index,
+        index, dtype=int, units=unyt.dimensionless, registry=registry
+    )
+
+    # Store GroupNumber and SubGroupNumber
+    group_nr = unyt.unyt_array(
+        data["Subhalo/GroupNumber"],
+        dtype=int,
+        units=unyt.dimensionless,
+        registry=registry,
+    )
+    sub_group_nr = unyt.unyt_array(
+        data["Subhalo/SubGroupNumber"],
         dtype=int,
         units=unyt.dimensionless,
         registry=registry,
@@ -116,6 +125,8 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
         "search_radius": search_radius,
         "is_central": is_central,
         "nr_bound_part": nr_bound_part,
+        "group_nr": group_nr,
+        "sub_group_nr": sub_group_nr,
     }
 
     for name in local_halo:

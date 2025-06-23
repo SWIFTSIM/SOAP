@@ -34,3 +34,5 @@ python SOAP/property_table.py \
     test_data/snap_0018.hdf5
 cd documentation
 pdflatex -halt-on-error SOAP.tex
+pdflatex -halt-on-error SOAP.tex
+cd ..

@@ -279,6 +279,10 @@ class PropertyTable:
             "LinearMassWeightedMagnesiumOverHydrogenOfStars",
             "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
         ],
+        "footnote_progenitor_descendant.tex": [
+            "SOAP/DescendantIndex",
+            "SOAP/ProgenitorIndex",
+        ],
     }
 
     # dictionary with human-friendly descriptions of the various lossy
@@ -839,6 +843,89 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
+        "DtoTstar_luminosity_weighted_luminosity_ratio": Property(
+            name="DiscToTotalLuminosityRatioLuminosityWeighted",
+            shape=9,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Fraction of the total stellar luminosity for each band that is in the disc. The band uses its own self-defined luminosity-weighted angular momentum",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Velocities",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "DustMass": Property(
+            name="DustMass",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_mass",
+            description="Total dust mass.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Masses",
+                "PartType0/TotalDustMassFractions",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "DtoTstar_luminosity_weighted_mass_ratio": Property(
+            name="DiscToTotalMassRatioLuminosityWeighted",
+            shape=9,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Fraction of the total stellar mass that is in the disc. Each band uses its own self-defined luminosity-weighted angular momentum",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Velocities",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "kappa_corot_star_luminosity_weighted": Property(
+            name="KappaCorotStarsLuminosityWeighted",
+            shape=9,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Kappa-corot for stars, relative to the centre of potential and the centre of mass velocity of the stars. A value is output for each of the saved luminosity bands, as each is used to define the luminosity-weighted angular momentum.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Velocities",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "Lstar_luminosity_weighted": Property(
+            name="AngularMomentumStarsLuminosityWeighted",
+            shape=27,  # 3D vector for each of the 9 GAMA bands
+            dtype=np.float32,
+            unit="snap_mass*snap_length**2/snap_time",
+            description="Luminosity-weighted total angular momentum of the stars, relative to the centre of potential and stellar centre of mass velocity. A different vector is computed for each of the saved luminosity bands.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Velocities",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=1,
+        ),
         "DustGraphiteMass": Property(
             name="DustGraphiteMass",
             shape=1,
@@ -856,7 +943,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in graphite grains in atomic gas.",
+            description="Total dust mass in graphite grains in atomic gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -873,7 +960,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in graphite grains in molecular gas.",
+            description="Total dust mass in graphite grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -919,7 +1006,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in large grains in molecular gas.",
+            description="Total dust mass in large grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -965,7 +1052,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in silicate grains in atomic gas.",
+            description="Total dust mass in silicate grains in atomic gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -982,7 +1069,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in silicate grains in molecular gas.",
+            description="Total dust mass in silicate grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1032,7 +1119,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Total dust mass in small grains in molecular gas.",
+            description="Total dust mass in small grains in molecular gas (estimated from hydrogen).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1232,6 +1319,56 @@ class PropertyTable:
             output_physical=False,
             a_scale_exponent=1,
         ),
+        "HalfMassRadiusDust": Property(
+            name="HalfMassRadiusDust",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Dust half mass radius.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType0/TotalDustMassFractions",
+            ],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
+        "HalfMassRadiusAtomicHydrogen": Property(
+            name="HalfMassRadiusAtomicHydrogen",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Atomic hydrogen half mass radius.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
+            ],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
+        "HalfMassRadiusMolecularHydrogen": Property(
+            name="HalfMassRadiusMolecularHydrogen",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Molecular hydrogen half mass radius.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
+            ],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         "HalfMassRadiusGas": Property(
             name="HalfMassRadiusGas",
             shape=1,
@@ -1253,6 +1390,22 @@ class PropertyTable:
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
+        "HalfLightRadiusStar": Property(
+            name="HalfLightRadiusStars",
+            shape=9,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Stellar half light radius in the 9 GAMA bands.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=False,
             a_scale_exponent=1,
         ),
@@ -1354,7 +1507,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of baryons (gas and stars), relative to the centre of potential and baryonic centre of mass velocity.",
+            description="Total angular momentum of baryons (gas and stars), relative to the HaloCentre and baryonic centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1373,7 +1526,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of the dark matter, relative to the centre of potential and DM centre of mass velocity.",
+            description="Total angular momentum of the dark matter, relative to the HaloCentre and DM centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[
@@ -1389,7 +1542,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of the gas, relative to the centre of potential and gas centre of mass velocity.",
+            description="Total angular momentum of the gas, relative to the HaloCentre and gas centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1444,7 +1597,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time",
-            description="Total angular momentum of the stars, relative to the centre of potential and stellar centre of mass velocity.",
+            description="Total angular momentum of the stars, relative to the HaloCentre and stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1992,6 +2145,70 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
+        "ProjectedStellarInertiaTensorLuminosityWeighted": Property(
+            name="ProjectedStellarInertiaTensorLuminosityWeighted",
+            shape=27,
+            dtype=np.float32,
+            unit="snap_length**2",
+            description="2D inertia tensor computed iteratively from the stellar luminosity distribution in different GAMA bands, relative to the halo centre. Diagonal components and one off-diagonal value as (1,1), (2,2), (1,2). Only calculated when we have more than 20 particles.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=2,
+        ),
+        "ProjectedStellarInertiaTensorReducedLuminosityWeighted": Property(
+            name="ProjectedStellarInertiaTensorReducedLuminosityWeighted",
+            shape=27,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Reduced 2D inertia tensor computed iteratively from the stellar luminosity distribution in different GAMA bands, relative to the halo centre. Diagonal components and one off-diagonal value as (1,1), (2,2), (1,2). Only calculated when we have more than 20 particles.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted": Property(
+            name="ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted",
+            shape=27,
+            dtype=np.float32,
+            unit="snap_length**2",
+            description="2D inertia tensor computed in a single iteration from the stellar luminosity distribution in different GAMA bands, relative to the halo centre. Diagonal components and one off-diagonal value as (1,1), (2,2), (1,2). Only calculated when we have more than 20 particles.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=2,
+        ),
+        "ProjectedStellarInertiaTensorReducedNoniterativeLuminosityWeighted": Property(
+            name="ProjectedStellarInertiaTensorReducedNoniterativeLuminosityWeighted",
+            shape=27,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Reduced 2D inertia tensor computed in a single iteration from the stellar luminosity distribution in different GAMA bands, relative to the halo centre. Diagonal components and one off-diagonal value as (1,1), (2,2), (1,2). Only calculated when we have more than 20 particles.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
         "SFR": Property(
             name="StarFormationRate",
             shape=1,
@@ -2061,6 +2278,70 @@ class PropertyTable:
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "StellarInertiaTensorLuminosityWeighted": Property(
+            name="StellarInertiaTensorLuminosityWeighted",
+            shape=54,  # 6 times each GAMA band
+            dtype=np.float32,
+            unit="snap_length**2",
+            description="3D inertia tensor computed iteratively from the stellar luminosity distribution, relative to the halo centre and for each GAMA band. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3). Only calculated when we have more than 20 particles.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=2,
+        ),
+        "StellarInertiaTensorReducedLuminosityWeighted": Property(
+            name="StellarInertiaTensorReducedLuminosityWeighted",
+            shape=54,  # 6 times each GAMA band
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Reduced 3D inertia tensor computed iteratively from the stellar luminosity distribution, relative to the halo centre and for each GAMA band. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3). Only calculated when we have more than 20 particles.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "StellarInertiaTensorNoniterativeLuminosityWeighted": Property(
+            name="StellarInertiaTensorNoniterativeLuminosityWeighted",
+            shape=54,  # 6 times each GAMA band
+            dtype=np.float32,
+            unit="snap_length**2",
+            description="3D inertia tensor computed in a single iteration from the stellar luminosity distribution, relative to the halo centre and for each GAMA band. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3). Only calculated when we have more than 20 particles.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
+            output_physical=True,
+            a_scale_exponent=2,
+        ),
+        "StellarInertiaTensorReducedNoniterativeLuminosityWeighted": Property(
+            name="StellarInertiaTensorReducedNoniterativeLuminosityWeighted",
+            shape=54,  # 6 times each GAMA band
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Reduced 3D inertia tensor computed in a single iteration from the stellar luminosity distribution, relative to the halo centre and for each GAMA band. Diagonal components and one off-diagonal triangle as (1,1), (2,2), (3,3), (1,2), (1,3), (2,3). Only calculated when we have more than 20 particles.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/Luminosities",
+            ],
             output_physical=True,
             a_scale_exponent=0,
         ),
@@ -2529,6 +2810,30 @@ class PropertyTable:
             lossy_compression_filter="DMantissa9",
             dmo_property=False,
             particle_properties=["PartType0/XrayLuminosities", "PartType0/Coordinates"],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "XRayLuminosityNoSat": Property(
+            name="XRayLuminosityNoSat",
+            shape=3,
+            dtype=np.float64,
+            unit="snap_mass*snap_length**2/snap_time**3",
+            description="Total observer-frame Xray luminosity in three bands. Excludes particles bound to satellites",
+            lossy_compression_filter="DMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType0/XrayLuminosities"],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "XRayLuminosityCoreExcisionNoSat": Property(
+            name="XRayLuminosityCoreExcisionNoSat",
+            shape=3,
+            dtype=np.float64,
+            unit="snap_mass*snap_length**2/snap_time**3",
+            description="Total observer-frame Xray luminosity in three bands. Excludes gas in the inner {core_excision}, and excludes particles bound to satellites",
+            lossy_compression_filter="DMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType0/XrayLuminosities"],
             output_physical=True,
             a_scale_exponent=None,
         ),
@@ -3169,6 +3474,18 @@ class PropertyTable:
             output_physical=False,
             a_scale_exponent=1,
         ),
+        "com_dm": Property(
+            name="DarkMatterCentreOfMass",
+            shape=3,
+            dtype=np.float64,
+            unit="snap_length",
+            description="Centre of mass of dark matter.",
+            lossy_compression_filter="DScale6",
+            dmo_property=False,
+            particle_properties=["PartType1/Coordinates", "PartType1/Masses"],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         "com_star": Property(
             name="StellarCentreOfMass",
             shape=3,
@@ -3298,7 +3615,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Kappa-corot for baryons (gas and stars), relative to the centre of potential and the centre of mass velocity of the baryons.",
+            description="Kappa-corot for baryons (gas and stars), relative to the HaloCentre and the centre of mass velocity of the baryons.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3317,7 +3634,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Kappa-corot for gas, relative to the centre of potential and the centre of mass velocity of the gas.",
+            description="Kappa-corot for gas, relative to the HaloCentre and the centre of mass velocity of the gas.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3333,7 +3650,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Kappa-corot for stars, relative to the centre of potential and the centre of mass velocity of the stars.",
+            description="Kappa-corot for stars, relative to the HaloCentre and the centre of mass velocity of the stars.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4097,6 +4414,31 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
+        # EAGLE SubFind properties
+        "SubfindEagle/group_nr": Property(
+            name="SubFind/GroupNumber",
+            shape=1,
+            dtype=np.uint64,
+            unit="dimensionless",
+            description="Group number of the host of this subhalo",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "SubfindEagle/sub_group_nr": Property(
+            name="SubFind/SubGroupNumber",
+            shape=1,
+            dtype=np.uint64,
+            unit="dimensionless",
+            description="Sub group number of this subhalo (within its host group)",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
         # HBT properties
         "HBTplus/Depth": Property(
             name="HBTplus/Depth",
@@ -4134,8 +4476,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
-        "HBTplus/SnapshotIndexOfBirth": Property(
-            name="HBTplus/SnapshotIndexOfBirth",
+        "HBTplus/SnapshotOfBirth": Property(
+            name="HBTplus/SnapshotOfBirth",
             shape=1,
             dtype=np.int64,
             unit="dimensionless",
@@ -4182,8 +4524,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
-        "HBTplus/SnapshotIndexOfLastMaxMass": Property(
-            name="HBTplus/SnapshotIndexOfLastMaxMass",
+        "HBTplus/SnapshotOfLastMaxMass": Property(
+            name="HBTplus/SnapshotOfLastMaxMass",
             shape=1,
             dtype=np.uint64,
             unit="dimensionless",
@@ -4206,8 +4548,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
-        "HBTplus/SnapshotIndexOfLastMaxVmax": Property(
-            name="HBTplus/SnapshotIndexOfLastMaxVmax",
+        "HBTplus/SnapshotOfLastMaxVmax": Property(
+            name="HBTplus/SnapshotOfLastMaxVmax",
             shape=1,
             dtype=np.uint64,
             unit="dimensionless",
@@ -4218,8 +4560,8 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
-        "HBTplus/SnapshotIndexOfLastIsolation": Property(
-            name="HBTplus/SnapshotIndexOfLastIsolation",
+        "HBTplus/SnapshotOfLastIsolation": Property(
+            name="HBTplus/SnapshotOfLastIsolation",
             shape=1,
             dtype=np.uint64,
             unit="dimensionless",
@@ -4267,6 +4609,18 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
+        "FOF/Radii": Property(
+            name="FOF/Radii",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Radius of the particle furthest from the FOF centre of mass. Zero for satellite and hostless subhalos. Missing for older runs.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         # SOAP properties
         "SOAP/SubhaloRankByBoundMass": Property(
             name="SOAP/SubhaloRankByBoundMass",
@@ -4285,7 +4639,7 @@ class PropertyTable:
             shape=1,
             dtype=np.int64,
             unit="dimensionless",
-            description="Index (within the SOAP arrays) of the top level parent of this subhalo. -1 for central subhalos.",
+            description="Index (within the SOAP arrays) of the top level parent of this subhalo. -1 for hostless halos.",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
@@ -4298,6 +4652,30 @@ class PropertyTable:
             dtype=np.int32,
             unit="dimensionless",
             description="Whether this halo is included in the reduced snapshot.",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "SOAP/ProgenitorIndex": Property(
+            name="SOAP/ProgenitorIndex",
+            shape=1,
+            dtype=np.int32,
+            unit="dimensionless",
+            description="Index (within the previous snapshot SOAP arrays) of the main progenitor of this subhalo.",
+            lossy_compression_filter="None",
+            dmo_property=True,
+            particle_properties=[],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "SOAP/DescendantIndex": Property(
+            name="SOAP/DescendantIndex",
+            shape=1,
+            dtype=np.int32,
+            unit="dimensionless",
+            description="Index (within the next snapshot SOAP arrays) of the main descendant of this subhalo.",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
@@ -4351,9 +4729,7 @@ class PropertyTable:
         # Get the property_filters dict, which says whether a property should be included,
         # and what category the property is in
         props = halo_property.property_list
-        base_halo_type = halo_type
-        if halo_type in ["ExclusiveSphereProperties", "InclusiveSphereProperties"]:
-            base_halo_type = "ApertureProperties"
+        base_halo_type = halo_property.base_halo_type
         if halo_type == "DummyProperties":
             property_filters = {
                 prop.name: prop.name.split("/")[0] for prop in props.values()
@@ -4464,7 +4840,7 @@ class PropertyTable:
             "dm",
             "star",
             "baryon",
-            "Input",
+            "InputHalos",
             "VR",
             "HBTplus",
             "FOF",
@@ -4503,6 +4879,8 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
             prop = self.properties[prop_name]
             footnotes = self.get_footnotes(prop_name)
             prop_outputname = f"{prop['name']}{footnotes}"
+            if prop_outputname.split("/")[0] in ["HBTplus", "VR", "FOF"]:
+                prop_outputname = "InputHalos/" + prop_outputname
             prop_outputname = word_wrap_name(prop_outputname)
             prop_shape = f'{prop["shape"]}'
             prop_dtype = prop["dtype"]
@@ -4625,35 +5003,55 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         variations_ES, variations_IS = {}, {}
         apertures = self.parameters.parameters.get("ApertureProperties", {})
         for _, variation in apertures.get("variations", {}).items():
-            if variation["inclusive"]:
-                variations_IS[int(variation["radius_in_kpc"])] = variation.get(
-                    "filter", "basic"
-                )
+            if "radius_in_kpc" in variation:
+                aperture_name = f'{int(variation["radius_in_kpc"])}kpc'
             else:
-                variations_ES[int(variation["radius_in_kpc"])] = variation.get(
-                    "filter", "basic"
-                )
+                prop = variation["property"].split("/")[-1]
+                multiplier = variation.get("radius_multiple", 1)
+                if multiplier == 1:
+                    aperture_name = prop
+                else:
+                    aperture_name = f"{int(multiplier)}x{prop}"
+            if variation["inclusive"]:
+                variations_IS[aperture_name] = variation.get("filter", "basic")
+            else:
+                variations_ES[aperture_name] = variation.get("filter", "basic")
         # Add ExclusiveSphere apertures to table in sorted order
-        for radius in sorted(variations_ES.keys()):
-            filter = "-" if variations_ES[radius] == "basic" else variations_ES[radius]
-            tablestr += f"\\verb+ExclusiveSphere/{radius}kpc+ & \\verb+exclusive_sphere_{radius}kpc+ & \\ding{{53}} & {filter} \\\\*\n"
+        for aperture_name in sorted(variations_ES.keys()):
+            filter = (
+                "-"
+                if variations_ES[aperture_name] == "basic"
+                else variations_ES[aperture_name]
+            )
+            tablestr += f"\\verb+ExclusiveSphere/{aperture_name}+ & \\verb+exclusive_sphere_{aperture_name}+ & \\ding{{53}} & {filter} \\\\*\n"
         # Add InclusiveSphere apertures to table in sorted order
         for radius in sorted(variations_IS.keys()):
-            filter = "-" if variations_IS[radius] == "basic" else variations_IS[radius]
-            tablestr += f"\\verb+InclusiveSphere/{radius}kpc+ & \\verb+inclusive_sphere_{radius}kpc+ & \\ding{{51}} & {filter} \\\\*\n"
+            filter = (
+                "-"
+                if variations_IS[aperture_name] == "basic"
+                else variations_IS[aperture_name]
+            )
+            tablestr += f"\\verb+InclusiveSphere/{aperture_name}+ & \\verb+inclusive_sphere_{aperture_name}+ & \\ding{{51}} & {filter} \\\\*\n"
         # Determine which projected apertures are present
         variations_proj = {}
         apertures = self.parameters.parameters.get("ProjectedApertureProperties", {})
         for _, variation in apertures.get("variations", {}).items():
-            variations_proj[int(variation["radius_in_kpc"])] = variation.get(
-                "filter", "basic"
-            )
+            if "radius_in_kpc" in variation:
+                aperture_name = f'{int(variation["radius_in_kpc"])}kpc'
+            else:
+                prop = variation["property"].split("/")[-1]
+                multiplier = variation.get("radius_multiple", 1)
+                if multiplier == 1:
+                    aperture_name = prop
+                else:
+                    aperture_name = f"{int(multiplier)}x{prop}"
+            variations_proj[aperture_name] = variation.get("filter", "basic")
         # Add ProjectedApertures to table in sorted order
         for radius in sorted(variations_proj.keys()):
             filter = (
                 "-" if variations_proj[radius] == "basic" else variations_proj[radius]
             )
-            tablestr += f"\\verb+ProjectedAperture/{radius}kpc/projP+ & \\verb+projected_aperture_{radius}kpc_projP+ & \\ding{{53}} & {filter} \\\\*\n"
+            tablestr += f"\\verb+ProjectedAperture/{aperture_name}/projP+ & \\verb+projected_aperture_{aperture_name}_projP+ & \\ding{{53}} & {filter} \\\\*\n"
         # Add others groups
         tablestr += f"\\verb+SOAP+ & \\verb+soap+ & - & - \\\\*\n"
         tablestr += f"\\verb+InputHalos+ & \\verb+input_halos+ & - & - \\\\*\n"
@@ -4690,8 +5088,10 @@ class DummyProperties:
     category (e.g. we have 'VR/ID' instead of 'ID')
     """
 
+    base_halo_type = "DummyProperties"
+
     def __init__(self, halo_finder):
-        categories = ["SOAP", "Input", halo_finder]
+        categories = ["SOAP", "InputHalos", halo_finder]
         # Currently FOF properties are only stored for HBT
         if halo_finder == "HBTplus":
             categories += ["FOF"]
@@ -4700,6 +5100,70 @@ class DummyProperties:
             for name, prop in PropertyTable.full_property_list.items()
             if prop.name.split("/")[0] in categories
         }
+
+
+def get_parameter_file_all_properties():
+    """
+    Returns a parameter file that can be used to generate a full list of
+    available properties in SOAP, and also return a standard unit_cgs dict
+    """
+    mock_parameters = {
+        "HaloFinder": {"type": "HBTplus"},
+        "ApertureProperties": {"properties": {}, "variations": {}},
+        "ProjectedApertureProperties": {"properties": {}, "variations": {}},
+        "SOProperties": {"properties": {}, "variations": {}},
+        "SubhaloProperties": {"properties": {}},
+        "filters": {
+            "general": {
+                "limit": 100,
+                "properties": [
+                    "BoundSubhalo/NumberOfGasParticles",
+                    "BoundSubhalo/NumberOfDarkMatterParticles",
+                    "BoundSubhalo/NumberOfStarParticles",
+                    "BoundSubhalo/NumberOfBlackHoleParticles",
+                ],
+                "combine_properties": "sum",
+            },
+            "baryon": {
+                "limit": 100,
+                "properties": [
+                    "BoundSubhalo/NumberOfGasParticles",
+                    "BoundSubhalo/NumberOfStarParticles",
+                ],
+                "combine_properties": "sum",
+            },
+            "dm": {
+                "limit": 100,
+                "properties": ["BoundSubhalo/NumberOfDarkMatterParticles"],
+            },
+            "gas": {"limit": 100, "properties": ["BoundSubhalo/NumberOfGasParticles"]},
+            "star": {
+                "limit": 100,
+                "properties": ["BoundSubhalo/NumberOfStarParticles"],
+            },
+        },
+        "calculations": {
+            "calculate_missing_properties": True,
+            "min_read_radius_cmpc": 5,
+        },
+    }
+    os.makedirs("test_data", exist_ok=True)
+    with open("test_data/mock_parameter_file.yml", "w") as file:
+        yaml.dump(mock_parameters, file)
+    parameters = ParameterFile(
+        file_name="test_data/mock_parameter_file.yml", snipshot=False
+    )
+    snipshot_parameters = ParameterFile(
+        file_name="test_data/mock_parameter_file.yml", snipshot=True
+    )
+    units_cgs = {
+        "Unit current in cgs (U_I)": 1.0,
+        "Unit length in cgs (U_L)": 3.08567758e24,
+        "Unit mass in cgs (U_M)": 1.98841e43,
+        "Unit temperature in cgs (U_T)": 1.0,
+        "Unit time in cgs (U_t)": 3.08567758e19,
+    }
+    return parameters, snipshot_parameters, units_cgs
 
 
 if __name__ == "__main__":
@@ -4715,6 +5179,7 @@ if __name__ == "__main__":
 
     import sys
     import h5py
+    import yaml
 
     from core.parameter_file import ParameterFile
 
@@ -4734,39 +5199,41 @@ if __name__ == "__main__":
     try:
         parameters = ParameterFile(file_name=sys.argv[1], snipshot=False)
         snipshot_parameters = ParameterFile(file_name=sys.argv[1], snipshot=True)
-    except IndexError:
-        print("A valid parameter file was not passed.")
-        exit()
 
-    # Parse snapshot file to extract base units
-    try:
-        with h5py.File(sys.argv[2]) as snap:
-            units_cgs = {
-                name: float(value[0]) for name, value in snap["Units"].attrs.items()
-            }
-            unyt.define_unit(
-                "snap_length",
-                units_cgs["Unit length in cgs (U_L)"] * unyt.cm,
-                tex_repr="\\rm{L}",
-            )
-            unyt.define_unit(
-                "snap_mass",
-                units_cgs["Unit mass in cgs (U_M)"] * unyt.g,
-                tex_repr="\\rm{M}",
-            )
-            unyt.define_unit(
-                "snap_time",
-                units_cgs["Unit time in cgs (U_t)"] * unyt.s,
-                tex_repr="\\rm{t}",
-            )
-            unyt.define_unit(
-                "snap_temperature",
-                units_cgs["Unit temperature in cgs (U_T)"] * unyt.K,
-                tex_repr="\\rm{T}",
-            )
+        # Parse snapshot file to extract base units
+        try:
+            with h5py.File(sys.argv[2]) as snap:
+                units_cgs = {
+                    name: float(value[0]) for name, value in snap["Units"].attrs.items()
+                }
+        except IndexError:
+            print("No snapshot file passed.")
+            exit()
+
     except IndexError:
-        print("No snapshot file passed.")
-        exit()
+        print("No parameter file passed. Outputting all possible properties")
+        parameters, snipshot_parameters, units_cgs = get_parameter_file_all_properties()
+
+    unyt.define_unit(
+        "snap_length",
+        units_cgs["Unit length in cgs (U_L)"] * unyt.cm,
+        tex_repr="\\rm{L}",
+    )
+    unyt.define_unit(
+        "snap_mass",
+        units_cgs["Unit mass in cgs (U_M)"] * unyt.g,
+        tex_repr="\\rm{M}",
+    )
+    unyt.define_unit(
+        "snap_time",
+        units_cgs["Unit time in cgs (U_t)"] * unyt.s,
+        tex_repr="\\rm{t}",
+    )
+    unyt.define_unit(
+        "snap_temperature",
+        units_cgs["Unit temperature in cgs (U_T)"] * unyt.K,
+        tex_repr="\\rm{T}",
+    )
     # Define scale factor unit
     unyt.define_unit("a", 1 * unyt.dimensionless, tex_repr="\\rm{a}")
 

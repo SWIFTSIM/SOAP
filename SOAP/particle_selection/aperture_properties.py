@@ -141,11 +141,15 @@ import unyt
 
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
 from SOAP.core.dataset_names import mass_dataset
-from SOAP.property_calculation.half_mass_radius import get_half_mass_radius
+from SOAP.property_calculation.half_mass_radius import (
+    get_half_mass_radius,
+    get_half_light_radius,
+)
 from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
     get_angular_momentum,
-    get_angular_momentum_and_kappa_corot,
+    get_angular_momentum_and_kappa_corot_mass_weighted,
+    get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
 )
 
@@ -399,6 +403,13 @@ class ApertureParticleData:
         return self.mass[self.type == 0]
 
     @lazy_property
+    def mass_dust(self) -> unyt.unyt_array:
+        """
+        Dust mass of the gas particles.
+        """
+        return self.gas_total_dust_mass_fractions * self.mass[self.type == 0]
+
+    @lazy_property
     def mass_dm(self) -> unyt.unyt_array:
         """
         Mass of the DM particles.
@@ -602,7 +613,7 @@ class ApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType4/ElementMassFractions", "Oxygen"
                 ),
             ]
             * self.mass_star
@@ -619,7 +630,7 @@ class ApertureParticleData:
             self.star_element_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Magnesium"
+                    "PartType4/ElementMassFractions", "Magnesium"
                 ),
             ]
             * self.mass_star
@@ -635,7 +646,9 @@ class ApertureParticleData:
         return (
             self.star_element_fractions[
                 :,
-                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType4/ElementMassFractions", "Iron"
+                ),
             ]
             * self.mass_star
         )
@@ -718,7 +731,8 @@ class ApertureParticleData:
         if self.Nstar == 0:
             return None
         Lr = self.stellar_luminosities[
-            :, self.snapshot_datasets.get_column_index("Luminosities", "GAMA_r")
+            :,
+            self.snapshot_datasets.get_column_index("PartType4/Luminosities", "GAMA_r"),
         ]
         Lrtot = Lr.sum()
         if Lrtot == 0:
@@ -1113,11 +1127,11 @@ class ApertureParticleData:
             self.internal_Lgas,
             self.internal_kappa_gas,
             self.internal_Mcountrot_gas,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.mass_gas,
             self.pos_gas,
             self.vel_gas,
-            ref_velocity=self.vcom_gas,
+            reference_velocity=self.vcom_gas,
             do_counterrot_mass=True,
         )
 
@@ -1228,6 +1242,17 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def com_dm(self) -> unyt.unyt_array:
+        """
+        Centre of mass of DM particles in the aperture.
+        """
+        if self.Mdm == 0:
+            return None
+        return (
+            (self.dm_mass_fraction[:, None] * self.pos_dm).sum(axis=0) + self.centre
+        ) % self.boxsize
+
+    @lazy_property
     def com_star(self) -> unyt.unyt_array:
         """
         Centre of mass of star particles in the aperture.
@@ -1258,12 +1283,38 @@ class ApertureParticleData:
             self.internal_Lstar,
             self.internal_kappa_star,
             self.internal_Mcountrot_star,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.mass_star,
             self.pos_star,
             self.vel_star,
-            ref_velocity=self.vcom_star,
+            reference_velocity=self.vcom_star,
             do_counterrot_mass=True,
+        )
+
+    def compute_Lstar_luminosity_weighted_props(self):
+        """
+        Compute the angular momentum and related properties for star particles,
+        weighted by their luminosity in a given GAMA band.
+
+        We need this method because Lstar, kappa_star and Mcountrot_star are
+        computed together.
+        """
+
+        # Contrary to compute_Lstar_props, each of the output arrays contains a
+        # value for each GAMA filter, hence they will have shape (9,)
+        (
+            self.internal_Lstar_luminosity_weighted,
+            self.internal_kappa_star_luminosity_weighted,
+            self.internal_Mcountrot_star_luminosity_weighted,
+            self.internal_Lcountrot_star_luminosity_weighted,
+        ) = get_angular_momentum_and_kappa_corot_luminosity_weighted(
+            self.mass_star,
+            self.pos_star,
+            self.vel_star,
+            self.stellar_luminosities,
+            reference_velocity=self.vcom_star,
+            do_counterrot_mass=True,
+            do_counterrot_luminosity=True,
         )
 
     @lazy_property
@@ -1281,6 +1332,23 @@ class ApertureParticleData:
         return self.internal_Lstar
 
     @lazy_property
+    def Lstar_luminosity_weighted(self) -> unyt.unyt_array:
+        """
+        Luminosity-weighted angular momentum of star particles for different
+        luminosity bands. NOTE: we reshape the 2D array of shape
+        (number_luminosity_bans, 3) to a 1D array of shape  (number_luminosity_bans * 3,)
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Lstar_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+        return self.internal_Lstar_luminosity_weighted.flatten()
+
+    @lazy_property
     def kappa_corot_star(self) -> unyt.unyt_quantity:
         """
         Kinetic energy fraction of co-rotating star particles.
@@ -1295,6 +1363,23 @@ class ApertureParticleData:
         return self.internal_kappa_star
 
     @lazy_property
+    def kappa_corot_star_luminosity_weighted(self) -> unyt.unyt_array:
+        """
+        Kinetic energy fraction of co-rotating star particles, measured for
+        different luminosity-weighted angular momentum vectors.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_kappa_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return self.internal_kappa_star_luminosity_weighted
+
+    @lazy_property
     def DtoTstar(self) -> unyt.unyt_quantity:
         """
         Disk to total ratio of the stars.
@@ -1307,6 +1392,47 @@ class ApertureParticleData:
         if not hasattr(self, "internal_Mcountrot_star"):
             self.compute_Lstar_props()
         return 1.0 - 2.0 * self.internal_Mcountrot_star / self.Mstar
+
+    @lazy_property
+    def DtoTstar_luminosity_weighted_luminosity_ratio(self) -> unyt.unyt_array:
+        """
+        Disk to total luminosity ratio for all provided stellar luminosity bands.
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Lcountrot_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return (
+            1.0
+            - 2.0
+            * self.internal_Lcountrot_star_luminosity_weighted
+            / self.StellarLuminosity
+        )
+
+    @lazy_property
+    def DtoTstar_luminosity_weighted_mass_ratio(self) -> unyt.unyt_array:
+        """
+        Disk to total mass ratio for all provided stellar luminosity bands.
+        Each band uses the luminosity-weighted angular momentum as defined in that
+        band.
+
+        This is computed together with Lstar_luminosity_weighted, kappa_star_luminosity_weighted,
+        Mcountrot_star_luminosity_weighted and Lcountrot_star_luminosity_weighted
+        by compute_Lstar_luminosity_weighted_props().
+        """
+        if self.Nstar == 0:
+            return None
+        if not hasattr(self, "internal_Mcountrot_star_luminosity_weighted"):
+            self.compute_Lstar_luminosity_weighted_props()
+
+        return 1.0 - 2.0 * self.internal_Mcountrot_star_luminosity_weighted / self.Mstar
 
     @lazy_property
     def veldisp_matrix_star(self) -> unyt.unyt_array:
@@ -1360,11 +1486,11 @@ class ApertureParticleData:
         (
             self.internal_Lbar,
             self.internal_kappa_bar,
-        ) = get_angular_momentum_and_kappa_corot(
+        ) = get_angular_momentum_and_kappa_corot_mass_weighted(
             self.mass_baryons,
             self.pos_baryons,
             self.vel_baryons,
-            ref_velocity=self.vcom_bar,
+            reference_velocity=self.vcom_bar,
         )
 
     @lazy_property
@@ -1541,7 +1667,7 @@ class ApertureParticleData:
             ][
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType0/ElementMassFractions", "Oxygen"
                 ),
             ]
         )
@@ -1577,7 +1703,9 @@ class ApertureParticleData:
                 self.gas_mask_ap
             ][
                 :,
-                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/ElementMassFractions", "Iron"
+                ),
             ]
         )
 
@@ -1685,7 +1813,7 @@ class ApertureParticleData:
             self.gas_element_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Hydrogen"
+                    "PartType0/ElementMassFractions", "Hydrogen"
                 ),
             ]
             * self.mass_gas
@@ -1702,7 +1830,7 @@ class ApertureParticleData:
             self.gas_element_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Helium"
+                    "PartType0/ElementMassFractions", "Helium"
                 ),
             ]
             * self.mass_gas
@@ -1729,7 +1857,10 @@ class ApertureParticleData:
         return (
             self.gas_mass_H
             * self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "HI")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "HI"
+                ),
             ]
         )
 
@@ -1743,7 +1874,10 @@ class ApertureParticleData:
         return (
             self.gas_mass_H
             * self.gas_species_fractions[
-                :, self.snapshot_datasets.get_column_index("SpeciesFractions", "H2")
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
             ]
             * 2.0
         )
@@ -1785,15 +1919,39 @@ class ApertureParticleData:
         return self.gas_mass_HI.sum()
 
     @lazy_property
+    def DustMass(self) -> unyt.unyt_quantity:
+        """
+        Total dust mass in gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return self.mass_dust.sum()
+
+    @lazy_property
+    def gas_total_dust_mass_fractions(self) -> unyt.unyt_array:
+        """
+        Total dust mass fractions in gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        mass_frac = self.get_dataset("PartType0/TotalDustMassFractions")[
+            self.gas_mask_all
+        ][self.gas_mask_ap]
+        mass_frac[mass_frac < 10 ** (-10)] = 0 * unyt.dimensionless
+        return mass_frac
+
+    @lazy_property
     def gas_dust_mass_fractions(self) -> unyt.unyt_array:
         """
         Dust mass fractions in gas particles.
         """
         if self.Ngas == 0:
             return None
-        return self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][
+        mass_frac = self.get_dataset("PartType0/DustMassFractions")[self.gas_mask_all][
             self.gas_mask_ap
         ]
+        mass_frac[mass_frac < 10 ** (-10)] = 0 * unyt.dimensionless
+        return mass_frac
 
     @lazy_property
     def gas_dust_mass_fractions_graphite_large(self) -> unyt.unyt_array:
@@ -1805,7 +1963,7 @@ class ApertureParticleData:
         return self.gas_dust_mass_fractions[
             :,
             self.snapshot_datasets.get_column_index(
-                "DustMassFractions", "GraphiteLarge"
+                "PartType0/DustMassFractions", "GraphiteLarge"
             ),
         ]
 
@@ -1820,13 +1978,13 @@ class ApertureParticleData:
             self.gas_dust_mass_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "DustMassFractions", "MgSilicatesLarge"
+                    "PartType0/DustMassFractions", "MgSilicatesLarge"
                 ),
             ]
             + self.gas_dust_mass_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "DustMassFractions", "FeSilicatesLarge"
+                    "PartType0/DustMassFractions", "FeSilicatesLarge"
                 ),
             ]
         )
@@ -1841,7 +1999,7 @@ class ApertureParticleData:
         return self.gas_dust_mass_fractions[
             :,
             self.snapshot_datasets.get_column_index(
-                "DustMassFractions", "GraphiteSmall"
+                "PartType0/DustMassFractions", "GraphiteSmall"
             ),
         ]
 
@@ -1856,13 +2014,13 @@ class ApertureParticleData:
             self.gas_dust_mass_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "DustMassFractions", "MgSilicatesSmall"
+                    "PartType0/DustMassFractions", "MgSilicatesSmall"
                 ),
             ]
             + self.gas_dust_mass_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "DustMassFractions", "FeSilicatesSmall"
+                    "PartType0/DustMassFractions", "FeSilicatesSmall"
                 ),
             ]
         )
@@ -1942,7 +2100,16 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_graphite_mass_fractions * self.gas_mass_HI).sum()
+        atomic_gas_mass = (
+            self.gas_species_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "HI"
+                ),
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_graphite_mass_fractions * atomic_gas_mass).sum()
 
     @lazy_property
     def DustGraphiteMassInMolecularGas(self) -> unyt.unyt_quantity:
@@ -1951,7 +2118,17 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_graphite_mass_fractions * self.gas_mass_H2).sum()
+        molecular_gas_mass = (
+            2
+            * self.gas_species_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_graphite_mass_fractions * molecular_gas_mass).sum()
 
     @lazy_property
     def DustGraphiteMassInColdDenseGas(self) -> unyt.unyt_quantity:
@@ -1981,7 +2158,16 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_silicates_mass_fractions * self.gas_mass_HI).sum()
+        atomic_gas_mass = (
+            self.gas_species_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "HI"
+                ),
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_silicates_mass_fractions * atomic_gas_mass).sum()
 
     @lazy_property
     def DustSilicatesMassInMolecularGas(self) -> unyt.unyt_quantity:
@@ -1990,7 +2176,17 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_silicates_mass_fractions * self.gas_mass_H2).sum()
+        molecular_gas_mass = (
+            2
+            * self.gas_species_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_silicates_mass_fractions * molecular_gas_mass).sum()
 
     @lazy_property
     def DustSilicatesMassInColdDenseGas(self) -> unyt.unyt_quantity:
@@ -2020,7 +2216,17 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_large_dust_mass_fractions * self.gas_mass_H2).sum()
+        molecular_gas_mass = (
+            2
+            * self.gas_species_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_large_dust_mass_fractions * molecular_gas_mass).sum()
 
     @lazy_property
     def DustLargeGrainMassInColdDenseGas(self) -> unyt.unyt_quantity:
@@ -2050,7 +2256,17 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return (self.gas_small_dust_mass_fractions * self.gas_mass_H2).sum()
+        molecular_gas_mass = (
+            2
+            * self.gas_species_fractions[
+                :,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "H2"
+                ),
+            ]
+            * self.mass_gas
+        )
+        return (self.gas_small_dust_mass_fractions * molecular_gas_mass).sum()
 
     @lazy_property
     def DustSmallGrainMassInColdDenseGas(self) -> unyt.unyt_quantity:
@@ -2097,7 +2313,7 @@ class ApertureParticleData:
             self.gas_diffuse_element_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Carbon"
+                    "PartType0/ElementMassFractions", "Carbon"
                 ),
             ]
             * self.mass_gas
@@ -2114,7 +2330,7 @@ class ApertureParticleData:
             self.gas_diffuse_element_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Oxygen"
+                    "PartType0/ElementMassFractions", "Oxygen"
                 ),
             ]
             * self.mass_gas
@@ -2131,7 +2347,7 @@ class ApertureParticleData:
             self.gas_diffuse_element_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Magnesium"
+                    "PartType0/ElementMassFractions", "Magnesium"
                 ),
             ]
             * self.mass_gas
@@ -2148,7 +2364,7 @@ class ApertureParticleData:
             self.gas_diffuse_element_fractions[
                 :,
                 self.snapshot_datasets.get_column_index(
-                    "ElementMassFractions", "Silicon"
+                    "PartType0/ElementMassFractions", "Silicon"
                 ),
             ]
             * self.mass_gas
@@ -2164,7 +2380,9 @@ class ApertureParticleData:
         return (
             self.gas_diffuse_element_fractions[
                 :,
-                self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron"),
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/ElementMassFractions", "Iron"
+                ),
             ]
             * self.mass_gas
         )
@@ -2223,10 +2441,15 @@ class ApertureParticleData:
             return None
         nH = self.gas_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nO = self.gas_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         return nO / (16.0 * nH)
 
@@ -2239,10 +2462,15 @@ class ApertureParticleData:
             return None
         nN = self.gas_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Nitrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Nitrogen"
+            ),
         ]
         nO = self.gas_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         ratio = np.zeros_like(nN)
         ratio[nO != 0] = (16.0 * nN[nO != 0]) / (14.0 * nO[nO != 0])
@@ -2256,10 +2484,16 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         nC = self.gas_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Carbon")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Carbon"
+            ),
         ]
         nO = self.gas_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         ratio = np.zeros_like(nC)
         ratio[nO != 0] = (16.0 * nC[nO != 0]) / (12.011 * nO[nO != 0])
@@ -2275,10 +2509,15 @@ class ApertureParticleData:
             return None
         nN = self.gas_diffuse_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Nitrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Nitrogen"
+            ),
         ]
         nO = self.gas_diffuse_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         ratio = np.zeros_like(nN)
         ratio[nO != 0] = (16.0 * nN[nO != 0]) / (14.0 * nO[nO != 0])
@@ -2292,10 +2531,16 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         nC = self.gas_diffuse_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Carbon")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Carbon"
+            ),
         ]
         nO = self.gas_diffuse_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         ratio = np.zeros_like(nC)
         ratio[nO != 0] = (16.0 * nC[nO != 0]) / (12.011 * nO[nO != 0])
@@ -2310,10 +2555,15 @@ class ApertureParticleData:
             return None
         nH = self.gas_diffuse_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nO = self.gas_diffuse_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Oxygen")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Oxygen"
+            ),
         ]
         return nO / (16.0 * nH)
 
@@ -2773,10 +3023,15 @@ class ApertureParticleData:
             return None
         nH = self.star_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType4/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nFe = self.star_element_fractions[
-            :, self.snapshot_datasets.get_column_index("ElementMassFractions", "Iron")
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType4/ElementMassFractions", "Iron"
+            ),
         ]
         return nFe / (55.845 * nH)
 
@@ -2790,7 +3045,9 @@ class ApertureParticleData:
             return None
         nH = self.star_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType4/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nFe = self.get_dataset("PartType4/IronMassFractionsFromSNIa")[
             self.star_mask_all
@@ -2921,12 +3178,14 @@ class ApertureParticleData:
             return None
         nH = self.star_element_fractions[
             :,
-            self.snapshot_datasets.get_column_index("ElementMassFractions", "Hydrogen"),
+            self.snapshot_datasets.get_column_index(
+                "PartType4/ElementMassFractions", "Hydrogen"
+            ),
         ]
         nMg = self.star_element_fractions[
             :,
             self.snapshot_datasets.get_column_index(
-                "ElementMassFractions", "Magnesium"
+                "PartType4/ElementMassFractions", "Magnesium"
             ),
         ]
         return nMg / (24.305 * nH)
@@ -3010,6 +3269,39 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def HalfMassRadiusDust(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of dust.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.radius[self.type == 0], self.mass_dust, self.DustMass
+        )
+
+    @lazy_property
+    def HalfMassRadiusAtomicHydrogen(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of HI.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.radius[self.type == 0], self.gas_mass_HI, self.AtomicHydrogenMass
+        )
+
+    @lazy_property
+    def HalfMassRadiusMolecularHydrogen(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of H2.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.radius[self.type == 0], self.gas_mass_H2, self.MolecularHydrogenMass
+        )
+
+    @lazy_property
     def HalfMassRadiusDM(self) -> unyt.unyt_quantity:
         """
         Half mass radius of dark matter.
@@ -3023,6 +3315,19 @@ class ApertureParticleData:
         """
         return get_half_mass_radius(
             self.radius[self.type == 4], self.mass_star, self.Mstar
+        )
+
+    @lazy_property
+    def HalfLightRadiusStar(self) -> unyt.unyt_array:
+        """
+        Half light radius of stars for the 9 GAMA bands.
+        """
+        if self.Nstar == 0:
+            return None
+        return get_half_light_radius(
+            self.radius[self.type == 4],
+            self.stellar_luminosities,
+            self.StellarLuminosity,
         )
 
     @lazy_property
@@ -3074,6 +3379,7 @@ class ApertureProperties(HaloProperty):
     are bound to the halo.
     """
 
+    base_halo_type = "ApertureProperties"
     # Properties to calculate for ApertureProperties. Key is the name of the property.
     # The value indicates the property has a direct dependence on aperture size.
     # This is needed since for larger apertures we sometimes copy across the
@@ -3116,6 +3422,7 @@ class ApertureProperties(HaloProperty):
         "MostMassiveBlackHoleTotalAccretedMass": False,
         "MostMassiveBlackHoleFormationScalefactor": False,
         "com": False,
+        "com_dm": False,
         "com_star": False,
         "vcom": False,
         "vcom_star": False,
@@ -3145,11 +3452,19 @@ class ApertureProperties(HaloProperty):
         "StellarLuminosity": False,
         "starmetalfrac": False,
         "HalfMassRadiusGas": False,
+        "HalfMassRadiusDust": False,
+        "HalfMassRadiusAtomicHydrogen": False,
+        "HalfMassRadiusMolecularHydrogen": False,
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
+        "HalfLightRadiusStar": False,
         "HalfMassRadiusBaryon": False,
         "DtoTgas": False,
         "DtoTstar": False,
+        "DtoTstar_luminosity_weighted_luminosity_ratio": False,
+        "DtoTstar_luminosity_weighted_mass_ratio": False,
+        "kappa_corot_star_luminosity_weighted": False,
+        "Lstar_luminosity_weighted": False,
         "starOfrac": False,
         "starFefrac": False,
         "stellar_age_mw": False,
@@ -3160,6 +3475,7 @@ class ApertureProperties(HaloProperty):
         "MolecularHydrogenMass": False,
         "AtomicHydrogenMass": False,
         "starMgfrac": False,
+        "DustMass": False,
         "DustGraphiteMass": False,
         "DustGraphiteMassInAtomicGas": False,
         "DustGraphiteMassInMolecularGas": False,
@@ -3217,7 +3533,8 @@ class ApertureProperties(HaloProperty):
         self,
         cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
-        physical_radius_kpc: float,
+        aperture_physical_radius_kpc: float | None,
+        aperture_property: tuple[str, float] | None,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
@@ -3238,9 +3555,17 @@ class ApertureProperties(HaloProperty):
          - parameters: ParameterFile
            Parameter file object containing the parameters from the parameter
            file.
-         - physical_radius_kpc: float
+         - aperture_physical_radius_kpc: float | None
            Physical radius of the aperture. Unitless and assumed to be expressed
-           in units of kpc.
+           in units of kpc. If not None then aperture_property must be None.
+           If None then aperture_property must be passed.
+         - aperture_property: tuple[str, float] | None,
+           Tuple to indicate the radius of this aperture based on a previous property
+           calculated by SOAP. The first element should be the full name of the
+           property to use (e.g. BoundSubhalo/HalfMassRadius). The second element
+           is a multipler (e.g. if you want the aperture radius to be twice the
+           value of the property, then pass 2). If not None then aperture_physical_radius_kpc
+           must be None. If None then aperture_physical_radius_kpc must be passed.
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
@@ -3261,7 +3586,7 @@ class ApertureProperties(HaloProperty):
            to the subhalo?
          - all_radii_kpc: list
            A list of all the radii for which we are computing an ApertureProperties.
-           This can allow us to skip property calculation for larger apertures
+           This can allow us to skip property calculation for larger apertures.
         """
 
         super().__init__(cellgrid)
@@ -3286,17 +3611,31 @@ class ApertureProperties(HaloProperty):
             "H [internal units]"
         ] / cellgrid.get_unit("code_time")
 
-        # Minimum physical radius to read in (pMpc)
-        self.physical_radius_mpc = 0.001 * physical_radius_kpc
-
+        self.aperture_physical_radius_kpc = aperture_physical_radius_kpc
+        self.aperture_property = aperture_property
         self.inclusive = inclusive
 
-        if self.inclusive:
-            self.name = f"inclusive_sphere_{physical_radius_kpc:.0f}kpc"
-            self.group_name = f"InclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+        if self.aperture_physical_radius_kpc is not None:
+            aperture_name = f"{self.aperture_physical_radius_kpc:.0f}kpc"
+            self.physical_radius_mpc = 0.001 * self.aperture_physical_radius_kpc
         else:
-            self.name = f"exclusive_sphere_{physical_radius_kpc:.0f}kpc"
-            self.group_name = f"ExclusiveSphere/{self.physical_radius_mpc*1000.:.0f}kpc"
+            prop = self.aperture_property[0].split("/")[-1]
+            assert self.aperture_property[0].split("/")[0] == "BoundSubhalo"
+            multiplier = self.aperture_property[1]
+            if multiplier == 1:
+                aperture_name = prop
+            else:
+                aperture_name = f"{int(multiplier)}x{prop}"
+            # This value needs to be set since it's used to guess the initial
+            # load region for each particle
+            self.physical_radius_mpc = 0
+
+        if self.inclusive:
+            self.name = f"inclusive_sphere_{aperture_name}"
+            self.group_name = f"InclusiveSphere/{aperture_name}"
+        else:
+            self.name = f"exclusive_sphere_{aperture_name}"
+            self.group_name = f"ExclusiveSphere/{aperture_name}"
         self.mask_metadata = self.category_filter.get_filter_metadata(halo_filter)
 
         # List of particle properties we need to read in
@@ -3392,9 +3731,13 @@ class ApertureProperties(HaloProperty):
         skip_gt_enclose_radius = False
         # Determine if the previous aperture already enclosed all
         # the bound particles of the subhalo
-        r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
-        i_radius = self.all_radii_kpc.index(1000 * self.physical_radius_mpc)
-        if i_radius != 0:
+        # We don't do this if we are passed a property
+        if self.aperture_physical_radius_kpc is not None:
+            i_radius = self.all_radii_kpc.index(self.aperture_physical_radius_kpc)
+        else:
+            i_radius = 0
+        if i_radius != 0 and ("BoundSubhalo/EncloseRadius" in halo_result):
+            r_enclose = halo_result["BoundSubhalo/EncloseRadius"][0]
             r_previous_kpc = self.all_radii_kpc[i_radius - 1]
             if r_previous_kpc * unyt.kpc > r_enclose:
                 # Skip if inclusive, don't copy over any values. Note this is
@@ -3426,7 +3769,19 @@ class ApertureProperties(HaloProperty):
         # Determine whether to skip this halo (because of the filter or because we
         # have copied over the values from the previous aperture)
         if do_calculation[self.halo_filter] and (not skip_gt_enclose_radius):
-            if search_radius < self.physical_radius_mpc * unyt.Mpc:
+            if self.aperture_physical_radius_kpc is not None:
+                aperture_radius = self.aperture_physical_radius_kpc * unyt.kpc
+            else:
+                if self.aperture_property[0] not in halo_result:
+                    raise RuntimeError(
+                        f"{self.aperture_property[0]} must be enabled in the parameter file if you want to use it to define an aperture"
+                    )
+                aperture_radius = (
+                    self.aperture_property[1]
+                    * halo_result[self.aperture_property[0]][0]
+                )
+
+            if search_radius < aperture_radius:
                 raise SearchRadiusTooSmallError(
                     "Search radius is smaller than aperture"
                 )
@@ -3437,7 +3792,7 @@ class ApertureProperties(HaloProperty):
                 data,
                 types_present,
                 self.inclusive,
-                self.physical_radius_mpc * unyt.Mpc,
+                aperture_radius,
                 self.stellar_ages,
                 self.recently_heated_gas_filter,
                 self.cold_dense_gas_filter,
@@ -3482,7 +3837,7 @@ class ApertureProperties(HaloProperty):
                                 registry=registry,
                             )
                         else:
-                            err = f'Overflow for halo {input_halo["index"]} when'
+                            err = f'Overflow for halo {input_halo["index"]} when '
                             err += f"calculating {name} in aperture_properties"
                             assert np.max(np.abs(val.to(unit).value)) < float(
                                 "inf"
@@ -3544,7 +3899,8 @@ class ExclusiveSphereProperties(ApertureProperties):
         self,
         cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
-        physical_radius_kpc: float,
+        aperture_physical_radius_kpc: float | None,
+        aperture_property: tuple[str, float] | None,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
@@ -3564,9 +3920,17 @@ class ExclusiveSphereProperties(ApertureProperties):
          - parameters: ParameterFile
            Parameter file object containing the parameters from the parameter
            file.
-         - physical_radius_kpc: float
+         - aperture_physical_radius_kpc: float | None
            Physical radius of the aperture. Unitless and assumed to be expressed
-           in units of kpc.
+           in units of kpc. If not None then aperture_property must be None.
+           If None then aperture_property must be passed.
+         - aperture_property: tuple[str, float] | None,
+           Tuple to indicate the radius of this aperture based on a previous property
+           calculated by SOAP. The first element should be the full name of the
+           property to use (e.g. BoundSubhalo/HalfMassRadius). The second element
+           is a multipler (e.g. if you want the aperture radius to be twice the
+           value of the property, then pass 2). If not None then aperture_physical_radius_kpc
+           must be None. If None then aperture_physical_radius_kpc must be passed.
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
@@ -3589,7 +3953,8 @@ class ExclusiveSphereProperties(ApertureProperties):
         super().__init__(
             cellgrid,
             parameters,
-            physical_radius_kpc,
+            aperture_physical_radius_kpc,
+            aperture_property,
             recently_heated_gas_filter,
             stellar_age_calculator,
             cold_dense_gas_filter,
@@ -3611,7 +3976,8 @@ class InclusiveSphereProperties(ApertureProperties):
         self,
         cellgrid: SWIFTCellGrid,
         parameters: ParameterFile,
-        physical_radius_kpc: float,
+        aperture_physical_radius_kpc: float | None,
+        aperture_property: tuple[str, float] | None,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         stellar_age_calculator: StellarAgeCalculator,
         cold_dense_gas_filter: ColdDenseGasFilter,
@@ -3631,9 +3997,17 @@ class InclusiveSphereProperties(ApertureProperties):
          - parameters: ParameterFile
            Parameter file object containing the parameters from the parameter
            file.
-         - physical_radius_kpc: float
+         - aperture_physical_radius_kpc: float | None
            Physical radius of the aperture. Unitless and assumed to be expressed
-           in units of kpc.
+           in units of kpc. If not None then aperture_property must be None.
+           If None then aperture_property must be passed.
+         - aperture_property: tuple[str, float] | None,
+           Tuple to indicate the radius of this aperture based on a previous property
+           calculated by SOAP. The first element should be the full name of the
+           property to use (e.g. BoundSubhalo/HalfMassRadius). The second element
+           is a multipler (e.g. if you want the aperture radius to be twice the
+           value of the property, then pass 2). If not None then aperture_physical_radius_kpc
+           must be None. If None then aperture_physical_radius_kpc must be passed.
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
@@ -3656,7 +4030,8 @@ class InclusiveSphereProperties(ApertureProperties):
         super().__init__(
             cellgrid,
             parameters,
-            physical_radius_kpc,
+            aperture_physical_radius_kpc,
+            aperture_property,
             recently_heated_gas_filter,
             stellar_age_calculator,
             cold_dense_gas_filter,
