@@ -3282,6 +3282,28 @@ class ApertureParticleData:
         )
 
     @lazy_property
+    def HalfMassRadiusAtomicHydrogen(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of HI.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.radius[self.type == 0], self.gas_mass_HI, self.AtomicHydrogenMass
+        )
+
+    @lazy_property
+    def HalfMassRadiusMolecularHydrogen(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of H2.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.radius[self.type == 0], self.gas_mass_H2, self.MolecularHydrogenMass
+        )
+
+    @lazy_property
     def HalfMassRadiusDM(self) -> unyt.unyt_quantity:
         """
         Half mass radius of dark matter.
@@ -3404,6 +3426,8 @@ class ApertureProperties(HaloProperty):
         "starmetalfrac": False,
         "HalfMassRadiusGas": False,
         "HalfMassRadiusDust": False,
+        "HalfMassRadiusAtomicHydrogen": False,
+        "HalfMassRadiusMolecularHydrogen": False,
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
         "HalfLightRadiusStar": False,

@@ -126,6 +126,8 @@ ApertureProperties:
     HalfMassRadiusDarkMatter: general
     HalfMassRadiusGas: general
     HalfMassRadiusDust: general
+    HalfMassRadiusAtomicHydrogen: true
+    HalfMassRadiusMolecularHydrogen: true
     HalfMassRadiusStars: true
     HalfLightRadiusStars: false
     HeliumMass: true
@@ -331,6 +333,8 @@ ProjectedApertureProperties:
     HalfMassRadiusDarkMatter: general
     HalfMassRadiusGas: general
     HalfMassRadiusDust: general
+    HalfMassRadiusAtomicHydrogen: true
+    HalfMassRadiusMolecularHydrogen: true
     HalfMassRadiusStars: true
     HalfLightRadiusStars: false
     HeliumMass: true
@@ -452,7 +456,7 @@ SOProperties:
       snipshot: false
     GasComptonYTemperature: false
     GasComptonYTemperatureWithoutRecentAGNHeating: false
-    GasComptonYTemperatureCoreExcision: true
+    GasComptonYTemperatureCoreExcision: false
     GasComptonYTemperatureWithoutRecentAGNHeatingCoreExcision: false
     GasTemperature: true
     GasTemperatureWithoutCoolGas: false
