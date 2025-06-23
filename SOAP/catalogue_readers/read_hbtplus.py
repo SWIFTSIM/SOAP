@@ -77,13 +77,9 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
         halos = None
     halos = virgo.mpi.util.replace_none_with_zero_size(halos, comm=comm)
 
-    # Get the dtype for particle IDs
     if len(ids_bound) > 0:
+        # Get the dtype for particle IDs
         id_dtype = h5py.check_vlen_dtype(ids_bound[0].dtype)
-    else:
-        id_dtype = None
-
-    if len(ids_bound) > 0:
         # Combine arrays of halos from different files
         ids_bound = np.concatenate(ids_bound)
         if len(ids_bound) > 0:
@@ -101,10 +97,6 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
     if read_potential_energies:
         if len(potential_energies) > 0:
             potential_dtype = h5py.check_vlen_dtype(potential_energies[0].dtype)
-        else:
-            potential_dtype = None
-
-        if len(potential_energies) > 0:
             potential_energies = np.concatenate(potential_energies)
             if len(potential_energies) > 0:
                 potential_energies = np.concatenate(potential_energies)

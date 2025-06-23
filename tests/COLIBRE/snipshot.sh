@@ -15,15 +15,6 @@ module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
 source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Which simulation to do
-<<<<<<<< HEAD:tests/COLIBRE/run_L0025N0188_Thermal.sh
-sim="L0025N0188/Thermal"
-
-# Snapshot number to do
-snapnum=127
-
-# Halo indices to do: all halos with x<1, y<1, and z<1 cMpc in snap 123
-halo_indices="1474 1668 1819 1995 2087 2114 2174 2314 2332 2386 2389 2390 2392 2439 2441 2444 2496 2498 2528 14937 78314"
-========
 sim="L0100N0752/Thermal"
 
 # Snapshot number to do
@@ -31,7 +22,6 @@ snapnum=0126
 
 # Most massive object
 halo_indices="3771072"
->>>>>>>> soap_runtime:tests/COLIBRE/snipshot.sh
 
 # Create parameters files
 python tests/COLIBRE/create_parameters_file.py
