@@ -43,8 +43,10 @@ Settings for the halo finding algorithm and output file locations.
 
 - **type**: The subhalo finder being used. Possible options are `HBTplus`, `VR`, `Subfind`, and `Rockstar`.
 - **filename**: Template for input halo catalogue files. The format of this depends on the halo finder as they have different output structure. HBTplus example: `"{sim_dir}/{sim_name}/HBT/{snap_nr:03d}/SubSnap_{snap_nr:03d}"`
-- **fof_filename**: Template for FOF catalog files. Used for storing host FOF information for central subhalos. This is currently only supported for HBTplus
+- **fof_filename**: Template for FOF catalog files. Used for storing host FOF information for central subhalos. Only supported for HBTplus
 - **fof_radius_filename**: Template for FOF catalog files which contain the "Groups/Radii" dataset. These were produced by a post-processing script, and are missing from the main FOFs
+- **read_potential_energies**: Optional boolean value, defaults to False. Whether to read potential energies and place them in the membership files. Only supported for HBTplus
+
 
 ### Group Membership
 

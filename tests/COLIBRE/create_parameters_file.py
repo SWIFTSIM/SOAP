@@ -17,5 +17,8 @@ for k in run_params:
     if k not in test_params:
         test_params[k] = run_params[k]
 
+# TODO: Update to a run with potential energies stored
+test_params['SubhaloProperties']['properties']['PotentialEnergyTotal'] = False
+
 with open('tests/COLIBRE/test_parameters.yml', 'w') as file:
     yaml.dump(test_params, file)

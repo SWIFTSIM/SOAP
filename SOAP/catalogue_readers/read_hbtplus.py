@@ -56,15 +56,8 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
     #   particle, with the same order as 'ids_bound'
     halos = []
     ids_bound = []
-    # TODO: Remove this check for potential energies (We had to handle the case where
-    #       HBT did not output potential energies, but now it always should)
-    potential_energies = None
     if read_potential_energies:
-        if comm_rank == 0:
-            with h5py.File(hbt_filename(basename, 0), "r") as infile:
-                if "PotentialEnergies" in infile:
-                    potential_energies = []
-        potential_energies = comm.bcast(potential_energies)
+        potential_energies = []
 
     for file_nr in range(
         first_file_on_rank[comm_rank],
@@ -74,9 +67,7 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
             halos.append(infile["Subhalos"][...])
             ids_bound.append(infile["SubhaloParticles"][...])
             if read_potential_energies:
-                # TODO: Remove this if/else (see above)
-                if "PotentialEnergies" in infile:
-                    potential_energies.append(infile["PotentialEnergies"][...])
+                potential_energies.append(infile["PotentialEnergies"][...])
 
     # Concatenate arrays of halos from different files
     if len(halos) > 0:
@@ -108,41 +99,38 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
 
     # Apply same combination process to potential energies
     if read_potential_energies:
-        # TODO: Remove (see above)
-        if potential_energies is not None:
+        if len(potential_energies) > 0:
+            potential_dtype = h5py.check_vlen_dtype(potential_energies[0].dtype)
+        else:
+            potential_dtype = None
 
-            if len(potential_energies) > 0:
-                potential_dtype = h5py.check_vlen_dtype(potential_energies[0].dtype)
-            else:
-                potential_dtype = None
-
+        if len(potential_energies) > 0:
+            potential_energies = np.concatenate(potential_energies)
             if len(potential_energies) > 0:
                 potential_energies = np.concatenate(potential_energies)
-                if len(potential_energies) > 0:
-                    potential_energies = np.concatenate(potential_energies)
-                else:
-                    potential_energies = np.zeros(0, dtype=potential_dtype)
             else:
-                # This rank was assigned no files
-                potential_energies = None
-            potential_energies = virgo.mpi.util.replace_none_with_zero_size(
-                potential_energies, comm=comm
-            )
+                potential_energies = np.zeros(0, dtype=potential_dtype)
+        else:
+            # This rank was assigned no files
+            potential_energies = None
+        potential_energies = virgo.mpi.util.replace_none_with_zero_size(
+            potential_energies, comm=comm
+        )
 
-            # Get HBTplus unit information
-            if comm_rank == 0:
-                filename = hbt_filename(basename, 0)
-                with h5py.File(filename, "r") as infile:
-                    if "Units" in infile:
-                        VelInKmS = float(infile["Units/VelInKmS"][...])
-            else:
-                VelInKmS = None
-            VelInKmS = comm.bcast(VelInKmS)
+        # Get HBTplus unit information
+        if comm_rank == 0:
+            filename = hbt_filename(basename, 0)
+            with h5py.File(filename, "r") as infile:
+                if "Units" in infile:
+                    VelInKmS = float(infile["Units/VelInKmS"][...])
+        else:
+            VelInKmS = None
+        VelInKmS = comm.bcast(VelInKmS)
 
-            # Add units to potential energies
-            potential_energies = (potential_energies * (VelInKmS**2)) * unyt.Unit(
-                "km/s", registry=registry
-            ) ** 2
+        # Add units to potential energies
+        potential_energies = (potential_energies * (VelInKmS**2)) * unyt.Unit(
+            "km/s", registry=registry
+        ) ** 2
 
     # Assign halo indexes to the particles
     nr_local_halos = len(halos)
@@ -333,12 +321,6 @@ def read_hbtplus_catalogue(
 
     # Peak vmax
     max_vmax = (subhalo["LastMaxVmaxPhysical"][keep] * VelInKmS) * kms
-
-    # Last time the subhalo was a central
-    snapshot_last_isolation = subhalo["SnapshotIndexOfLastIsolation"][keep]
-    snapshot_last_isolation = unyt.unyt_array(
-        snapshot_last_isolation, units=unyt.dimensionless, dtype=int, registry=registry
-    )
 
     # Number of bound particles
     nr_bound_part = nr_bound_part[keep]

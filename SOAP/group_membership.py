@@ -10,7 +10,7 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 from virgo.util.partial_formatter import PartialFormatter
 
-from SOAP.core import combine_args, lustre
+from SOAP.core import combine_args, lustre, swift_units
 from SOAP.catalogue_readers import read_vr
 from SOAP.catalogue_readers import read_hbtplus
 from SOAP.catalogue_readers import read_subfind
@@ -177,6 +177,7 @@ def main():
     swift_filename = args["Snapshots"]["filename"]
     halo_format = args["HaloFinder"]["type"]
     halo_basename = args["HaloFinder"]["filename"]
+    read_potential_energies = args["HaloFinder"]["read_potential_energies"]
     output_filename = args["GroupMembership"]["filename"]
 
     if comm_rank == 0:
@@ -215,20 +216,31 @@ def main():
         ) = read_vr.read_vr_groupnr(halo_basename)
         potential_energies = None
     elif halo_format == "HBTplus":
-        if comm_rank == 0:
-            with h5py.File(swift_filename.format(file_nr=0), "r") as file:
-                registry = swift_units.unit_registry_from_snapshot(file)
-        else:
-            registry = None
-        registry = comm.bcast(registry)
         # Read HBTplus output
-        total_nr_halos, ids_bound, grnr_bound, rank_bound, potential_energies = (
-            read_hbtplus.read_hbtplus_groupnr(
-                halo_basename,
-                read_potential_energies=True,
-                registry=registry,
+        if read_potential_energies:
+            if comm_rank == 0:
+                with h5py.File(swift_filename.format(file_nr=0), "r") as file:
+                    registry = swift_units.unit_registry_from_snapshot(file)
+            else:
+                registry = None
+            registry = comm.bcast(registry)
+            total_nr_halos, ids_bound, grnr_bound, rank_bound, potential_energies = (
+                read_hbtplus.read_hbtplus_groupnr(
+                    halo_basename,
+                    read_potential_energies=True,
+                    registry=registry,
+                )
             )
-        )
+        else:
+            if comm_rank == 0:
+                print('Not reading in potential energies')
+            total_nr_halos, ids_bound, grnr_bound, rank_bound = (
+                read_hbtplus.read_hbtplus_groupnr(
+                    halo_basename,
+                )
+            )
+            potential_energies = None
+
     elif halo_format == "Subfind":
         # Read Gadget-4 subfind output
         total_nr_halos, ids_bound, grnr_bound = read_subfind.read_gadget4_groupnr(
