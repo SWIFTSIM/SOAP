@@ -73,9 +73,9 @@ However, along with the different structure identification methods, the halo fin
 vary in their implementation of halo/galaxy property calculations and may even have different definitions
 (e.g. using inclusive/exclusive bound mass) for the same property. This can
 lead to further differences in the resulting catalogues, although in this case it is
-not due to the halo finding method itself. SOAP can take input from multiple halo
+not due to the halo finding method itself. `SOAP` can take input from multiple halo
 finders and calculate properties consistently, thereby enabling
-actual differences between structure-finding algorithms to be identified. Currently SOAP
+actual differences between structure-finding algorithms to be identified. Currently `SOAP` 
 supports HBT-HERONS [@hbt; @hbt-herons], SubFind [@subfind], VELOCIraptor [@velociraptor], and 
 ROCKSTAR[@rockstar]. Adding a new halo finder requires a script to convert the subhalo catalogue
 into the standard format used by SOAP; no other code changes are necessary.
@@ -83,10 +83,10 @@ into the standard format used by SOAP; no other code changes are necessary.
 The most common definition of a halo is based on spherical overdensities (SO), regions of
 the universe which have a much larger density than the average. The overdensity of a
 region is based on all the particles within it, whether bound or unbound, and
-is therefore not always output by halo finders. SOAP determines spherical overdensity
+is therefore not always output by halo finders. `SOAP` determines spherical overdensity
 radii by constructing expanding spheres until the target density limit is reached.
 It then calculates the properties of each halo using all the particles within its SO radius.
-SOAP also calculates properties for several other definitions of a halo:
+`SOAP` also calculates properties for several other definitions of a halo:
 subhalo properties (using all particles bound to a subhalo), 
 fixed physical projected apertures (using all bound particles within a projected radius);
 and two types of fixed physical apertures (using all/bound particles within a sphere of the same
@@ -94,23 +94,23 @@ radius for all objects). These various
 types give users the freedom to select the most appropriate definition for
 their scientific use case e.g. the type of observational data they are comparing with.
 
-# Overview of features
+# Overview of Features
 
-- SOAP can currently calculate over 250 halo and galaxy properties.
+- `SOAP` can currently calculate over 250 halo and galaxy properties.
 Users can easily add new properties to tailor the tool to their specific scientific needs.
-When combined with the four different halo definitions, this makes SOAP exceptionally versatile.
-- SOAP is compatible with both dark matter-only (DMO) and full hydrodynamic simulations. For DMO runs, any
+When combined with the four different halo definitions, this makes `SOAP` exceptionally versatile.
+- `SOAP` is compatible with both dark matter-only (DMO) and full hydrodynamic simulations. For DMO runs, any
 properties which are irrelevant (e.g. gas mass) are automatically excluded, requiring no changes
 to the parameter file.
-- SOAP makes it easy to enable or disable specific halo definitions and properties
-using the SOAP parameter file. This is possible because all properties are lazily defined within the code
+- `SOAP` makes it easy to enable or disable specific halo definitions and properties
+using the `SOAP` parameter file. This is possible because all properties are lazily defined within the code
 and are only computed if required.  Additionally, if certain objects require further analysis,
-SOAP can be run on a subset of subhalos.
+`SOAP` can be run on a subset of subhalos.
 - Properties can be assigned filters so that they are only calculated for objects that
 meet certain criteria (e.g. only calculate the halo concentration if a subhalo has a
-minimum number of bound particles of a particular type). This improves the runtime of SOAP and also reduces 
+minimum number of bound particles of a particular type). This improves the runtime of `SOAP` and also reduces 
 the data volume of the final output catalogues.
-- SOAP was originally written to run on Swift simulation snapshots [@swift], utilising their metadata for
+- `SOAP` was originally written to run on Swift simulation snapshots [@swift], utilising their metadata for
 unit handling and spatial sorting to enable efficient loading of the data. However, it  has also been
 used to create halo catalogues from the EAGLE simulation [@eagle] snapshots (which use a modified GADGET format [@gadget]). Supporting
 additional snapshot formats requires a conversion script to be written.
@@ -119,10 +119,10 @@ simulation subvolumes for analysis without requiring the entire dataset.
 - The catalogues can be read with the swiftsimio package [@swiftsimio], which provides 
 unit conversion (including handling comoving vs. physical coordinates) and a number of 
 visualisation tools. All datasets are output in units that are *h*-free.
-- When provided with a parameter file, SOAP can automatically generate a corresponding PDF document with 
+- When provided with a parameter file, `SOAP` can automatically generate a corresponding PDF document with 
 a detailed description of all the output properties. This ensures that the documentation of 
 the generated catalogues (e.g., the property names, units, compression level, etc.) 
-always reflects the specific setup of the current SOAP run.
+always reflects the specific setup of the current `SOAP` run.
 
 # Acknowledgements
 
