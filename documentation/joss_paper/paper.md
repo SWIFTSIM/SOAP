@@ -1,5 +1,5 @@
 ---
-title: 'SOAP: A Python package for calculating the properties of galaxies and halos formed in cosmological simulations'
+title: 'SOAP: A Python Package for Calculating the Properties of Galaxies and Halos Formed in Cosmological Simulations'
 tags:
   - Python
   - astronomy
