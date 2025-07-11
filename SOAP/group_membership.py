@@ -177,7 +177,7 @@ def main():
     swift_filename = args["Snapshots"]["filename"]
     halo_format = args["HaloFinder"]["type"]
     halo_basename = args["HaloFinder"]["filename"]
-    read_potential_energies = args["HaloFinder"]["read_potential_energies"]
+    read_potential_energies = args["HaloFinder"].get("read_potential_energies", False)
     output_filename = args["GroupMembership"]["filename"]
 
     if comm_rank == 0:
@@ -233,7 +233,7 @@ def main():
             )
         else:
             if comm_rank == 0:
-                print('Not reading in potential energies')
+                print("Not reading in potential energies")
             total_nr_halos, ids_bound, grnr_bound, rank_bound = (
                 read_hbtplus.read_hbtplus_groupnr(
                     halo_basename,
