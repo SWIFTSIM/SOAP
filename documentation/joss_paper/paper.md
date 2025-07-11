@@ -54,15 +54,17 @@ Modern galaxy simulations are often analysed by a large number of researchers. H
 due to the large volume of data generated, it is often impractical for individual users
 to compute the specific properties they require independently. `SOAP` addresses this challenge
 by producing comprehensive catalogues containing a wide range of properties that can be
-shared across the community. 
+shared across the community.
 
-Given the substantial volume of data, it is essential 
-for the output to be processed in parallel. `SOAP` achieves this using the mpi4py library
+Given the substantial volume of data, it is essential for the output to be processed in parallel.
+`SOAP` achieves this using the mpi4py library
 [@mpi4py]. This enables `SOAP` to scale efficiently across multiple compute nodes.
 `SOAP` is also designed to handle subvolumes of the simulation independently, allowing 
 for large simulations to be processed sequentially if required. This approach reduces the need
 for high-memory computing nodes, making it possible to process
 simulation outputs without requiring a large number of high-memory resources.
+The ability to efficently process subhalos in parallel is a unique feature of `SOAP` when compared
+with other packages for computing galaxy properties [e.g. @cosmic-profiles; @tangos; @caesar].
 
 A large number of halo finders are used by the community
 to identify bound structures within simulation outputs. These employ a variety of methods 
@@ -127,7 +129,8 @@ always reflects the specific setup of the current `SOAP` run.
 # Acknowledgements
 
 We gratefully acknowledge contributions to the code from Joey Braspenning, Jeger Broxterman,
-Evgenii Chaikin, Camila Correa, Victor Forouhar Moreno, and Roi Kugel.
+Evgenii Chaikin, Camila Correa, Victor Forouhar Moreno, and Roi Kugel. `SOAP` relies heavily on
+the following packages: mpi4py [@mpi4py], NumPy [@numpy], H5py [@h5py], and unyt [@unyt].
 
 # References
 
