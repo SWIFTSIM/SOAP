@@ -29,89 +29,112 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
     comm_rank = comm.Get_rank()
     comm_size = comm.Get_size()
 
-    # Find number of HBT output files
+    # Find number of HBT output files, and if we're dealing with sorted output
     if comm_rank == 0:
-        with h5py.File(hbt_filename(basename, 0), "r") as infile:
-            nr_files = int(infile["NumberOfFiles"][...])
+        if os.path.exists(hbt_filename(basename, 0)):
+            with h5py.File(hbt_filename(basename, 0), "r") as infile:
+                nr_files = int(infile["NumberOfFiles"][...])
+            sorted_file = False
+        elif os.path.exists(basename):
+            with h5py.File(basename, "r") as infile:
+                assert "Particles" in infile
+            nr_files = 1
+            sorted_file = True
+        else:
+            print(f"No HBT files found for basename {basename}")
+            comm.Abort()
     else:
         nr_files = None
+        sorted_file = None
     nr_files = comm.bcast(nr_files)
+    sorted_file = comm.bcast(sorted_file)
 
-    # Assign files to MPI ranks
-    files_per_rank = np.zeros(comm_size, dtype=int)
-    files_per_rank[:] = nr_files // comm_size
-    remainder = nr_files % comm_size
-    if remainder == 1:
-        files_per_rank[0] += 1
-    elif remainder > 1:
-        for i in range(remainder):
-            files_per_rank[int((comm_size - 1) * i / (remainder - 1))] += 1
-    assert np.sum(files_per_rank) == nr_files, f"{nr_files=}, {comm_size=}"
-    first_file_on_rank = np.cumsum(files_per_rank) - files_per_rank
+    # There are two different read routines. One is for the original HBTplus
+    # output. The second is for the "nice" output, where the subhalos are
+    # sorted by TrackId.
+    if not sorted_file:
+        # Assign files to MPI ranks
+        files_per_rank = np.zeros(comm_size, dtype=int)
+        files_per_rank[:] = nr_files // comm_size
+        remainder = nr_files % comm_size
+        if remainder == 1:
+            files_per_rank[0] += 1
+        elif remainder > 1:
+            for i in range(remainder):
+                files_per_rank[int((comm_size - 1) * i / (remainder - 1))] += 1
+        assert np.sum(files_per_rank) == nr_files, f"{nr_files=}, {comm_size=}"
+        first_file_on_rank = np.cumsum(files_per_rank) - files_per_rank
 
-    # Read in the halos from the HBT output:
-    # 'halos' will be an array of structs with the halo catalogue
-    # 'ids_bound' will be an array of particle IDs in halos, sorted by halo
-    # 'potential_energy' will be an array of the potential energy of each
-    #   particle, with the same order as 'ids_bound'
-    halos = []
-    ids_bound = []
-    if read_potential_energies:
-        potential_energies = []
+        halos = []
+        ids_bound = []
+        if read_potential_energies:
+            potential_energies = []
 
-    for file_nr in range(
-        first_file_on_rank[comm_rank],
-        first_file_on_rank[comm_rank] + files_per_rank[comm_rank],
-    ):
-        with h5py.File(hbt_filename(basename, file_nr), "r") as infile:
-            halos.append(infile["Subhalos"][...])
-            ids_bound.append(infile["SubhaloParticles"][...])
-            if read_potential_energies:
-                potential_energies.append(infile["PotentialEnergies"][...])
+        for file_nr in range(
+            first_file_on_rank[comm_rank],
+            first_file_on_rank[comm_rank] + files_per_rank[comm_rank],
+        ):
+            with h5py.File(hbt_filename(basename, file_nr), "r") as infile:
+                halos.append(infile["Subhalos"][...])
+                ids_bound.append(infile["SubhaloParticles"][...])
+                if read_potential_energies:
+                    potential_energies.append(infile["PotentialEnergies"][...])
 
-    # Concatenate arrays of halos from different files
-    if len(halos) > 0:
-        halos = np.concatenate(halos)
-    else:
-        # This rank was assigned no files
-        halos = None
-    halos = virgo.mpi.util.replace_none_with_zero_size(halos, comm=comm)
-
-    if len(ids_bound) > 0:
-        # Get the dtype for particle IDs
-        id_dtype = h5py.check_vlen_dtype(ids_bound[0].dtype)
-        # Combine arrays of halos from different files
-        ids_bound = np.concatenate(ids_bound)
-        if len(ids_bound) > 0:
-            # Combine arrays of particles from different halos
-            ids_bound = np.concatenate(ids_bound)
-        else:
-            # The files assigned to this rank contain zero halos
-            ids_bound = np.zeros(0, dtype=id_dtype)
-    else:
-        # This rank was assigned no files
-        ids_bound = None
-    ids_bound = virgo.mpi.util.replace_none_with_zero_size(ids_bound, comm=comm)
-
-    # Apply same combination process to potential energies
-    if read_potential_energies:
-        if len(potential_energies) > 0:
-            potential_dtype = h5py.check_vlen_dtype(potential_energies[0].dtype)
-            potential_energies = np.concatenate(potential_energies)
-            if len(potential_energies) > 0:
-                potential_energies = np.concatenate(potential_energies)
-            else:
-                potential_energies = np.zeros(0, dtype=potential_dtype)
+        # Concatenate arrays of halos from different files
+        if len(halos) > 0:
+            halos = np.concatenate(halos)
         else:
             # This rank was assigned no files
-            potential_energies = None
-        potential_energies = virgo.mpi.util.replace_none_with_zero_size(
-            potential_energies, comm=comm
-        )
+            halos = None
+        halos = virgo.mpi.util.replace_none_with_zero_size(halos, comm=comm)
 
+        if len(ids_bound) > 0:
+            # Get the dtype for particle IDs
+            id_dtype = h5py.check_vlen_dtype(ids_bound[0].dtype)
+            # Combine arrays of halos from different files
+            ids_bound = np.concatenate(ids_bound)
+            if len(ids_bound) > 0:
+                # Combine arrays of particles from different halos
+                ids_bound = np.concatenate(ids_bound)
+            else:
+                # The files assigned to this rank contain zero halos
+                ids_bound = np.zeros(0, dtype=id_dtype)
+        else:
+            # This rank was assigned no files
+            ids_bound = None
+        ids_bound = virgo.mpi.util.replace_none_with_zero_size(ids_bound, comm=comm)
+
+        # Number of particles in each subhalo
+        halo_size = halos["Nbound"]
+        del halos
+
+        # Apply same combination process to potential energies
+        if read_potential_energies:
+            if len(potential_energies) > 0:
+                potential_dtype = h5py.check_vlen_dtype(potential_energies[0].dtype)
+                potential_energies = np.concatenate(potential_energies)
+                if len(potential_energies) > 0:
+                    potential_energies = np.concatenate(potential_energies)
+                else:
+                    potential_energies = np.zeros(0, dtype=potential_dtype)
+            else:
+                # This rank was assigned no files
+                potential_energies = None
+            potential_energies = virgo.mpi.util.replace_none_with_zero_size(
+                potential_energies, comm=comm
+            )
+    else:
+        # Read the fields we require from the sorted catalogues
+        hbt_file = phdf5.MultiFile([basename], comm=comm)
+        ids_bound = hbt_file.read("Particles/ParticleIDs")
+        halo_size = hbt_file.read("Subhalos/Nbound")
+        if read_potential_energies:
+            potential_energies = hbt_file.read("Particles/PotentialEnergies")
+
+    if read_potential_energies:
         # Get HBTplus unit information
         if comm_rank == 0:
-            filename = hbt_filename(basename, 0)
+            filename = basename if sorted_file else hbt_filename(basename, 0)
             with h5py.File(filename, "r") as infile:
                 if "Units" in infile:
                     VelInKmS = float(infile["Units/VelInKmS"][...])
@@ -125,12 +148,10 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
         ) ** 2
 
     # Assign halo indexes to the particles
-    nr_local_halos = len(halos)
+    nr_local_halos = len(halo_size)
     total_nr_halos = comm.allreduce(nr_local_halos)
-    halo_offset = comm.scan(len(halos), op=MPI.SUM) - len(halos)
+    halo_offset = comm.scan(len(halo_size), op=MPI.SUM) - len(halo_size)
     halo_index = np.arange(nr_local_halos, dtype=int) + halo_offset
-    halo_size = halos["Nbound"]
-    del halos
     grnr_bound = np.repeat(halo_index, halo_size)
 
     # Assign ranking by binding energy to the particles
@@ -208,9 +229,16 @@ def read_hbtplus_catalogue(
 
     # Get HBTplus unit information
     if comm_rank == 0:
+        # Check if this is a sorted HBT file
+        if os.path.exists(hbt_filename(basename, 0)):
+            filename = hbt_filename(basename, 0)
+            sorted_file = False
+        else:
+            filename = basename
+            sorted_file = True
+
         # Try to get units from the HDF5 output
         have_units = False
-        filename = hbt_filename(basename, 0)
         with h5py.File(filename, "r") as infile:
             if "Units" in infile:
                 LengthInMpch = float(infile["Units/LengthInMpch"][...])
@@ -235,14 +263,30 @@ def read_hbtplus_catalogue(
         LengthInMpch = None
         MassInMsunh = None
         VelInKmS = None
+        sorted_file = None
     (LengthInMpch, MassInMsunh, VelInKmS) = comm.bcast(
         (LengthInMpch, MassInMsunh, VelInKmS)
     )
+    sorted_file = comm.bcast(sorted_file)
 
     # Read the subhalos for this snapshot
-    filename = f"{basename}.%(file_nr)d.hdf5"
-    mf = phdf5.MultiFile(filename, file_nr_dataset="NumberOfFiles", comm=comm)
-    subhalo = mf.read("Subhalos")
+    if not sorted_file:
+        filename = f"{basename}.%(file_nr)d.hdf5"
+        mf = phdf5.MultiFile(filename, file_nr_dataset="NumberOfFiles", comm=comm)
+        subhalo = mf.read("Subhalos")
+        subhalo_props = list(subhalo.dtype.names)
+    else:
+        # Just recreate an object the same as the unsorted file
+        if comm_rank == 0:
+            with h5py.File(filename, "r") as infile:
+                subhalo_props = list(infile["Subhalos"].keys())
+        else:
+            subhalo_props = None
+        subhalo_props = comm.bcast(subhalo_props)
+        mf = phdf5.MultiFile([basename], comm=comm)
+        subhalo = {}
+        for prop in subhalo_props:
+            subhalo[prop] = mf.read(f"Subhalos/{prop}")
 
     # Load the number of bound particles
     nr_bound_part = unyt.unyt_array(
@@ -332,7 +376,7 @@ def read_hbtplus_catalogue(
         "LastMaxVmaxPhysical": max_vmax,
     }
 
-    if "SnapshotIndexOfBirth" in subhalo.dtype.names:
+    if "SnapshotIndexOfBirth" in subhalo_props:
         snapshot_birth = subhalo["SnapshotIndexOfBirth"][keep]
         snapshot_max_mass = subhalo["SnapshotIndexOfLastMaxMass"][keep]
         snapshot_max_vmax = subhalo["SnapshotIndexOfLastMaxVmax"][keep]

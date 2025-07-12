@@ -684,8 +684,9 @@ def combine_chunks(
             # Check if the previous/next HBT catalogue is available
             prev_basename = args.halo_basename.format(snap_nr=snap_nr)
             if comm_world.Get_rank() == 0:
+                # Check for sorted and unsorted catalogues
                 prev_filename = prev_basename + ".0.hdf5"
-                if os.path.exists(prev_filename):
+                if os.path.exists(prev_basename) or os.path.exists(prev_filename):
                     calculate_prev_index = True
                 else:
                     print(f"Can't find halo catalogues for calculating {name}Index")
