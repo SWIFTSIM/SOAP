@@ -1,11 +1,11 @@
+mpi4py
 h5py
-numpy
+numpy>=2
 unyt>=3
-astropy
-numba
+astropy>=6
 scipy
-pandas
-pytest-mpi
 matplotlib
 psutil
 virgodc
+numba
+pytest-mpi

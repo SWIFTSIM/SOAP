@@ -1,0 +1,24 @@
+Parameters:
+  sim_dir:     /cosma8/data/dp004/flamingo/Runs/
+  output_dir:  output/
+  scratch_dir: output/
+
+Snapshots:
+  filename: "{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
+
+HaloFinder:
+  type: VR
+  filename: "{sim_dir}/{sim_name}/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
+
+GroupMembership:
+  # Use the pre-existing membership files
+  filename: "{sim_dir}/{sim_name}/SOAP-VR/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+
+ExtraInput:
+  xrays: "/cosma8/data/dp004/dc-mcgi1/FLAMINGO/Xray/{sim_name}/xray/flamingo_{snap_nr:04}/xray_{snap_nr:04}.{file_nr}.hdf5"
+
+HaloProperties:
+  # Where to write the halo properties file
+  filename: "{output_dir}/halo_properties_{snap_nr:04d}.hdf5"
+  # Where to write temporary chunk output
+  chunk_dir: "{scratch_dir}/SOAP-tmp/{halo_finder}"

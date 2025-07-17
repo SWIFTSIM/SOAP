@@ -1,22 +1,24 @@
 # Values in this section are substituted into the other sections
 Parameters:
-  sim_dir: /cosma8/data/dp004/jlvc76/COLIBRE/ScienceRuns
+  sim_dir: /cosma8/data/dp004/colibre/Runs
   output_dir: output
   scratch_dir: output
 
 # Location of the Swift snapshots:
 Snapshots:
-  filename: "{sim_dir}/{sim_name}/colibre_{snap_nr:04d}/colibre_{snap_nr:04d}.{file_nr}.hdf5"
+  filename: "{sim_dir}/{sim_name}/snapshots/colibre_{snap_nr:04d}/colibre_{snap_nr:04d}.{file_nr}.hdf5"
 
 # Which halo finder we're using, and base name for halo finder output files
 HaloFinder:
   type: HBTplus
   filename: "{sim_dir}/{sim_name}/HBTplus/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
-  fof_filename: "{sim_dir}/{sim_name}/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
+  fof_filename: "{sim_dir}/{sim_name}/fof/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
+  # TODO: Update to a run with potential energies stored
+  read_potential_energies: false
 
 # Where to find the group membership files
 GroupMembership:
-  filename: "{sim_dir}/{sim_name}/SOAP/SOAP_uncompressed/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+  filename: "{sim_dir}/{sim_name}/SOAP/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
 
 HaloProperties:
   # Where to write the halo properties file

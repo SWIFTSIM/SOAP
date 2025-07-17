@@ -16,7 +16,7 @@ contain filter information. Use one of the chunk files instead
 
 The chunk size is included in the filter that is output, meaning the output
 will differ slightly for different SWIFT snapshots. However, this doesn't matter
-since we set the chunk size explicitly when we create compressed SOAP catalogues. 
+since we set the chunk size explicitly when we create compressed SOAP catalogues.
 """
 
 import sys

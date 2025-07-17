@@ -1,0 +1,26 @@
+# Configuration file used to run on small DMO simulation 
+
+# Compulsary Params
+SnapshotPath ./                      # Location of snapshots
+SnapshotFileBase snap                # Basename of snapshot files
+HaloPath ./                          # Location of FOF ID files (normal snapshot for SWIFT)
+SubhaloPath HBT_output               # Output directory
+ParticlesSplit 0                     # Do we have gas particles that split
+MergeTrappedSubhalos 1               # Allow subhalos to merge
+# For the swiftsim reader these will be read in from snapshots automatically
+BoxSize -1
+SofteningHalo -1
+MaxPhysicalSofteningHalo -1
+
+# Reader
+SnapshotFormat swiftsim
+GroupFileFormat swiftsim_particle_index
+MinSnapshotIndex 0                  # First snapshot to use
+MaxSnapshotIndex 18                 # Final snapshot to use
+MaxConcurrentIO 8                   # Number of cores for IO
+MinNumPartOfSub 20                  # Minimum number of particles in a subhalo
+
+# Units
+MassInMsunh 6.81e9                  # Removes h factors from the final output 
+LengthInMpch 0.681                  # Removes h factors from the final output
+VelInKmS 1

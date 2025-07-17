@@ -45,6 +45,8 @@ SOProperties:
     ConcentrationUnsoftened: true
     MassFractionSatellites: true
     MassFractionExternal: true
+    MaximumCircularVelocity: true
+    MaximumCircularVelocityRadius: true
     NumberOfDarkMatterParticles: true
     SORadius: true
     SpinParameter: true
@@ -63,6 +65,7 @@ SubhaloProperties:
   properties:
     CentreOfMass: true
     CentreOfMassVelocity: true
+    EncloseRadius: true
     NumberOfDarkMatterParticles: true
     NumberOfGasParticles: true
     NumberOfStarParticles: true
@@ -72,9 +75,6 @@ SubhaloProperties:
     MaximumCircularVelocityRadiusUnsoftened: true
     SpinParameter: true
     TotalMass: true
-  variations:
-    Bound:
-      bound_only: true
 filters:
   general:
     limit: 100
