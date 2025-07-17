@@ -283,6 +283,14 @@ class PropertyTable:
             "SOAP/DescendantIndex",
             "SOAP/ProgenitorIndex",
         ],
+        "footnote_cold_dense.py": [
+            "DustGraphiteMassInColdDenseGas",
+            "DustLargeGrainMassInColdDenseGas",
+            "DustSilicatesMassInColdDenseGas",
+            "DustSmallGrainMassInColdDenseGas",
+            "GasMassInColdDenseGas",
+            "GasMassInColdDenseDiffuseMetals",
+        ],
     }
 
     # dictionary with human-friendly descriptions of the various lossy
@@ -4972,6 +4980,19 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                 with open(f"documentation/{fnote}", "r") as ifile:
                     fnstr = ifile.read()
                 fnstr = fnstr.replace("$FOOTNOTE_NUMBER$", f"{i+1}")
+                # Substitute in values from parameter file
+                if "$LOG_COLD_GAS_TEMP$" in fnstr:
+                    params = self.parameters.get_cold_dense_params()
+                    assert params["initialised"]
+                    T = f'{np.log10(params["maximum_temperature_K"]):.2g}'
+                    fnstr = fnstr.replace("$LOG_COLD_GAS_TEMP$", T)
+                if "$LOG_COLD_GAS_DENSITY$" in fnstr:
+                    params = self.parameters.get_cold_dense_params()
+                    assert params["initialised"]
+                    rho = (
+                        f'{np.log10(params["minimum_hydrogen_number_density_cm3"]):.2g}'
+                    )
+                    fnstr = fnstr.replace("$LOG_COLD_GAS_DENSITY$", rho)
                 ofile.write(f"{fnstr}\n\n")
 
         # Particle limits for each filter
@@ -5047,9 +5068,11 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
                     aperture_name = f"{int(multiplier)}x{prop}"
             variations_proj[aperture_name] = variation.get("filter", "basic")
         # Add ProjectedApertures to table in sorted order
-        for radius in sorted(variations_proj.keys()):
+        for aperture_name in sorted(variations_proj.keys()):
             filter = (
-                "-" if variations_proj[radius] == "basic" else variations_proj[radius]
+                "-"
+                if variations_proj[aperture_name] == "basic"
+                else variations_proj[aperture_name]
             )
             tablestr += f"\\verb+ProjectedAperture/{aperture_name}/projP+ & \\verb+projected_aperture_{aperture_name}_projP+ & \\ding{{53}} & {filter} \\\\*\n"
         # Add others groups
