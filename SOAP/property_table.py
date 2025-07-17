@@ -1160,7 +1160,7 @@ class PropertyTable:
             name="DustSmallToLargeGrainRatioSFRWeighted",
             shape=1,
             dtype=np.float32,
-            unit="snap_mass",
+            unit="dimensionless",
             description="The ratio of the dust mass in small grains to the mass in large grains, weighted by the SFR of the particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
