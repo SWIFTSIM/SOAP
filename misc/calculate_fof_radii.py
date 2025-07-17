@@ -193,10 +193,16 @@ for ptype in ptypes:
     part_pos = part_pos[mask]
     part_fof_ids = part_fof_ids[mask]
 
+    if comm_rank == 0:
+        print(f"  Loaded particles")
+
     # Get the centre of the FOF each particle is part of
     idx = psort.parallel_match(part_fof_ids, fof_group_ids, comm=comm)
     assert np.all(idx != -1), "FOFs could not be found for some particles"
     part_centre = psort.fetch_elements(fof_centres, idx, comm=comm)
+
+    if comm_rank == 0:
+        print(f"  Matched to FOF catalogue")
 
     # Centre the particles
     shift = (boxsize[None, :] / 2) - part_centre
@@ -234,9 +240,15 @@ for ptype in ptypes:
     del gathered_counts
     n_part_per_rank = comm.bcast(n_part_per_rank)
 
+    if comm_rank == 0:
+        print(f"  Repartitioning data")
+
     # Repartition particle data
     part_fof_ids = psort.repartition(part_fof_ids, n_part_per_rank, comm=comm)
     part_pos = psort.repartition(part_pos, n_part_per_rank, comm=comm)
+
+    if comm_rank == 0:
+        print(f"  Sorting by FOF ID")
 
     # Sort particles by FOF ID
     order = psort.parallel_sort(part_fof_ids, return_index=True, comm=comm)
@@ -253,6 +265,9 @@ for ptype in ptypes:
     local_fof_ids = part_fof_ids[reduce_idx]
     idx = psort.parallel_match(fof_group_ids, local_fof_ids, comm=comm)
     mask = idx != -1
+
+    if comm_rank == 0:
+        print(f"  Calculating radius")
 
     # Calculate max particle radius for each FOF ID
     part_radius = np.sqrt(np.sum(part_pos**2, axis=1))
