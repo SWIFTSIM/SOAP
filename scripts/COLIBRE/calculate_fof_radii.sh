@@ -8,6 +8,10 @@
 #
 # sbatch -J L0025N0188/Thermal --array=0-127%4 ./scripts/COLIBRE/calculate_fof_radii.sh
 #
+# N3008 runs need 8 nodes for z>1, 16 for z<1
+# N1504 runs need 1 node for z>1, 2 for z<1
+# Other runs need 1 node for all snapshots
+#
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH -o ./logs/fof_radii_%a.%A.out
@@ -15,7 +19,7 @@
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
-#SBATCH -t 00:10:00
+#SBATCH -t 01:00:00
 #
 
 set -e
@@ -39,5 +43,8 @@ mpirun -- python -u misc/calculate_fof_radii.py \
   --snap-basename "${snap_basename}" \
   --fof-basename "${fof_basename}" \
   --output-basename "${output_basename}" \
+
+echo "Setting files to read-only"
+chmod a=r "${output_basename}"*
 
 echo "Job complete!"

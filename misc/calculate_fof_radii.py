@@ -18,6 +18,7 @@ fof catalogues, and OUTPUT is the basename of the output fof catalogues.
 
 import argparse
 import os
+import time
 
 from mpi4py import MPI
 
@@ -50,7 +51,7 @@ parser.add_argument(
     "--fof-basename",
     type=str,
     required=True,
-    help="The basename for the output files",
+    help="The basename for the input FoF files",
 )
 parser.add_argument(
     "--output-basename",
@@ -64,6 +65,13 @@ parser.add_argument(
     required=False,
     default=2147483647,
     help=("The FOFGroupIDs of particles not in a FOF group"),
+)
+parser.add_argument(
+    "--copy-datasets",
+    type=bool,
+    required=False,
+    default=False,
+    help=("Copy datasets from input FoF files (otherwise a link is created)"),
 )
 parser.add_argument(
     "--n-test",
@@ -80,6 +88,12 @@ output_filename = args.output_basename + ".{file_nr}.hdf5"
 os.makedirs(os.path.dirname(output_filename), exist_ok=True)
 
 if comm_rank == 0:
+    start_time = time.time()
+    print(f"Running with {comm_size} ranks")
+    print(f"snap_filename: {snap_filename}")
+    print(f"fof_filename: {fof_filename}")
+    print(f"output_filename: {output_filename}")
+    print(f"null_fof_id: {args.null_fof_id}")
     with h5py.File(snap_filename.format(file_nr=0), "r") as file:
         header = dict(file["Header"].attrs)
         coordinate_unit_attrs = dict(file["PartType1/Coordinates"].attrs)
@@ -105,13 +119,16 @@ def copy_object(src_obj, dst_obj, src_filename, prefix="", skip_datasets=False):
         if isinstance(item, h5py.Dataset):
             if skip_datasets and (item.name != "/Header/PartTypeNames"):
                 continue
-            shape = item.shape
-            dtype = item.dtype
-            layout = h5py.VirtualLayout(shape=shape, dtype=dtype)
-            vsource = h5py.VirtualSource(src_filename, prefix + name, shape=shape)
-            layout[...] = vsource
-            vds = dst_obj.create_virtual_dataset(name, layout)
-            copy_attrs(item, vds)
+            if args.copy_datasets:
+                src_obj.copy(name, dst_obj)
+            else:
+                shape = item.shape
+                dtype = item.dtype
+                layout = h5py.VirtualLayout(shape=shape, dtype=dtype)
+                vsource = h5py.VirtualSource(src_filename, prefix + name, shape=shape)
+                layout[...] = vsource
+                dst_obj.create_virtual_dataset(name, layout)
+            copy_attrs(item, dst_obj[name])
         elif isinstance(item, h5py.Group):
             new_group = dst_obj.create_group(name)
             copy_object(
@@ -176,10 +193,16 @@ for ptype in ptypes:
     part_pos = part_pos[mask]
     part_fof_ids = part_fof_ids[mask]
 
+    if comm_rank == 0:
+        print(f"  Loaded particles")
+
     # Get the centre of the FOF each particle is part of
     idx = psort.parallel_match(part_fof_ids, fof_group_ids, comm=comm)
     assert np.all(idx != -1), "FOFs could not be found for some particles"
     part_centre = psort.fetch_elements(fof_centres, idx, comm=comm)
+
+    if comm_rank == 0:
+        print(f"  Matched to FOF catalogue")
 
     # Centre the particles
     shift = (boxsize[None, :] / 2) - part_centre
@@ -217,9 +240,15 @@ for ptype in ptypes:
     del gathered_counts
     n_part_per_rank = comm.bcast(n_part_per_rank)
 
+    if comm_rank == 0:
+        print(f"  Repartitioning data")
+
     # Repartition particle data
     part_fof_ids = psort.repartition(part_fof_ids, n_part_per_rank, comm=comm)
     part_pos = psort.repartition(part_pos, n_part_per_rank, comm=comm)
+
+    if comm_rank == 0:
+        print(f"  Sorting by FOF ID")
 
     # Sort particles by FOF ID
     order = psort.parallel_sort(part_fof_ids, return_index=True, comm=comm)
@@ -236,6 +265,9 @@ for ptype in ptypes:
     local_fof_ids = part_fof_ids[reduce_idx]
     idx = psort.parallel_match(fof_group_ids, local_fof_ids, comm=comm)
     mask = idx != -1
+
+    if comm_rank == 0:
+        print(f"  Calculating radius")
 
     # Calculate max particle radius for each FOF ID
     part_radius = np.sqrt(np.sum(part_pos**2, axis=1))
@@ -309,7 +341,8 @@ if comm_rank == 0:
             for k, v in attrs[prop].items():
                 dset.attrs[k] = v
 
-    print("Done generating new files")
+    print("New files generated!")
+    print(f"Took {int(time.time() - start_time)} seconds")
 
     if args.n_test != 0:
         print("Testing we can load all particles")
