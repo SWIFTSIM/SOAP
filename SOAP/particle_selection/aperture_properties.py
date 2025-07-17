@@ -2281,6 +2281,23 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
+    def DustSmallToLargeGrainRatioSFRWeighted(self) -> unyt.unyt_quantity:
+        """
+        Ratio of small to large dust grains, weighted by particle SFR
+        """
+        if self.Ngas == 0:
+            return None
+        small = np.sum(
+            self.gas_small_dust_mass_fractions * self.mass_gas * self.gas_SFR
+        )
+        large = np.sum(
+            self.gas_large_dust_mass_fractions * self.mass_gas * self.gas_SFR
+        )
+        if np.isclose(large, 0):
+            return None
+        return small / large
+
+    @lazy_property
     def GasMassInColdDenseGas(self) -> unyt.unyt_quantity:
         """
         Mass of cold, dense gas.
@@ -3490,6 +3507,7 @@ class ApertureProperties(HaloProperty):
         "DustSmallGrainMass": False,
         "DustSmallGrainMassInMolecularGas": False,
         "DustSmallGrainMassInColdDenseGas": False,
+        "DustSmallToLargeGrainRatioSFRWeighted": False,
         "GasMassInColdDenseGas": False,
         "DiffuseCarbonMass": False,
         "DiffuseOxygenMass": False,
