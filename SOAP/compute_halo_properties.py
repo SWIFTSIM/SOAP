@@ -189,16 +189,12 @@ def compute_halo_properties():
     # Try to load parameters for ColdDenseGasFilter. If a property that uses the
     # filter is calculated when the parameters could not be found, the code will
     # crash.
-    try:
-        cold_dense_params = args.calculations["cold_dense_gas_filter"]
-        cold_dense_gas_filter = ColdDenseGasFilter(
-            float(cold_dense_params["maximum_temperature_K"]) * unyt.K,
-            float(cold_dense_params["minimum_hydrogen_number_density_cm3"])
-            / unyt.cm**3,
-            True,
-        )
-    except KeyError:
-        cold_dense_gas_filter = ColdDenseGasFilter(0 * unyt.K, 0 / unyt.cm**3, False)
+    cold_dense_params = parameter_file.get_cold_dense_params()
+    cold_dense_gas_filter = ColdDenseGasFilter(
+        cold_dense_params["maximum_temperature_K"] * unyt.K,
+        cold_dense_params["minimum_hydrogen_number_density_cm3"] / unyt.cm**3,
+        cold_dense_params["initialised"],
+    )
 
     default_filters = {
         "general": {
