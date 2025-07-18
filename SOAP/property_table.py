@@ -1043,6 +1043,22 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
+        "DustLargeGrainMassSFRWeighted": Property(
+            name="DustLargeGrainMassSFRWeighted",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_mass",
+            description="The dust mass in large grains, weighted by the SFR of the particles.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Masses",
+                "PartType0/DustMassFractions",
+                "PartType0/StarFormationRates",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
         "DustSilicatesMass": Property(
             name="DustSilicatesMass",
             shape=1,
@@ -1156,12 +1172,12 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
-        "DustSmallToLargeGrainRatioSFRWeighted": Property(
-            name="DustSmallToLargeGrainRatioSFRWeighted",
+        "DustSmallGrainMassSFRWeighted": Property(
+            name="DustSmallGrainMassSFRWeighted",
             shape=1,
             dtype=np.float32,
-            unit="dimensionless",
-            description="The ratio of the dust mass in small grains to the mass in large grains, weighted by the SFR of the particles.",
+            unit="snap_mass",
+            description="The dust mass in small grains, weighted by the SFR of the particles.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[

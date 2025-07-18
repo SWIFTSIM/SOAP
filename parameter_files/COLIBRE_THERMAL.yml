@@ -90,6 +90,9 @@ ApertureProperties:
     DustLargeGrainMassInMolecularGas:
       snapshot: true
       snipshot: false
+    DustLargeGrainMassSFRWeighted:
+      snapshot: true
+      snipshot: false
     DustSilicatesMass:
       snapshot: true
       snipshot: false
@@ -111,7 +114,7 @@ ApertureProperties:
     DustSmallGrainMassInMolecularGas:
       snapshot: true
       snipshot: false
-    DustSmallToLargeGrainRatioSFRWeighted:
+    DustSmallGrainMassSFRWeighted:
       snapshot: true
       snipshot: false
     GasMass: true

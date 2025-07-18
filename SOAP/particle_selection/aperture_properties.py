@@ -2241,6 +2241,17 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
+    def DustLargeGrainMassSFRWeighted(self) -> unyt.unyt_quantity:
+        """
+        Large dust grain mass, weighted by particle SFR
+        """
+        if (self.Ngas == 0) or np.isclose(np.sum(self.gas_SFR), 0):
+            return None
+        return np.sum(
+            self.gas_large_dust_mass_fractions * self.mass_gas * self.gas_SFR
+        ) / np.sum(self.gas_SFR)
+
+    @lazy_property
     def DustSmallGrainMass(self) -> unyt.unyt_quantity:
         """
         Small dust grain mass in gas.
@@ -2281,21 +2292,15 @@ class ApertureParticleData:
         ).sum()
 
     @lazy_property
-    def DustSmallToLargeGrainRatioSFRWeighted(self) -> unyt.unyt_quantity:
+    def DustSmallGrainMassSFRWeighted(self) -> unyt.unyt_quantity:
         """
-        Ratio of small to large dust grains, weighted by particle SFR
+        Small dust grain mass, weighted by particle SFR
         """
-        if self.Ngas == 0:
+        if (self.Ngas == 0) or np.isclose(np.sum(self.gas_SFR), 0):
             return None
-        small = np.sum(
+        return np.sum(
             self.gas_small_dust_mass_fractions * self.mass_gas * self.gas_SFR
-        )
-        large = np.sum(
-            self.gas_large_dust_mass_fractions * self.mass_gas * self.gas_SFR
-        )
-        if np.isclose(large, 0):
-            return None
-        return small / large
+        ) / np.sum(self.gas_SFR)
 
     @lazy_property
     def GasMassInColdDenseGas(self) -> unyt.unyt_quantity:
@@ -3500,6 +3505,7 @@ class ApertureProperties(HaloProperty):
         "DustLargeGrainMass": False,
         "DustLargeGrainMassInMolecularGas": False,
         "DustLargeGrainMassInColdDenseGas": False,
+        "DustLargeGrainMassSFRWeighted": False,
         "DustSilicatesMass": False,
         "DustSilicatesMassInAtomicGas": False,
         "DustSilicatesMassInMolecularGas": False,
@@ -3507,7 +3513,7 @@ class ApertureProperties(HaloProperty):
         "DustSmallGrainMass": False,
         "DustSmallGrainMassInMolecularGas": False,
         "DustSmallGrainMassInColdDenseGas": False,
-        "DustSmallToLargeGrainRatioSFRWeighted": False,
+        "DustSmallGrainMassSFRWeighted": False,
         "GasMassInColdDenseGas": False,
         "DiffuseCarbonMass": False,
         "DiffuseOxygenMass": False,
