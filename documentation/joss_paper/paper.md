@@ -6,14 +6,19 @@ tags:
 authors:
   - name: Robert McGibbon
     affiliation: 1
+    orcid: 0000-0003-0651-0776
   - name: John C. Helly
     affiliation: 2
+    orcid: 0000-0002-0647-4755
   - name: Joop Schaye 
     affiliation: 1
+    orcid: 0000-0002-0668-5560
   - name: Matthieu Schaller
     affiliation: "1, 3"
+    orcid: 0000-0002-2395-4902
   - name: Bert Vandenbroucke
     affiliation: 1
+    orcid: 0000-0001-7241-1704
 affiliations:
  - index: 1
    name: Leiden Observatory, Leiden University, PO Box 9513, 2300 RA Leiden, the Netherlands
