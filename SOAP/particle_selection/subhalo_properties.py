@@ -38,6 +38,7 @@ from SOAP.property_calculation.inertia_tensors import (
     get_inertia_tensor_mass_weighted,
     get_inertia_tensor_luminosity_weighted,
 )
+from SOAP.property_calculation.cylindrical_coordinates import calculate_cylindrical_velocities
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculator
 from SOAP.property_table import PropertyTable
@@ -1384,6 +1385,47 @@ class SubhaloParticleData:
         return self.mass_star / self.Mstar
 
     @lazy_property
+    def star_cylindrical_velocities(self) -> unyt.unyt_array:
+        """
+        Calculate the velocities of the star particles in cyclindrical
+        coordinates, where the axes are centred on the halo centre,
+        and the z axis is aligned with the stellar angular momentum.
+        """
+
+        if self.Mstar == 0:
+            return None
+
+        # Calculate relative velocity of stars
+        vrel = self.vel_star - self.vcom[None, :]
+
+        # Get velocities in cylindrical coordinates
+        return calculate_cylindrical_velocities(
+            self.pos_star,
+            vrel,
+            self.Lstar,
+        )
+
+    @lazy_property
+    def RotationalVelocityStars(self) -> unyt.unyt_array:
+        if self.Mstar == 0:
+            return None
+        v_cylindrical = self.star_cylindrical_velocities
+        v_phi = v_cylindrical[:, 1]
+        return (self.star_mass_fraction * v_phi).sum()
+
+    @lazy_property
+    def CylindricalVelocityDispersionStars(self) -> unyt.unyt_array:
+        if self.Mstar == 0:
+            return None
+        v_cylindrical = self.star_cylindrical_velocities
+        vel_disp = 0
+        for i in range(3):
+            mean = (self.star_mass_fraction * v_cylindrical[:, i]).sum()
+            delta = self.star_mass_fraction * ((v_cylindrical[:, i] - mean) ** 2)
+            vel_disp += delta.sum()
+        return np.sqrt(vel_disp / 3)
+
+    @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
         """
         Centre of mass velocity of star particles in the subhalo.
@@ -2225,6 +2267,8 @@ class SubhaloProperties(HaloProperty):
             "Lgas",
             "Ldm",
             "Lstar",
+            "CylindricalVelocityDispersionStars",
+            "RotationalVelocityStars",
             "kappa_corot_gas",
             "kappa_corot_star",
             "Lbaryons",
