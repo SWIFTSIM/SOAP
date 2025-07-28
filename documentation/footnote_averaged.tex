@@ -1,0 +1,4 @@
+\paragraph{$^{$FOOTNOTE_NUMBER$}$Averaged quantities}\label{footnote:$FOOTNOTE_NUMBER$} are calculated by accumulating the quantity over
+the 10Myr/100Myr that precedes the writing of a snapshot, and then normalising. For example for SFR we start a clock precisely 10Myr before a snapshot
+dump, accumulate SFR * dt at each step during that window, and then divide by 10Myr at the point of writing.
+
