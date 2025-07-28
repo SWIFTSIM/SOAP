@@ -87,6 +87,9 @@ ApertureProperties:
     DustLargeGrainMassInColdDenseGas:
       snapshot: true
       snipshot: false
+    DustLargeGrainMassSFRWeighted:
+      snapshot: true
+      snipshot: false
     DustLargeGrainMassInMolecularGas:
       snapshot: true
       snipshot: false
@@ -109,6 +112,9 @@ ApertureProperties:
       snapshot: true
       snipshot: false
     DustSmallGrainMassInMolecularGas:
+      snapshot: true
+      snipshot: false
+    DustSmallGrainMassSFRWeighted:
       snapshot: true
       snipshot: false
     GasMass: true
@@ -147,18 +153,10 @@ ApertureProperties:
     LinearMassWeightedOxygenOverHydrogenOfGas:
       snapshot: true
       snipshot: false
-    LinearMassWeightedDiffuseCarbonOverOxygenOfGas:
-      snapshot: true
-      snipshot: false
-    LinearMassWeightedNitrogenOverOxygenOfGas:
-      snapshot: true
-      snipshot: false
-    LinearMassWeightedCarbonOverOxygenOfGas:
-      snapshot: true
-      snipshot: false
-    LinearMassWeightedDiffuseNitrogenOverOxygenOfGas:
-      snapshot: true
-      snipshot: false
+    LinearMassWeightedDiffuseCarbonOverOxygenOfGas: false
+    LinearMassWeightedNitrogenOverOxygenOfGas: false
+    LinearMassWeightedCarbonOverOxygenOfGas: false
+    LinearMassWeightedDiffuseNitrogenOverOxygenOfGas: false
     LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit:
       snapshot: true
       snipshot: false
@@ -182,18 +180,10 @@ ApertureProperties:
     LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit: true
     LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit: true
     LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit: true
-    LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit:
-      snapshot: true
-      snipshot: false
-    LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit:
-      snapshot: true
-      snipshot: false
-    LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit:
-      snapshot: true
-      snipshot: false
-    LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit:
-      snapshot: true
-      snipshot: false
+    LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit: false
+    LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit: false
+    LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit: false
+    LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit: false
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
     MolecularHydrogenMass: true

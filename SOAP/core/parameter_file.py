@@ -344,3 +344,25 @@ class ParameterFile:
         return self.parameters["SubhaloProperties"]["properties"].get(
             "EncloseRadius", False
         )
+
+    def get_cold_dense_params(self) -> Dict:
+        """
+        Returns a dict of the parameters required for initialising
+        the ColdDenseGasFilter object
+        """
+
+        try:
+            raw_params = self.parameters["calculations"]["cold_dense_gas_filter"]
+            return {
+                "maximum_temperature_K": float(raw_params["maximum_temperature_K"]),
+                "minimum_hydrogen_number_density_cm3": float(
+                    raw_params["minimum_hydrogen_number_density_cm3"]
+                ),
+                "initialised": True,
+            }
+        except KeyError as e:
+            return {
+                "maximum_temperature_K": 0,
+                "minimum_hydrogen_number_density_cm3": 0,
+                "initialised": False,
+            }
