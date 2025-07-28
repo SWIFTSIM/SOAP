@@ -9,13 +9,14 @@ Utility function for converting particles to a cylindrical coordinate system
 
 import numpy as np
 
+
 def build_rotation_matrix(z_target):
     """
-    Build a rotation matrix that aligns the new z-axis 
+    Build a rotation matrix that aligns the new z-axis
     with the given `z_target` vector.
 
     Parameters:
-        z_target: A 3-element array representing 
+        z_target: A 3-element array representing
         the target direction to align with the new z-axis.
 
     Returns:
@@ -74,4 +75,3 @@ def calculate_cylindrical_velocities(positions, velocities, z_target):
     v_z = vz
 
     return np.stack([v_r, v_phi, v_z], axis=1)
-

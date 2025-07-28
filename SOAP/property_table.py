@@ -1608,13 +1608,12 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=1,
         ),
-        # TODO: footnotes
-        "RotationalVelocityStars": Property(
-            name="RotationalVelocityStars",
+        "StellarRotationalVelocity": Property(
+            name="StellarRotationalVelocity",
             shape=1,
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="Mass weighted mean rotational velocity of the stars, in a cylindrical coordinate system where the axes are centred on the halo centre, and the z axis is aligned with the stellar angular momentum.",
+            description="Mass weighted mean rotational velocity of the stars, in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1625,12 +1624,12 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
-        "CylindricalVelocityDispersionStars": Property(
-            name="CylindricalVelocityDispersionStars",
+        "StellarCylindricalVelocityDispersion": Property(
+            name="StellarCylindricalVelocityDispersion",
             shape=1,
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="Velocity dispersion of the stars computed in a cylindrical coordinate system where the axes are centred on the halo centre, and the z axis is aligned with the stellar angular momentum.",
+            description="Velocity dispersion of the stars computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
