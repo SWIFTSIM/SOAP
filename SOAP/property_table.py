@@ -283,13 +283,17 @@ class PropertyTable:
             "SOAP/DescendantIndex",
             "SOAP/ProgenitorIndex",
         ],
-        "footnote_cold_dense.py": [
+        "footnote_cold_dense.tex": [
             "DustGraphiteMassInColdDenseGas",
             "DustLargeGrainMassInColdDenseGas",
             "DustSilicatesMassInColdDenseGas",
             "DustSmallGrainMassInColdDenseGas",
             "GasMassInColdDenseGas",
             "GasMassInColdDenseDiffuseMetals",
+        ],
+        "footnote_averaged.tex": [
+            "MostMassiveBlackHoleAveragedAccretionRate",
+            "AveragedStarFormationRate",
         ],
     }
 
