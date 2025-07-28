@@ -371,15 +371,15 @@ ProjectedApertureProperties:
     ProjectedTotalInertiaTensor: false
     ProjectedTotalInertiaTensorReduced: false
     ProjectedTotalInertiaTensorNoniterative: general
-    ProjectedTotalInertiaTensorReducedNoniterative: false
+    ProjectedTotalInertiaTensorReducedNoniterative: general
     ProjectedGasInertiaTensor: false
     ProjectedGasInertiaTensorReduced: false
     ProjectedGasInertiaTensorNoniterative: general
-    ProjectedGasInertiaTensorReducedNoniterative: false
+    ProjectedGasInertiaTensorReducedNoniterative: general
     ProjectedStellarInertiaTensor: false
     ProjectedStellarInertiaTensorReduced: false
     ProjectedStellarInertiaTensorNoniterative: general
-    ProjectedStellarInertiaTensorReducedNoniterative: false
+    ProjectedStellarInertiaTensorReducedNoniterative: general
     ProjectedStellarInertiaTensorLuminosityWeighted: false
     ProjectedStellarInertiaTensorReducedLuminosityWeighted: false
     ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted: false
@@ -516,10 +516,10 @@ SOProperties:
     GasInertiaTensorNoniterative: general
     DarkMatterInertiaTensorNoniterative: general
     StellarInertiaTensorNoniterative: general
-    TotalInertiaTensorReducedNoniterative: false
-    GasInertiaTensorReducedNoniterative: false
-    DarkMatterInertiaTensorReducedNoniterative: false
-    StellarInertiaTensorReducedNoniterative: false
+    TotalInertiaTensorReducedNoniterative: general
+    GasInertiaTensorReducedNoniterative: general
+    DarkMatterInertiaTensorReducedNoniterative: general
+    StellarInertiaTensorReducedNoniterative: general
     MaximumCircularVelocity: true
     MaximumCircularVelocityRadius: true
     StarFormationRate: true
@@ -709,10 +709,10 @@ SubhaloProperties:
     DarkMatterInertiaTensorNoniterative: general
     StellarInertiaTensorNoniterative: general
     StellarInertiaTensorNoniterativeLuminosityWeighted: false
-    TotalInertiaTensorReducedNoniterative: false
-    GasInertiaTensorReducedNoniterative: false
-    DarkMatterInertiaTensorReducedNoniterative: false
-    StellarInertiaTensorReducedNoniterative: false
+    TotalInertiaTensorReducedNoniterative: general
+    GasInertiaTensorReducedNoniterative: general
+    DarkMatterInertiaTensorReducedNoniterative: general
+    StellarInertiaTensorReducedNoniterative: general
     StellarInertiaTensorReducedNoniterativeLuminosityWeighted: false
     StarFormationRate: true
     AveragedStarFormationRate:
@@ -727,6 +727,8 @@ SubhaloProperties:
     StellarMassFractionInMetals: true
     StellarVelocityDispersionMatrix: general
     TotalMass: true
+    StellarRotationalVelocity: general
+    StellarCylindricalVelocityDispersion: general
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent

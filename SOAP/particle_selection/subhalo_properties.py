@@ -38,6 +38,9 @@ from SOAP.property_calculation.inertia_tensors import (
     get_inertia_tensor_mass_weighted,
     get_inertia_tensor_luminosity_weighted,
 )
+from SOAP.property_calculation.cylindrical_coordinates import (
+    calculate_cylindrical_velocities,
+)
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculator
 from SOAP.property_table import PropertyTable
@@ -1054,12 +1057,12 @@ class SubhaloParticleData:
         """
         Inertia tensor of the total mass distribution.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusTot. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusTot. Only considers bound particles.
         """
         if self.Mtot == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass, self.position, self.HalfMassRadiusTot
+            self.mass, self.position, 10 * self.HalfMassRadiusTot
         )
 
     @lazy_property
@@ -1067,38 +1070,38 @@ class SubhaloParticleData:
         """
         Reduced inertia tensor of the total mass distribution.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusTot. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusTot. Only considers bound particles.
         """
         if self.Mtot == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass, self.position, self.HalfMassRadiusTot, reduced=True
+            self.mass, self.position, 10 * self.HalfMassRadiusTot, reduced=True
         )
 
     @lazy_property
     def TotalInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the total mass distribution.
-        Computed using all bound particles within HalfMassRadiusTot.
+        Computed using all bound particles within 10 * HalfMassRadiusTot.
         """
         if self.Mtot == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass, self.position, self.HalfMassRadiusTot, max_iterations=1
+            self.mass, self.position, 10 * self.HalfMassRadiusTot, max_iterations=1
         )
 
     @lazy_property
     def TotalInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the total mass distribution.
-        Computed using all bound particles within HalfMassRadiusTot.
+        Computed using all bound particles within 10 * HalfMassRadiusTot.
         """
         if self.Mtot == 0:
             return None
         return get_inertia_tensor_mass_weighted(
             self.mass,
             self.position,
-            self.HalfMassRadiusTot,
+            10 * self.HalfMassRadiusTot,
             reduced=True,
             max_iterations=1,
         )
@@ -1185,12 +1188,12 @@ class SubhaloParticleData:
         """
         Inertia tensor of the gas mass distribution.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusGas. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusGas. Only considers bound particles.
         """
         if self.Mgas == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass_gas, self.pos_gas, self.HalfMassRadiusGas
+            self.mass_gas, self.pos_gas, 10 * self.HalfMassRadiusGas
         )
 
     @lazy_property
@@ -1198,38 +1201,38 @@ class SubhaloParticleData:
         """
         Reduced inertia tensor of the gas mass distribution.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusGas. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusGas. Only considers bound particles.
         """
         if self.Mgas == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, reduced=True
+            self.mass_gas, self.pos_gas, 10 * self.HalfMassRadiusGas, reduced=True
         )
 
     @lazy_property
     def GasInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the gas mass distribution.
-        Computed using all bound gas particles within HalfMassRadiusGas.
+        Computed using all bound gas particles within 10 x HalfMassRadiusGas.
         """
         if self.Mgas == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass_gas, self.pos_gas, self.HalfMassRadiusGas, max_iterations=1
+            self.mass_gas, self.pos_gas, 10 * self.HalfMassRadiusGas, max_iterations=1
         )
 
     @lazy_property
     def GasInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the gas mass distribution.
-        Computed using all bound gas particles within HalfMassRadiusGas.
+        Computed using all bound gas particles within 10 x HalfMassRadiusGas.
         """
         if self.Mgas == 0:
             return None
         return get_inertia_tensor_mass_weighted(
             self.mass_gas,
             self.pos_gas,
-            self.HalfMassRadiusGas,
+            10 * self.HalfMassRadiusGas,
             reduced=True,
             max_iterations=1,
         )
@@ -1281,12 +1284,12 @@ class SubhaloParticleData:
         """
         Inertia tensor of the dark matter mass distribution.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusDM. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusDM. Only considers bound particles.
         """
         if self.Mdm == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass_dm, self.pos_dm, self.HalfMassRadiusDM
+            self.mass_dm, self.pos_dm, 10 * self.HalfMassRadiusDM
         )
 
     @lazy_property
@@ -1294,38 +1297,38 @@ class SubhaloParticleData:
         """
         Reduced inertia tensor of the dark matter mass distribution.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusDM. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusDM. Only considers bound particles.
         """
         if self.Mdm == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, reduced=True
+            self.mass_dm, self.pos_dm, 10 * self.HalfMassRadiusDM, reduced=True
         )
 
     @lazy_property
     def DarkMatterInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the dark matter mass distribution.
-        Computed using all bound DM particles within HalfMassRadiusDM.
+        Computed using all bound DM particles within 10 x HalfMassRadiusDM.
         """
         if self.Mdm == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass_dm, self.pos_dm, self.HalfMassRadiusDM, max_iterations=1
+            self.mass_dm, self.pos_dm, 10 * self.HalfMassRadiusDM, max_iterations=1
         )
 
     @lazy_property
     def DarkMatterInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the dark matter mass distribution.
-        Computed using all bound DM particles within HalfMassRadiusDM.
+        Computed using all bound DM particles within 10 x HalfMassRadiusDM.
         """
         if self.Mdm == 0:
             return None
         return get_inertia_tensor_mass_weighted(
             self.mass_dm,
             self.pos_dm,
-            self.HalfMassRadiusDM,
+            10 * self.HalfMassRadiusDM,
             reduced=True,
             max_iterations=1,
         )
@@ -1382,6 +1385,52 @@ class SubhaloParticleData:
         if self.Mstar == 0:
             return None
         return self.mass_star / self.Mstar
+
+    @lazy_property
+    def star_cylindrical_velocities(self) -> unyt.unyt_array:
+        """
+        Calculate the velocities of the star particles in cyclindrical
+        coordinates, where the axes are centred on the stellar CoM,
+        and the z axis is aligned with the stellar angular momentum.
+        """
+
+        if self.Nstar < 2:
+            return None
+
+        # Calculate the position of the stars relative to their CoM
+        pos = self.pos_star - (self.star_mass_fraction[:, None] * self.pos_star).sum(
+            axis=0
+        )
+
+        # Calculate relative velocity of stars
+        vrel = self.vel_star - self.vcom[None, :]
+
+        # Get velocities in cylindrical coordinates
+        return calculate_cylindrical_velocities(
+            pos,
+            vrel,
+            self.Lstar,
+        )
+
+    @lazy_property
+    def StellarRotationalVelocity(self) -> unyt.unyt_array:
+        if self.Nstar < 2:
+            return None
+        v_cylindrical = self.star_cylindrical_velocities
+        v_phi = v_cylindrical[:, 1]
+        return (self.star_mass_fraction * v_phi).sum()
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersion(self) -> unyt.unyt_array:
+        if self.Nstar < 2:
+            return None
+        v_cylindrical = self.star_cylindrical_velocities
+        vel_disp = 0 * v_cylindrical.units**2
+        for i in range(3):
+            mean = (self.star_mass_fraction * v_cylindrical[:, i]).sum()
+            delta = self.star_mass_fraction * ((v_cylindrical[:, i] - mean) ** 2)
+            vel_disp += delta.sum()
+        return np.sqrt(vel_disp / 3)
 
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
@@ -1555,12 +1604,12 @@ class SubhaloParticleData:
         """
         Inertia tensor of the stellar mass distribution.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusStar. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusStar. Only considers bound particles.
         """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass_star, self.pos_star, self.HalfMassRadiusStar
+            self.mass_star, self.pos_star, 10 * self.HalfMassRadiusStar
         )
 
     @lazy_property
@@ -1568,38 +1617,41 @@ class SubhaloParticleData:
         """
         Reduced inertia tensor of the stellar mass distribution.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusStar. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusStar. Only considers bound particles.
         """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_mass_weighted(
-            self.mass_star, self.pos_star, self.HalfMassRadiusStar, reduced=True
+            self.mass_star, self.pos_star, 10 * self.HalfMassRadiusStar, reduced=True
         )
 
     @lazy_property
     def StellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar mass distribution.
-        Computed using all bound star particles within HalfMassRadiusStar.
-        """
-        if self.Mstar == 0:
-            return None
-        return get_inertia_tensor_mass_weighted(
-            self.mass_star, self.pos_star, self.HalfMassRadiusStar, max_iterations=1
-        )
-
-    @lazy_property
-    def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
-        """
-        Reduced inertia tensor of the stellar mass distribution.
-        Computed using all bound star particles within HalfMassRadiusStar.
+        Computed using all bound star particles within 10 x HalfMassRadiusStar.
         """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_mass_weighted(
             self.mass_star,
             self.pos_star,
-            self.HalfMassRadiusStar,
+            10 * self.HalfMassRadiusStar,
+            max_iterations=1,
+        )
+
+    @lazy_property
+    def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution.
+        Computed using all bound star particles within 10 x HalfMassRadiusStar.
+        """
+        if self.Mstar == 0:
+            return None
+        return get_inertia_tensor_mass_weighted(
+            self.mass_star,
+            self.pos_star,
+            10 * self.HalfMassRadiusStar,
             reduced=True,
             max_iterations=1,
         )
@@ -1609,12 +1661,12 @@ class SubhaloParticleData:
         """
         Inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusStar. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusStar. Only considers bound particles.
         """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
-            self.stellar_luminosities, self.pos_star, self.HalfMassRadiusStar
+            self.stellar_luminosities, self.pos_star, 10 * self.HalfMassRadiusStar
         )
 
     @lazy_property
@@ -1622,14 +1674,14 @@ class SubhaloParticleData:
         """
         Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
         Computed iteratively using an ellipsoid with volume equal to that of
-        a sphere with radius HalfMassRadiusStar. Only considers bound particles.
+        a sphere with radius 10 x HalfMassRadiusStar. Only considers bound particles.
         """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
             self.stellar_luminosities,
             self.pos_star,
-            self.HalfMassRadiusStar,
+            10 * self.HalfMassRadiusStar,
             reduced=True,
         )
 
@@ -1637,14 +1689,14 @@ class SubhaloParticleData:
     def StellarInertiaTensorNoniterativeLuminosityWeighted(self) -> unyt.unyt_array:
         """
         Inertia tensor of the stellar luminosity distribution for each GAMA band.
-        Computed using all bound star particles within HalfMassRadiusStar.
+        Computed using all bound star particles within 10 x HalfMassRadiusStar.
         """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
             self.stellar_luminosities,
             self.pos_star,
-            self.HalfMassRadiusStar,
+            10 * self.HalfMassRadiusStar,
             max_iterations=1,
         )
 
@@ -1654,14 +1706,14 @@ class SubhaloParticleData:
     ) -> unyt.unyt_array:
         """
         Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
-        Computed using all bound star particles within HalfMassRadiusStar.
+        Computed using all bound star particles within 10 x HalfMassRadiusStar.
         """
         if self.Mstar == 0:
             return None
         return get_inertia_tensor_luminosity_weighted(
             self.stellar_luminosities,
             self.pos_star,
-            self.HalfMassRadiusStar,
+            10 * self.HalfMassRadiusStar,
             reduced=True,
             max_iterations=1,
         )
@@ -2225,6 +2277,8 @@ class SubhaloProperties(HaloProperty):
             "Lgas",
             "Ldm",
             "Lstar",
+            "StellarCylindricalVelocityDispersion",
+            "StellarRotationalVelocity",
             "kappa_corot_gas",
             "kappa_corot_star",
             "Lbaryons",
