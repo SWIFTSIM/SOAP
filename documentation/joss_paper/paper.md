@@ -50,9 +50,6 @@ FLAMINGO simulation suite [@flamingo; @flamingoCalibration], which includes the 
 hydrodynamic simulation to date. These catalogues have been used in more than
 20 publications to date.[^1]
 
-`SOAP` is hosted on GitHub. We strongly encourage
-contributions to `SOAP`, such as opening issues and submitting pull requests.
-
 # Statement of Need
 
 Modern galaxy simulations are often analyzed by a large number of researchers. However,
@@ -63,7 +60,7 @@ shared across the community.
 
 Given the substantial volume of data, it is essential for the output to be processed in parallel.
 `SOAP` achieves this using the mpi4py library
-[@mpi4py]. This enables `SOAP` to scale efficiently across multiple compute nodes.
+[@mpi4py; @mpi4py_2; @mpi4py_3; @mpi4py_4]. This enables `SOAP` to scale efficiently across multiple compute nodes.
 `SOAP` is also designed to handle subvolumes of the simulation independently, allowing
 for large simulations to be processed sequentially if required. This approach reduces the need
 for high-memory resources.
@@ -134,7 +131,7 @@ always reflects the specific setup of the current `SOAP` run.
 
 We gratefully acknowledge contributions to the code from Joey Braspenning, Jeger Broxterman,
 Evgenii Chaikin, Camila Correa, Victor Forouhar Moreno, and Roi Kugel. `SOAP` relies heavily on
-the following packages: mpi4py [@mpi4py], NumPy [@numpy], h5py [@h5py], and unyt [@unyt].
+the following packages: mpi4py [@mpi4py; @mpi4py_2; @mpi4py_3; @mpi4py_4], NumPy [@numpy], h5py [@h5py], and unyt [@unyt].
 
 # References
 
