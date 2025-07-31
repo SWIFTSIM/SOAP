@@ -1394,7 +1394,13 @@ class SubhaloParticleData:
         and the z axis is aligned with the stellar angular momentum.
         """
 
+        # We need at least 2 particles to have an angular momentum vector
         if self.Nstar < 2:
+            return None
+
+        # This can happen if we have particles on top of each other
+        # or with the same velocity
+        if np.sum(self.Lstar) == 0:
             return None
 
         # Calculate the position of the stars relative to their CoM
@@ -1414,7 +1420,7 @@ class SubhaloParticleData:
 
     @lazy_property
     def StellarRotationalVelocity(self) -> unyt.unyt_array:
-        if self.Nstar < 2:
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
         v_cylindrical = self.star_cylindrical_velocities
         v_phi = v_cylindrical[:, 1]
@@ -1422,7 +1428,7 @@ class SubhaloParticleData:
 
     @lazy_property
     def StellarCylindricalVelocityDispersion(self) -> unyt.unyt_array:
-        if self.Nstar < 2:
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
         v_cylindrical = self.star_cylindrical_velocities
         vel_disp = 0 * v_cylindrical.units**2
