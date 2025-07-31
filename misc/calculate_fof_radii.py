@@ -71,7 +71,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--copy-datasets",
-    action='store_true',
+    action="store_true",
     help="Copy datasets from input FoF files (otherwise a link is created)",
 )
 parser.add_argument(
@@ -83,17 +83,17 @@ parser.add_argument(
 )
 parser.add_argument(
     "--single-fof-file",
-    action='store_true',
+    action="store_true",
     help="If there is a single FoF file even though there are distributed snapshots",
 )
 parser.add_argument(
     "--recalculate-sizes",
-    action='store_true',
+    action="store_true",
     help="Whether to calculate the number of particles in each FOF group",
 )
 parser.add_argument(
     "--reset-ids",
-    action='store_true',
+    action="store_true",
     help=(
         "Whether to set the group ids in the FOF catalgoues to 1...N ",
         "(This is required for some runs as there was a bug where the incorrect",
@@ -116,15 +116,15 @@ if comm_rank == 0:
     with h5py.File(fof_filename.format(file_nr=0), "r") as file:
         fof_header = dict(file["Header"].attrs)
         unit_attrs = {
-            'Radii': dict(file["Groups/Centres"].attrs),
-            'Sizes': dict(file["Groups/Sizes"].attrs),
-            'GroupIDs': dict(file["Groups/GroupIDs"].attrs),
+            "Radii": dict(file["Groups/Centres"].attrs),
+            "Sizes": dict(file["Groups/Sizes"].attrs),
+            "GroupIDs": dict(file["Groups/GroupIDs"].attrs),
         }
     with h5py.File(snap_filename.format(file_nr=0), "r") as file:
         snap_header = dict(file["Header"].attrs)
     print(f"Running with {comm_size} ranks")
     for k, v in vars(args).items():
-        print(f'  {k}: {v}')
+        print(f"  {k}: {v}")
     print(f'  nr_files: {fof_header["NumFilesPerSnapshot"][0]}')
 else:
     fof_header = None
@@ -142,6 +142,7 @@ nr_files = fof_header["NumFilesPerSnapshot"][0]
 if args.recalculate_sizes or args.reset_ids:
     assert args.copy_datasets
 
+
 def copy_attrs(src_obj, dst_obj):
     for key, val in src_obj.attrs.items():
         dst_obj.attrs[key] = val
@@ -153,9 +154,9 @@ def copy_object(src_obj, dst_obj, src_filename, prefix="", skip_datasets=False):
         if isinstance(item, h5py.Dataset):
             if skip_datasets and (item.name != "/Header/PartTypeNames"):
                 continue
-            if (item.name == '/Groups/Sizes') and args.recalculate_sizes:
+            if (item.name == "/Groups/Sizes") and args.recalculate_sizes:
                 continue
-            if (item.name == '/Groups/GroupIDs') and args.reset_ids:
+            if (item.name == "/Groups/GroupIDs") and args.reset_ids:
                 continue
             if args.copy_datasets:
                 src_obj.copy(name, dst_obj)
@@ -402,7 +403,9 @@ if (comm_rank == 0) and (args.n_test != 0):
     max_pos = fof.fof_groups.centres + fof.fof_groups.radii[:, None]
 
     n_test = args.n_test if args.n_test != -1 else fof.fof_groups.sizes.shape[0]
-    to_test = np.random.choice(np.arange(fof.fof_groups.sizes.shape[0]), n_test, replace=False)
+    to_test = np.random.choice(
+        np.arange(fof.fof_groups.sizes.shape[0]), n_test, replace=False
+    )
     for i_fof in tqdm.tqdm(to_test):
 
         # Create mask and load data
