@@ -251,6 +251,10 @@ for ptype in ptypes:
     shift = (boxsize[None, :] / 2) - part_centre
     part_pos = ((part_pos + shift) % boxsize[None, :]) - (boxsize[None, :] / 2)
 
+    # Calculate max particle radius for each FOF ID
+    part_radius = np.sqrt(np.sum(part_pos**2, axis=1))
+    psort.reduce_elements(fof_radius, part_radius, idx, op=np.maximum, comm=comm)
+
     # Count the number of particles found for each FOF
     unique_fof_ids, unique_counts = psort.parallel_unique(
         part_fof_ids,
@@ -262,63 +266,6 @@ for ptype in ptypes:
     idx = psort.parallel_match(fof_group_ids, unique_fof_ids, comm=comm)
     mask = idx != -1
     total_part_counts[mask] += psort.fetch_elements(unique_counts, idx[mask], comm=comm)
-
-    # Sort based on unique_fof_ids
-    order = psort.parallel_sort(unique_fof_ids, return_index=True, comm=comm)
-    unique_counts = psort.fetch_elements(unique_counts, order, comm=comm)
-
-    # Determine how to partition the particles, so groups will not span ranks
-    gathered_counts = gather_array(unique_counts)
-    if comm_rank == 0:
-        n_part_target = np.sum(gathered_counts) / comm_size
-        cumsum = np.cumsum(gathered_counts)
-        ranks = np.floor(cumsum / n_part_target).astype(int)
-        ranks = np.clip(ranks, 0, comm_size - 1)
-        n_part_per_rank = np.bincount(
-            ranks, weights=gathered_counts, minlength=comm_size
-        )
-        assert np.sum(n_part_per_rank) == np.sum(gathered_counts)
-    else:
-        n_part_per_rank = None
-    del gathered_counts
-    n_part_per_rank = comm.bcast(n_part_per_rank)
-
-    if comm_rank == 0:
-        print(f"  Repartitioning data")
-
-    # Repartition particle data
-    part_fof_ids = psort.repartition(part_fof_ids, n_part_per_rank, comm=comm)
-    part_pos = psort.repartition(part_pos, n_part_per_rank, comm=comm)
-
-    if comm_rank == 0:
-        print(f"  Sorting by FOF ID")
-
-    # Sort particles by FOF ID
-    order = psort.parallel_sort(part_fof_ids, return_index=True, comm=comm)
-    part_pos = psort.fetch_elements(part_pos, order, comm=comm)
-
-    # Find boundaries where FOF ID changes
-    if part_fof_ids.shape[0] != 0:
-        change_idx = np.flatnonzero(np.diff(part_fof_ids)) + 1
-        reduce_idx = np.concatenate([np.array([0]), change_idx])
-    else:
-        reduce_idx = np.array([], dtype=int)
-
-    # Determine link to arrays from original FOF catalogue
-    local_fof_ids = part_fof_ids[reduce_idx]
-    idx = psort.parallel_match(fof_group_ids, local_fof_ids, comm=comm)
-    mask = idx != -1
-
-    if comm_rank == 0:
-        print(f"  Calculating radius")
-
-    # Calculate max particle radius for each FOF ID
-    part_radius = np.sqrt(np.sum(part_pos**2, axis=1))
-    local_radius = np.maximum.reduceat(part_radius, reduce_idx)
-
-    # Compare with values from other particle types
-    radius = psort.fetch_elements(local_radius, idx[mask], comm=comm)
-    fof_radius[mask] = np.maximum(fof_radius[mask], radius)
 
 # Carry out some sanity checks
 assert np.all(fof_radius > 0)
