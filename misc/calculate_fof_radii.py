@@ -92,6 +92,11 @@ parser.add_argument(
     help="Whether to calculate the number of particles in each FOF group",
 )
 parser.add_argument(
+    "--recalculate-centres",
+    action="store_true",
+    help="Whether to calculate the CoM of each FOF group",
+)
+parser.add_argument(
     "--reset-ids",
     action="store_true",
     help=(
@@ -117,9 +122,12 @@ if comm_rank == 0:
         fof_header = dict(file["Header"].attrs)
         unit_attrs = {
             "Radii": dict(file["Groups/Centres"].attrs),
+            "Centres": dict(file["Groups/Centres"].attrs),
             "Sizes": dict(file["Groups/Sizes"].attrs),
             "GroupIDs": dict(file["Groups/GroupIDs"].attrs),
         }
+        desc = 'Distance to the particle furthest from the centre'
+        unit_attrs['Radii']['Description'] = desc
     with h5py.File(snap_filename.format(file_nr=0), "r") as file:
         snap_header = dict(file["Header"].attrs)
     print(f"Running with {comm_size} ranks")
@@ -138,8 +146,8 @@ boxsize = snap_header["BoxSize"]
 ptypes = np.where(snap_header["TotalNumberOfParticles"] != 0)[0]
 nr_files = fof_header["NumFilesPerSnapshot"][0]
 
-# If we are recalculating the sizes we should just a create a fresh file
-if args.recalculate_sizes or args.reset_ids:
+# If we are recalculating something we should just a create a fresh file
+if args.recalculate_sizes or args.reset_ids or args.recalculate_centres:
     assert args.copy_datasets
 
 
@@ -155,6 +163,8 @@ def copy_object(src_obj, dst_obj, src_filename, prefix="", skip_datasets=False):
             if skip_datasets and (item.name != "/Header/PartTypeNames"):
                 continue
             if (item.name == "/Groups/Sizes") and args.recalculate_sizes:
+                continue
+            if (item.name == "/Groups/Centres") and args.recalculate_centres:
                 continue
             if (item.name == "/Groups/GroupIDs") and args.reset_ids:
                 continue
@@ -223,6 +233,70 @@ total_part_counts = np.zeros_like(fof_sizes)
 snap_file = phdf5.MultiFile(
     snap_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
 )
+
+if args.recalculate_centres:
+    if comm_rank == 0:
+        print(f"Recalculating centres")
+
+    # Load the FOF masses
+    fof_mass = fof_file.read(f"Groups/Masses")
+    # Wipe the centres value we loaded from the catalogues
+    fof_centres[:] = 0
+    # Initialise an array to store the origin we will use for each FOF group
+    fof_origin = -1 * np.ones_like(fof_centres)
+
+    for ptype in ptypes:
+        if comm_rank == 0:
+            print(f"  Processing PartType{ptype}")
+
+        # Load particle positions and their FOF IDs
+        part_pos = snap_file.read(f"PartType{ptype}/Coordinates")
+        part_fof_ids = snap_file.read(f"PartType{ptype}/FOFGroupIDs")
+        mass_field = 'DynamicalMasses' if ptype == 5 else 'Masses'
+        part_mass = snap_file.read(f"PartType{ptype}/{mass_field}")
+
+        # Ignore particles which aren't part of a FOF group
+        mask = part_fof_ids != args.null_fof_id
+        part_pos = part_pos[mask]
+        part_fof_ids = part_fof_ids[mask]
+        part_mass = part_mass[mask]
+
+        if comm_rank == 0:
+            print(f"    Loaded particles")
+
+        # Get the current FOF origin for each particle
+        idx = psort.parallel_match(part_fof_ids, fof_group_ids, comm=comm)
+        assert np.all(idx != -1), "FOFs could not be found for some particles"
+        part_origin = psort.fetch_elements(fof_origin, idx, comm=comm)
+
+        if comm_rank == 0:
+            print(f"    Matched to FOF catalogue")
+
+        # For each FOF that does not yet have an origin we use the max(x, y, z)
+        # of the particles in this group as the origin
+        tmp_part_pos = part_pos[part_origin[:, 0] == -1]
+        tmp_idx = idx[part_origin[:, 0] == -1]
+        assert np.all(tmp_part_pos >= 0)
+        psort.reduce_elements(fof_origin, tmp_part_pos, tmp_idx, op=np.maximum, comm=comm)
+        del tmp_part_pos, tmp_idx
+
+        # Get the current FOF origin for each particle
+        part_origin = psort.fetch_elements(fof_origin, idx, comm=comm)
+        assert np.all(part_origin >= 0)
+
+        # Centre the particles
+        shift = (boxsize[None, :] / 2) - part_origin
+        part_pos = ((part_pos + shift) % boxsize[None, :]) - (boxsize[None, :] / 2)
+
+        # Load FOF mass of each particle
+        part_fof_mass = psort.fetch_elements(fof_mass, idx, comm=comm)
+        # Add CoM contribution
+        part_com = part_mass[:, None] * part_pos / part_fof_mass[:, None]
+        psort.reduce_elements(fof_centres, part_com, idx, op=MPI.SUM, comm=comm)
+
+    # Undo the shift that we introduced when calculating the COM
+    fof_centres = (fof_centres + fof_origin) % boxsize[None, :]
+
 for ptype in ptypes:
     if comm_rank == 0:
         print(f"Processing PartType{ptype}")
@@ -277,6 +351,8 @@ else:
     assert np.all(total_part_counts == fof_sizes), msg
 if args.reset_ids:
     output_data["GroupIDs"] = fof_group_ids
+if args.recalculate_centres:
+    output_data["Centres"] = fof_centres
 
 # Write data to file
 elements_per_file = fof_file.get_elements_per_file("Groups/GroupIDs")
