@@ -3640,8 +3640,12 @@ class ApertureProperties(HaloProperty):
         self.inclusive = inclusive
 
         if self.aperture_physical_radius_kpc is not None:
-            aperture_name = f"{self.aperture_physical_radius_kpc:.0f}kpc"
             self.physical_radius_mpc = 0.001 * self.aperture_physical_radius_kpc
+            assert self.aperture_physical_radius_kpc >= 0.001
+            if self.aperture_physical_radius_kpc < 1:
+                aperture_name = f"{1000*self.aperture_physical_radius_kpc:.0f}pc"
+            else:
+                aperture_name = f"{self.aperture_physical_radius_kpc:.0f}kpc"
         else:
             prop = self.aperture_property[0].split("/")[-1]
             assert self.aperture_property[0].split("/")[0] == "BoundSubhalo"
