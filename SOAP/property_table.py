@@ -5095,9 +5095,9 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             if "radius_in_kpc" in variation:
                 radius_in_kpc = variation["radius_in_kpc"]
                 if radius_in_kpc < 1:
-                    aperture_name = f'{int(radius_in_kpc*1000)}pc'
+                    aperture_name = f"{int(radius_in_kpc*1000)}pc"
                 else:
-                    aperture_name = f'{int(radius_in_kpc)}kpc'
+                    aperture_name = f"{int(radius_in_kpc)}kpc"
             else:
                 prop = variation["property"].split("/")[-1]
                 multiplier = variation.get("radius_multiple", 1)
@@ -5132,9 +5132,9 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             if "radius_in_kpc" in variation:
                 radius_in_kpc = variation["radius_in_kpc"]
                 if radius_in_kpc < 1:
-                    aperture_name = f'{int(radius_in_kpc*1000)}pc'
+                    aperture_name = f"{int(radius_in_kpc*1000)}pc"
                 else:
-                    aperture_name = f'{int(radius_in_kpc)}kpc'
+                    aperture_name = f"{int(radius_in_kpc)}kpc"
             else:
                 prop = variation["property"].split("/")[-1]
                 multiplier = variation.get("radius_multiple", 1)
