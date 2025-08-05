@@ -110,6 +110,8 @@ def process_particle_type(
         "U_T exponent": [0.0],
         "a-scale exponent": [0.0],
         "h-scale exponent": [0.0],
+        "Property can be converted to comoving": [0],
+        "Value stored as physical": [1],
     }
     attrs = {
         "GroupNr_bound": {
