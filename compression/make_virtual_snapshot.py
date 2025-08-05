@@ -18,38 +18,26 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
     dset_dtype = {}
     with h5py.File(filename, "r") as infile:
         for ptype in range(7):
-            if not f'PartType{ptype}' in infile:
+            if not f"PartType{ptype}" in infile:
                 continue
-            dset_attrs[f'PartType{ptype}'] = {}
-            dset_dtype[f'PartType{ptype}'] = {}
-            for dset in infile[f'PartType{ptype}'].keys():
-                attrs = dict(infile[f'PartType{ptype}/{dset}'].attrs)
-                dtype = infile[f'PartType{ptype}/{dset}'].dtype
+            dset_attrs[f"PartType{ptype}"] = {}
+            dset_dtype[f"PartType{ptype}"] = {}
+            for dset in infile[f"PartType{ptype}"].keys():
+                attrs = dict(infile[f"PartType{ptype}/{dset}"].attrs)
+                dtype = infile[f"PartType{ptype}/{dset}"].dtype
 
                 # Some membership files are missing these attributes
-                if not 'Value stored as physical' in attrs:
-                    print(f'Setting comoving attrs for PartType{ptype}/{dset}')
-                    attrs['Value stored as physical'] = [1]
+                if not "Value stored as physical" in attrs:
+                    print(f"Setting comoving attrs for PartType{ptype}/{dset}")
+                    attrs["Value stored as physical"] = [1]
                     attrs["Property can be converted to comoving"] = [0]
 
                 # Add a flag that these are stored in the membership files
                 attrs["Auxilary file"] = [1]
 
                 # Store the values we need for later
-                dset_attrs[f'PartType{ptype}'][dset] = attrs
-                dset_dtype[f'PartType{ptype}'][dset] = dtype
-
-    # TODO: Remove
-    # Check which datasets already exist in the snapshot
-    # dset_in_snap = {}
-    # with h5py.File(snapshot, "r") as infile:
-    #     for ptype in range(7):
-    #         if not f'PartType{ptype}' in dset_attrs:
-    #             continue
-    #         dset_in_snap[f'PartType{ptype}'] = []
-    #         for dset in dset_attrs:
-    #             if dset in infile[f'PartType{ptype}']:
-    #                 dset_in_snap[f'PartType{ptype}'].append(dset)
+                dset_attrs[f"PartType{ptype}"][dset] = attrs
+                dset_dtype[f"PartType{ptype}"][dset] = dtype
 
     # Copy the input virtual snapshot to the output
     shutil.copyfile(snapshot, output_file)
@@ -105,9 +93,7 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
         # already exist in the snapshot
         for dset, attrs in dset_attrs[f"PartType{ptype}"].items():
             if f"PartType{ptype}/{dset}" in outfile:
-                outfile.move(
-                    f"PartType{ptype}/{dset}", f"PartType{ptype}/{dset}_snap"
-                )
+                outfile.move(f"PartType{ptype}/{dset}", f"PartType{ptype}/{dset}_snap")
             outfile.create_virtual_dataset(
                 f"PartType{ptype}/{dset}", layouts[dset], fillvalue=-999
             )
@@ -115,10 +101,10 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
                 outfile[f"PartType{ptype}/{dset}"].attrs[k] = v
 
             # Copy GroupNr_bound to HaloCatalogueIndex, since that is the name in SOAP
-            if dset == 'GroupNr_bound':
+            if dset == "GroupNr_bound":
                 outfile.create_virtual_dataset(
                     f"PartType{ptype}/HaloCatalogueIndex",
-                    layouts['GroupNr_bound'],
+                    layouts["GroupNr_bound"],
                     fillvalue=-999,
                 )
                 for k, v in outfile[f"PartType{ptype}/GroupNr_bound"].attrs.items():
@@ -136,9 +122,9 @@ if __name__ == "__main__":
     # For description of parameters run the following: $ python make_virtual_snapshot.py --help
     parser = argparse.ArgumentParser(
         description=(
-            "Link SWIFT snapshots with SWIFT auxilary snapshots (snapshot-like
-            files with the same number of particles in the same order as the
-            snapshot, but with less metadata), such as the SOAP memberships"
+            "Link SWIFT snapshots with SWIFT auxilary snapshots (snapshot-like"
+            "files with the same number of particles in the same order as the"
+            "snapshot, but with less metadata), such as the SOAP memberships"
         )
     )
     parser.add_argument(

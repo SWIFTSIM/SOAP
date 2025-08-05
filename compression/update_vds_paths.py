@@ -84,7 +84,7 @@ def update_virtual_snapshot_paths(filename, snapshot_dir=None, membership_dir=No
         if dset.is_virtual:
             name = dset.name.split("/")[-1]
             # Check if the dataset comes from a membership file
-            if dset.attrs.get('Auxilary file', [0])[0] == 1:
+            if dset.attrs.get("Auxilary file", [0])[0] == 1:
                 if membership_dir is not None:
                     update_vds_paths(dset, replace_membership_path)
             # Catch old datasets which didn't have the "Auxilary file" set
