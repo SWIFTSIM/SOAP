@@ -49,17 +49,26 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
     file_nr = 0
     filenames = []
     shapes = []
+    counts = []
     while True:
         filename = membership.format(file_nr=file_nr, snap_nr=snap_nr)
         if os.path.exists(filename):
             filenames.append(filename)
             with h5py.File(filename, "r") as infile:
                 shape = {}
+                count = {}
                 for ptype in range(7):
-                    name = f"PartType{ptype}"
-                    if name in infile:
-                        shape[ptype] = infile[name]["GroupNr_bound"].shape
+                    if f"PartType{ptype}" not in dset_attrs:
+                        continue
+                    shape[f"PartType{ptype}"] = {}
+                    # Get the shape for each dataset
+                    for dset in dset_attrs[f"PartType{ptype}"]:
+                        s = infile[f"PartType{ptype}/{dset}"].shape
+                        shape[f"PartType{ptype}"][dset] = s
+                    # Get the number of particles in this chunk file
+                    count[f"PartType{ptype}"] = s[0]
                 shapes.append(shape)
+                counts.append(count)
         else:
             break
         file_nr += 1
@@ -73,21 +82,23 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
 
         # Create virtual layout for new datasets
         layouts = {}
-        nr_parts = sum([shape[ptype][0] for shape in shapes])
-        full_shape = (nr_parts,)
+        nr_parts = sum([count[f"PartType{ptype}"] for count in counts])
         for dset in dset_attrs[f"PartType{ptype}"]:
+            full_shape = list(shapes[0][f"PartType{ptype}"][dset])
+            full_shape[0] = nr_parts
+            full_shape = tuple(full_shape)
             dtype = dset_dtype[f"PartType{ptype}"][dset]
             layouts[dset] = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
 
         # Loop over input files
         offset = 0
-        for filename, shape in zip(filenames, shapes):
-            count = shape[ptype][0]
+        for filename, count, shape in zip(filenames, counts, shapes):
+            n_part = count[f"PartType{ptype}"]
             for dset in dset_attrs[f"PartType{ptype}"]:
-                layouts[dset][offset : offset + count] = h5py.VirtualSource(
-                    filename, f"PartType{ptype}/{dset}", shape=shape[ptype]
+                layouts[dset][offset : offset + n_part] = h5py.VirtualSource(
+                    filename, f"PartType{ptype}/{dset}", shape=shape[f"PartType{ptype}"][dset]
                 )
-            offset += count
+            offset += n_part
 
         # Create the virtual datasets, renaming datasets if they
         # already exist in the snapshot
