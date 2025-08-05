@@ -12,12 +12,44 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
     """
 
     # Check which datasets exist in the membership files
+    # and store their attributes and datatype
     filename = membership.format(file_nr=0, snap_nr=snap_nr)
+    dset_attrs = {}
+    dset_dtype = {}
     with h5py.File(filename, "r") as infile:
-        have_grnr_bound = "GroupNr_bound" in infile["PartType1"]
-        have_grnr_all = "GroupNr_all" in infile["PartType1"]
-        have_rank_bound = "Rank_bound" in infile["PartType1"]
-        have_fof_id = "FOFGroupIDs" in infile["PartType1"]
+        for ptype in range(7):
+            if not f'PartType{ptype}' in infile:
+                continue
+            dset_attrs[f'PartType{ptype}'] = {}
+            dset_dtype[f'PartType{ptype}'] = {}
+            for dset in infile[f'PartType{ptype}'].keys():
+                attrs = dict(infile[f'PartType{ptype}/{dset}'].attrs)
+                dtype = infile[f'PartType{ptype}/{dset}'].dtype
+
+                # Some membership files are missing these attributes
+                if not 'Value stored as physical' in attrs:
+                    print(f'Setting comoving attrs for PartType{ptype}/{dset}')
+                    attrs['Value stored as physical'] = [1]
+                    attrs["Property can be converted to comoving"] = [0]
+
+                # Add a flag that these are stored in the membership files
+                attrs["Auxilary file"] = [1]
+
+                # Store the values we need for later
+                dset_attrs[f'PartType{ptype}'][dset] = attrs
+                dset_dtype[f'PartType{ptype}'][dset] = dtype
+
+    # TODO: Remove
+    # Check which datasets already exist in the snapshot
+    # dset_in_snap = {}
+    # with h5py.File(snapshot, "r") as infile:
+    #     for ptype in range(7):
+    #         if not f'PartType{ptype}' in dset_attrs:
+    #             continue
+    #         dset_in_snap[f'PartType{ptype}'] = []
+    #         for dset in dset_attrs:
+    #             if dset in infile[f'PartType{ptype}']:
+    #                 dset_in_snap[f'PartType{ptype}'].append(dset)
 
     # Copy the input virtual snapshot to the output
     shutil.copyfile(snapshot, output_file)
@@ -29,7 +61,6 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
     file_nr = 0
     filenames = []
     shapes = []
-    dtype = None
     while True:
         filename = membership.format(file_nr=file_nr, snap_nr=snap_nr)
         if os.path.exists(filename):
@@ -40,8 +71,6 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
                     name = f"PartType{ptype}"
                     if name in infile:
                         shape[ptype] = infile[name]["GroupNr_bound"].shape
-                        if dtype is None:
-                            dtype = infile[name]["GroupNr_bound"].dtype
                 shapes.append(shape)
         else:
             break
@@ -51,69 +80,49 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
 
     # Loop over particle types in the output
     for ptype in range(7):
-        name = f"PartType{ptype}"
-        if name in outfile:
-            # Create virtual layout for new datasets
-            nr_parts = sum([shape[ptype][0] for shape in shapes])
-            full_shape = (nr_parts,)
-            if have_grnr_all:
-                layout_grnr_all = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
-            if have_grnr_bound:
-                layout_grnr_bound = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
-            if have_rank_bound:
-                layout_rank_bound = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
-            # PartType6 (neutrinos) are not assigned a FOF group
-            if have_fof_id and (ptype != 6):
-                layout_fof_id = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
-            # Loop over input files
-            offset = 0
-            for filename, shape in zip(filenames, shapes):
-                count = shape[ptype][0]
-                if have_grnr_all:
-                    layout_grnr_all[offset : offset + count] = h5py.VirtualSource(
-                        filename, f"PartType{ptype}/GroupNr_all", shape=shape[ptype]
-                    )
-                if have_grnr_bound:
-                    layout_grnr_bound[offset : offset + count] = h5py.VirtualSource(
-                        filename, f"PartType{ptype}/GroupNr_bound", shape=shape[ptype]
-                    )
-                if have_rank_bound:
-                    layout_rank_bound[offset : offset + count] = h5py.VirtualSource(
-                        filename, f"PartType{ptype}/Rank_bound", shape=shape[ptype]
-                    )
-                if have_fof_id and (ptype != 6):
-                    layout_fof_id[offset : offset + count] = h5py.VirtualSource(
-                        filename, f"PartType{ptype}/FOFGroupIDs", shape=shape[ptype]
-                    )
-                offset += count
-            # Create the virtual datasets
-            if have_grnr_all:
-                outfile.create_virtual_dataset(
-                    f"PartType{ptype}/GroupNr_all", layout_grnr_all, fillvalue=-999
+        if f"PartType{ptype}" not in dset_attrs:
+            continue
+
+        # Create virtual layout for new datasets
+        layouts = {}
+        nr_parts = sum([shape[ptype][0] for shape in shapes])
+        full_shape = (nr_parts,)
+        for dset in dset_attrs[f"PartType{ptype}"]:
+            dtype = dset_dtype[f"PartType{ptype}"][dset]
+            layouts[dset] = h5py.VirtualLayout(shape=full_shape, dtype=dtype)
+
+        # Loop over input files
+        offset = 0
+        for filename, shape in zip(filenames, shapes):
+            count = shape[ptype][0]
+            for dset in dset_attrs[f"PartType{ptype}"]:
+                layouts[dset][offset : offset + count] = h5py.VirtualSource(
+                    filename, f"PartType{ptype}/{dset}", shape=shape[ptype]
                 )
-            if have_grnr_bound:
-                outfile.create_virtual_dataset(
-                    f"PartType{ptype}/GroupNr_bound", layout_grnr_bound, fillvalue=-999
+            offset += count
+
+        # Create the virtual datasets, renaming datasets if they
+        # already exist in the snapshot
+        for dset, attrs in dset_attrs[f"PartType{ptype}"].items():
+            if f"PartType{ptype}/{dset}" in outfile:
+                outfile.move(
+                    f"PartType{ptype}/{dset}", f"PartType{ptype}/{dset}_snap"
                 )
-                # Copy GroupNr_bound to HaloCatalogueIndex, since that is the name in SOAP
+            outfile.create_virtual_dataset(
+                f"PartType{ptype}/{dset}", layouts[dset], fillvalue=-999
+            )
+            for k, v in attrs.items():
+                outfile[f"PartType{ptype}/{dset}"].attrs[k] = v
+
+            # Copy GroupNr_bound to HaloCatalogueIndex, since that is the name in SOAP
+            if dset == 'GroupNr_bound':
                 outfile.create_virtual_dataset(
                     f"PartType{ptype}/HaloCatalogueIndex",
-                    layout_grnr_bound,
+                    layouts['GroupNr_bound'],
                     fillvalue=-999,
                 )
                 for k, v in outfile[f"PartType{ptype}/GroupNr_bound"].attrs.items():
                     outfile[f"PartType{ptype}/HaloCatalogueIndex"].attrs[k] = v
-            if have_rank_bound:
-                outfile.create_virtual_dataset(
-                    f"PartType{ptype}/Rank_bound", layout_rank_bound, fillvalue=-999
-                )
-            if have_fof_id and (ptype != 6):
-                outfile.move(
-                    f"PartType{ptype}/FOFGroupIDs", f"PartType{ptype}/FOFGroupIDs_old"
-                )
-                outfile.create_virtual_dataset(
-                    f"PartType{ptype}/FOFGroupIDs", layout_fof_id, fillvalue=-999
-                )
 
     # Done
     outfile.close()
@@ -126,7 +135,11 @@ if __name__ == "__main__":
 
     # For description of parameters run the following: $ python make_virtual_snapshot.py --help
     parser = argparse.ArgumentParser(
-        description="Link SWIFT snapshots with SOAP membership files"
+        description=(
+            "Link SWIFT snapshots with SWIFT auxilary snapshots (snapshot-like
+            files with the same number of particles in the same order as the
+            snapshot, but with less metadata), such as the SOAP memberships"
+        )
     )
     parser.add_argument(
         "virtual_snapshot",
