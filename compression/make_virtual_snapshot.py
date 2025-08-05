@@ -96,7 +96,9 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
             n_part = count[f"PartType{ptype}"]
             for dset in dset_attrs[f"PartType{ptype}"]:
                 layouts[dset][offset : offset + n_part] = h5py.VirtualSource(
-                    filename, f"PartType{ptype}/{dset}", shape=shape[f"PartType{ptype}"][dset]
+                    filename,
+                    f"PartType{ptype}/{dset}",
+                    shape=shape[f"PartType{ptype}"][dset],
                 )
             offset += n_part
 
