@@ -3777,7 +3777,12 @@ class ApertureProperties(HaloProperty):
                     skip_gt_enclose_radius = True
                     # Skip if this halo has a filter
                     if do_calculation[self.halo_filter]:
-                        prev_group_name = f"ExclusiveSphere/{r_previous_kpc:.0f}kpc"
+                        if r_previous_kpc < 1:
+                            prev_group_name = (
+                                f"ExclusiveSphere/{1000*r_previous_kpc:.0f}pc"
+                            )
+                        else:
+                            prev_group_name = f"ExclusiveSphere/{r_previous_kpc:.0f}kpc"
                         for name, prop in self.property_list.items():
                             outputname = prop.name
                             # Skip if this property is disabled in the parameter file

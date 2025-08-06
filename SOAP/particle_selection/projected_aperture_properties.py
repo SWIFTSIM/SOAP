@@ -1870,7 +1870,12 @@ class ProjectedApertureProperties(HaloProperty):
                 )
 
                 if skip_gt_enclose_radius:
-                    prev_group_name = f"ProjectedAperture/{r_previous_kpc:.0f}kpc"
+                    if r_previous_kpc < 1:
+                        prev_group_name = (
+                            f"ProjectedAperture/{1000*r_previous_kpc:.0f}pc"
+                        )
+                    else:
+                        prev_group_name = f"ProjectedAperture/{r_previous_kpc:.0f}kpc"
                     prev_prop = f"{prev_group_name}/{projname}/{outputname}"
                     # Skip if this property has a direct dependence on
                     # aperture size (and so would have a different value)
