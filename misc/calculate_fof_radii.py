@@ -413,6 +413,8 @@ if (comm_rank == 0) and (not args.single_fof_file):
                 dset.attrs[k] = v
 
     print("New files generated!")
+
+if comm_rank == 0:
     print(f"Took {int(time.time() - start_time)} seconds")
 
 if (comm_rank == 0) and (args.n_test != 0):
