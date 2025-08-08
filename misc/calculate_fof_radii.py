@@ -126,8 +126,8 @@ if comm_rank == 0:
             "Sizes": dict(file["Groups/Sizes"].attrs),
             "GroupIDs": dict(file["Groups/GroupIDs"].attrs),
         }
-        desc = 'Distance to the particle furthest from the centre'
-        unit_attrs['Radii']['Description'] = desc
+        desc = "Distance to the particle furthest from the centre"
+        unit_attrs["Radii"]["Description"] = desc
     with h5py.File(snap_filename.format(file_nr=0), "r") as file:
         snap_header = dict(file["Header"].attrs)
     print(f"Running with {comm_size} ranks")
@@ -252,7 +252,7 @@ if args.recalculate_centres:
         # Load particle positions and their FOF IDs
         part_pos = snap_file.read(f"PartType{ptype}/Coordinates")
         part_fof_ids = snap_file.read(f"PartType{ptype}/FOFGroupIDs")
-        mass_field = 'DynamicalMasses' if ptype == 5 else 'Masses'
+        mass_field = "DynamicalMasses" if ptype == 5 else "Masses"
         part_mass = snap_file.read(f"PartType{ptype}/{mass_field}")
 
         # Ignore particles which aren't part of a FOF group
@@ -277,7 +277,9 @@ if args.recalculate_centres:
         tmp_part_pos = part_pos[part_origin[:, 0] == -1]
         tmp_idx = idx[part_origin[:, 0] == -1]
         assert np.all(tmp_part_pos >= 0)
-        psort.reduce_elements(fof_origin, tmp_part_pos, tmp_idx, op=np.maximum, comm=comm)
+        psort.reduce_elements(
+            fof_origin, tmp_part_pos, tmp_idx, op=np.maximum, comm=comm
+        )
         del tmp_part_pos, tmp_idx
 
         # Get the current FOF origin for each particle
