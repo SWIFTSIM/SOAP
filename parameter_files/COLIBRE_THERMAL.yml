@@ -1,8 +1,8 @@
 # Values in this section are substituted into the other sections
 Parameters:
-  sim_dir: 
-  output_dir: 
-  scratch_dir: 
+  sim_dir: /cosma8/data/dp004/jlvc76/COLIBRE/ScienceRuns
+  output_dir: /snap8/scratch/dp004/dc-mcgi1/COLIBRE/soap_aug_04
+  scratch_dir: /snap8/scratch/dp004/dc-mcgi1/COLIBRE/soap_aug_04
 
 # Location of the Swift snapshots:
 Snapshots:
@@ -12,8 +12,9 @@ Snapshots:
 # Which halo finder we're using, and base name for halo finder output files
 HaloFinder:
   type: HBTplus
-  filename: "{sim_dir}/{sim_name}/HBT-HERONS/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
+  filename: "/snap8/scratch/dp004/dc-mcgi1/COLIBRE/sort_hbt/{sim_name}/HBT-HERONS/OrderedSubSnap_{snap_nr:03d}.hdf5"
   fof_filename: "{sim_dir}/{sim_name}/fof/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
+  fof_radius_filename: "{sim_dir}/{sim_name}/fof_radii/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
   read_potential_energies: true
   #type: VR
   #filename: "{sim_dir}/halo_{snap_nr:04d}"
