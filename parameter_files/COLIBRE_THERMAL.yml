@@ -763,7 +763,7 @@ defined_constants:
   Mg_H_sun: 3.98e-5
 calculations:
   calculate_missing_properties: true
-  stict_halo_copy: false
+  strict_halo_copy: false
   recently_heated_gas_filter:
     delta_time_myr: 15
     use_AGN_delta_T: false
