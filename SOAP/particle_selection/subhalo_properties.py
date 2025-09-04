@@ -1433,8 +1433,10 @@ class SubhaloParticleData:
         v_cylindrical = self.star_cylindrical_velocities
 
         # This implementation of standard deviation is more numerically stable than using <x^2> - <x>^2
-        mean_velocity               = (self.star_mass_fraction[:,None] * v_cylindrical).sum(axis = 0)
-        squared_velocity_dispersion = (self.star_mass_fraction[:,None] * (v_cylindrical - mean_velocity) ** 2).sum(axis = 0)
+        mean_velocity = (self.star_mass_fraction[:, None] * v_cylindrical).sum(axis=0)
+        squared_velocity_dispersion = (
+            self.star_mass_fraction[:, None] * (v_cylindrical - mean_velocity) ** 2
+        ).sum(axis=0)
 
         return squared_velocity_dispersion
 
@@ -1442,7 +1444,9 @@ class SubhaloParticleData:
     def StellarCylindricalVelocityDispersion(self) -> unyt.unyt_array:
         if self.stellar_cylindrical_squared_velocity_dispersion_vector is None:
             return None
-        return np.sqrt(self.stellar_cylindrical_squared_velocity_dispersion_vector.sum() / 3)
+        return np.sqrt(
+            self.stellar_cylindrical_squared_velocity_dispersion_vector.sum() / 3
+        )
 
     @lazy_property
     def StellarCylindricalVelocityDispersionVertical(self) -> unyt.unyt_array:
@@ -1454,7 +1458,9 @@ class SubhaloParticleData:
     def StellarCylindricalVelocityDispersionDiscPlane(self) -> unyt.unyt_array:
         if self.stellar_cylindrical_squared_velocity_dispersion_vector is None:
             return None
-        return np.sqrt(self.stellar_cylindrical_squared_velocity_dispersion_vector[:2].sum())
+        return np.sqrt(
+            self.stellar_cylindrical_squared_velocity_dispersion_vector[:2].sum()
+        )
 
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
