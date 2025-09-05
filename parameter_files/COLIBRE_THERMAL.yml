@@ -244,6 +244,14 @@ ApertureProperties:
     StellarCentreOfMassVelocity: true
     MaximumCircularVelocity: true
     MaximumCircularVelocityRadius: true
+    StellarInertiaTensor: false
+    StellarInertiaTensorLuminosityWeighted: false
+    StellarInertiaTensorNoniterative: false
+    StellarInertiaTensorNoniterativeLuminosityWeighted: false
+    StellarInertiaTensorReduced: false
+    StellarInertiaTensorReducedLuminosityWeighted: false
+    StellarInertiaTensorReducedNoniterative: false
+    StellarInertiaTensorReducedNoniterativeLuminosityWeighted: false
   variations:
     exclusive_100_pc:
       inclusive: false
