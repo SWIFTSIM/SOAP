@@ -82,6 +82,8 @@ def process_particle_type(
     if potential_energies is not None:
         if comm_rank == 0:
             print("  Assigning potential energy to SWIFT particles")
+        if potential_energies.shape[0] > 0:
+            assert np.max(potential_energies) <= 0
         swift_potential_energies = np.ndarray(
             len(swift_ids), dtype=potential_energies.dtype
         )
