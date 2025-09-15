@@ -18,7 +18,7 @@ Usage:
             --output-filename OUTPUT_FILENAME
 
 Run "python misc/match_group_membership.py -h" for a discription
-of the arguments.
+of the optional arguments.
 
 """
 
@@ -188,17 +188,10 @@ def match_sim(
     particle_ids = psort.repartition(particle_ids, n_part_per_rank, comm=comm)
     particle_halo_ids = psort.repartition(particle_halo_ids, n_part_per_rank, comm=comm)
 
-    # Return if we don't have any particles on this rank
-    if particle_ids.shape[0] == 0:
-        return (
-            np.ones(0, dtype=np.int32),
-            np.ones(0, dtype=np.int32),
-            np.ones(0, dtype=np.int64),
-        )
-
     # Only keep the first {args.nr_particles} particles for each subhalo
     # We can't just do a cut on rank_bound since we might be missing some ptypes
-    if args.nr_particles != -1:
+    # Skip this step for ranks which have no particles
+    if (particle_ids.shape[0] != 0) and (args.nr_particles != -1):
         # Count how many particles we have for each subhalo
         unique, counts = np.unique(particle_halo_ids, return_counts=True)
         argsort = np.argsort(unique)
@@ -368,7 +361,7 @@ if __name__ == "__main__":
         help="Particle types to use for the matching. Defaults to [1]",
     )
     parser.add_argument(
-        "--nr_particles",
+        "--nr-particles",
         type=int,
         required=False,
         default=50,
@@ -382,6 +375,11 @@ if __name__ == "__main__":
         help="Only match central halos. Defaults to True",
     )
     args = parser.parse_args()
+
+    # Log the arguments
+    if comm_rank == 0:
+        for k, v in vars(args).items():
+            print(f'  {k}: {v}')
 
     mpi_print("Loading data from simulation 1", comm_rank)
     data_1 = load_particle_data(
@@ -448,7 +446,7 @@ if __name__ == "__main__":
                 ("soap-filename2", args.soap_filename2),
                 ("output-filename", args.output_filename),
                 ("ptypes", args.ptypes),
-                ("nr_particles", args.nr_particles),
+                ("nr-particles", args.nr_particles),
                 ("centrals-only", args.centrals_only),
             ]:
                 header.attrs[k] = v
