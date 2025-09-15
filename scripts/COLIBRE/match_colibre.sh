@@ -24,37 +24,51 @@ module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
 source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Snapshot to do
-snapnum=`printf '%03d' ${SLURM_ARRAY_TASK_ID}`
+snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
 
 # Where to put the output files
 outdir="/snap8/scratch/dp004/${USER}/COLIBRE/matching/"
 
 # Sims to match
 sims=(
-  "L100_m7/THERMAL_AGN_m7 L100_m7/HYBRID_AGN_m7"
-  "L100_m7/THERMAL_AGN_m7 L100_m7/DMO"
+  "L0025N0188/Thermal L0025N0188/DMO"
 )
 for sim in "${sims[@]}"; do
     set -- $sim
     sim1=$1
     sim2=$2
 
-  # Location of the HBT catalogues
-  basedir="/cosma8/data/dp004/colibre/Runs/"
-  hbt_basename1="${basedir}/${sim1}/HBTplus/${snapnum}/SubSnap_${snapnum}"
-  hbt_basename2="${basedir}/${sim2}/HBTplus/${snapnum}/SubSnap_${snapnum}"
+  # Location of the input files
+  basedir="/cosma8/data/dp004/colibre/Runs"
+  snap_basename1="${basedir}/${sim1}/snapshots/colibre_${snapnum}/colibre_${snapnum}"
+  snap_basename2="${basedir}/${sim2}/snapshots/colibre_${snapnum}/colibre_${snapnum}"
+  membership_basename1="${basedir}/${sim1}/SOAP-HBT/membership_${snapnum}/membership_${snapnum}"
+  membership_basename2="${basedir}/${sim2}/SOAP-HBT/membership_${snapnum}/membership_${snapnum}"
+  soap_filename1="${basedir}/${sim1}/SOAP-HBT/halo_properties_${snapnum}.hdf5"
+  soap_filename2="${basedir}/${sim2}/SOAP-HBT/halo_properties_${snapnum}.hdf5"
+
+  # Matching parameters
   nr_particles=50
+  centrals_only=1
 
   # Name of output file
   mkdir -p ${outdir}
   sim1=$(echo $sim1 | tr '/' '_')
   sim2=$(echo $sim2 | tr '/' '_')
-  outfile="${outdir}/match_${sim1}_${sim2}_${snapnum}.${nr_particles}.hdf5"
+  output_filename="${outdir}/match_${sim1}_${sim2}_${snapnum}.${nr_particles}.hdf5"
 
   echo
   echo Matching $sim1 to $sim2, snapshot ${snapnum}
-  mpirun -- python -u \
-      misc/match_hbt_halos.py ${hbt_basename1} ${hbt_basename2} ${nr_particles} ${outfile}
+  mpirun -- python -u misc/match_group_membership.py \
+      --snap-basename1 ${snap_basename1}\
+      --snap-basename2 ${snap_basename2}\
+      --membership-basename1 ${membership_basename1}\
+      --membership-basename2 ${membership_basename2}\
+      --soap-filename1 ${soap_filename1} \
+      --soap-filename2 ${soap_filename2} \
+      --output-filename ${output_filename}\
+      --nr-particles ${nr_particles} \
+      --centrals-only ${centrals_only}
 
 done
 
