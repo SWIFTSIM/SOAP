@@ -1,3 +1,5 @@
+import os
+
 import h5py
 from mpi4py import MPI
 import numpy as np
@@ -5,7 +7,7 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 from virgo.util.partial_formatter import PartialFormatter
 
-from SOAP.core import lustre, swift_units
+from SOAP.core import swift_units
 import xray_calculator
 
 comm = MPI.COMM_WORLD
@@ -213,7 +215,11 @@ if __name__ == "__main__":
 
     # Ensure output dir exists
     if comm_rank == 0:
-        lustre.ensure_output_dir(output_filename)
+        try:
+            os.makedirs(os.path.dirname(output_filename), exist_ok=True)
+        except OSError as e:
+            print(f'Error creating output directory: {e}')
+            comm.Abort(1)
     comm.barrier()
 
     # Load tables on rank 0

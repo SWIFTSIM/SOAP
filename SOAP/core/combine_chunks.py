@@ -14,7 +14,7 @@ from virgo.util.partial_formatter import PartialFormatter
 from SOAP.catalogue_readers import read_hbtplus
 from SOAP.property_calculation.subhalo_rank import compute_subhalo_rank
 from SOAP.property_table import PropertyTable
-from . import swift_units
+from . import lustre, swift_units
 from .mpi_timer import MPITimer
 
 
@@ -207,6 +207,9 @@ def combine_chunks(
     with MPITimer("Creating output file", comm_world):
         output_file = sub_snapnum(args.output_file, args.snapshot_nr)
         if comm_world.Get_rank() == 0:
+            # Set striping on the file
+            lustre.setstripe(output_file, 32, -1)
+
             # Create the file
             outfile = h5py.File(output_file, "w")
 
