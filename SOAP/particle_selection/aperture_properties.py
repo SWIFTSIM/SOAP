@@ -152,7 +152,10 @@ from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
 )
-
+from SOAP.property_calculation.inertia_tensors import (
+    get_inertia_tensor_mass_weighted,
+    get_inertia_tensor_luminosity_weighted,
+)
 from SOAP.core.swift_cells import SWIFTCellGrid
 from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculator
 from SOAP.particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
@@ -3392,6 +3395,128 @@ class ApertureParticleData:
             self.r_vmax_soft, self.vmax_soft = get_vmax(self.mass, soft_r)
         return self.vmax_soft
 
+    def stellar_inertia_tensor(self, **kwargs) -> unyt.unyt_array:
+        """
+        Helper function for calculating stellar inertia tensors.
+        """
+
+        # We mask because we want all bound stellar particles, regardless of the initial aperture. By
+        # iterating, we will deform the ellipsoid and we might need particles beyond the initial spherical
+        # aperture
+        mass = self.get_dataset("PartType4/Masses")[self.star_mask_all]
+        position = (
+            self.get_dataset("PartType4/Coordinates")[self.star_mask_all] - self.centre
+        )
+
+        return get_inertia_tensor_mass_weighted(
+            mass, position, self.aperture_radius, **kwargs
+        )
+
+    def stellar_inertia_tensor_luminosity_weighted(self, **kwargs) -> unyt.unyt_array:
+        """
+        Helper function for calculating luminosity-weighted stellar inertia tensors.
+        """
+
+        # We mask because we want all bound stellar particles, regardless of the initial aperture. By
+        # iterating, we will deform the ellipsoid and we might need particles beyond the initial spherical
+        # aperture
+        position = (
+            self.get_dataset("PartType4/Coordinates")[self.star_mask_all] - self.centre
+        )
+        luminosity = self.get_dataset("PartType4/Luminosities")[self.star_mask_all]
+
+        return get_inertia_tensor_luminosity_weighted(
+            luminosity, position, self.aperture_radius, **kwargs
+        )
+
+    @lazy_property
+    def StellarInertiaTensor(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius 10 x HalfMassRadiusStar. Only considers bound particles.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor()
+
+    @lazy_property
+    def StellarInertiaTensorReduced(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius 10 x HalfMassRadiusStar. Only considers bound particles.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor(reduced=True)
+
+    @lazy_property
+    def StellarInertiaTensorNoniterative(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar mass distribution.
+        Computed using all bound star particles within 10 x HalfMassRadiusStar.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor(max_iterations=1)
+
+    @lazy_property
+    def StellarInertiaTensorReducedNoniterative(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar mass distribution.
+        Computed using all bound star particles within 10 x HalfMassRadiusStar.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor(reduced=True, max_iterations=1)
+
+    @lazy_property
+    def StellarInertiaTensorLuminosityWeighted(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar luminosity distribution for each GAMA band.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius 10 x HalfMassRadiusStar. Only considers bound particles.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor_luminosity_weighted()
+
+    @lazy_property
+    def StellarInertiaTensorReducedLuminosityWeighted(self) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
+        Computed iteratively using an ellipsoid with volume equal to that of
+        a sphere with radius 10 x HalfMassRadiusStar. Only considers bound particles.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor_luminosity_weighted(reduced=True)
+
+    @lazy_property
+    def StellarInertiaTensorNoniterativeLuminosityWeighted(self) -> unyt.unyt_array:
+        """
+        Inertia tensor of the stellar luminosity distribution for each GAMA band.
+        Computed using all bound star particles within 10 x HalfMassRadiusStar.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor_luminosity_weighted(max_iterations=1)
+
+    @lazy_property
+    def StellarInertiaTensorReducedNoniterativeLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
+        """
+        Reduced inertia tensor of the stellar luminosity distribution for each GAMA band.
+        Computed using all bound star particles within 10 x HalfMassRadiusStar.
+        """
+        if self.Mstar == 0:
+            return None
+        return self.stellar_inertia_tensor_luminosity_weighted(
+            reduced=True, max_iterations=1
+        )
+
 
 class ApertureProperties(HaloProperty):
     """
@@ -3547,6 +3672,14 @@ class ApertureProperties(HaloProperty):
         "LinearMassWeightedIronFromSNIaOverHydrogenOfStars": False,
         "Vmax_soft": False,
         "R_vmax_soft": False,
+        "StellarInertiaTensor": True,
+        "StellarInertiaTensorReduced": True,
+        "StellarInertiaTensorNoniterative": False,
+        "StellarInertiaTensorReducedNoniterative": False,
+        "StellarInertiaTensorLuminosityWeighted": True,
+        "StellarInertiaTensorReducedLuminosityWeighted": True,
+        "StellarInertiaTensorNoniterativeLuminosityWeighted": False,
+        "StellarInertiaTensorReducedNoniterativeLuminosityWeighted": False,
     }
 
     property_list = {

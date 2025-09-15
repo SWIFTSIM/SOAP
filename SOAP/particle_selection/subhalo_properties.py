@@ -1427,16 +1427,40 @@ class SubhaloParticleData:
         return (self.star_mass_fraction * v_phi).sum()
 
     @lazy_property
-    def StellarCylindricalVelocityDispersion(self) -> unyt.unyt_array:
+    def stellar_cylindrical_squared_velocity_dispersion_vector(self) -> unyt.unyt_array:
         if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
         v_cylindrical = self.star_cylindrical_velocities
-        vel_disp = 0 * v_cylindrical.units**2
-        for i in range(3):
-            mean = (self.star_mass_fraction * v_cylindrical[:, i]).sum()
-            delta = self.star_mass_fraction * ((v_cylindrical[:, i] - mean) ** 2)
-            vel_disp += delta.sum()
-        return np.sqrt(vel_disp / 3)
+
+        # This implementation of standard deviation is more numerically stable than using <x^2> - <x>^2
+        mean_velocity = (self.star_mass_fraction[:, None] * v_cylindrical).sum(axis=0)
+        squared_velocity_dispersion = (
+            self.star_mass_fraction[:, None] * (v_cylindrical - mean_velocity) ** 2
+        ).sum(axis=0)
+
+        return squared_velocity_dispersion
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersion(self) -> unyt.unyt_array:
+        if self.stellar_cylindrical_squared_velocity_dispersion_vector is None:
+            return None
+        return np.sqrt(
+            self.stellar_cylindrical_squared_velocity_dispersion_vector.sum() / 3
+        )
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionVertical(self) -> unyt.unyt_array:
+        if self.stellar_cylindrical_squared_velocity_dispersion_vector is None:
+            return None
+        return np.sqrt(self.stellar_cylindrical_squared_velocity_dispersion_vector[2])
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionDiscPlane(self) -> unyt.unyt_array:
+        if self.stellar_cylindrical_squared_velocity_dispersion_vector is None:
+            return None
+        return np.sqrt(
+            self.stellar_cylindrical_squared_velocity_dispersion_vector[:2].sum()
+        )
 
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
@@ -2284,6 +2308,8 @@ class SubhaloProperties(HaloProperty):
             "Ldm",
             "Lstar",
             "StellarCylindricalVelocityDispersion",
+            "StellarCylindricalVelocityDispersionVertical",
+            "StellarCylindricalVelocityDispersionDiscPlane",
             "StellarRotationalVelocity",
             "kappa_corot_gas",
             "kappa_corot_star",
