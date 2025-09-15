@@ -27,4 +27,3 @@ def setstripe(filename, stripe_size, stripe_count):
         # if the 'lfs' command is not available, this will generate a
         # FileNotFoundError
         print(f"WARNING: failed to set lustre striping on {filename}")
-

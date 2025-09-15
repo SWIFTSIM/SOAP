@@ -545,7 +545,7 @@ def compute_halo_properties():
         try:
             os.makedirs(os.path.dirname(args.output_file), exist_ok=True)
         except OSError as e:
-            print(f'Error creating output directory: {e}')
+            print(f"Error creating output directory: {e}")
             comm_world.Abort(1)
     comm_world.barrier()
 
@@ -587,7 +587,7 @@ def compute_halo_properties():
             try:
                 os.makedirs(scratch_file_dir, exist_ok=True)
             except OSError as e:
-                print(f'Error creating scratch directory: {e}')
+                print(f"Error creating scratch directory: {e}")
                 comm_world.Abort(1)
     comm_world.barrier()
 

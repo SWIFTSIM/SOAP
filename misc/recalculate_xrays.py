@@ -218,7 +218,7 @@ if __name__ == "__main__":
         try:
             os.makedirs(os.path.dirname(output_filename), exist_ok=True)
         except OSError as e:
-            print(f'Error creating output directory: {e}')
+            print(f"Error creating output directory: {e}")
             comm.Abort(1)
     comm.barrier()
 
