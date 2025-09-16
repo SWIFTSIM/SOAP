@@ -4,7 +4,7 @@ import subprocess
 import os
 
 
-def setstripe(filename, stripe_size, stripe_count):
+def setstripe(filename, stripe_size=32, stripe_count=32):
     """
     Try to set Lustre striping on a file
     """
@@ -13,6 +13,11 @@ def setstripe(filename, stripe_size, stripe_count):
         os.remove(filename)
     except FileNotFoundError:
         pass
+
+    # Only set striping for snap8 on cosma
+    if not filename.startswith('/snap8/scratch'):
+        print(f'Not setting lustre striping on {filename}')
+        return
 
     args = [
         "lfs",

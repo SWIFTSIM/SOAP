@@ -208,7 +208,7 @@ def combine_chunks(
         output_file = sub_snapnum(args.output_file, args.snapshot_nr)
         if comm_world.Get_rank() == 0:
             # Set striping on the file
-            lustre.setstripe(output_file, 32, -1)
+            lustre.setstripe(output_file)
 
             # Create the file
             outfile = h5py.File(output_file, "w")
