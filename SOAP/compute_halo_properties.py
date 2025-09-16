@@ -542,7 +542,11 @@ def compute_halo_properties():
 
     # Ensure output dir exists
     if comm_world_rank == 0:
-        lustre.ensure_output_dir(args.output_file)
+        try:
+            os.makedirs(os.path.dirname(args.output_file), exist_ok=True)
+        except OSError as e:
+            print(f"Error creating output directory: {e}")
+            comm_world.Abort(1)
     comm_world.barrier()
 
     # Read in the halo catalogue:
@@ -581,9 +585,10 @@ def compute_halo_properties():
             scratch_file_name = scratch_file_format % {"file_nr": file_nr}
             scratch_file_dir = os.path.dirname(scratch_file_name)
             try:
-                os.makedirs(scratch_file_dir)
-            except OSError:
-                pass
+                os.makedirs(scratch_file_dir, exist_ok=True)
+            except OSError as e:
+                print(f"Error creating scratch directory: {e}")
+                comm_world.Abort(1)
     comm_world.barrier()
 
     # Report initial set-up time

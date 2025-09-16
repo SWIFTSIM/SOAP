@@ -4,34 +4,31 @@ import subprocess
 import os
 
 
-def setstripe(dirname, stripe_size, stripe_count):
+def setstripe(filename, stripe_size=32, stripe_count=32):
     """
-    Try to set Lustre striping on a directory
+    Try to set Lustre striping on a file
     """
+    # Remove file if it already exists (or lfs will error)
+    try:
+        os.remove(filename)
+    except FileNotFoundError:
+        pass
+
+    # Only set striping for snap8 on cosma
+    if not filename.startswith("/snap8/scratch"):
+        print(f"Not setting lustre striping on {filename}")
+        return
+
     args = [
         "lfs",
         "setstripe",
-        "--stripe-count=%d" % stripe_count,
-        "--stripe-size=%dM" % stripe_size,
-        dirname,
+        f"--stripe-count={stripe_count}",
+        f"--stripe-size={stripe_size}M",
+        filename,
     ]
     try:
         subprocess.run(args)
     except (FileNotFoundError, subprocess.CalledProcessError):
         # if the 'lfs' command is not available, this will generate a
         # FileNotFoundError
-        print("WARNING: failed to set lustre striping on %s" % dirname)
-
-
-def ensure_output_dir(filename):
-
-    # Try to ensure the directory exists
-    dirname = os.path.dirname(filename)
-    try:
-        os.makedirs(dirname, exist_ok=True)
-    except OSError:
-        # TODO: Raise this, catch it, and throw MPI Abort
-        pass
-
-    # Try to set striping
-    setstripe(dirname, 32, -1)
+        print(f"WARNING: failed to set lustre striping on {filename}")

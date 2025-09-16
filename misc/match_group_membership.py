@@ -379,7 +379,7 @@ if __name__ == "__main__":
     # Log the arguments
     if comm_rank == 0:
         for k, v in vars(args).items():
-            print(f'  {k}: {v}')
+            print(f"  {k}: {v}")
 
     mpi_print("Loading data from simulation 1", comm_rank)
     data_1 = load_particle_data(

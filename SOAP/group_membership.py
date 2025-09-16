@@ -10,7 +10,7 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 from virgo.util.partial_formatter import PartialFormatter
 
-from SOAP.core import combine_args, lustre, swift_units
+from SOAP.core import combine_args, swift_units
 from SOAP.catalogue_readers import read_vr
 from SOAP.catalogue_readers import read_hbtplus
 from SOAP.catalogue_readers import read_subfind
@@ -206,7 +206,11 @@ def main():
 
     # Ensure output dir exists
     if comm_rank == 0:
-        lustre.ensure_output_dir(output_filename)
+        try:
+            os.makedirs(os.path.dirname(output_filename), exist_ok=True)
+        except OSError as e:
+            print(f"Error creating output directory: {e}")
+            comm.Abort(1)
     comm.barrier()
 
     # Find group number for each particle ID in the halo finder output

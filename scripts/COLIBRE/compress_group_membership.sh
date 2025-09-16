@@ -60,7 +60,6 @@ outbase="${output_dir}/${sim}/SOAP/"
 # Create the output folder if it does not exist
 outdir="${outbase}/membership_${snapnum}"
 mkdir -p "${outdir}"
-lfs setstripe --stripe-count=-1 --stripe-size=32M "${outdir}"
 
 # Uncompressed membership file basename
 input_filename="${inbase}/membership_${snapnum}/membership_${snapnum}"
