@@ -15,8 +15,8 @@ def setstripe(filename, stripe_size=32, stripe_count=32):
         pass
 
     # Only set striping for snap8 on cosma
-    if not filename.startswith('/snap8/scratch'):
-        print(f'Not setting lustre striping on {filename}')
+    if not filename.startswith("/snap8/scratch"):
+        print(f"Not setting lustre striping on {filename}")
         return
 
     args = [
