@@ -154,7 +154,7 @@ class SOCatalogue:
             local_halo,
             args.chunks,
             comm,
-            args.separate_chunk_threshold,
+            args.separate_chunks,
         )
         self.nr_chunks = chunk_size.shape[0]
 

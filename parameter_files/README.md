@@ -261,4 +261,12 @@ Contains information about how to run SOAP
   - **maximum_temperature_K**: Value above which gas is not considered to be cold
   - **minimum_hydrogen_number_density_cm3**: Value below which gas gas is not considered to be dense
 - **strict_halo_copy**: Optional, default False. When a halo has multiple ExclusiveSphere/ProjectedAperture halo types which encompass all the bound particles then we just copy across the values rather than recomputing them. There are a small number of properties for which this is not correct. If this flag is set then these properties are set to zero for the larger apertures instead of being copied across.
-- **separate_chunk_threshold**: Optional, default -1. SOAP processes subhalos in parallel, but this can cause memory issues if there are subhalos which take up a significant fraction of a node's memory. Subhalos with more bound particles than this threshold value will be placed on their own chunk (and so processed in serial). If this value is -1 then no subhalos are placed on their own chunk.
+- **separate_chunks**: Optional, default []. SOAP processes subhalos in parallel, but this can cause memory issues if there are subhalos which take up a significant fraction of a node's memory. This parameter allows a list of dictionaries to be passed. Each dictionary must contain two keys: `n_bound_threshold` (which specifies the number of bound particles above which a subhalo should be treated differently) and `n_halo_per_chunk` (which gives the maximum number of subhalos of this size which can be placed on a single chunk). An example is
+```
+  separate_chunks:
+    - n_bound_threshold: 1000
+      n_halo_per_chunk: 10
+    - n_bound_threshold: 10000
+      n_halo_per_chunk: 1
+```
+In this case any subhalo with more than 10000 bound particles would be placed on its own chunk, subhalos with more than 1000 (but less than 10000) bound particles would be grouped into sets of 10 and there will be a chunk for each group of 10, and all other subhalos would be chunked as normal. Note that grouping subhalos based on number of bound particles is not efficient since in general they will not share particles, so this parameter should only be used if required. The threshold values will depend on the system memory, and also on the number of properties being computed by SOAP.
