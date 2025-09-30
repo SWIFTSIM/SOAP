@@ -13,8 +13,8 @@ Usage:
             --snap-basename2 SNAP_BASENAME2 \
             --membership-basename1 MEMBERSHIP_BASENAME1 \
             --membership-basename2 MEMBERSHIP_BASENAME2 \
-            --soap-filename1 SOAP_FILENAME1 \
-            --soap-filename2 SOAP_FILENAME2 \
+            --catalogue-filename1 CATALOGUE_FILENAME1 \
+            --catalogue-filename2 CATALOGUE_FILENAME2 \
             --output-filename OUTPUT_FILENAME
 
 Run "python misc/match_group_membership.py -h" for a discription
@@ -39,7 +39,7 @@ import virgo.mpi.parallel_hdf5 as phdf5
 from virgo.mpi.gather_array import gather_array
 
 
-def load_particle_data(snap_basename, membership_basename, ptypes, comm):
+def load_particle_data(snap_basename, membership_basename, ptypes, match_fof, comm):
     """
     Load the particle IDs and halo membership for the particle types
     we will use to match. Removes unbound particles.
@@ -64,8 +64,14 @@ def load_particle_data(snap_basename, membership_basename, ptypes, comm):
     )
     halo_catalogue_idx, rank_bound = [], []
     for ptype in ptypes:
-        halo_catalogue_idx.append(file.read(f"PartType{ptype}/GroupNr_bound"))
-        rank_bound.append(file.read(f"PartType{ptype}/Rank_bound"))
+        if match_fof:
+            halo_catalogue_idx.append(file.read(f"PartType{ptype}/FOFGroupIDs"))
+            # Use particle IDs to decide which particles to keep as most bound,
+            # which should be nearly random
+            rank_bound.append(file.read(f"PartType{ptype}/ParticleIDs"))
+        else:
+            halo_catalogue_idx.append(file.read(f"PartType{ptype}/GroupNr_bound"))
+            rank_bound.append(file.read(f"PartType{ptype}/Rank_bound"))
     halo_catalogue_idx = np.concatenate(halo_catalogue_idx)
     rank_bound = np.concatenate(rank_bound)
 
@@ -85,19 +91,24 @@ def load_particle_data(snap_basename, membership_basename, ptypes, comm):
     }
 
 
-def load_soap(soap_filename, comm):
+def load_catalogue(catalogue_filename, match_fof, comm):
     """
-    Loads the required fields from a SOAP catalogue
+    Loads the required fields from a halo catalogue (SOAP/FOF)
     """
     # Load particle IDs
     file = phdf5.MultiFile(
-        soap_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
+        catalogue_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
     )
-    return {
-        "halo_catalogue_idx": file.read(f"InputHalos/HaloCatalogueIndex"),
-        "host_halo_idx": file.read(f"SOAP/HostHaloIndex"),
-        "is_central": file.read(f"InputHalos/IsCentral") == 1,
-    }
+    if match_fof:
+        return {
+            "halo_catalogue_idx": file.read(f"Groups/GroupIDs"),
+        }
+    else:
+        return {
+            "halo_catalogue_idx": file.read(f"InputHalos/HaloCatalogueIndex"),
+            "host_halo_idx": file.read(f"SOAP/HostHaloIndex"),
+            "is_central": file.read(f"InputHalos/IsCentral") == 1,
+        }
 
 
 def match_sim(
@@ -106,42 +117,45 @@ def match_sim(
     rank_bound,
     particle_ids_to_match,
     particle_halo_ids_to_match,
-    soap,
-    soap_to_match,
+    catalogue,
+    catalogue_to_match,
 ):
     """
     Input:
         - particle_ids, particle_halo_ids, and rank_bound from simulation 1
         - particle_ids_to_match, and particle_halo_ids_to_match from simulation 2
-        - soap catalogue from simulation 1
-        - soap_to_match catalogue from simulation 2
+        - catalogue from simulation 1
+        - catalogue_to_match from simulation 2
 
     Returns halo_ids, matched_halo_ids, n_match
     """
 
-    if args.centrals_only:
+    if (not args.match_fof) and (not args.match_satellites):
         #  Only keep particles in simulation 1 which are bound to a central
         idx = psort.parallel_match(
-            particle_halo_ids, soap["halo_catalogue_idx"], comm=comm
+            particle_halo_ids, catalogue["halo_catalogue_idx"], comm=comm
         )
         assert np.all(idx >= 0), "Some subhalos could not be found"
-        particle_is_cen = psort.fetch_elements(soap["is_central"], idx, comm=comm)
+        particle_is_cen = psort.fetch_elements(catalogue["is_central"], idx, comm=comm)
         particle_ids = particle_ids[particle_is_cen]
         particle_halo_ids = particle_halo_ids[particle_is_cen]
         rank_bound = rank_bound[particle_is_cen]
 
-        #  Replace satellite halo_ids of particles in simulation 2 with their host halo_id
+        # Replace satellite halo_ids of particles in simulation 2
+        # with their host halo_id
         idx = psort.parallel_match(
-            particle_halo_ids_to_match, soap_to_match["halo_catalogue_idx"], comm=comm
+            particle_halo_ids_to_match,
+            catalogue_to_match["halo_catalogue_idx"],
+            comm=comm,
         )
         is_sat = np.logical_not(
-            psort.fetch_elements(soap_to_match["is_central"], idx, comm=comm)
+            psort.fetch_elements(catalogue_to_match["is_central"], idx, comm=comm)
         )
         host_halo_idx = psort.fetch_elements(
-            soap_to_match["host_halo_idx"], idx[is_sat], comm=comm
+            catalogue_to_match["host_halo_idx"], idx[is_sat], comm=comm
         )
         host_halo_catalogue_idx = psort.fetch_elements(
-            soap_to_match["halo_catalogue_idx"], host_halo_idx, comm=comm
+            catalogue_to_match["halo_catalogue_idx"], host_halo_idx, comm=comm
         )
         particle_halo_ids_to_match[is_sat] = host_halo_catalogue_idx
 
@@ -241,19 +255,20 @@ def match_sim(
     matched_halo_ids = matched_halo_ids[idx]
     combined_counts = combined_counts[idx]
 
-    # Get the SOAP index of each object in matched_halo_ids
-    matched_soap_idx = psort.parallel_match(
-        matched_halo_ids, soap_to_match["halo_catalogue_idx"], comm=comm
+    # Get the catalogue index of each object in matched_halo_ids
+    matched_catalogue_idx = psort.parallel_match(
+        matched_halo_ids, catalogue_to_match["halo_catalogue_idx"], comm=comm
     )
 
-    # Create arrays we will return. These have the same length as the arrays in `soap`
-    match_index = -1 * np.ones_like(soap["halo_catalogue_idx"])
-    match_count = np.zeros_like(soap["halo_catalogue_idx"])
+    # Create arrays we will return. These have the same length as
+    # the arrays in the input catalogue
+    match_index = -1 * np.ones_like(catalogue["halo_catalogue_idx"])
+    match_count = np.zeros_like(catalogue["halo_catalogue_idx"])
 
     # Retrieve the values we require, skipping halos which don't have a match
-    idx = psort.parallel_match(soap["halo_catalogue_idx"], halo_ids)
+    idx = psort.parallel_match(catalogue["halo_catalogue_idx"], halo_ids)
     match_index[idx != -1] = psort.fetch_elements(
-        matched_soap_idx, idx[idx != -1], comm=comm
+        matched_catalogue_idx, idx[idx != -1], comm=comm
     )
     match_count[idx != -1] = psort.fetch_elements(
         combined_counts, idx[idx != -1], comm=comm
@@ -305,7 +320,11 @@ def mpi_print(string, comm_rank):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description=("Script to calculate extent of FoF groups.")
+        description=(
+            "Script to match halos across runs by comparing particles"
+            "Default is to match SOAP catalgoues, but can also match"
+            "FoF catalgoues"
+        ),
     )
     parser.add_argument(
         "--snap-basename1",
@@ -320,37 +339,37 @@ if __name__ == "__main__":
         "--snap-basename2",
         type=str,
         required=True,
-        help=("The basename of the snapshot files for simulation 2"),
+        help="The basename of the snapshot files for simulation 2",
     )
     parser.add_argument(
         "--membership-basename1",
         type=str,
         required=True,
-        help=("The basename of the membership files for simulation 1"),
+        help="The basename of the membership files for simulation 1",
     )
     parser.add_argument(
         "--membership-basename2",
         type=str,
         required=True,
-        help=("The basename of the membership files for simulation 2"),
+        help="The basename of the membership files for simulation 2",
     )
     parser.add_argument(
-        "--soap-filename1",
+        "--catalogue-filename1",
         type=str,
         required=True,
-        help=("The filename of the SOAP catalogue for simulation 1"),
+        help="The filename of the catalogue for simulation 1",
     )
     parser.add_argument(
-        "--soap-filename2",
+        "--catalogue-filename2",
         type=str,
         required=True,
-        help=("The filename of the SOAP catalogue for simulation 2"),
+        help="The filename of the catalogue for simulation 2",
     )
     parser.add_argument(
         "--output-filename",
         type=str,
         required=True,
-        help=("The filename of the output file"),
+        help="The filename of the output file",
     )
     parser.add_argument(
         "--ptypes",
@@ -365,15 +384,27 @@ if __name__ == "__main__":
         type=int,
         required=False,
         default=50,
-        help="Number of particles to use when matching. Defaults to 50. -1 to use all particles",
+        help=(
+            "Number of particles to use when matching. Defaults to 50. "
+            "Pass -1 to use all particles"
+        ),
     )
     parser.add_argument(
-        "--centrals-only",
-        type=bool,
-        required=False,
-        default=True,
-        help="Only match central halos. Defaults to True",
+        "--match-satellites",
+        action="store_true",
+        help="Attempt to match satellites subhalos as well as centrals",
     )
+    parser.add_argument(
+        "--match-fof",
+        action="store_true",
+        help=(
+            "Whether to match FoF catalogues instead of SOAP catalogues. "
+            "If using this option then pass the snapshots as both the "
+            "--snap-basename and the --membership-basename. Pass the FoF "
+            "catalogues as --catalogue-filename"
+        ),
+    )
+
     args = parser.parse_args()
 
     # Log the arguments
@@ -381,17 +412,28 @@ if __name__ == "__main__":
         for k, v in vars(args).items():
             print(f"  {k}: {v}")
 
+    if args.match_fof:
+        assert not args.match_satellites
+
     mpi_print("Loading data from simulation 1", comm_rank)
     data_1 = load_particle_data(
-        args.snap_basename1, args.membership_basename1, args.ptypes, comm
+        args.snap_basename1,
+        args.membership_basename1,
+        args.ptypes,
+        args.match_fof,
+        comm,
     )
-    soap_1 = load_soap(args.soap_filename1, comm)
+    catalogue_1 = load_catalogue(args.catalogue_filename1, args.match_fof, comm)
 
     mpi_print("Loading data from simulation 2", comm_rank)
     data_2 = load_particle_data(
-        args.snap_basename2, args.membership_basename2, args.ptypes, comm
+        args.snap_basename2,
+        args.membership_basename2,
+        args.ptypes,
+        args.match_fof,
+        comm,
     )
-    soap_2 = load_soap(args.soap_filename2, comm)
+    catalogue_2 = load_catalogue(args.catalogue_filename2, args.match_fof, comm)
 
     mpi_print("Removing particles which are not bound in both snapshots", comm_rank)
     idx = psort.parallel_match(
@@ -413,8 +455,8 @@ if __name__ == "__main__":
         data_1["rank_bound"],
         data_2["particle_ids"],
         data_2["halo_catalogue_idx"],
-        soap_1,
-        soap_2,
+        catalogue_1,
+        catalogue_2,
     )
 
     mpi_print("Matching simulation 2 to simulation 1", comm_rank)
@@ -424,8 +466,8 @@ if __name__ == "__main__":
         data_2["rank_bound"],
         data_1["particle_ids"],
         data_1["halo_catalogue_idx"],
-        soap_2,
-        soap_1,
+        catalogue_2,
+        catalogue_1,
     )
 
     mpi_print("Checking matches for consistency", comm_rank)
@@ -442,12 +484,13 @@ if __name__ == "__main__":
                 ("snap-basename2", args.snap_basename2),
                 ("membership-basename1", args.membership_basename1),
                 ("membership-basename2", args.membership_basename2),
-                ("soap-filename1", args.soap_filename1),
-                ("soap-filename2", args.soap_filename2),
+                ("catalogue-filename1", args.catalogue_filename1),
+                ("catalogue-filename2", args.catalogue_filename2),
                 ("output-filename", args.output_filename),
                 ("ptypes", args.ptypes),
                 ("nr-particles", args.nr_particles),
-                ("centrals-only", args.centrals_only),
+                ("match-satellites", args.match_satellites),
+                ("match-fof", args.match_fof),
             ]:
                 header.attrs[k] = v
     comm.barrier()

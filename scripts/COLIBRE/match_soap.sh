@@ -49,7 +49,6 @@ for sim in "${sims[@]}"; do
 
   # Matching parameters
   nr_particles=50
-  centrals_only=1
 
   # Name of output file
   mkdir -p ${outdir}
@@ -64,11 +63,10 @@ for sim in "${sims[@]}"; do
       --snap-basename2 ${snap_basename2}\
       --membership-basename1 ${membership_basename1}\
       --membership-basename2 ${membership_basename2}\
-      --soap-filename1 ${soap_filename1} \
-      --soap-filename2 ${soap_filename2} \
+      --catalogue-filename1 ${soap_filename1} \
+      --catalogue-filename2 ${soap_filename2} \
       --output-filename ${output_filename}\
       --nr-particles ${nr_particles} \
-      --centrals-only ${centrals_only}
 
 done
 
