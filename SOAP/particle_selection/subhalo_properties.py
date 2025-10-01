@@ -33,6 +33,7 @@ from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
     get_velocity_dispersion_matrix,
+    get_rotation_velocity_mass_weighted,
 )
 from SOAP.property_calculation.inertia_tensors import (
     get_inertia_tensor_mass_weighted,
@@ -1422,9 +1423,7 @@ class SubhaloParticleData:
     def StellarRotationalVelocity(self) -> unyt.unyt_array:
         if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
-        v_cylindrical = self.star_cylindrical_velocities
-        v_phi = v_cylindrical[:, 1]
-        return (self.star_mass_fraction * v_phi).sum()
+        return get_rotation_velocity_mass_weighted(self.mass_star, self.star_cylindrical_velocities[:,1])
 
     @lazy_property
     def stellar_cylindrical_squared_velocity_dispersion_vector(self) -> unyt.unyt_array:

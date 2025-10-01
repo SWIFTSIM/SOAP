@@ -14,6 +14,38 @@ from typing import Union, Tuple
 import unyt
 
 
+def get_weighted_rotation_velocity(particle_weights: unyt.unyt_array,
+                                   particle_azimuthal_velocities: unyt.unyt_array) -> unyt.unyt_quantity:
+    """
+    Get the weighted average azimuthal velocity of a particle distribution.
+
+    Parameters:
+     - particle_weights: unyt.unyt_array
+       Weight assigned to each particle.
+     - particle_azimuthal_velocities: unyt.unyt_array
+       Azimuthal velocity of each particle.
+
+    Returns:
+     - Weighted average of the azimuthal velocity of particles.
+    """
+    return (particle_weights * particle_azimuthal_velocities).sum()
+
+def get_rotation_velocity_mass_weighted(particle_masses, particle_azimuthal_velocities) -> unyt.unyt_quantity:
+    """
+    Return the mass-weighted average azimuthal velocity of a particle distribution.
+
+    Parameters:
+     - particle_masses: unyt.unyt_array
+       Mass of particle.
+     - particle_azimuthal_velocities: unyt.unyt_array
+       Azimuthal velocity of each particle.
+
+    Returns:
+     - Mass-weighted average of the azimuthal velocity of particles.
+    """
+    mass_weights = particle_masses / particle_masses.sum()
+    return get_weighted_rotation_velocity(mass_weights, particle_azimuthal_velocities)
+
 def get_velocity_dispersion_matrix(
     mass_fraction: unyt.unyt_array,
     velocity: unyt.unyt_array,
