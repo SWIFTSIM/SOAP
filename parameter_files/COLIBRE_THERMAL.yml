@@ -239,7 +239,11 @@ ApertureProperties:
     StellarCylindricalVelocityDispersion: false
     StellarCylindricalVelocityDispersionVertical: false
     StellarCylindricalVelocityDispersionDiscPlane: false
+    StellarCylindricalVelocityDispersionLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionVerticalLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted: false
     StellarRotationalVelocity: false
+    StellarRotationalVelocityLuminosityWeighted: false
     TotalMass: true
     TotalSNIaRate: true
     GasMassInColdDenseDiffuseMetals:
@@ -734,6 +738,10 @@ SubhaloProperties:
     StellarCylindricalVelocityDispersion: general
     StellarCylindricalVelocityDispersionVertical: false
     StellarCylindricalVelocityDispersionDiscPlane: false
+    StellarRotationalVelocityLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionVerticalLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted: false
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
