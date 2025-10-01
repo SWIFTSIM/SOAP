@@ -1393,7 +1393,7 @@ class SubhaloParticleData:
     @lazy_property
     def star_cylindrical_velocities(self) -> unyt.unyt_array:
         """
-        Calculate the velocities of the star particles in cyclindrical
+        Calculate the velocities of the star particles in cylindrical
         coordinates, where the axes are centred on the stellar CoM,
         and the z axis is aligned with the stellar angular momentum.
         """
@@ -1454,6 +1454,42 @@ class SubhaloParticleData:
             (self.StellarCylindricalVelocityDispersionVector[:2]**2).sum()
         )
 
+    @lazy_property
+    def star_cylindrical_velocities_luminosity_weighted(self) -> unyt.unyt_array:
+        """
+        Calculate the velocities of the star particles in cylindrical
+        coordinates, where the origin and reference frame are centred on the
+        stellar centre of light in each band. The z axis is aligned with the
+        stellar angular momentum obtained from each band.
+        """
+
+        # We need at least 2 particles to have an angular momentum vector
+        if self.Nstar < 2:
+            return None
+
+        # This can happen if we have particles on top of each other
+        # or with the same velocity
+        if np.sum(self.internal_Lstar_luminosity_weighted) == 0:
+            return None
+
+        # We iterate over bands to use their own reference vector and luminosity-
+        # weighted centre of mass phase space coordinates.
+        cylindrical_velocities = np.zeros(self.stellar_luminosities.shape) * self.vel_star.units
+        for i_band, particle_luminosities_i_band in enumerate(self.stellar_luminosities.T):
+
+            luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
+            centre_of_light_position = (luminosity_weights[:, None] * self.pos_star).sum(axis=0)
+            centre_of_light_velocity = (luminosity_weights[:, None] * self.vel_star).sum(axis=0)
+
+            cylindrical_velocities[i_band] = calculate_cylindrical_velocities(
+                                                self.pos_star,
+                                                self.vel_star,
+                                                self.internal_Lstar_luminosity_weighted[i_band],
+                                                centre_of_light_position,
+                                                centre_of_light_velocity
+                                            )
+
+        return cylindrical_velocities
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
         """
