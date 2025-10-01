@@ -147,8 +147,10 @@ from SOAP.property_calculation.half_mass_radius import (
 )
 from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
-    get_rotation_velocity_mass_weighted,
     get_cylindrical_velocity_dispersion_vector_mass_weighted,
+    get_cylindrical_velocity_dispersion_vector_luminosity_weighted,
+    get_rotation_velocity_mass_weighted,
+    get_rotation_velocity_luminosity_weighted,
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot_mass_weighted,
     get_angular_momentum_and_kappa_corot_luminosity_weighted,

@@ -46,6 +46,31 @@ def get_rotation_velocity_mass_weighted(particle_masses, particle_azimuthal_velo
     mass_weights = particle_masses / particle_masses.sum()
     return get_weighted_rotation_velocity(mass_weights, particle_azimuthal_velocities)
 
+def get_rotation_velocity_luminosity_weighted(particle_luminosities: unyt.unyt_array,
+                                               particle_azimuthal_velocities: unyt.unyt_array) -> unyt.unyt_array:
+    """
+    Return the luminosity-weighted average azimuthal velocity of a particle distribution, for each
+    provided luminosity band.
+
+    Parameters:
+     - particle_luminosities: unyt.unyt_array
+       Luminosity of each particle in the provided bands.
+     - particle_azimuthal_velocities: unyt.unyt_array
+       Azimuthal velocity of each particle.
+
+    Returns:
+     - Luminosity-weighted average of the azimuthal velocity of particles, with a value for each band.
+    """
+
+    number_luminosity_bands = particle_luminosities.shape[1]
+    rotation_velocities = np.zeros(number_luminosity_bands.shape[0]) * particle_azimuthal_velocities.units
+
+    for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
+        luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
+        rotation_velocities[i_band] = get_weighted_rotation_velocity(luminosity_weights, particle_azimuthal_velocities)
+
+    return rotation_velocities
+
 def get_velocity_dispersion_matrix(
     mass_fraction: unyt.unyt_array,
     velocity: unyt.unyt_array,
@@ -127,6 +152,34 @@ def get_cylindrical_velocity_dispersion_vector_mass_weighted(
     """
     mass_weights = particle_masses / particle_masses.sum()
     return get_weighted_cylindrical_velocity_dispersion_vector(mass_weights, particle_cylindrical_velocities)
+
+def get_cylindrical_velocity_dispersion_vector_luminosity_weighted(
+    particle_luminosities: unyt.unyt_array,
+    particle_cylindrical_velocities: unyt.unyt_array,
+) -> unyt.unyt_array:
+    """
+    Compute the luminosity-weighted velocity dispersion along the radial, azimuthal and vertical
+    directions for the input particles. We return a vector for each luminosity band.
+
+    Parameters:
+     - particle_luminosities: unyt.unyt_array
+       Luminosity of each particle in different luminosity bands.
+     - particle_cylindrical_velocities: unyt.unyt_array
+       Velocity of each particle in a cylindrical coordinate system.
+
+    Returns a 3 element vector for each luminosity band, which contains [sigma_r, sigma_phi, sigma_z].
+    The velocity dispersion vectors for each band are appended to the same vector, hence the shape is
+    number_luminosity_bands * 3.
+    """
+
+    number_luminosity_bands = particle_luminosities.shape[1]
+    velocity_dispersion_vectors = np.zeros(number_luminosity_bands.shape[0] * 3) * particle_cylindrical_velocities.units
+
+    for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
+        luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
+        velocity_dispersion_vectors[i_band*3:(i_band + 1)*3] = get_weighted_cylindrical_velocity_dispersion_vector(luminosity_weights, particle_cylindrical_velocities)
+
+    return velocity_dispersion_vectors
 
 def get_angular_momentum(
     mass: unyt.unyt_array,

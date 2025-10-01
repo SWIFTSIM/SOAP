@@ -34,7 +34,9 @@ from SOAP.property_calculation.kinematic_properties import (
     get_vmax,
     get_velocity_dispersion_matrix,
     get_cylindrical_velocity_dispersion_vector_mass_weighted,
+    get_cylindrical_velocity_dispersion_vector_luminosity_weighted,
     get_rotation_velocity_mass_weighted,
+    get_rotation_velocity_luminosity_weighted,
 )
 from SOAP.property_calculation.inertia_tensors import (
     get_inertia_tensor_mass_weighted,
