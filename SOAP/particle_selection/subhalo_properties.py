@@ -1498,6 +1498,34 @@ class SubhaloParticleData:
         return get_rotation_velocity_luminosity_weighted(self.stellar_luminosities, self.star_cylindrical_velocities_luminosity_weighted[:,:,1])
 
     @lazy_property
+    def StellarCylindricalVelocityDispersionVectorLuminosityWeighted(self) -> unyt.unyt_array:
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
+            return None
+        return get_cylindrical_velocity_dispersion_vector_luminosity_weighted(self.stellar_luminosities, self.star_cylindrical_velocities_luminosity_weighted)
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionLuminosityWeighted(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted is None:
+            return None
+        return np.sqrt(
+            (self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted**2).sum(axis=1) / 3
+        )
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionVerticalLuminosityWeighted(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted is None:
+            return None
+        return self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted[:,2]
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted is None:
+            return None
+        return np.sqrt(
+            (self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted[:,:2]**2).sum(axis=1)
+        )
+
+    @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
         """
         Centre of mass velocity of star particles in the subhalo.

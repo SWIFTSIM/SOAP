@@ -165,19 +165,20 @@ def get_cylindrical_velocity_dispersion_vector_luminosity_weighted(
      - particle_luminosities: unyt.unyt_array
        Luminosity of each particle in different luminosity bands.
      - particle_cylindrical_velocities: unyt.unyt_array
-       Velocity of each particle in a cylindrical coordinate system.
+       Velocity of each particle in a cylindrical coordinate system, which varies between different
+       luminosity bands.
 
     Returns a 3 element vector for each luminosity band, which contains [sigma_r, sigma_phi, sigma_z].
     The velocity dispersion vectors for each band are appended to the same vector, hence the shape is
-    number_luminosity_bands * 3.
+    (number_luminosity_bands, 3).
     """
 
     number_luminosity_bands = particle_luminosities.shape[1]
-    velocity_dispersion_vectors = np.zeros(number_luminosity_bands.shape[0] * 3) * particle_cylindrical_velocities.units
+    velocity_dispersion_vectors = np.zeros((number_luminosity_bands.shape[0], 3)) * particle_cylindrical_velocities.units
 
-    for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
+    for i_band, (particle_luminosities_i_band, particle_cylindrical_velocities_i_band) in enumerate(zip(particle_luminosities.T, particle_cylindrical_velocities.T)):
         luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
-        velocity_dispersion_vectors[i_band*3:(i_band + 1)*3] = get_weighted_cylindrical_velocity_dispersion_vector(luminosity_weights, particle_cylindrical_velocities)
+        velocity_dispersion_vectors[i_band] = get_weighted_cylindrical_velocity_dispersion_vector(luminosity_weights, particle_cylindrical_velocities_i_band)
 
     return velocity_dispersion_vectors
 
