@@ -56,7 +56,7 @@ def get_rotation_velocity_luminosity_weighted(particle_luminosities: unyt.unyt_a
      - particle_luminosities: unyt.unyt_array
        Luminosity of each particle in the provided bands.
      - particle_azimuthal_velocities: unyt.unyt_array
-       Azimuthal velocity of each particle.
+       Azimuthal velocity of each particle, pre-computed for each luminosity band.
 
     Returns:
      - Luminosity-weighted average of the azimuthal velocity of particles, with a value for each band.
@@ -65,9 +65,9 @@ def get_rotation_velocity_luminosity_weighted(particle_luminosities: unyt.unyt_a
     number_luminosity_bands = particle_luminosities.shape[1]
     rotation_velocities = np.zeros(number_luminosity_bands.shape[0]) * particle_azimuthal_velocities.units
 
-    for i_band, particle_luminosities_i_band in enumerate(particle_luminosities.T):
+    for i_band, (particle_luminosities_i_band, particle_azimuthal_velocities_i_band) in enumerate(zip(particle_luminosities.T, particle_azimuthal_velocities.T)):
         luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
-        rotation_velocities[i_band] = get_weighted_rotation_velocity(luminosity_weights, particle_azimuthal_velocities)
+        rotation_velocities[i_band] = get_weighted_rotation_velocity(luminosity_weights, particle_azimuthal_velocities_i_band)
 
     return rotation_velocities
 

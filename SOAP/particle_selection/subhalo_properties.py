@@ -1490,6 +1490,13 @@ class SubhaloParticleData:
                                             )
 
         return cylindrical_velocities
+
+    @lazy_property
+    def StellarRotationalVelocityLuminosityWeighted(self) -> unyt.unyt_array:
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
+            return None
+        return get_rotation_velocity_luminosity_weighted(self.stellar_luminosities, self.star_cylindrical_velocities_luminosity_weighted[:,:,1])
+
     @lazy_property
     def vcom_star(self) -> unyt.unyt_array:
         """
