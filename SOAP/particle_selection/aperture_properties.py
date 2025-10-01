@@ -3657,6 +3657,7 @@ class ApertureProperties(HaloProperty):
         "veldisp_matrix_gas": False,
         "veldisp_matrix_dm": False,
         "veldisp_matrix_star": False,
+        "StellarRotationalVelocity": False,
         "StellarCylindricalVelocityDispersion": False,
         "StellarCylindricalVelocityDispersionVertical": False,
         "StellarCylindricalVelocityDispersionDiscPlane": False,
