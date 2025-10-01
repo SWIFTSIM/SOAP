@@ -84,6 +84,49 @@ def get_velocity_dispersion_matrix(
 
     return result
 
+def get_weighted_cylindrical_velocity_dispersion_vector(
+    particle_weights: unyt.unyt_array,
+    particle_cylindrical_velocities: unyt.unyt_array,
+) -> unyt.unyt_array:
+    """
+    Compute the velocity dispersion along the radial, azimuthal and vertical
+    directions for the input particles and their specified weights.
+
+    Parameters:
+     - particle_weights: unyt.unyt_array
+       Weight assigned to each particle.
+     - particle_cylindrical_velocities: unyt.unyt_array
+       Velocity of the particles in a cylindrical coordinate system.
+
+    Returns a 3 element vector containing [sigma_r, sigma_phi, sigma_z].
+    """
+
+    # This implementation of standard deviation is more numerically stable than using <x^2> - <x>^2
+    mean_velocity = (particle_weights[:, None] * particle_cylindrical_velocities).sum(axis=0)
+    squared_velocity_dispersion = (
+        particle_weights[:, None] * (particle_cylindrical_velocities - mean_velocity) ** 2
+    ).sum(axis=0)
+
+    return np.sqrt(squared_velocity_dispersion)
+
+def get_cylindrical_velocity_dispersion_vector_mass_weighted(
+    particle_masses: unyt.unyt_array,
+    particle_cylindrical_velocities: unyt.unyt_array,
+) -> unyt.unyt_array:
+    """
+    Compute the mass-weighted velocity dispersion along the radial, azimuthal and vertical
+    directions for the input particles.
+
+    Parameters:
+     - particle_masses: unyt.unyt_array
+       Mass of each particle.
+     - particle_cylindrical_velocities: unyt.unyt_array
+       Velocity of each particle in a cylindrical coordinate system.
+
+    Returns a 3 element vector containing [sigma_r, sigma_phi, sigma_z].
+    """
+    mass_weights = particle_masses / particle_masses.sum()
+    return get_weighted_cylindrical_velocity_dispersion_vector(mass_weights, particle_cylindrical_velocities)
 
 def get_angular_momentum(
     mass: unyt.unyt_array,

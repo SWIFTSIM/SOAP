@@ -33,6 +33,7 @@ from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
     get_velocity_dispersion_matrix,
+    get_cylindrical_velocity_dispersion_vector_mass_weighted,
     get_rotation_velocity_mass_weighted,
 )
 from SOAP.property_calculation.inertia_tensors import (
@@ -1426,39 +1427,31 @@ class SubhaloParticleData:
         return get_rotation_velocity_mass_weighted(self.mass_star, self.star_cylindrical_velocities[:,1])
 
     @lazy_property
-    def stellar_cylindrical_squared_velocity_dispersion_vector(self) -> unyt.unyt_array:
+    def StellarCylindricalVelocityDispersionVector(self) -> unyt.unyt_array:
         if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
-        v_cylindrical = self.star_cylindrical_velocities
-
-        # This implementation of standard deviation is more numerically stable than using <x^2> - <x>^2
-        mean_velocity = (self.star_mass_fraction[:, None] * v_cylindrical).sum(axis=0)
-        squared_velocity_dispersion = (
-            self.star_mass_fraction[:, None] * (v_cylindrical - mean_velocity) ** 2
-        ).sum(axis=0)
-
-        return squared_velocity_dispersion
+        return get_cylindrical_velocity_dispersion_vector_mass_weighted(self.mass_star, self.star_cylindrical_velocities)
 
     @lazy_property
     def StellarCylindricalVelocityDispersion(self) -> unyt.unyt_array:
-        if self.stellar_cylindrical_squared_velocity_dispersion_vector is None:
+        if self.StellarCylindricalVelocityDispersionVector is None:
             return None
         return np.sqrt(
-            self.stellar_cylindrical_squared_velocity_dispersion_vector.sum() / 3
+            (self.StellarCylindricalVelocityDispersionVector**2).sum() / 3
         )
 
     @lazy_property
     def StellarCylindricalVelocityDispersionVertical(self) -> unyt.unyt_array:
-        if self.stellar_cylindrical_squared_velocity_dispersion_vector is None:
+        if self.StellarCylindricalVelocityDispersionVector is None:
             return None
-        return np.sqrt(self.stellar_cylindrical_squared_velocity_dispersion_vector[2])
+        return self.StellarCylindricalVelocityDispersionVector[2]
 
     @lazy_property
     def StellarCylindricalVelocityDispersionDiscPlane(self) -> unyt.unyt_array:
-        if self.stellar_cylindrical_squared_velocity_dispersion_vector is None:
+        if self.StellarCylindricalVelocityDispersionVector is None:
             return None
         return np.sqrt(
-            self.stellar_cylindrical_squared_velocity_dispersion_vector[:2].sum()
+            (self.StellarCylindricalVelocityDispersionVector[:2]**2).sum()
         )
 
     @lazy_property
