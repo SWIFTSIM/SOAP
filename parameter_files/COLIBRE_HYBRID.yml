@@ -48,6 +48,9 @@ ApertureProperties:
     DarkMatterMass: true
     DarkMatterCentreOfMass: true
     DarkMatterVelocityDispersionMatrix: general
+    StellarCylindricalVelocityDispersion: false
+    StellarCylindricalVelocityDispersionVertical: false
+    StellarCylindricalVelocityDispersionDiscPlane: false
     DiffuseCarbonMass:
       snapshot: true
       snipshot: false

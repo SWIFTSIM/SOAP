@@ -148,6 +148,7 @@ from SOAP.property_calculation.half_mass_radius import (
 from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
     get_rotation_velocity_mass_weighted,
+    get_cylindrical_velocity_dispersion_vector_mass_weighted,
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot_mass_weighted,
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
@@ -1492,6 +1493,34 @@ class ApertureParticleData:
         if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
         return get_rotation_velocity_mass_weighted(self.mass_star, self.star_cylindrical_velocities[:,1])
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionVector(self) -> unyt.unyt_array:
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
+            return None
+        return get_cylindrical_velocity_dispersion_vector_mass_weighted(self.mass_star, self.star_cylindrical_velocities)
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersion(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVector is None:
+            return None
+        return np.sqrt(
+            (self.StellarCylindricalVelocityDispersionVector**2).sum() / 3
+        )
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionVertical(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVector is None:
+            return None
+        return self.StellarCylindricalVelocityDispersionVector[2]
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionDiscPlane(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVector is None:
+            return None
+        return np.sqrt(
+            (self.StellarCylindricalVelocityDispersionVector[:2]**2).sum()
+        )
 
     @lazy_property
     def KineticEnergyStars(self) -> unyt.unyt_quantity:
@@ -3628,6 +3657,9 @@ class ApertureProperties(HaloProperty):
         "veldisp_matrix_gas": False,
         "veldisp_matrix_dm": False,
         "veldisp_matrix_star": False,
+        "StellarCylindricalVelocityDispersion": False,
+        "StellarCylindricalVelocityDispersionVertical": False,
+        "StellarCylindricalVelocityDispersionDiscPlane": False,
         "StellarRotationalVelocity": False,
         "KineticEnergyGas": False,
         "KineticEnergyStars": False,
