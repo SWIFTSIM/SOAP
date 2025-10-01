@@ -1407,19 +1407,17 @@ class SubhaloParticleData:
         if np.sum(self.Lstar) == 0:
             return None
 
-        # Calculate the position of the stars relative to their CoM
-        pos = self.pos_star - (self.star_mass_fraction[:, None] * self.pos_star).sum(
-            axis=0
-        )
-
-        # Calculate relative velocity of stars
-        vrel = self.vel_star - self.vcom[None, :]
+        # Calculate the position of the stars relative to their CoM. We do not
+        # use self.com because it is offset  and we want to weight differently
+        com = (self.star_mass_fraction[:, None] * self.pos_star).sum(axis=0)
 
         # Get velocities in cylindrical coordinates
         return calculate_cylindrical_velocities(
-            pos,
-            vrel,
+            self.pos_star,
+            self.vel_star,
             self.Lstar,
+            com,
+            self.vcom
         )
 
     @lazy_property
@@ -2301,10 +2299,10 @@ class SubhaloProperties(HaloProperty):
             "Lgas",
             "Ldm",
             "Lstar",
+            "StellarRotationalVelocity",
             "StellarCylindricalVelocityDispersion",
             "StellarCylindricalVelocityDispersionVertical",
             "StellarCylindricalVelocityDispersionDiscPlane",
-            "StellarRotationalVelocity",
             "kappa_corot_gas",
             "kappa_corot_star",
             "Lbaryons",
