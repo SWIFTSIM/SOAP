@@ -236,6 +236,7 @@ ApertureProperties:
     StellarMassFractionInMetals: true
     StellarMassFractionInOxygen: true
     StellarVelocityDispersionMatrix: general
+    StellarRotationalVelocity: false
     TotalMass: true
     TotalSNIaRate: true
     GasMassInColdDenseDiffuseMetals:

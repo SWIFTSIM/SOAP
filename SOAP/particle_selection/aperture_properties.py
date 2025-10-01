@@ -147,6 +147,7 @@ from SOAP.property_calculation.half_mass_radius import (
 )
 from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
+    get_rotation_velocity_mass_weighted,
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot_mass_weighted,
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
@@ -155,6 +156,9 @@ from SOAP.property_calculation.kinematic_properties import (
 from SOAP.property_calculation.inertia_tensors import (
     get_inertia_tensor_mass_weighted,
     get_inertia_tensor_luminosity_weighted,
+)
+from SOAP.property_calculation.cylindrical_coordinates import (
+    calculate_cylindrical_velocities,
 )
 from SOAP.core.swift_cells import SWIFTCellGrid
 from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculator
@@ -1447,6 +1451,47 @@ class ApertureParticleData:
         return get_velocity_dispersion_matrix(
             self.star_mass_fraction, self.vel_star, self.vcom_star
         )
+
+    @lazy_property
+    def star_cylindrical_velocities(self) -> unyt.unyt_array:
+        """
+        Calculate the velocities of the star particles in cyclindrical
+        coordinates, where the axes are centred on the stellar CoM,
+        and the z axis is aligned with the stellar angular momentum.
+        """
+
+        # We need at least 2 particles to have an angular momentum vector
+        if self.Nstar < 2:
+            return None
+
+        # This can happen if we have particles on top of each other
+        # or with the same velocity
+        if np.sum(self.Lstar) == 0:
+            return None
+
+        # Calculate the position of the stars relative to their CoM
+        pos = self.pos_star - (self.star_mass_fraction[:, None] * self.pos_star).sum(
+            axis=0
+        )
+
+        # Calculate relative velocity of stars
+        vrel = self.vel_star - self.vcom[None, :]
+
+        # Get velocities in cylindrical coordinates
+        return calculate_cylindrical_velocities(
+            pos,
+            vrel,
+            self.Lstar,
+        )
+
+    @lazy_property
+    def StellarRotationalVelocity(self) -> unyt.unyt_array:
+        """
+        Mass-weighted average azimuthal velocity of stars.
+        """
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
+            return None
+        return get_rotation_velocity_mass_weighted(self.mass_star, self.star_cylindrical_velocities[:,1])
 
     @lazy_property
     def KineticEnergyStars(self) -> unyt.unyt_quantity:
@@ -3583,6 +3628,7 @@ class ApertureProperties(HaloProperty):
         "veldisp_matrix_gas": False,
         "veldisp_matrix_dm": False,
         "veldisp_matrix_star": False,
+        "StellarRotationalVelocity": False,
         "KineticEnergyGas": False,
         "KineticEnergyStars": False,
         "Mgas_SF": False,
