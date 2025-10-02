@@ -1474,7 +1474,7 @@ class SubhaloParticleData:
 
         # We iterate over bands to use their own reference vector and luminosity-
         # weighted centre of mass phase space coordinates.
-        cylindrical_velocities = np.zeros(self.stellar_luminosities.shape) * self.vel_star.units
+        cylindrical_velocities = np.zeros((self.stellar_luminosities.shape[1], self.stellar_luminosities.shape[0], 3)) * self.vel_star.units
         for i_band, particle_luminosities_i_band in enumerate(self.stellar_luminosities.T):
 
             luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
@@ -1484,7 +1484,7 @@ class SubhaloParticleData:
             cylindrical_velocities[i_band] = calculate_cylindrical_velocities(
                                                 self.pos_star,
                                                 self.vel_star,
-                                                self.Lstar_luminosity_weighted[i_band],
+                                                self.Lstar_luminosity_weighted[i_band * 3: (1 + i_band) * 3],
                                                 centre_of_light_position,
                                                 centre_of_light_velocity
                                             )

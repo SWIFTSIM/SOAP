@@ -63,9 +63,9 @@ def get_rotation_velocity_luminosity_weighted(particle_luminosities: unyt.unyt_a
     """
 
     number_luminosity_bands = particle_luminosities.shape[1]
-    rotation_velocities = np.zeros(number_luminosity_bands.shape[0]) * particle_azimuthal_velocities.units
+    rotation_velocities = np.zeros(number_luminosity_bands) * particle_azimuthal_velocities.units
 
-    for i_band, (particle_luminosities_i_band, particle_azimuthal_velocities_i_band) in enumerate(zip(particle_luminosities.T, particle_azimuthal_velocities.T)):
+    for i_band, (particle_luminosities_i_band, particle_azimuthal_velocities_i_band) in enumerate(zip(particle_luminosities.T, particle_azimuthal_velocities)):
         luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
         rotation_velocities[i_band] = get_weighted_rotation_velocity(luminosity_weights, particle_azimuthal_velocities_i_band)
 
@@ -174,9 +174,9 @@ def get_cylindrical_velocity_dispersion_vector_luminosity_weighted(
     """
 
     number_luminosity_bands = particle_luminosities.shape[1]
-    velocity_dispersion_vectors = np.zeros((number_luminosity_bands.shape[0], 3)) * particle_cylindrical_velocities.units
+    velocity_dispersion_vectors = np.zeros((number_luminosity_bands, 3)) * particle_cylindrical_velocities.units
 
-    for i_band, (particle_luminosities_i_band, particle_cylindrical_velocities_i_band) in enumerate(zip(particle_luminosities.T, particle_cylindrical_velocities.T)):
+    for i_band, (particle_luminosities_i_band, particle_cylindrical_velocities_i_band) in enumerate(zip(particle_luminosities.T, particle_cylindrical_velocities)):
         luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
         velocity_dispersion_vectors[i_band] = get_weighted_cylindrical_velocity_dispersion_vector(luminosity_weights, particle_cylindrical_velocities_i_band)
 
