@@ -1716,6 +1716,70 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
+        "StellarRotationalVelocityLuminosityWeighted": Property(
+            name="StellarRotationalVelocityLuminosityWeighted",
+            shape=9, # GAMA bands
+            dtype=np.float32,
+            unit="snap_length/snap_time",
+            description="Luminosity-weighted mean rotational velocity of the stars, in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Luminosities",
+                "PartType4/Velocities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "StellarCylindricalVelocityDispersionLuminosityWeighted": Property(
+            name="StellarCylindricalVelocityDispersionLuminosityWeighted",
+            shape=9, # GAMA bands
+            dtype=np.float32,
+            unit="snap_length/snap_time",
+            description="One-dimensional luminosity-weighted velocity dispersion of the stars computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Luminosities",
+                "PartType4/Velocities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "StellarCylindricalVelocityDispersionVerticalLuminosityWeighted": Property(
+            name="StellarCylindricalVelocityDispersionVerticalLuminosityWeighted",
+            shape=9, # GAMA bands
+            dtype=np.float32,
+            unit="snap_length/snap_time",
+            description="Velocity dispersion perpendicular to the orbital plane of the stars, luminosity-weighted and computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Luminosities",
+                "PartType4/Velocities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted": Property(
+            name="StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted",
+            shape=9, # GAMA bands
+            dtype=np.float32,
+            unit="snap_length/snap_time",
+            description="Total velocity dispersion in the orbital plane of the stars, luminosity-weighted and computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Luminosities",
+                "PartType4/Velocities",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
         "MaximumStellarBirthDensity": Property(
             name="MaximumStellarBirthDensity",
             shape=1,
