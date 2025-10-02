@@ -1537,7 +1537,7 @@ class ApertureParticleData:
 
         # This can happen if we have particles on top of each other
         # or with the same velocity
-        if np.sum(self.internal_Lstar_luminosity_weighted) == 0:
+        if np.sum(self.Lstar_luminosity_weighted) == 0:
             return None
 
         # We iterate over bands to use their own reference vector and luminosity-
@@ -1552,7 +1552,7 @@ class ApertureParticleData:
             cylindrical_velocities[i_band] = calculate_cylindrical_velocities(
                                                 self.pos_star,
                                                 self.vel_star,
-                                                self.internal_Lstar_luminosity_weighted[i_band],
+                                                self.Lstar_luminosity_weighted[i_band],
                                                 centre_of_light_position,
                                                 centre_of_light_velocity
                                             )
