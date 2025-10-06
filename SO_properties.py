@@ -2251,19 +2251,6 @@ class SOParticleData:
         return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_selection].sum(
             axis=0
         )
-
-    @lazy_property
-    def CorrectedStellarLuminosityWithDust(self) -> unyt.unyt_array:
-        """
-        Total IMF-corrected luminosity of star particles, dust attenuation included.
-
-        Note that this is an array, since there are multiple luminosity bands.
-        """
-        if self.Nstar == 0:
-            return None
-        return self.get_dataset("PartType4/CorrectedLuminositiesWithDust")[self.star_selection].sum(
-            axis=0
-        )
     
     @lazy_property
     def Ekin_star(self) -> unyt.unyt_quantity:
@@ -3196,7 +3183,6 @@ class SOProperties(HaloProperty):
             "starmetalfrac",
             "StellarLuminosity",
             "CorrectedStellarLuminosity",
-            "CorrectedStellarLuminosityWithDust",
             "Ekin_star",
             "Lbaryons",
             "Mbh_dynamical",

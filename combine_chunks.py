@@ -239,9 +239,12 @@ def combine_chunks(
                 if description == "No description available":
                     print(f"{name} not found in property table")
                 shape = (total_nr_halos,) + size
-                dataset = outfile.create_dataset(
-                    name, shape=shape, dtype=dtype, fillvalue=None
-                )
+                try:
+                    dataset = outfile.create_dataset(
+                        name, shape=shape, dtype=dtype, fillvalue=None
+                    )
+                except:
+                    print(f'Dataset already exists ({name})',flush=True)
                 # Add units and description
                 attrs = swift_units.attributes_from_units(unit, physical, a_exponent)
                 attrs["Description"] = description

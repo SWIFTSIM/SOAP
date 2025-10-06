@@ -36,8 +36,13 @@ def read_hbtplus_groupnr(basename):
     # Assign files to MPI ranks
     files_per_rank = np.zeros(comm_size, dtype=int)
     files_per_rank[:] = nr_files // comm_size
-    files_per_rank[: nr_files % comm_size] += 1
-    assert np.sum(files_per_rank) == nr_files
+    remainder = nr_files % comm_size
+    if remainder == 1:
+        files_per_rank[0] += 1
+    elif remainder > 1:
+        for i in range(remainder):
+            files_per_rank[int((comm_size - 1) * i / (remainder - 1))] += 1
+    assert np.sum(files_per_rank) == nr_files, f"{nr_files=}, {comm_size=}"
     first_file_on_rank = np.cumsum(files_per_rank) - files_per_rank
 
     # Read in the halos from the HBT output:
