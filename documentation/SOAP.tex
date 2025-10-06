@@ -1,7 +1,7 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{longtable}
-\usepackage{a4wide}
+\usepackage[a4paper, margin=1in]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{pifont}
@@ -15,7 +15,7 @@
 \input{units}
 
 \title{SOAP -- Spherical Overdensity and Aperture Processor}
-\author{Bert Vandenbroucke, Joop Schaye, John Helly, \\Matthieu Schaller, Rob McGibbon}
+\author{Rob McGibbon, Bert Vandenbroucke, John Helly, \\Joop Schaye, Matthieu Schaller}
 \date{}
 
 \begin{document}
@@ -26,16 +26,25 @@
 
 \section{Introduction}
 
-SOAP computes different types of properties, depending on  how particles are included (by radius, in projection...). 
-For all types, we use the halo membership and halo centre as determined by the input halo catalogue. 
-This documentation is generated using the SOAP parameter file, and so the properties listed reflect those
-present in the current run of SOAP, rather than all possible properties.
+SOAP computes properties for different types of halos, which differ in how they decide
+on which particles to included (by radius, in projection...). SOAP does not identify
+halos itself, instead it uses the halo centre and the boundedness of particles as determined
+by an input subhalo catalogue (such as HBT-HERONS, SubFind, etc...).
+The purpose of this file is to document the catalogues output by SOAP. For information about running
+the code you should refer to the README at \href{https://github.com/SWIFTSIM/SOAP}{https://github.com/SWIFTSIM/SOAP}.
+This documentation is generated using the SOAP parameter file, and so the halo types and properties 
+listed reflect those present in the current run of SOAP, rather than all possible properties.
+If you have any questions regarding the halo types or properties mentioned in the document then
+please send an email to \href{mailto:mcgibbon@strw.leidenuniv.nl}{mcgibbon@strw.leidenuniv.nl}.
+It would be useful for us to know which parts of the document need clarifying.
 
-For loading SOAP catalogues we recommend using the swiftsimio package. A simple example is:
+SOAP catalogues are output as HDF5 files, with the properties being grouped by halo type.
+For loading the catalogues we recommend using the swiftsimio package. A simple example is:
 \begin{verbatim}
 import swiftsimio as sw
-soap_dir = '/cosma8/data/dp004/flamingo/Runs/L1000N1800/HYDRO_FIDUCIAL/SOAP-HBT/'
-data = sw.load(f'{soap_dir}halo_properties_0077.hdf5')
+base_dir = '/cosma8/data/dp004/flamingo/Runs'
+run = 'L1000N1800/HYDRO_FIDUCIAL'
+data = sw.load(f'{base_dir}/{run}/SOAP-HBT/halo_properties_0077.hdf5')
 # Load a dataset
 m200 = data.spherical_overdensity_200_crit.total_mass
 # Specify units
@@ -46,78 +55,82 @@ m200.convert_to_physical()
 z = data.metadata.redshift
 \end{verbatim}
 
-\section{Property types}
+\section{Particle selection for different halo types}
 
-\paragraph{Subhalo quantities (SH)} are computed for each subhalo identified by the halo finder, irrespective of whether 
-it is a field halo or a satellite (or even satellite of satellite and so on). They include all particles 
+SOAP computes properties for many different definitions of halo types. The halo type defines how to select the
+particles to use when computing the properties. There are two decisions to be made - firstly whether
+to include particles which are unbound. Secondly whether to exclude particles which are outside of a certain
+aperture.
+
+\paragraph{Bound subhalo quantities (SH)} are computed for each subhalo identified by the halo finder, irrespective of whether 
+it is a central or a satellite (or even satellite of satellite and so on). They include all particles
 that they halo finder has determined are bound to the subhalo. Subhalo properties are contained within the group 
 \verb+BoundSubhalo+ in the output file.
 
-\paragraph{Exclusive sphere quantities (ES)} are similar to subhalo quantities, but they include only the 
-particles that are bound to the subhalo, and apply an additional radial cut (aperture). We use eight 
-different aperture radii (10, 30, 50, 100, 300, 500, 1000, 3000 kpc), so that every (sub-)halo has eight of 
-these. Exclusive sphere properties are contained within a group \verb+ExclusiveSphere/XXXkpc+, where 
-\verb+XXX+ is the corresponding aperture radius.
+\paragraph{Exclusive sphere quantities (ES)} are similar to subhalo quantities as they include only the 
+particles that are bound to the subhalo, but they apply an additional radial cut (aperture). Exclusive sphere 
+properties are contained within the group \verb+ExclusiveSphere+. Groups with the label \verb+XXXkpc+ have an
+aperture radius of \verb+XXX+ \textbf{physical} kpc. Groups with a property name have a cut using the value 
+of the property calculated for the bound subhalo (e.g. the aperture cut for \verb+ExclusiveSphere/HalfMassRadiusTotal+
+is given by the value of \verb+BoundSubhalo/HalfMassRadiusTotal+), meaning a different radial cut is used for each subhalo.
 
-\paragraph{Inclusive sphere quantities (IS)} use the same physical aperture radii as the exclusive sphere 
-quantities, but include all particles within the radius, regardless of their membership status. They are
-stored within a group \verb+InclusiveSphere/XXXkpc+.
+\paragraph{Inclusive sphere quantities (IS)} apply a aperture radii cut, the same as the exclusive sphere 
+quantities. However for the inclusive sphere we include all particles within the radius, regardless of their 
+membership status. If the aperture radius of an inclusive sphere variation is greater than the EncloseRadius
+(the maximum distance between a bound particle and the halo centre) of a subhalo, then for that subhalo no
+properties are computed for the variation.
+The quantities are stored within the group \verb+InclusiveSphere+.
 
-\paragraph{Exclusive projected quantities (EP)} are similar to exclusive sphere quantities, except that their 
-aperture filter is applied in projection, and this for independent projections along the x-, y- and z-axis. 
-Along the projection axis, we do not apply any radial cut, so that the depth corresponds to all particles 
-bound to the (sub-)halo. With four projected aperture radii (10, 30, 50, 100 kpc), we then have twelve sets of 
-projected aperture quantities for each (sub-)halo. Projected aperture quantities are stored in a group named 
-\verb+ProjectedAperture/XXXkpc/projP+, where \verb+XXX+ is the corresponding aperture radius, and \verb+P+ 
+\paragraph{Exclusive projected quantities (EP)} are similar to exclusive sphere quantities, except that their
+aperture cut is applied in projection. For each radii there are three  independent projections: along the 
+x-, y- and z-axis. Along the projection axis, we do not apply any radial cut, meaning the depth corresponds to all particles 
+bound to the subhalo. Projected aperture quantities are stored in a group named 
+\verb+ProjectedAperture/XXX/projP+, where \verb+XXX+ is the corresponding aperture cut, and \verb+P+ 
 corresponds to a particular projection direction (\verb+x+, \verb+y+ or \verb+z+).
 
 \paragraph{Spherical overdensity properties (SO)} are fundamentally different from the three other types in 
 that their aperture radius is determined from the density profile and is different for different halos. They 
 always include all particles within a sphere around the halo centre, regardless of halo membership. 
-The radius is either the radius at which the density reaches a certain target value (50 crit, 100 crit, 200 
-crit, 500 crit, 1000 crit, 2500 crit, 200 mean, BN98) or a multiple of such a radius (5xR 500 crit). Details 
-of the spherical overdensity calculation are given at the end of this document. Spherical overdensities are 
-only computed for centrals, i.e. field halos. The inclusive sphere quantities are stored in a group 
+The radius is either the radius at which the density reaches a certain target value (e.g.  200 
+crit, 100 crit, 200 mean, BN98) or a multiple of such a radius (5xR 500 crit). Details 
+of the spherical overdensity calculation are given in section \ref{sec:so_calculation}. Spherical overdensities are 
+only computed for central subhalos, i.e. field halos. The quantities are stored in a group 
 \verb+SO/XXX+, where \verb+XXX+ can be either \verb+XXX_mean+ for density multiples of the mean density, 
 \verb+XXX_crit+ for density multiples of the critical density, \verb+BN98+ for the overdensity definition of 
-Bryan \& Norman (1998), and \verb+YxR_XXX_ZZZ+ for multiples of some other radius (e.g. \verb+5xR_2500_mean+). 
+Bryan \& Norman (1998), or \verb+YxR_XXX_ZZZ+ for multiples of some other radius (e.g. \verb+5xR_2500_mean+). 
 The latter can only be computed after the corresponding density multiple SO radius has been computed. This is 
 achieved by ordering the calculations.
 
 \paragraph{InputHalos} Some properties are directly copied from the original halo catalogue that was passed
 to SOAP. These are stored in a separate group, \verb+InputHalos+.
 
-\paragraph{SOAP} Some properties are computed by SOAP using the other halo properties
-present in the catalogue.
-These are stored in a separate group, \verb+SOAP+. This is just done for convenience; these quantities can be computed from the SOAP output alone.
+\paragraph{SOAP} Some properties are computed by SOAP using the other halo properties present in the catalogue.
+These are stored in a separate group, \verb+SOAP+. This is just done for convenience; these quantities could be computed from the SOAP output alone.
 
 \paragraph{The table below lists} all the groups in the output file which containing datasets.
 Note that there will be three groups (\verb+x+, \verb+y+ or \verb+z+) for each \verb+ProjectedAperture+ variation.
-Each halo variation can have a filter applied to it. If a halo does not satisfy the filter then the variation will
-not be calculated for that halo. More information on filters can be found in the next section.
+Each halo variation can have a filter applied to it. If a subhalo does not satisfy the filter then the halo variation
+will be skipped for that subhalo, and all properties will have a value of zero. More information on filters can be found in the next section.
 
 \input{variations_table}
 
-\section{Property categories}
+\section{Filters}
 
 Halo properties only make sense if the subhalo contains sufficient particles. Halo finders are often run with a 
-configuration that requires at least 20 particles for a satellite subhalo.  
+configuration that requires at least 20 particles for a subhalo. 
 However, even for those particle numbers, a lot of the properties computed by SOAP will be zero (e.g. 
 the gas mass within a 10 kpc aperture), or have values that are outliers compared to the full halo population 
 because of undersampling. We can save a lot of disk space by filtering these out by applying appropriate cuts. 
-Filtering means setting the value of the property to \verb+NaN+; HDF5 file compression then very effectively 
+Filtering means setting the value of the property to zero; HDF5 file compression then very effectively 
 reduces the data storage required to store these properties, while the size of the arrays that the end user 
-sees remains unchanged. Evidently, we can also save on computing time by not computing properties that are 
+sees remains unchanged. We also save on computing time by not computing properties that are 
 filtered out.
 
-Since different properties can have very different requirements, filtering is done in categories, where each 
-category corresponds to a set of quantities that are filtered using the same criterion. Inclusive, exclusive 
-or projected quantities with different aperture radii (or overdensity criteria) can be used to create 
-profiles. In order for these profiles to make sense, we have to apply a consistent cut across all the 
-different aperture radii (or overdensity criteria) for the same subhalo property type. Or in other words: the 
-quantities for an inclusive sphere with a 10 kpc aperture radius will use the same filter mask as the 
-quantities of the inclusive sphere with a 3000 kpc aperture radius, even though the latter by construction has 
-many more particles.
+Since different properties can have very different requirements, and so each property has a filter associated
+with it. These filters are consistent across different halos types for the same property, e.g. the properties
+for an inclusive sphere with a 10 kpc aperture radius will use the same filters as the quantities of the inclusive 
+sphere with a 3000 kpc aperture radius, even 
+though the latter by construction has many more particles.
 
 \paragraph{Basic quantities (basic)} are never filtered out, and hence are calculated for all objects in the
 input halo catalogue.
@@ -136,8 +149,7 @@ subhalo.
 bound to the subhalo.
 
 \paragraph{}Note that there are no quantities that use a BH or neutrino particle number filter.
-
-The particle number thresholds are set in the parameter file. The different categories are summarised in the table below.
+The different categories are summarised in the table below.
 
 \begin{longtable}{ll}
 Name & criterion \\
@@ -149,21 +161,26 @@ star & $N_{\rm{}star} \geq{} \starfilter$ \\
 baryon & $N_{\rm{}gas}+N_{\rm{}star} \geq{} \baryonfilter$ \\
 \end{longtable}
 
-\section{Overview table}
+\section{Property table}
 
 The table below lists all the properties that are computed by SOAP when run in HYDRO mode.
-For dark matter only (DMO) mode only the properties colored violet/purple are computed.
-This table is automatically generated by 
-SOAP from the source code, so that all names, types, units, categories and descriptions match what is actually
-used and output by SOAP. For each quantity, the table indicates for which halo types the property is computed.
+For dark matter only (DMO) mode only the properties coloured violet/purple are computed.
+This table is automatically generated by SOAP from the source code and parameter file, so that all
+names, types, units, categories and descriptions match what is actually
+used and output by SOAP.
 Superscript numbers refer to more detailed explanations for some of the properties and match the numbers in
 the next section. If swiftsimio has been used to load a catalogue then the fields names are in snake\_case rather
-than CamelCase, e.g. \verb+CentreOfMass+ becomes \verb+centre_of_mass+.
+than CamelCase, e.g. \verb+CentreOfMass+ becomes \verb+centre_of_mass+. For each quantity, the table
+indicates for which halo types the property is computed. If a property is being calculated 
+for a certain halo type it is marked with a \ding{51}. Properties calculated
+for snapshots but not snipshots are indicated with a \ding{36}.
 
-Note that quantities are given in the base units of the simulation snapshot. The attributes of each SOAP dataset contains
-all the relevant meta-data to convert between physical and co-moving units, i.e. information about how the
-quantity depends on the scale-factor, and what the conversion factor to and from CGS units is. All quantities
-are $h$-free. The conversion of the base units to CGS is given by:
+\paragraph{}Note that quantities are output in the base units of the simulation snapshot. 
+We therefore recommend that swiftsimio is used to load the catalogues as it has unit handling built in.
+However, the attributes of each SOAP dataset do contain all the relevant meta-data to convert between physical
+and co-moving units, i.e. information about how the
+quantity depends on the scale-factor, and what the conversion factor to and from CGS units is. \textbf{All quantities
+are $h$-free.} The conversion of the base units to CGS is given by:
 
 \begin{longtable}{cl}
 Unit & CGS conversion \\
@@ -176,10 +193,10 @@ T & \temperaturebaseunit \hspace{1mm} K \\
 
 For example, a property whose units are listed as L/t will have units of velocity,
 where $1 \, \rm{L/t} = \velbaseunit \, \rm{km/s}$.
-The scale factor is explicitly included for comoving properties (e.g. the units of HaloCentre are aL)
+The scale factor is explicitly included for comoving properties (e.g. the units of \verb+HaloCentre+ are
+listed as aL).
 
-If a property is being calculated for a certain halo type it is marked with a \ding{51}. Properties calculated
-for snapshots but not snipshots are indicated with a \ding{36}.
+Properties are computed using the value of \verb+HaloCentre+ as the centre of the subhalo, unless otherwise stated.
 
 \input{table}
 
@@ -188,6 +205,7 @@ for snapshots but not snipshots are indicated with a \ding{36}.
 \input{footnotes}
 
 \section{Spherical overdensity calculations}
+\label{sec:so_calculation}
 
 The radius at which the density reaches a certain threshold value is found by linear interpolation of the 
 cumulative mass profile obtained after sorting the particles by radius. The approach we use is different from 
@@ -281,7 +299,7 @@ also be useful for visualising the input halo catalogue.
 
 The group membership files are HDF5 files with one group for each
 particle type, named PartType0, PartType1, ... as in the
-snapshots. Each group contains the following datasets:
+snapshots. The following datasets can be contained in the membership files:
 
 \begin{enumerate}
 \item \verb|GroupNr_bound|: for each particle in the corresponding snapshot
@@ -294,25 +312,24 @@ snapshots. Each group contains the following datasets:
   the subhalo it belongs to, or -1 if the particle is not bound to
   any subhalo. The particle with the most negative total energy has
   \verb|Rank_bound|=0.
-\item \verb|GroupNr_all|: (VELOCIraptor only) for each particle in the
-  corresponding snapshot
-  file this contains the array index of the VR group which the
-  particle belongs to, regardless of whether it is bound or
-  unbound. Particles in no group have \verb|GroupNr_all|=-1.
 \item \verb|FOFGroupIDs|: the 3D FOF group the particle is part of.
   This field is only present if a FOF snapshot is listed in the
   parameter file. This field is present in the snapshots themselves,
   but for FLAMINGO hydro simulations the FOF was regenerated. If this
   field is present it will overwrite the value from the snapshots when
   SOAP is run.
+\item \verb|SpecificPotentialEnergies|: the specific potential energy of
+  each particle as calculated by the subhalo finder. Note that for HBT
+  these values may not have the same order as \verb|Rank_bound|. This is because
+  HBT has a centre refinement step which can reorder the particles in the centre
+  of the subhalo, but binding energies are not updated as part of this step.
 \end{enumerate}
 
-The script `make\_virtual\_snapshot.py` will combine snapshot and group membership files
+The script \verb|make_virtual_snapshot.py| will combine snapshot and group membership files
 into a single virtual snapshot file. This virtual file can be read by swiftsimio and 
 gadgetviewer to provide halo membership information alongside other particle properties.
 Using the virtual file along with the spatial masking functionality within swiftsimio
 means it is possible to quickly load all the particles bound to a given subhalo.
-
 The \href{https://swiftgalaxy.readthedocs.io/en/latest/index.html}{SWIFTGalaxy package}
 makes use of the membership files, and is helpful for analysing individual galaxies when 
 manipulating their particles (recentering, rotations, cylindrical coordinates, etc.).

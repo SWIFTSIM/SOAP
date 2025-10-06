@@ -15,7 +15,7 @@
 #
 #SBATCH --ntasks=128
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/compress_membership.%a.%j.out
+#SBATCH -o ./logs/compress_membership.%a.%A.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
@@ -60,7 +60,6 @@ outbase="${output_dir}/${sim}/SOAP/"
 # Create the output folder if it does not exist
 outdir="${outbase}/membership_${snapnum}"
 mkdir -p "${outdir}"
-lfs setstripe --stripe-count=-1 --stripe-size=32M "${outdir}"
 
 # Uncompressed membership file basename
 input_filename="${inbase}/membership_${snapnum}/membership_${snapnum}"
@@ -91,7 +90,7 @@ echo "Creating virtual snapshot"
 snapshot="${output_dir}/${sim}/snapshots/colibre_${snapnum}/colibre_${snapnum}.hdf5"
 membership="${output_filename}.{file_nr}.hdf5"
 virtual="${outbase}/colibre_with_SOAP_membership_${snapnum}.hdf5"
-python make_virtual_snapshot.py $snapshot $membership $virtual
+python compression/make_virtual_snapshot.py $snapshot $membership $virtual
 
 echo "Setting virtual file to be read-only"
 chmod a=r "${virtual}"
