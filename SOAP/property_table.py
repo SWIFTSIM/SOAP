@@ -2465,7 +2465,6 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
-
         "CorrectedStellarLuminosity": Property(
             name="CorrectedStellarLuminosity",
             shape=8,
@@ -2477,6 +2476,18 @@ class PropertyTable:
             particle_properties=["PartType4/CorrectedLuminosities"],
             output_physical=True,
             a_scale_exponent=None,
+        ),
+        "ChabrierInferredMstar": Property(
+            name="ChabrierInferredStellarMass",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_mass",
+            description="Total stellar mass, modified for a Chabrier IMF.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/ChabrierMasses"],
+            output_physical=True,
+            a_scale_exponent=0,
         ),
         "Tgas": Property(
             name="GasTemperature",

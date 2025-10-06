@@ -433,6 +433,17 @@ class SingleProjectionProjectedApertureParticleData:
             return None
         return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
             self.star_mask_ap].sum(axis=0)
+    
+    @lazy_property
+    def ChabrierInferredMstar(self) -> unyt.unyt_quantity:
+        """
+        Total mass of star particles, modified for a Chabrier IMF.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/ChabrierMasses")[self.star_mask_all][
+            self.star_mask_ap
+        ].sum()
 
     @lazy_property
     def bh_mask_all(self) -> NDArray[bool]:
@@ -1626,6 +1637,7 @@ class ProjectedApertureProperties(HaloProperty):
         "AveragedStarFormationRate": False,
         "StellarLuminosity": False,
         "CorrectedStellarLuminosity": False,
+        "ChabrierInferredMstar":False,
         "HalfMassRadiusGas": False,
         "HalfMassRadiusDust": False,
         "HalfMassRadiusAtomicHydrogen": False,

@@ -2389,6 +2389,17 @@ class SOParticleData:
             self.star_mask_ap].sum(axis=0)
 
     @lazy_property
+    def ChabrierInferredMstar(self) -> unyt.unyt_quantity:
+        """
+        Total mass of star particles, modified for a Chabrier IMF.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/ChabrierMasses")[self.star_mask_all][
+            self.star_mask_ap
+        ].sum()
+
+    @lazy_property
     def KineticEnergyStars(self) -> unyt.unyt_quantity:
         """
         Total kinetic energy of star particles.
@@ -3331,6 +3342,7 @@ class SOProperties(HaloProperty):
             "starmetalfrac",
             "StellarLuminosity",
             "CorrectedStellarLuminosity",
+            "ChabrierInferredMstar",
             "KineticEnergyStars",
             "Lbaryons",
             "Mbh_dynamical",
