@@ -420,19 +420,19 @@ class SingleProjectionProjectedApertureParticleData:
         if self.Nstar == 0:
             return None
         return self.stellar_luminosities.sum(axis=0)
-    
+
     @lazy_property
     def CorrectedStellarLuminosity(self) -> unyt.unyt_array:
         """
-        IMF-corrected Total luminosity of star particles.
+        Total IMF-corrected luminosity of star particles.
 
         Note that this returns an array with total luminosities in multiple
         bands.
         """
         if self.Nstar == 0:
             return None
-        return self.part_props.get_dataset("PartType4/CorrectedLuminosities")[
-            self.star_mask_all][self.star_mask_ap].sum(axis=0)
+        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
+            self.star_mask_ap].sum(axis=0)
 
     @lazy_property
     def bh_mask_all(self) -> NDArray[bool]:
@@ -1600,88 +1600,6 @@ class ProjectedApertureProperties(HaloProperty):
     the halo along the projection axis.
     """
 
-<<<<<<< HEAD:projected_aperture_properties.py
-    """
-    List of properties from the table that we want to compute.
-    Each property should have a corresponding method/property/lazy_property in
-    the SingleProjectionProjectedApertureParticleData class above.
-    """
-    property_list = [
-        (prop, *PropertyTable.full_property_list[prop])
-        for prop in [
-            "Mtot",
-            "Mgas",
-            "Mdm",
-            "Mstar",
-            "Mstar_init",
-            "Mbh_dynamical",
-            "Mbh_subgrid",
-            "Ngas",
-            "Ndm",
-            "Nstar",
-            "Nbh",
-            "com",
-            "vcom",
-            "SFR",
-            "AveragedStarFormationRate",
-            "StellarLuminosity",
-            "CorrectedStellarLuminosity",
-            "HalfMassRadiusGas",
-            "HalfMassRadiusDM",
-            "HalfMassRadiusStar",
-            "HalfMassRadiusBaryon",
-            "proj_veldisp_gas",
-            "proj_veldisp_dm",
-            "proj_veldisp_star",
-            "BHmaxAR",
-            "BHmaxM",
-            "BHmaxID",
-            "BHmaxpos",
-            "BHmaxvel",
-            "BHlasteventa",
-            "BHmaxlasteventa",
-            "BlackHolesTotalInjectedThermalEnergy",
-            "BlackHolesTotalInjectedJetEnergy",
-            "MostMassiveBlackHoleAveragedAccretionRate",
-            "MostMassiveBlackHoleNumberOfAGNEvents",
-            "MostMassiveBlackHoleAccretionMode",
-            "MostMassiveBlackHoleGWMassLoss",
-            "MostMassiveBlackHoleInjectedJetEnergyByMode",
-            "MostMassiveBlackHoleLastJetEventScalefactor",
-            "MostMassiveBlackHoleNumberOfAGNJetEvents",
-            "MostMassiveBlackHoleNumberOfMergers",
-            "MostMassiveBlackHoleRadiatedEnergyByMode",
-            "MostMassiveBlackHoleTotalAccretedMassesByMode",
-            "MostMassiveBlackHoleWindEnergyByMode",
-            "MostMassiveBlackHoleInjectedThermalEnergy",
-            "MostMassiveBlackHoleSpin",
-            "MostMassiveBlackHoleTotalAccretedMass",
-            "MostMassiveBlackHoleFormationScalefactor",
-            "ProjectedTotalInertiaTensor",
-            "ProjectedGasInertiaTensor",
-            "ProjectedStellarInertiaTensor",
-            "ProjectedTotalInertiaTensorReduced",
-            "ProjectedGasInertiaTensorReduced",
-            "ProjectedStellarInertiaTensorReduced",
-            "ProjectedTotalInertiaTensorNoniterative",
-            "ProjectedGasInertiaTensorNoniterative",
-            "ProjectedStellarInertiaTensorNoniterative",
-            "ProjectedTotalInertiaTensorReducedNoniterative",
-            "ProjectedGasInertiaTensorReducedNoniterative",
-            "ProjectedStellarInertiaTensorReducedNoniterative",
-            "HydrogenMass",
-            "HeliumMass",
-            "MolecularHydrogenMass",
-            "AtomicHydrogenMass",
-            "starFefrac",
-            "starMgfrac",
-            "starOfrac",
-            "starmetalfrac",
-            "gasmetalfrac",
-            "gasmetalfrac_SF",
-        ]
-    ]
-=======
     base_halo_type = "ProjectedApertureProperties"
     # Properties to calculate. The key is the name of the property,
     # the value indicates the property has a direct dependence on aperture size.
@@ -1707,6 +1625,7 @@ class ProjectedApertureProperties(HaloProperty):
         "SFR": False,
         "AveragedStarFormationRate": False,
         "StellarLuminosity": False,
+        "CorrectedStellarLuminosity": False,
         "HalfMassRadiusGas": False,
         "HalfMassRadiusDust": False,
         "HalfMassRadiusAtomicHydrogen": False,
@@ -1772,7 +1691,6 @@ class ProjectedApertureProperties(HaloProperty):
     property_list = {
         name: PropertyTable.full_property_list[name] for name in property_names
     }
->>>>>>> master:SOAP/particle_selection/projected_aperture_properties.py
 
     def __init__(
         self,

@@ -516,17 +516,6 @@ class ApertureParticleData:
         Total mass of star particles.
         """
         return self.mass_star.sum()
-    
-    @lazy_property
-    def ChabrierInferredMstar(self) -> unyt.unyt_quantity:
-        """
-        Total mass of star particles, modified for a Chabrier IMF.
-        """
-        if self.Nstar == 0:
-            return None
-        return self.get_dataset("PartType4/ChabrierMasses")[self.star_mask_all][
-            self.star_mask_ap
-        ].sum()
 
     @lazy_property
     def Mbh_dynamical(self) -> unyt.unyt_quantity:
@@ -603,7 +592,7 @@ class ApertureParticleData:
             return None
         return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
             self.star_mask_ap].sum(axis=0)
-    
+
     @lazy_property
     def starmetalfrac(self) -> unyt.unyt_quantity:
         """
@@ -753,7 +742,7 @@ class ApertureParticleData:
     @lazy_property
     def stellar_age_lw(self) -> unyt.unyt_quantity:
         """
-        (r-band) Luminosity-weighted average stellar age.
+        GAMA-r band luminosity-weighted average stellar age.
         """
         if self.Nstar == 0:
             return None
@@ -769,7 +758,7 @@ class ApertureParticleData:
     @lazy_property
     def stellar_age_uvlw(self) -> unyt.unyt_quantity:
         """
-        FUV corrected luminosity-weighted average stellar age.
+        GALEX-FUV band luminosity-weighted average stellar age.
         """
         if self.Nstar == 0:
             return None
@@ -779,7 +768,6 @@ class ApertureParticleData:
         Luvtot = Luv.sum()
         if Luvtot == 0:
             return None
-        
         return ((Luv / Luvtot) * self.stellar_ages).sum()
 
     @lazy_property
@@ -3566,147 +3554,6 @@ class ApertureProperties(HaloProperty):
     are bound to the halo.
     """
 
-<<<<<<< HEAD:aperture_properties.py
-    """
-    List of properties from the table that we want to compute.
-    Each property should have a corresponding method/property/lazy_property in
-    the ApertureParticleData class above.
-    """
-    property_list: List[Tuple] = [
-        (prop, *PropertyTable.full_property_list[prop])
-        for prop in [
-            "Mtot",
-            "Mgas",
-            "Mdm",
-            "Mstar",
-            "Mstar_init",
-            "Mbh_dynamical",
-            "Mbh_subgrid",
-            "Ngas",
-            "Ndm",
-            "Nstar",
-            "Nbh",
-            "BHlasteventa",
-            "BHmaxM",
-            "BHmaxID",
-            "BHmaxpos",
-            "BHmaxvel",
-            "BHmaxAR",
-            "BHmaxlasteventa",
-            "BlackHolesTotalInjectedThermalEnergy",
-            "BlackHolesTotalInjectedJetEnergy",
-            "MostMassiveBlackHoleAveragedAccretionRate",
-            "MostMassiveBlackHoleInjectedThermalEnergy",
-            "MostMassiveBlackHoleNumberOfAGNEvents",
-            "MostMassiveBlackHoleAccretionMode",
-            "MostMassiveBlackHoleGWMassLoss",
-            "MostMassiveBlackHoleInjectedJetEnergyByMode",
-            "MostMassiveBlackHoleLastJetEventScalefactor",
-            "MostMassiveBlackHoleNumberOfAGNJetEvents",
-            "MostMassiveBlackHoleNumberOfMergers",
-            "MostMassiveBlackHoleRadiatedEnergyByMode",
-            "MostMassiveBlackHoleTotalAccretedMassesByMode",
-            "MostMassiveBlackHoleWindEnergyByMode",
-            "MostMassiveBlackHoleSpin",
-            "MostMassiveBlackHoleTotalAccretedMass",
-            "MostMassiveBlackHoleFormationScalefactor",
-            "com",
-            "com_star",
-            "vcom",
-            "vcom_star",
-            "Lgas",
-            "Ldm",
-            "Lstar",
-            "kappa_corot_gas",
-            "kappa_corot_star",
-            "Lbaryons",
-            "kappa_corot_baryons",
-            "veldisp_matrix_gas",
-            "veldisp_matrix_dm",
-            "veldisp_matrix_star",
-            "Ekin_gas",
-            "Ekin_star",
-            "Mgas_SF",
-            "gasmetalfrac",
-            "gasmetalfrac_SF",
-            "gasOfrac",
-            "gasOfrac_SF",
-            "gasFefrac",
-            "gasFefrac_SF",
-            "Tgas",
-            "Tgas_no_agn",
-            "SFR",
-            "AveragedStarFormationRate",
-            "StellarLuminosity",
-            "CorrectedStellarLuminosity",
-            "ChabrierInferredMstar",
-            "starmetalfrac",
-            "HalfMassRadiusGas",
-            "HalfMassRadiusDM",
-            "HalfMassRadiusStar",
-            "HalfMassRadiusBaryon",
-            "spin_parameter",
-            "DtoTgas",
-            "DtoTstar",
-            "starOfrac",
-            "starFefrac",
-            "stellar_age_mw",
-            "stellar_age_lw",
-            "stellar_age_uvlw",
-            "TotalSNIaRate",
-            "HydrogenMass",
-            "HeliumMass",
-            "MolecularHydrogenMass",
-            "AtomicHydrogenMass",
-            "starMgfrac",
-            "DustGraphiteMass",
-            "DustGraphiteMassInAtomicGas",
-            "DustGraphiteMassInMolecularGas",
-            "DustGraphiteMassInColdDenseGas",
-            "DustLargeGrainMass",
-            "DustLargeGrainMassInMolecularGas",
-            "DustLargeGrainMassInColdDenseGas",
-            "DustSilicatesMass",
-            "DustSilicatesMassInAtomicGas",
-            "DustSilicatesMassInMolecularGas",
-            "DustSilicatesMassInColdDenseGas",
-            "DustSmallGrainMass",
-            "DustSmallGrainMassInMolecularGas",
-            "DustSmallGrainMassInColdDenseGas",
-            "GasMassInColdDenseGas",
-            "DiffuseCarbonMass",
-            "DiffuseOxygenMass",
-            "DiffuseMagnesiumMass",
-            "DiffuseSiliconMass",
-            "DiffuseIronMass",
-            "LinearMassWeightedOxygenOverHydrogenOfGas",
-            "LinearMassWeightedNitrogenOverOxygenOfGas",
-            "LinearMassWeightedCarbonOverOxygenOfGas",
-            "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas",
-            "LinearMassWeightedDiffuseNitrogenOverOxygenOfGas",
-            "LinearMassWeightedDiffuseCarbonOverOxygenOfGas",
-            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasLowLimit",
-            "LogarithmicMassWeightedDiffuseNitrogenOverOxygenOfGasHighLimit",
-            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasLowLimit",
-            "LogarithmicMassWeightedDiffuseCarbonOverOxygenOfGasHighLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasLowLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfGasHighLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasLowLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfAtomicGasHighLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasLowLimit",
-            "LogarithmicMassWeightedDiffuseOxygenOverHydrogenOfMolecularGasHighLimit",
-            "LinearMassWeightedMagnesiumOverHydrogenOfStars",
-            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsLowLimit",
-            "LogarithmicMassWeightedMagnesiumOverHydrogenOfStarsHighLimit",
-            "LinearMassWeightedIronOverHydrogenOfStars",
-            "LogarithmicMassWeightedIronOverHydrogenOfStarsLowLimit",
-            "LogarithmicMassWeightedIronOverHydrogenOfStarsHighLimit",
-            "GasMassInColdDenseDiffuseMetals",
-            "LogarithmicMassWeightedIronFromSNIaOverHydrogenOfStarsLowLimit",
-            "LinearMassWeightedIronFromSNIaOverHydrogenOfStars",
-        ]
-    ]
-=======
     base_halo_type = "ApertureProperties"
     # Properties to calculate for ApertureProperties. Key is the name of the property.
     # The value indicates the property has a direct dependence on aperture size.
@@ -3778,6 +3625,7 @@ class ApertureProperties(HaloProperty):
         "SFR": False,
         "AveragedStarFormationRate": False,
         "StellarLuminosity": False,
+        "CorrectedStellarLuminosity": False,
         "starmetalfrac": False,
         "HalfMassRadiusGas": False,
         "HalfMassRadiusDust": False,
@@ -3797,6 +3645,7 @@ class ApertureProperties(HaloProperty):
         "starFefrac": False,
         "stellar_age_mw": False,
         "stellar_age_lw": False,
+        "stellar_age_uvlw": False,
         "TotalSNIaRate": False,
         "HydrogenMass": False,
         "HeliumMass": False,
@@ -3866,7 +3715,6 @@ class ApertureProperties(HaloProperty):
     property_list = {
         name: PropertyTable.full_property_list[name] for name in property_names
     }
->>>>>>> master:SOAP/particle_selection/aperture_properties.py
 
     def __init__(
         self,

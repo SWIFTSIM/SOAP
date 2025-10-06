@@ -342,19 +342,9 @@ def combine_chunks(
                     )
 
                 shape = (total_nr_halos,) + size
-<<<<<<< HEAD:combine_chunks.py
-                try:
-                    dataset = outfile.create_dataset(
-                        name, shape=shape, dtype=dtype, fillvalue=None
-                    )
-                except:
-                    print(f'Dataset already exists ({name})',flush=True)
-                # Add units and description
-=======
                 dataset = outfile.create_dataset(
                     name, shape=shape, dtype=dtype, fillvalue=None
                 )
->>>>>>> master:SOAP/core/combine_chunks.py
                 attrs = swift_units.attributes_from_units(unit, physical, a_exponent)
                 attrs["Description"] = description
                 attrs.update(mask_metadata)

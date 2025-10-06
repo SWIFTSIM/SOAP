@@ -49,19 +49,6 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
     nr_files = comm.bcast(nr_files)
     sorted_file = comm.bcast(sorted_file)
 
-<<<<<<< HEAD:read_hbtplus.py
-    # Assign files to MPI ranks
-    files_per_rank = np.zeros(comm_size, dtype=int)
-    files_per_rank[:] = nr_files // comm_size
-    remainder = nr_files % comm_size
-    if remainder == 1:
-        files_per_rank[0] += 1
-    elif remainder > 1:
-        for i in range(remainder):
-            files_per_rank[int((comm_size - 1) * i / (remainder - 1))] += 1
-    assert np.sum(files_per_rank) == nr_files, f"{nr_files=}, {comm_size=}"
-    first_file_on_rank = np.cumsum(files_per_rank) - files_per_rank
-=======
     # There are two different read routines. One is for the original HBTplus
     # output. The second is for the "nice" output, where the subhalos are
     # sorted by TrackId.
@@ -77,7 +64,6 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
                 files_per_rank[int((comm_size - 1) * i / (remainder - 1))] += 1
         assert np.sum(files_per_rank) == nr_files, f"{nr_files=}, {comm_size=}"
         first_file_on_rank = np.cumsum(files_per_rank) - files_per_rank
->>>>>>> master:SOAP/catalogue_readers/read_hbtplus.py
 
         halos = []
         ids_bound = []

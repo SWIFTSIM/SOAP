@@ -2465,6 +2465,19 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=None,
         ),
+
+        "CorrectedStellarLuminosity": Property(
+            name="CorrectedStellarLuminosity",
+            shape=8,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="IMF-corrected stellar luminosity in GALEX UV bands (FUV, NUV), SDSS bands (u, g, r, i, z) and VISTA K band.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/CorrectedLuminosities"],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
         "Tgas": Property(
             name="GasTemperature",
             shape=1,
@@ -3912,6 +3925,21 @@ class PropertyTable:
             dmo_property=False,
             particle_properties=[
                 "PartType4/Luminosities",
+                "PartType4/BirthScaleFactors",
+            ],
+            output_physical=True,
+            a_scale_exponent=None,
+        ),
+        "stellar_age_uvlw": Property(
+            name="UVLuminosityWeightedMeanStellarAge",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_time",
+            description="Luminosity weighted mean stellar age. The weight is the IMF-corrected FUV band luminosity.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/CorrectedLuminosities",
                 "PartType4/BirthScaleFactors",
             ],
             output_physical=True,

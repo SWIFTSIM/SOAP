@@ -54,8 +54,9 @@ class SnapshotDatasets:
 
         # Loop through all the files provided and record the datasets present
         self.datasets_in_file = {}
+        self.named_columns = {}
         for filename in filenames:
-            with h5py.File(filename.format(file_nr=0), 'r') as file_handle:
+            with h5py.File(filename.format(file_nr=0), "r") as file_handle:
                 for group in file_handle:
                     if not group.startswith("PartType"):
                         continue
@@ -64,43 +65,6 @@ class SnapshotDatasets:
                     for dset in file_handle[group]:
                         self.datasets_in_file[group].add(dset)
 
-<<<<<<< HEAD:snapshot_datasets.py
-        # Read named columns from the snapshot
-        snap_filename = filenames[0].format(file_nr=0)
-        with h5py.File(snap_filename, 'r') as file_handle:
-            self.named_columns = {}
-            for name in file_handle["SubgridScheme"]["NamedColumns"]:
-                column_names = file_handle["SubgridScheme"]["NamedColumns"][name][:]
-                self.named_columns[name] = {}
-                # turn the list into a dictionary that maps a column name to
-                # a colum index
-                for iname, colname in enumerate(column_names):
-                    self.named_columns[name][colname.decode("utf-8")] = iname
-
-            try:
-                self.dust_grain_composition = file_handle["SubgridScheme"][
-                    "GrainToElementMapping"
-                ][:]
-            except KeyError:
-                try:
-                    self.dust_grain_composition = file_handle["SubgridScheme"][
-                        "DustMassFractionsToElementMassFractionsMapping"
-                    ][:]
-                except KeyError:
-                    pass
-        
-        # Repeat for extra file
-        extra_filename = filenames[1].format(file_nr=0)
-        with h5py.File(extra_filename, 'r') as file_handle:
-            for name in file_handle["SubgridScheme"]["NamedColumns"]:
-                column_names = file_handle["SubgridScheme"]["NamedColumns"][name][:]
-                self.named_columns[name] = {}
-                # turn the list into a dictionary that maps a column name to
-                # a colum index
-                for iname, colname in enumerate(column_names):
-                    self.named_columns[name][colname.decode("utf-8")] = iname
-
-=======
                 # Try to read named columns
                 if ("SubgridScheme" not in file_handle) or (
                     "NamedColumns" not in file_handle["SubgridScheme"]
@@ -124,7 +88,6 @@ class SnapshotDatasets:
                         # a colum index
                         for iname, colname in enumerate(column_names):
                             self.named_columns[name][colname.decode("utf-8")] = iname
->>>>>>> master:SOAP/core/snapshot_datasets.py
 
     def setup_aliases(self, aliases: Dict):
         """

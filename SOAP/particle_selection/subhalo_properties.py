@@ -422,17 +422,19 @@ class SubhaloParticleData:
         if self.Nstar == 0:
             return None
         return self.stellar_luminosities.sum(axis=0)
-
+    
     @lazy_property
     def CorrectedStellarLuminosity(self) -> unyt.unyt_array:
         """
-        Total stellar luminosity of star particles in the subhalo.
+        Total IMF-corrected luminosity of star particles.
 
-        Note that this is an array, since there are multiple luminosity bands.
+        Note that this returns an array with total luminosities in multiple
+        bands.
         """
         if self.Nstar == 0:
             return None
-        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all].sum(axis=0)
+        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
+            self.star_mask_ap].sum(axis=0)
 
     @lazy_property
     def starmetalfrac(self) -> unyt.unyt_quantity:
@@ -2334,6 +2336,7 @@ class SubhaloProperties(HaloProperty):
             "SFR",
             "AveragedStarFormationRate",
             "StellarLuminosity",
+            "CorrectedStellarLuminosity",
             "starmetalfrac",
             "Vmax_unsoft",
             "Vmax_soft",

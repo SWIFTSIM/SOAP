@@ -2380,14 +2380,14 @@ class SOParticleData:
         """
         Total IMF-corrected luminosity of star particles.
 
-        Note that this is an array, since there are multiple luminosity bands.
+        Note that this returns an array with total luminosities in multiple
+        bands.
         """
         if self.Nstar == 0:
             return None
-        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_selection].sum(
-            axis=0
-        )
-    
+        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
+            self.star_mask_ap].sum(axis=0)
+
     @lazy_property
     def KineticEnergyStars(self) -> unyt.unyt_quantity:
         """
@@ -3330,12 +3330,8 @@ class SOProperties(HaloProperty):
             "Mstar_init",
             "starmetalfrac",
             "StellarLuminosity",
-<<<<<<< HEAD:SO_properties.py
             "CorrectedStellarLuminosity",
-            "Ekin_star",
-=======
             "KineticEnergyStars",
->>>>>>> master:SOAP/particle_selection/SO_properties.py
             "Lbaryons",
             "Mbh_dynamical",
             "Mbh_subgrid",

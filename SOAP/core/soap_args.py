@@ -102,17 +102,6 @@ def get_soap_args(comm):
         default="",
         help="Where to write the used parameters",
     )
-    parser.add_argument(
-        "--extra-input",
-        nargs="*",
-        type=str,
-        help=(
-            "Snapshot-like files containing datasets not present in the original "
-            "snapshots. If datasets of the same name are found in both the "
-            "snapshots and the extra input, the values from the extra input "
-            "files will be used."
-        ),
-    )
     parser.add_argument("--snipshot", action="store_true", help="Run in snipshot mode")
     parser.add_argument("--snapshot", action="store_true", help="Run in snapshot mode")
     all_args = parser.parse_args()
@@ -154,12 +143,12 @@ def get_soap_args(comm):
     args.min_read_radius_cmpc = all_args["calculations"].get("min_read_radius_cmpc", 0)
     args.calculations = all_args["calculations"]
 
-    # Extra-input files which are passed as an argument when running SOAP are
+    # Extra-input files which are optionally passed in the parameter file are
     # processed the same way as the membership files
-    if all_args["Parameters"]["extra_input"] is None:
-        args.extra_input = []
+    if "ExtraInput" in all_args:
+        args.extra_input = list(all_args["ExtraInput"].values())
     else:
-        args.extra_input = all_args["Parameters"]["extra_input"]
+        args.extra_input = []
     args.extra_input.append(all_args["GroupMembership"]["filename"])
 
     # The default behaviour is to determine whether to run in snipshot mode
