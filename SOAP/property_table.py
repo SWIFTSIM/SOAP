@@ -1379,6 +1379,23 @@ class PropertyTable:
             output_physical=False,
             a_scale_exponent=1,
         ),
+        "HalfMassRadiusColdDenseGas": Property(
+            name="HalfMassRadiusColdDenseGas",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Cold dense gas half mass radius.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType0/Densities",
+                "PartType0/Temperatures",
+            ],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         "HalfMassRadiusAtomicHydrogen": Property(
             name="HalfMassRadiusAtomicHydrogen",
             shape=1,

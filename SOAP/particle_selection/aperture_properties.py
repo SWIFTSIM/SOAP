@@ -3343,6 +3343,18 @@ class ApertureParticleData:
         return get_half_mass_radius(
             self.radius[self.type == 0], self.mass_dust, self.DustMass
         )
+    
+    @lazy_property
+    def HalfMassRadiusColdDenseGas(self) -> unyt.unyt_quantity:
+        """
+        Half mass radius of cold dense gas.
+        """
+        if self.Ngas == 0:
+            return None
+        return get_half_mass_radius(
+            self.radius[self.type == 0], self.mass_gas[self.gas_is_cold_dense], self.GasMassInColdDenseGas
+        )
+
 
     @lazy_property
     def HalfMassRadiusAtomicHydrogen(self) -> unyt.unyt_quantity:
@@ -3642,6 +3654,7 @@ class ApertureProperties(HaloProperty):
         "starmetalfrac": False,
         "HalfMassRadiusGas": False,
         "HalfMassRadiusDust": False,
+        "HalfMassRadiusColdDenseGas": False,
         "HalfMassRadiusAtomicHydrogen": False,
         "HalfMassRadiusMolecularHydrogen": False,
         "HalfMassRadiusDM": False,
