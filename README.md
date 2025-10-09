@@ -19,7 +19,7 @@ steps are recommended for install
 ```
 pip install mpi4py
 export HDF5_MPI="ON"; export CC=mpicc; pip install --no-binary=h5py h5py
-pip install git+https://github.com/SWIFTSIM/SOAP.git@soap_runtime
+pip install git+https://github.com/SWIFTSIM/SOAP.git
 ```
 
 ### Installation on COSMA
