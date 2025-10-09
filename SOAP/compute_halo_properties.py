@@ -17,6 +17,10 @@ import traceback
 import numpy as np
 import unyt
 
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+
 from SOAP.core import (
     chunk_tasks,
     halo_centres,

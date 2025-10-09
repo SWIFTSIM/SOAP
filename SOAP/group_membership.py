@@ -10,6 +10,10 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 from virgo.util.partial_formatter import PartialFormatter
 
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+
 from SOAP.core import combine_args, swift_units
 from SOAP.catalogue_readers import read_vr
 from SOAP.catalogue_readers import read_hbtplus
