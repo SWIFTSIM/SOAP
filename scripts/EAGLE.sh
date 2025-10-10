@@ -9,6 +9,14 @@
 #SBATCH --exclusive
 #SBATCH -t 02:00:00
 #
+# For L0025N0752 set ntasks=16
+# For L0100N1504 set ntasks=256
+#
+# Install Hdecompose with:
+#   pip install git+ssh://git@github.com/kyleaoman/Hdecompose.git
+#
+# Download virtual snapshot script with:
+#   wget https://gitlab.cosma.dur.ac.uk/swift/swiftsim/-/raw/master/tools/create_virtual_snapshot.py
 
 sim_name='L0100N1504'
 snap_nr="028"
@@ -17,7 +25,6 @@ z_suffix="z000p000"
 module purge
 module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
 source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
-pip install git+ssh://git@github.com/kyleaoman/Hdecompose.git
 
 ######## Link files to snap (to remove awful z suffix)
 
@@ -65,11 +72,15 @@ mpirun -- python -u misc/hdecompose_hydrogen_fractions.py \
 ######### Create virtual snapshot
 # Must be run from the snapshot directory itself or there will be issues with paths
 
+soap_dir=$(pwd)
 cd "${output_dir}/swift_snapshots/swift_${snap_nr}"
-wget https://gitlab.cosma.dur.ac.uk/swift/swiftsim/-/raw/master/tools/create_virtual_snapshot.py
-python create_virtual_snapshot.py "snap_${snap_nr}.0.hdf5"
-rm create_virtual_snapshot.py*
+python "${soap_dir}/create_virtual_snapshot.py" "snap_${snap_nr}.0.hdf5"
 cd -
+
+python compression/make_virtual_snapshot.py \
+    "${output_dir}/swift_snapshots/swift_${snap_nr}/snap_${snap_nr}.hdf5" \
+    "${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}.{file_nr}.hdf5" \
+    "${output_dir}/SOAP_uncompressed/snap_${snap_nr}.hdf5" \
 
 ######### Run SOAP
 
