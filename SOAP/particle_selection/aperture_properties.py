@@ -1472,16 +1472,11 @@ class ApertureParticleData:
         if np.sum(self.Lstar) == 0:
             return None
 
-        # Calculate the position of the stars relative to their CoM. We do not
-        # use self.com because it is offset  and we want to weight differently
-        com = (self.star_mass_fraction[:, None] * self.pos_star).sum(axis=0)
-
         # Get velocities in cylindrical coordinates
         return calculate_cylindrical_velocities(
             self.pos_star,
             self.vel_star,
             self.Lstar,
-            com,
             self.vcom
         )
 
@@ -1546,14 +1541,12 @@ class ApertureParticleData:
         for i_band, particle_luminosities_i_band in enumerate(self.stellar_luminosities.T):
 
             luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
-            centre_of_light_position = (luminosity_weights[:, None] * self.pos_star).sum(axis=0)
             centre_of_light_velocity = (luminosity_weights[:, None] * self.vel_star).sum(axis=0)
 
             cylindrical_velocities[i_band] = calculate_cylindrical_velocities(
                                                 self.pos_star,
                                                 self.vel_star,
                                                 self.Lstar_luminosity_weighted[i_band * 3: (1 + i_band) * 3],
-                                                centre_of_light_position,
                                                 centre_of_light_velocity
                                             )
 
