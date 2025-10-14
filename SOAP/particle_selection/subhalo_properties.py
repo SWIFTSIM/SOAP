@@ -1412,7 +1412,7 @@ class SubhaloParticleData:
             self.pos_star,
             self.vel_star,
             self.Lstar,
-            self.vcom
+            reference_velocity=self.vcom,
         )
 
     @lazy_property
@@ -1471,15 +1471,11 @@ class SubhaloParticleData:
         # weighted centre of mass phase space coordinates.
         cylindrical_velocities = np.zeros((self.stellar_luminosities.shape[1], self.stellar_luminosities.shape[0], 3)) * self.vel_star.units
         for i_band, particle_luminosities_i_band in enumerate(self.stellar_luminosities.T):
-
-            luminosity_weights = particle_luminosities_i_band / particle_luminosities_i_band.sum()
-            centre_of_light_velocity = (luminosity_weights[:, None] * self.vel_star).sum(axis=0)
-
             cylindrical_velocities[i_band] = calculate_cylindrical_velocities(
                                                 self.pos_star,
                                                 self.vel_star,
                                                 self.Lstar_luminosity_weighted[i_band * 3: (1 + i_band) * 3],
-                                                centre_of_light_velocity
+                                                reference_velocity = self.vcom,
                                             )
 
         return cylindrical_velocities
