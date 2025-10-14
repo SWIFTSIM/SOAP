@@ -59,16 +59,22 @@ def calculate_cylindrical_velocities(positions, velocities, z_target, reference_
               [v_r, v_phi, v_z] for each particle.
     """
 
-    if reference_position is not None:
-        positions -= reference_position
-    if reference_velocity is not None:
-        velocities -= reference_velocity
+    # We need to declare a relative pos/vel array to not overwrite the original
+    # values.
+    if reference_position is None:
+        prel = positions
+    else:
+        prel = positions - reference_position
+    if reference_velocity is None:
+        vrel = velocities
+    else:
+        vrel = velocities - reference_velocity
 
     R = build_rotation_matrix(z_target)
 
     # Rotate positions and velocities into new frame
-    positions_rot = positions @ R.T
-    velocities_rot = velocities @ R.T
+    positions_rot = prel @ R.T
+    velocities_rot = vrel @ R.T
 
     x = positions_rot[:, 0]
     y = positions_rot[:, 1]
