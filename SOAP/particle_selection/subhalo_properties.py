@@ -1412,7 +1412,7 @@ class SubhaloParticleData:
             self.pos_star,
             self.vel_star,
             self.Lstar,
-            reference_velocity=self.vcom,
+            reference_velocity=self.vcom_star,
         )
 
     @lazy_property
@@ -1475,7 +1475,7 @@ class SubhaloParticleData:
                                                 self.pos_star,
                                                 self.vel_star,
                                                 self.Lstar_luminosity_weighted[i_band * 3: (1 + i_band) * 3],
-                                                reference_velocity = self.vcom,
+                                                reference_velocity = self.vcom_star,
                                             )
 
         return cylindrical_velocities
