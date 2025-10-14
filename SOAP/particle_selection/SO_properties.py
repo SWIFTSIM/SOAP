@@ -2385,8 +2385,9 @@ class SOParticleData:
         """
         if self.Nstar == 0:
             return None
-        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
-            self.star_mask_ap].sum(axis=0)
+        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_selection].sum(
+            axis=0
+        )
 
     @lazy_property
     def ChabrierInferredMstar(self) -> unyt.unyt_quantity:

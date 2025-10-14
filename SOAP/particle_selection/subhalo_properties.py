@@ -424,6 +424,15 @@ class SubhaloParticleData:
         return self.stellar_luminosities.sum(axis=0)
     
     @lazy_property
+    def corrected_stellar_luminosities(self) -> unyt.unyt_array:
+        """
+        Stellar IMF-corrected luminosities.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all]
+    
+    @lazy_property
     def CorrectedStellarLuminosity(self) -> unyt.unyt_array:
         """
         Total IMF-corrected luminosity of star particles.
@@ -433,8 +442,7 @@ class SubhaloParticleData:
         """
         if self.Nstar == 0:
             return None
-        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
-            self.star_mask_ap].sum(axis=0)
+        return self.corrected_stellar_luminosities.sum(axis=0)
 
     @lazy_property
     def starmetalfrac(self) -> unyt.unyt_quantity:

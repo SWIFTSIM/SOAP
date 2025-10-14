@@ -1470,6 +1470,22 @@ class PropertyTable:
             output_physical=False,
             a_scale_exponent=1,
         ),
+        "HalfCorrectedLightRadiusStar": Property(
+            name="HalfCorrectedLightRadiusStars",
+            shape=8,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Stellar half light radius in the 8 IMF-corrected luminosity bands.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType4/Coordinates",
+                "PartType4/Masses",
+                "PartType4/CorrectedLuminosities",
+            ],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         "HalfMassRadiusTot": Property(
             name="HalfMassRadiusTotal",
             shape=1,

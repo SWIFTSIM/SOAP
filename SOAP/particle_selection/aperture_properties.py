@@ -581,6 +581,17 @@ class ApertureParticleData:
         return self.stellar_luminosities.sum(axis=0)
     
     @lazy_property
+    def corrected_stellar_luminosities(self) -> unyt.unyt_array:
+        """
+        Stellar IMF-corrected luminosities.
+        """
+        if self.Nstar == 0:
+            return None
+        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
+            self.star_mask_ap
+        ]
+    
+    @lazy_property
     def CorrectedStellarLuminosity(self) -> unyt.unyt_array:
         """
         Total IMF-corrected luminosity of star particles.
@@ -590,8 +601,7 @@ class ApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        return self.get_dataset("PartType4/CorrectedLuminosities")[self.star_mask_all][
-            self.star_mask_ap].sum(axis=0)
+        return self.corrected_stellar_luminosities.sum(axis=0)
     
     @lazy_property
     def ChabrierInferredMstar(self) -> unyt.unyt_quantity:
@@ -774,8 +784,8 @@ class ApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        Luv = self.stellar_luminosities[
-            :, self.snapshot_datasets.get_column_index("CorrectedLuminosities", "GALEX_FUV")
+        Luv = self.corrected_stellar_luminosities[
+            :, self.snapshot_datasets.get_column_index("PartType4/CorrectedLuminosities", "GALEX_FUV")
         ]
         Luvtot = Luv.sum()
         if Luvtot == 0:
@@ -3352,7 +3362,7 @@ class ApertureParticleData:
         if self.Ngas == 0:
             return None
         return get_half_mass_radius(
-            self.radius[self.type == 0], self.mass_gas[self.gas_is_cold_dense], self.GasMassInColdDenseGas
+            self.radius[self.type == 0][self.gas_is_cold_dense], self.mass_gas[self.gas_is_cold_dense], self.GasMassInColdDenseGas
         )
 
 
@@ -3405,6 +3415,19 @@ class ApertureParticleData:
             self.radius[self.type == 4],
             self.stellar_luminosities,
             self.StellarLuminosity,
+        )
+    
+    @lazy_property
+    def HalfCorrectedLightRadiusStar(self) -> unyt.unyt_array:
+        """
+        Half light radius of stars for the corrected luminosity bands.
+        """
+        if self.Nstar == 0:
+            return None
+        return get_half_light_radius(
+            self.radius[self.type == 4],
+            self.corrected_stellar_luminosities,
+            self.CorrectedStellarLuminosity,
         )
 
     @lazy_property
@@ -3660,6 +3683,7 @@ class ApertureProperties(HaloProperty):
         "HalfMassRadiusDM": False,
         "HalfMassRadiusStar": False,
         "HalfLightRadiusStar": False,
+        "HalfCorrectedLightRadiusStar": False,
         "HalfMassRadiusBaryon": False,
         "DtoTgas": False,
         "DtoTstar": False,
