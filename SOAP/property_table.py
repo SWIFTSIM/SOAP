@@ -4635,7 +4635,7 @@ class PropertyTable:
         "HBTplus/SnapshotOfLastMaxMass": Property(
             name="HBTplus/SnapshotOfLastMaxMass",
             shape=1,
-            dtype=np.uint64,
+            dtype=np.int64,
             unit="dimensionless",
             description="Latest snapshot when this subhalo had its maximum mass.",
             lossy_compression_filter="None",
@@ -4659,7 +4659,7 @@ class PropertyTable:
         "HBTplus/SnapshotOfLastMaxVmax": Property(
             name="HBTplus/SnapshotOfLastMaxVmax",
             shape=1,
-            dtype=np.uint64,
+            dtype=np.int64,
             unit="dimensionless",
             description="Latest snapshot when this subhalo had its largest maximum circular velocity.",
             lossy_compression_filter="None",
@@ -4671,7 +4671,7 @@ class PropertyTable:
         "HBTplus/SnapshotOfLastIsolation": Property(
             name="HBTplus/SnapshotOfLastIsolation",
             shape=1,
-            dtype=np.uint64,
+            dtype=np.int64,
             unit="dimensionless",
             description="Latest snapshot when this subhalo was a central. -1 if the subhalo has always been a central.",
             lossy_compression_filter="None",
