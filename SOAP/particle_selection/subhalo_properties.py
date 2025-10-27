@@ -1419,21 +1419,23 @@ class SubhaloParticleData:
     def StellarRotationalVelocity(self) -> unyt.unyt_array:
         if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
-        return get_rotation_velocity_mass_weighted(self.mass_star, self.star_cylindrical_velocities[:,1])
+        return get_rotation_velocity_mass_weighted(
+            self.mass_star, self.star_cylindrical_velocities[:, 1]
+        )
 
     @lazy_property
     def StellarCylindricalVelocityDispersionVector(self) -> unyt.unyt_array:
         if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
-        return get_cylindrical_velocity_dispersion_vector_mass_weighted(self.mass_star, self.star_cylindrical_velocities)
+        return get_cylindrical_velocity_dispersion_vector_mass_weighted(
+            self.mass_star, self.star_cylindrical_velocities
+        )
 
     @lazy_property
     def StellarCylindricalVelocityDispersion(self) -> unyt.unyt_array:
         if self.StellarCylindricalVelocityDispersionVector is None:
             return None
-        return np.sqrt(
-            (self.StellarCylindricalVelocityDispersionVector**2).sum() / 3
-        )
+        return np.sqrt((self.StellarCylindricalVelocityDispersionVector**2).sum() / 3)
 
     @lazy_property
     def StellarCylindricalVelocityDispersionVertical(self) -> unyt.unyt_array:
@@ -1445,9 +1447,7 @@ class SubhaloParticleData:
     def StellarCylindricalVelocityDispersionDiscPlane(self) -> unyt.unyt_array:
         if self.StellarCylindricalVelocityDispersionVector is None:
             return None
-        return np.sqrt(
-            (self.StellarCylindricalVelocityDispersionVector[:2]**2).sum()
-        )
+        return np.sqrt((self.StellarCylindricalVelocityDispersionVector[:2] ** 2).sum())
 
     @lazy_property
     def star_cylindrical_velocities_luminosity_weighted(self) -> unyt.unyt_array:
@@ -1469,14 +1469,25 @@ class SubhaloParticleData:
 
         # We iterate over bands to use their own reference vector and luminosity-
         # weighted centre of mass phase space coordinates.
-        cylindrical_velocities = np.zeros((self.stellar_luminosities.shape[1], self.stellar_luminosities.shape[0], 3)) * self.vel_star.units
-        for i_band, particle_luminosities_i_band in enumerate(self.stellar_luminosities.T):
+        cylindrical_velocities = (
+            np.zeros(
+                (
+                    self.stellar_luminosities.shape[1],
+                    self.stellar_luminosities.shape[0],
+                    3,
+                )
+            )
+            * self.vel_star.units
+        )
+        for i_band, particle_luminosities_i_band in enumerate(
+            self.stellar_luminosities.T
+        ):
             cylindrical_velocities[i_band] = calculate_cylindrical_velocities(
-                                                self.pos_star,
-                                                self.vel_star,
-                                                self.Lstar_luminosity_weighted[i_band * 3: (1 + i_band) * 3],
-                                                reference_velocity = self.vcom_star,
-                                            )
+                self.pos_star,
+                self.vel_star,
+                self.Lstar_luminosity_weighted[i_band * 3 : (1 + i_band) * 3],
+                reference_velocity=self.vcom_star,
+            )
 
         return cylindrical_velocities
 
@@ -1484,34 +1495,53 @@ class SubhaloParticleData:
     def StellarRotationalVelocityLuminosityWeighted(self) -> unyt.unyt_array:
         if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
-        return get_rotation_velocity_luminosity_weighted(self.stellar_luminosities, self.star_cylindrical_velocities_luminosity_weighted[:,:,1])
+
+        return get_rotation_velocity_luminosity_weighted(
+            self.stellar_luminosities,
+            self.star_cylindrical_velocities_luminosity_weighted[:, :, 1],
+        )
 
     @lazy_property
-    def StellarCylindricalVelocityDispersionVectorLuminosityWeighted(self) -> unyt.unyt_array:
+    def StellarCylindricalVelocityDispersionVectorLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
         if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
             return None
-        return get_cylindrical_velocity_dispersion_vector_luminosity_weighted(self.stellar_luminosities, self.star_cylindrical_velocities_luminosity_weighted)
+        return get_cylindrical_velocity_dispersion_vector_luminosity_weighted(
+            self.stellar_luminosities,
+            self.star_cylindrical_velocities_luminosity_weighted,
+        )
 
     @lazy_property
     def StellarCylindricalVelocityDispersionLuminosityWeighted(self) -> unyt.unyt_array:
         if self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted is None:
             return None
         return np.sqrt(
-            (self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted**2).sum(axis=1) / 3
+            (
+                self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted**2
+            ).sum(axis=1)
+            / 3
         )
 
     @lazy_property
-    def StellarCylindricalVelocityDispersionVerticalLuminosityWeighted(self) -> unyt.unyt_array:
+    def StellarCylindricalVelocityDispersionVerticalLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
         if self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted is None:
             return None
-        return self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted[:,2]
+        return self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted[:, 2]
 
     @lazy_property
-    def StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted(self) -> unyt.unyt_array:
+    def StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
         if self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted is None:
             return None
         return np.sqrt(
-            (self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted[:,:2]**2).sum(axis=1)
+            (
+                self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted[:, :2]
+                ** 2
+            ).sum(axis=1)
         )
 
     @lazy_property

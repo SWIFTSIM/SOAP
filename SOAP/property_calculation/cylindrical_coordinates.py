@@ -42,7 +42,9 @@ def build_rotation_matrix(z_target):
     return R
 
 
-def calculate_cylindrical_velocities(positions, velocities, z_target, reference_position = None, reference_velocity = None):
+def calculate_cylindrical_velocities(
+    positions, velocities, z_target, reference_position=None, reference_velocity=None
+):
     """
     Convert 3D Cartesian velocities to cylindrical coordinates (v_r, v_phi, v_z),
     after rotating the system such that the z-axis aligns with `z_target`.
