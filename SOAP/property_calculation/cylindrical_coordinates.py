@@ -42,7 +42,9 @@ def build_rotation_matrix(z_target):
     return R
 
 
-def calculate_cylindrical_velocities(positions, velocities, z_target):
+def calculate_cylindrical_velocities(
+    positions, velocities, z_target, reference_position=None, reference_velocity=None
+):
     """
     Convert 3D Cartesian velocities to cylindrical coordinates (v_r, v_phi, v_z),
     after rotating the system such that the z-axis aligns with `z_target`.
@@ -51,16 +53,30 @@ def calculate_cylindrical_velocities(positions, velocities, z_target):
         positions: (N, 3) array of particle positions in the original Cartesian frame.
         velocities: (N, 3) array of particle velocities in the original Cartesian frame.
         z_target: A 3-element vector indicating the new z-axis direction.
+        reference_position: (3,) array with a reference position on which to centre the Cartesian coordinate system.
+        reference_velocity: (3,) array with a reference velocity on which to centre the Cartesian reference frame.
 
     Returns:
         cyl_velocities: (N, 3) array of velocities in cylindrical coordinates:
               [v_r, v_phi, v_z] for each particle.
     """
+
+    # We need to declare a relative pos/vel array to not overwrite the original
+    # values.
+    if reference_position is None:
+        prel = positions
+    else:
+        prel = positions - reference_position
+    if reference_velocity is None:
+        vrel = velocities
+    else:
+        vrel = velocities - reference_velocity
+
     R = build_rotation_matrix(z_target)
 
     # Rotate positions and velocities into new frame
-    positions_rot = positions @ R.T
-    velocities_rot = velocities @ R.T
+    positions_rot = prel @ R.T
+    velocities_rot = vrel @ R.T
 
     x = positions_rot[:, 0]
     y = positions_rot[:, 1]
