@@ -1657,7 +1657,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="Mass weighted mean rotational velocity of the stars, in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            description="Mass-weighted mean rotational velocity of the stars, in a cylindrical coordinate system where the axes are centred on the halo centre, the z axis is aligned with the mass-weighted stellar angular momentum, and stellar velocities are relative to the stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1673,7 +1673,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="One-dimensional velocity dispersion of the stars computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            description="One-dimensional mass-weighted velocity dispersion of the star, in a cylindrical coordinate system where the axes are centred on the halo centre, the z axis is aligned with the mass-weighted stellar angular momentum, and stellar velocities are relative to the stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1689,7 +1689,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="Velocity dispersion perpendicular to the orbital plane of the stars, computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            description="Mass-weighted velocity dispersion perpendicular to the orbital plane of the stars, in a cylindrical coordinate system where the axes are centred on the halo centre, the z axis is aligned with the mass-weighted stellar angular momentum, and stellar velocities are relative to the stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1705,7 +1705,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="Total velocity dispersion in the orbital plane of the stars, computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            description="Mass-weighted total velocity dispersion in the orbital plane of the stars, in a cylindrical coordinate system where the axes are centred on the halo centre, the z axis is aligned with the mass-weighted stellar angular momentum, and stellar velocities are relative to the stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1721,7 +1721,7 @@ class PropertyTable:
             shape=9,  # GAMA bands
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="Luminosity-weighted mean rotational velocity of the stars, in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            description="Luminosity-weighted mean rotational velocity of the stars, in a cylindrical coordinate system where the axes are centred on the halo centre, the z axis is aligned with the luminosity-weighted stellar angular momentum, and stellar velocities are relative to the stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1737,7 +1737,7 @@ class PropertyTable:
             shape=9,  # GAMA bands
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="One-dimensional luminosity-weighted velocity dispersion of the stars computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            description="One-dimensional luminosity-weighted velocity dispersion of the stars, in a cylindrical coordinate system where the axes are centred on the halo centre, the z axis is aligned with the luminosity-weighted stellar angular momentum, and stellar velocities are relative to the stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1753,7 +1753,7 @@ class PropertyTable:
             shape=9,  # GAMA bands
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="Velocity dispersion perpendicular to the orbital plane of the stars, luminosity-weighted and computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            description="Luminosity-weighted velocity dispersion perpendicular to the orbital plane of the stars, in a cylindrical coordinate system where the axes are centred on the halo centre, the z axis is aligned with the luminosity-weighted stellar angular momentum, and stellar velocities are relative to the stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1769,7 +1769,7 @@ class PropertyTable:
             shape=9,  # GAMA bands
             dtype=np.float32,
             unit="snap_length/snap_time",
-            description="Total velocity dispersion in the orbital plane of the stars, luminosity-weighted and computed in a cylindrical coordinate system where the axes are centred on the stellar CoM, and the z axis is aligned with the stellar angular momentum.",
+            description="Luminosity-weighted total velocity dispersion in the orbital plane of the stars, in a cylindrical coordinate system where the axes are centred on the halo centre, the z axis is aligned with the luminosity-weighted stellar angular momentum, and stellar velocities are relative to the stellar centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
