@@ -23,6 +23,7 @@ of the optional arguments.
 """
 
 import argparse
+import datetime
 import os
 
 from mpi4py import MPI
@@ -319,6 +320,8 @@ def mpi_print(string, comm_rank):
 
 if __name__ == "__main__":
 
+    start_time = datetime.datetime.now()
+
     parser = argparse.ArgumentParser(
         description=(
             "Script to match halos across runs by comparing particles"
@@ -503,4 +506,6 @@ if __name__ == "__main__":
         phdf5.collective_write(file, "MatchCount2to1", match_count_21, comm=comm)
         phdf5.collective_write(file, "Consistent2to1", consistent_21, comm=comm)
 
+    comm.barrier()
+    mpi_print(f"Runtime: {datetime.datetime.now() - start_time}", comm_rank)
     mpi_print("Done!", comm_rank)
