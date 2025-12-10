@@ -780,3 +780,10 @@ calculations:
   cold_dense_gas_filter:
     maximum_temperature_K: 3.16e4
     minimum_hydrogen_number_density_cm3: 0.1
+  separate_chunks:
+    - n_bound_threshold: 300000000
+      n_halo_per_chunk: 1
+    - n_bound_threshold: 100000000
+      n_halo_per_chunk: 2
+    - n_bound_threshold: 50000000
+      n_halo_per_chunk: 5
