@@ -512,6 +512,50 @@ class SubhaloParticleData:
         ]
 
     @lazy_property
+    def AtomicHydrogenRadius(self) -> unyt.unyt_quantity:
+        """
+        Radius where HI surface density drops to 1Msun/pc^2.
+        """
+        if self.Ngas == 0:
+            return None
+        mHI = (
+            self.mass[self.gas_mask_sh]
+            * self.get_dataset("PartType0/SpeciesFractions")[
+                self.gas_mask_all,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/SpeciesFractions", "HI"
+                ),
+            ]
+            * self.get_dataset("PartType0/ElementMassFractions")[
+                self.gas_mask_all,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/ElementMassFractions", "Hydrogen"
+                ),
+            ]
+        )
+        r = self.radius[self.gas_mask_sh]
+        bins = (np.logspace(-1, 2.5, max(self.Ngas // 500, 36)) * unyt.kpc).to(
+            r.units
+        )  # histogram bug when input units don't match bin units
+        hist, bins = np.histogram(
+            r,
+            weights=mHI,
+            bins=bins,
+        )
+        hist = hist / np.pi / np.diff(np.power(bins, 2))
+        mids = np.sqrt(bins[:-1] * bins[1:])
+        above = hist >= 1.0e6 * unyt.solMass / unyt.kpc**2
+        i_crossings = np.logical_and(above[:-1], np.logical_not(above[1:])).nonzero()[0]
+        if i_crossings.size == 0:
+            return None
+        i_lastcross = i_crossings[-1]
+        # use zero crossing of this s.t. interp "x" is increasing
+        thresh = 1e6 * unyt.solMass / unyt.kpc**2
+        return mids[i_lastcross] - (thresh - hist[i_lastcross]) * (
+            mids[i_lastcross + 1] - mids[i_lastcross]
+        ) / ((thresh - hist[i_lastcross + 1]) - (thresh - hist[i_lastcross]))
+
+    @lazy_property
     def BHlasteventa(self) -> unyt.unyt_quantity:
         """
         Maximum AGN feedback scale factor among all BH particles.
@@ -2362,6 +2406,7 @@ class SubhaloProperties(HaloProperty):
             "BHmaxpos",
             "BHmaxvel",
             "BHmaxAR",
+            "AtomicHydrogenRadius",
             "BHmaxlasteventa",
             "BlackHolesTotalInjectedThermalEnergy",
             "BlackHolesTotalInjectedJetEnergy",

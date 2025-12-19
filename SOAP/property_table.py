@@ -356,6 +356,23 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
+        "AtomicHydrogenRadius": Property(
+            name="AtomicHydrogenRadius",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_length",
+            description="Radius where HI surface density drops to 1Msun/pc^2",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
+            ],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
         "BHlasteventa": Property(
             name="BlackHolesLastEventScalefactor",
             shape=1,
