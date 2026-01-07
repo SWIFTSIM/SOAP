@@ -5,15 +5,24 @@ import h5py
 import shutil
 
 
-def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
+def make_virtual_snapshot(snapshot, auxilary_snapshots, output_file, snap_nr):
     """
-    Given a FLAMINGO snapshot and group membership files,
-    create a new virtual snapshot with group info.
+    Given a snapshot and auxilary files, create
+    a new virtual snapshot with all datasets combine.
     """
 
-    # Check which datasets exist in the membership files
+    # Copy the input virtual snapshot to the output
+    shutil.copyfile(snapshot, output_file)
+
+    # Open the output file
+    outfile = h5py.File(output_file, "r+")
+
+    # TODO: Loop
+    auxilary = auxilary_snapshots[0]
+
+    # Check which datasets exist in the auxilary files
     # and store their attributes and datatype
-    filename = membership.format(file_nr=0, snap_nr=snap_nr)
+    filename = auxilary.format(file_nr=0, snap_nr=snap_nr)
     dset_attrs = {}
     dset_dtype = {}
     with h5py.File(filename, "r") as infile:
@@ -26,32 +35,26 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
                 attrs = dict(infile[f"PartType{ptype}/{dset}"].attrs)
                 dtype = infile[f"PartType{ptype}/{dset}"].dtype
 
-                # Some membership files are missing these attributes
+                # Some auxilary files are missing these attributes
                 if not "Value stored as physical" in attrs:
                     print(f"Setting comoving attrs for PartType{ptype}/{dset}")
                     attrs["Value stored as physical"] = [1]
                     attrs["Property can be converted to comoving"] = [0]
 
-                # Add a flag that these are stored in the membership files
+                # Add a flag that these datasets are stored in the auxilary files
                 attrs["Auxilary file"] = [1]
 
                 # Store the values we need for later
                 dset_attrs[f"PartType{ptype}"][dset] = attrs
                 dset_dtype[f"PartType{ptype}"][dset] = dtype
 
-    # Copy the input virtual snapshot to the output
-    shutil.copyfile(snapshot, output_file)
-
-    # Open the output file
-    outfile = h5py.File(output_file, "r+")
-
-    # Loop over input membership files to get dataset shapes
+    # Loop over input auxilary files to get dataset shapes
     file_nr = 0
     filenames = []
     shapes = []
     counts = []
     while True:
-        filename = membership.format(file_nr=file_nr, snap_nr=snap_nr)
+        filename = auxilary.format(file_nr=file_nr, snap_nr=snap_nr)
         if os.path.exists(filename):
             filenames.append(filename)
             with h5py.File(filename, "r") as infile:
@@ -73,7 +76,7 @@ def make_virtual_snapshot(snapshot, membership, output_file, snap_nr):
             break
         file_nr += 1
     if file_nr == 0:
-        raise IOError(f"Failed to find files matching: {membership}")
+        raise IOError(f"Failed to find files matching: {auxilary}")
 
     # Loop over particle types in the output
     for ptype in range(7):
@@ -174,7 +177,7 @@ if __name__ == "__main__":
     output_file = args.output_file.format(snap_nr=args.snap_nr)
 
     # Make a new virtual snapshot with group info
-    make_virtual_snapshot(virtual_snapshot, args.membership, output_file, args.snap_nr)
+    make_virtual_snapshot(virtual_snapshot, [args.membership], output_file, args.snap_nr)
 
     # Set file paths for datasets
     abs_snapshot_dir = os.path.abspath(os.path.dirname(virtual_snapshot))
