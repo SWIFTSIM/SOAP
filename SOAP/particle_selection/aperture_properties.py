@@ -604,7 +604,7 @@ class ApertureParticleData:
         return self.corrected_stellar_luminosities.sum(axis=0)
     
     @lazy_property
-    def ChabrierInferredMstar(self) -> unyt.unyt_quantity:
+    def ChabrierInferredMstar(self) -> unyt.unyt_array:
         """
         Total mass of star particles, modified for a Chabrier IMF.
         """
@@ -785,7 +785,7 @@ class ApertureParticleData:
         if self.Nstar == 0:
             return None
         Luv = self.corrected_stellar_luminosities[
-            :, self.snapshot_datasets.get_column_index("PartType4/CorrectedLuminosities", "GALEX_FUV")
+            :, self.snapshot_datasets.get_column_index("PartType4/CorrectedLuminosities", "TopHat_UV")
         ]
         Luvtot = Luv.sum()
         if Luvtot == 0:

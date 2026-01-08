@@ -452,7 +452,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        return self.get_dataset("PartType4/ChabrierMasses")[self.star_mask_all][
+        return self.part_props.get_dataset("PartType4/ChabrierMasses")[self.star_mask_all][
             self.star_mask_ap
         ].sum()
 

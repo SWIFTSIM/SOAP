@@ -2396,9 +2396,7 @@ class SOParticleData:
         """
         if self.Nstar == 0:
             return None
-        return self.get_dataset("PartType4/ChabrierMasses")[self.star_mask_all][
-            self.star_mask_ap
-        ].sum()
+        return self.get_dataset("PartType4/ChabrierMasses")[self.star_selection].sum()
 
     @lazy_property
     def KineticEnergyStars(self) -> unyt.unyt_quantity:
