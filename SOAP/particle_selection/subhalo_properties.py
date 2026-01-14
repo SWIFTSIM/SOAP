@@ -1032,7 +1032,7 @@ class SubhaloParticleData:
         """
         Spin parameter of all particles in the subhalo.
 
-        Computed as in Bullock et al. (2021):
+        Computed as in Bullock et al. (2001):
           lambda = |Ltot| / (sqrt(2) * M * v_max * R)
 
         Since a subhalo does not have a characteristic radius, R, we instead use
