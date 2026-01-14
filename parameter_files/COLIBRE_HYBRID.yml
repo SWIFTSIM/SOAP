@@ -244,6 +244,7 @@ ApertureProperties:
     StellarCylindricalVelocityDispersionLuminosityWeighted: false
     StellarCylindricalVelocityDispersionVerticalLuminosityWeighted: false
     StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted: false
+    ExSituFraction: false
     TotalMass: true
     TotalSNIaRate: true
     GasMassInColdDenseDiffuseMetals:
