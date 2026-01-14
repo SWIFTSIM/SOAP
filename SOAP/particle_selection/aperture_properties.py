@@ -771,9 +771,9 @@ class ApertureParticleData:
         group_nr = self.get_dataset("PartType4/GroupNr_bound")[self.star_mask_all][
             self.star_mask_ap
         ]
-        birth_group_nr = self.get_dataset("PartType4/BirthHaloCatalogueIndex")[self.star_mask_all][
-            self.star_mask_ap
-        ]
+        birth_group_nr = self.get_dataset("PartType4/BirthHaloCatalogueIndex")[
+            self.star_mask_all
+        ][self.star_mask_ap]
         ex_situ = group_nr != birth_group_nr
 
         return self.star_mass_fraction[ex_situ].sum()

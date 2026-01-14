@@ -78,6 +78,7 @@ def load_particle_data(snap_basename, membership_basename, load_gas, comm):
 
     return particle_data
 
+
 # Units for the dimensionless fields we will be saving
 unit_attrs = {
     "Conversion factor to CGS (not including cosmological corrections)": [1.0],
@@ -132,9 +133,7 @@ if __name__ == "__main__":
         "--final-snap-nr",
         type=int,
         required=True,
-        help=(
-            "Snapshot at which to load the particles"
-        ),
+        help=("Snapshot at which to load the particles"),
     )
     parser.add_argument(
         "--calculate-PreBirthHaloCatalogueIndex",
@@ -168,8 +167,8 @@ if __name__ == "__main__":
     star_first_snapshot = np.copy(star_birth_ids)
 
     if args.calculate_PreBirthHaloCatalogueIndex:
-        particle_data['PartType0/ParticleIDs'] = np.ones(0)
-        particle_data['PartType0/GroupNr_bound'] = np.ones(0)
+        particle_data["PartType0/ParticleIDs"] = np.ones(0)
+        particle_data["PartType0/GroupNr_bound"] = np.ones(0)
         star_prebirth_ids = np.copy(star_birth_ids)
 
     for snap_nr in range(0, args.final_snap_nr + 1):
@@ -177,8 +176,8 @@ if __name__ == "__main__":
         mpi_print(f"Loading data from snapshot {snap_nr}", comm_rank)
         if args.calculate_PreBirthHaloCatalogueIndex:
             # We need to keep the gas IDs from snapshot N-1
-            gas_particle_ids = particle_data['PartType0/ParticleIDs']
-            gas_group_nr = particle_data['PartType0/GroupNr_bound']
+            gas_particle_ids = particle_data["PartType0/ParticleIDs"]
+            gas_group_nr = particle_data["PartType0/GroupNr_bound"]
         snap_basename = args.snap_basename.format(snap_nr=snap_nr)
         membership_basename = args.membership_basename.format(snap_nr=snap_nr)
         particle_data = load_particle_data(
@@ -236,14 +235,20 @@ if __name__ == "__main__":
         "FirstSnapshot": star_first_snapshot,
     }
     attrs = {
-        "BirthHaloCatalogueIndex": {"Description": "The HaloCatalogueIndex of this particle at the first snapshot it appeared."},
-        "FirstSnapshot": {"Description": "Index of the first simulation snapshot in which the star particle is present."},
+        "BirthHaloCatalogueIndex": {
+            "Description": "The HaloCatalogueIndex of this particle at the first snapshot it appeared."
+        },
+        "FirstSnapshot": {
+            "Description": "Index of the first simulation snapshot in which the star particle is present."
+        },
     }
     attrs["BirthHaloCatalogueIndex"].update(unit_attrs)
     attrs["FirstSnapshot"].update(unit_attrs)
     if args.calculate_PreBirthHaloCatalogueIndex:
         output["PreBirthHaloCatalogueIndex"] = star_prebirth_ids
-        attrs["PreBirthHaloCatalogueIndex"] = {"Description": "The HaloCatalogueIndex of gas prognitor at the snapshot before the star formed. -99 if no gas progenitor is found."}
+        attrs["PreBirthHaloCatalogueIndex"] = {
+            "Description": "The HaloCatalogueIndex of gas prognitor at the snapshot before the star formed. -99 if no gas progenitor is found."
+        }
         attrs["PreBirthHaloCatalogueIndex"].update(unit_attrs)
 
     # Check the output directory exists
@@ -278,4 +283,3 @@ if __name__ == "__main__":
     comm.barrier()
     mpi_print(f"Runtime: {datetime.datetime.now() - start_time}", comm_rank)
     mpi_print("Done!", comm_rank)
-
