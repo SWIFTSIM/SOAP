@@ -23,7 +23,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # Define filepaths from parameter file
-dir_path =  os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+dir_path =  '/users/ariadurr/ariadurr/COLIBRE/Processing/colibre-skirt'
 param_file = 'vimf_SKIRT_parameters.yml'
 with open(f'{dir_path}/{param_file}','r') as stream:
     params = yaml.safe_load(stream)
@@ -64,8 +64,8 @@ with h5.File(catalogue_file,'a') as dst_file:
             delete_dset('HalfCorrectedLightRadiusStars')
             delete_dset('UVLuminosityWeightedMeanStellarAge')
 
-        if 'ExclusiveSphere' in grp or 'ProjectedAperture' in grp:
-            delete_dset('ChabrierInferredStellarMass')
+        # if 'ExclusiveSphere' in grp or 'ProjectedAperture' in grp:
+        #     delete_dset('ChabrierInferredStellarMass')
 dst_file.close()
 
 
@@ -99,9 +99,9 @@ with h5.File(catalogue_file,'a') as dst_file, h5.File(patch_file,'r') as src_fil
             dst_group.copy(dset_source,'HalfCorrectedLightRadiusStars')
 
         # Third for Chab masses in ES and Proj only
-        if 'ExclusiveSphere' in grp or 'ProjectedAperture' in grp:
-            dset_source = src_file[grp +'/ChabrierInferredStellarMass']
-            dst_group.copy(dset_source,'ChabrierInferredStellarMass')
+        # if 'ExclusiveSphere' in grp or 'ProjectedAperture' in grp:
+        #     dset_source = src_file[grp +'/ChabrierInferredStellarMass']
+        #     dst_group.copy(dset_source,'ChabrierInferredStellarMass')
 
 src_file.close()
 dst_file.close()
