@@ -92,7 +92,7 @@ membership="${output_filename}.{file_nr}.hdf5"
 virtual="${outbase}/colibre_with_SOAP_membership_${snapnum}.hdf5"
 python compression/make_virtual_snapshot.py \
   --virtual-snapshot $snapshot \
-  --auxilary-snapshots $membership \
+  --auxiliary-snapshots $membership \
   --output-file $virtual
 
 echo "Setting virtual file to be read-only"

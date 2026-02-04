@@ -63,14 +63,14 @@ def update_vds_paths(dset, modify_function):
 
 
 def make_virtual_snapshot(
-    snapshot, auxilary_snapshots, output_file, absolute_paths=False
+    snapshot, auxiliary_snapshots, output_file, absolute_paths=False
 ):
     """
-    Given a snapshot and auxilary files, create
+    Given a snapshot and auxiliary files, create
     a new virtual snapshot with all datasets combine.
 
     snapshot: Path to the snapshot file
-    auxilary_snapshots: List of auxiliary file patterns
+    auxiliary_snapshots: List of auxiliary file patterns
     output_file: Path to the output virtual snapshot
     absolute_paths: If True, use absolute paths; if False, use relative paths
     """
@@ -83,19 +83,19 @@ def make_virtual_snapshot(
 
     # Calculate directories for path updates
     abs_snapshot_dir = os.path.abspath(os.path.dirname(snapshot))
-    abs_auxilary_dirs = [
+    abs_auxiliary_dirs = [
         os.path.abspath(os.path.dirname(aux.format(file_nr=0)))
-        for aux in auxilary_snapshots
+        for aux in auxiliary_snapshots
     ]
     abs_output_dir = os.path.abspath(os.path.dirname(output_file))
 
     if absolute_paths:
         snapshot_dir = abs_snapshot_dir
-        auxilary_dirs = abs_auxilary_dirs
+        auxiliary_dirs = abs_auxiliary_dirs
     else:
         snapshot_dir = os.path.relpath(abs_snapshot_dir, abs_output_dir)
-        auxilary_dirs = [
-            os.path.relpath(aux_dir, abs_output_dir) for aux_dir in abs_auxilary_dirs
+        auxiliary_dirs = [
+            os.path.relpath(aux_dir, abs_output_dir) for aux_dir in abs_auxiliary_dirs
         ]
 
     # Create path replacement functions
@@ -107,15 +107,15 @@ def make_virtual_snapshot(
         return replace_path
 
     replace_snapshot_path = make_replace_path(snapshot_dir)
-    auxilary_path_replacers = [make_replace_path(d) for d in auxilary_dirs]
+    auxiliary_path_replacers = [make_replace_path(d) for d in auxiliary_dirs]
 
-    all_auxilary_datasets = {}
+    all_auxiliary_datasets = {}
 
-    for aux_index, auxilary in enumerate(auxilary_snapshots):
+    for aux_index, auxiliary in enumerate(auxiliary_snapshots):
 
-        # Check which datasets exist in the auxilary files
+        # Check which datasets exist in the auxiliary files
         # and store their attributes and datatype
-        filename = auxilary.format(file_nr=0)
+        filename = auxiliary.format(file_nr=0)
         dset_attrs = {}
         dset_dtype = {}
         with h5py.File(filename, "r") as infile:
@@ -128,35 +128,35 @@ def make_virtual_snapshot(
                     attrs = dict(infile[f"PartType{ptype}/{dset}"].attrs)
                     dtype = infile[f"PartType{ptype}/{dset}"].dtype
 
-                    # Some auxilary files are missing these attributes
+                    # Some auxiliary files are missing these attributes
                     if not "Value stored as physical" in attrs:
                         print(f"Setting comoving attrs for PartType{ptype}/{dset}")
                         attrs["Value stored as physical"] = [1]
                         attrs["Property can be converted to comoving"] = [0]
 
-                    # Add a flag that these datasets are stored in the auxilary files
-                    attrs["Auxilary file"] = [1]
+                    # Add a flag that these datasets are stored in the auxiliary files
+                    attrs["auxiliary file"] = [1]
 
                     # Store the values we need for later
                     dset_attrs[f"PartType{ptype}"][dset] = attrs
                     dset_dtype[f"PartType{ptype}"][dset] = dtype
 
-                    # Check we don't have this dataset in any of the other auxilary files
+                    # Check we don't have this dataset in any of the other auxiliary files
                     dset_path = f"PartType{ptype}/{dset}"
-                    if dset_path in all_auxilary_datasets:
-                        other_file = all_auxilary_datasets[f"PartType{ptype}/{dset}"]
+                    if dset_path in all_auxiliary_datasets:
+                        other_file = all_auxiliary_datasets[f"PartType{ptype}/{dset}"]
                         raise ValueError(
-                            f"{dset_path} is in {auxilary} and {other_file}"
+                            f"{dset_path} is in {auxiliary} and {other_file}"
                         )
-                    all_auxilary_datasets[dset_path] = auxilary
+                    all_auxiliary_datasets[dset_path] = auxiliary
 
-        # Loop over input auxilary files to get dataset shapes
+        # Loop over input auxiliary files to get dataset shapes
         file_nr = 0
         filenames = []
         shapes = []
         counts = []
         while True:
-            filename = auxilary.format(file_nr=file_nr)
+            filename = auxiliary.format(file_nr=file_nr)
             if os.path.exists(filename):
                 filenames.append(filename)
                 with h5py.File(filename, "r") as infile:
@@ -178,7 +178,7 @@ def make_virtual_snapshot(
                 break
             file_nr += 1
         if file_nr == 0:
-            raise IOError(f"Failed to find files matching: {auxilary}")
+            raise IOError(f"Failed to find files matching: {auxiliary}")
 
         # Loop over particle types in the output
         for ptype in range(7):
@@ -223,7 +223,7 @@ def make_virtual_snapshot(
                 # Update paths for this newly created auxiliary dataset
                 update_vds_paths(
                     outfile[f"PartType{ptype}/{dset}"],
-                    auxilary_path_replacers[aux_index],
+                    auxiliary_path_replacers[aux_index],
                 )
 
                 # Copy GroupNr_bound to HaloCatalogueIndex, since
@@ -240,7 +240,7 @@ def make_virtual_snapshot(
                     # Update paths for HaloCatalogueIndex too
                     update_vds_paths(
                         outfile[f"PartType{ptype}/HaloCatalogueIndex"],
-                        auxilary_path_replacers[aux_index],
+                        auxiliary_path_replacers[aux_index],
                     )
 
     # Update paths for all original snapshot datasets
@@ -251,7 +251,7 @@ def make_virtual_snapshot(
                 dset = outfile[f"{ptype_name}/{dset_name}"]
                 if dset.is_virtual:
                     # Check if this is an auxiliary dataset (skip those, already handled)
-                    if dset.attrs.get("Auxilary file", [0])[0] != 1:
+                    if dset.attrs.get("auxiliary file", [0])[0] != 1:
                         # This is an original snapshot dataset
                         update_vds_paths(dset, replace_snapshot_path)
 
@@ -266,7 +266,7 @@ if __name__ == "__main__":
     # For description of parameters run the following: $ python make_virtual_snapshot.py --help
     parser = argparse.ArgumentParser(
         description=(
-            "Link SWIFT snapshots with SWIFT auxilary snapshots (snapshot-like"
+            "Link SWIFT snapshots with SWIFT auxiliary snapshots (snapshot-like"
             "files with the same number of particles in the same order as the"
             "snapshot, but with less metadata), such as the SOAP memberships"
         )
@@ -278,11 +278,11 @@ if __name__ == "__main__":
         help="Name of the SWIFT virtual snapshot file, e.g. snapshot_{snap_nr:04}.hdf5",
     )
     parser.add_argument(
-        "--auxilary-snapshots",
+        "--auxiliary-snapshots",
         type=str,
         nargs="+",
         required=True,
-        help="One of more format strings for auxilary files, e.g. membership_{snap_nr:04}.{file_nr}.hdf5",
+        help="One of more format strings for auxiliary files, e.g. membership_{snap_nr:04}.{file_nr}.hdf5",
     )
     parser.add_argument(
         "--output-file",
@@ -312,16 +312,16 @@ if __name__ == "__main__":
     virtual_snapshot = args.virtual_snapshot.format(snap_nr=args.snap_nr)
     output_file = args.output_file.format(snap_nr=args.snap_nr)
 
-    # We don't want to replace {file_nr} for auxilary snapshots
-    auxilary_snapshots = [
+    # We don't want to replace {file_nr} for auxiliary snapshots
+    auxiliary_snapshots = [
         filename.format_map(SafeDict({"snap_nr": args.snap_nr}))
-        for filename in args.auxilary_snapshots
+        for filename in args.auxiliary_snapshots
     ]
 
     # Make a new virtual snapshot with group info
     make_virtual_snapshot(
         virtual_snapshot,
-        auxilary_snapshots,
+        auxiliary_snapshots,
         output_file,
         absolute_paths=args.absolute_paths,
     )

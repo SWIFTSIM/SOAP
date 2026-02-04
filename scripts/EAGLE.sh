@@ -79,7 +79,7 @@ cd -
 
 python compression/make_virtual_snapshot.py \
     --virtual-snapshot "${output_dir}/swift_snapshots/swift_${snap_nr}/snap_${snap_nr}.hdf5" \
-    --auxilary-snapshots "${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}.{file_nr}.hdf5" \
+    --auxiliary-snapshots "${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}.{file_nr}.hdf5" \
     --output-file "${output_dir}/SOAP_uncompressed/snap_${snap_nr}.hdf5"
 
 ######### Run SOAP
