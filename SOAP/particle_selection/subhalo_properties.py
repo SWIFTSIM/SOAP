@@ -482,6 +482,22 @@ class SubhaloParticleData:
         return ((Lr / Lrtot) * self.stellar_ages).sum()
 
     @lazy_property
+    def ExSituFraction(self) -> unyt.unyt_quantity:
+        """
+        Mass fraction of bound stars that formed in a different subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+
+        group_nr = self.get_dataset("PartType4/GroupNr_bound")[self.star_mask_all]
+        birth_group_nr = self.get_dataset("PartType4/BirthHaloCatalogueIndex")[
+            self.star_mask_all
+        ]
+        ex_situ = group_nr != birth_group_nr
+
+        return self.star_mass_fraction[ex_situ].sum()
+
+    @lazy_property
     def bh_mask_all(self) -> NDArray[bool]:
         """
         Mask that can be used to filter out black hole particles belonging to this
@@ -2455,6 +2471,7 @@ class SubhaloProperties(HaloProperty):
             "Lstar_luminosity_weighted",
             "stellar_age_mw",
             "stellar_age_lw",
+            "ExSituFraction",
             "Mgas_SF",
             "gasmetalfrac_SF",
             "MedianStellarBirthDensity",
