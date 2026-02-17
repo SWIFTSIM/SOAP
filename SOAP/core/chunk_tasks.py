@@ -381,6 +381,7 @@ class ChunkTask:
             ) as outfile:
                 results.collective_write(outfile, comm_have_results)
         comm_have_results.Free()
+        comm.barrier()
 
         # Store time taken for this task
         timings.append(task_time_all_iterations)
@@ -394,6 +395,7 @@ class ChunkTask:
                 calc_names = sorted([hp.name for hp in self.halo_prop_list])
                 outfile.attrs["calc_names"] = calc_names
                 outfile.attrs["Write complete"] = True
+        comm.barrier()
 
         # Return the names, dimensions and units of the quantities we computed
         # so that we can check they're consistent between chunks

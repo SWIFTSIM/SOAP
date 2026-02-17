@@ -259,6 +259,7 @@ def combine_chunks(
                 "Redshift",
                 "RunName",
                 "Scale-factor",
+                "Time",
             ]:
                 header.attrs[attr] = cellgrid.swift_header_group[attr]
             header.attrs["Code"] = "SOAP"

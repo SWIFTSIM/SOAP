@@ -93,11 +93,15 @@ class ReadTask:
         file_start = self.file_offset
         file_end = self.file_offset + self.count
 
-        dataset.read_direct(
-            data[self.ptype][self.dataset].full,
-            np.s_[file_start:file_end, ...],
-            np.s_[mem_start:mem_end, ...],
-        )
+        try:
+            dataset.read_direct(
+                data[self.ptype][self.dataset].full,
+                np.s_[file_start:file_end, ...],
+                np.s_[mem_start:mem_end, ...],
+            )
+        except OSError as e:
+            print(f'Error reading {dataset_name}')
+            raise e
 
 
 def identify_datasets(filename, nr_files, ptypes, registry):
