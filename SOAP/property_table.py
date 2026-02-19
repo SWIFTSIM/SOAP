@@ -5522,9 +5522,9 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         lines.append("   :header-rows: 1")
         lines.append("")
         lines.append("   * - Name")
-        lines.append("     - Category")
-        lines.append("     - Outputs")
-        lines.append("     - Description & Technical Specs")
+        lines.append("     - Filter")
+        lines.append("     - Variations")
+        lines.append("     - Description")
 
         for prop_name in prop_names:
             prop = self.properties[prop_name]
@@ -5552,17 +5552,9 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             _, footnote_rst = self.get_footnotes_rst(prop_name)
             display_name = f"``{snake_name}``"
             if footnote_rst:
-                display_name = f"{display_name} {footnote_rst}"
+                description = f"{description} {footnote_rst}"
 
-            lines.append(f"   * - {display_name}")
-            lines.append(f"     - {prop['category']}")
-            lines.append(f"     - {output_types}")
-            # Description + dropdown.  The dropdown content must be indented
-            # seven spaces (five for the cell + two extra) to remain inside
-            # the list-table cell.
-            lines.append(f"     - {description}")
-            lines.append("")
-            lines.append("       .. dropdown:: Dataset specifications")
+            lines.append(f"   * - .. dropdown:: {display_name}")
             lines.append("          :animate: fade-in")
             lines.append("")
             lines.append(f"          * **HDF5 name:** ``{output_name}``")
@@ -5570,12 +5562,15 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             lines.append(f"          * **Type:** {prop['dtype']}")
             lines.append(f"          * **Units:** {prop_units_rst}")
             lines.append(f"          * **Compression:** {prop_comp_rst}")
+            lines.append(f"     - {prop['category']}")
+            lines.append(f"     - {output_types}")
+            lines.append(f"     - {description}")
 
         lines.append("")
 
     def generate_rst_files(self, output_dir: str):
         """
-        Generate a single RST documentation file (``properties.rst``) for the
+        Generate a single RST documentation file (``property_table.rst``) for the
         SPHYNIX documentation system.
 
         The file contains two ``list-table`` directives separated by a title:
@@ -5611,44 +5606,39 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         )
 
         dmo_props = [n for n in prop_names_sorted if self.properties[n]["dmo"]]
-        non_dmo_props = [n for n in prop_names_sorted if not self.properties[n]["dmo"]]
+        hydro_props = [n for n in prop_names_sorted if not self.properties[n]["dmo"]]
 
         # Reset footnote list; it is populated as a side-effect of
         # _build_rst_table calling get_footnotes_rst for each property.
         self.footnotes = []
 
-        lines = []
+        # Introduction
+        with open(f'documentation/property_table_intro.rst') as file:
+            lines = [line.rstrip() for line in file.readlines()]
 
-        # ------------------------------------------------------------------ #
         # DMO table
-        # ------------------------------------------------------------------ #
         dmo_title = "DMO Properties"
         lines.append(dmo_title)
         lines.append("-" * len(dmo_title))
         lines.append("")
         self._build_rst_table(dmo_props, lines)
 
-        # ------------------------------------------------------------------ #
-        # Non-DMO table
-        # ------------------------------------------------------------------ #
-        non_dmo_title = "Non-DMO Properties"
-        lines.append(non_dmo_title)
-        lines.append("-" * len(non_dmo_title))
+        # HYDRO table
+        hydro_title = "HYDRO Properties"
+        lines.append(hydro_title)
+        lines.append("-" * len(hydro_title))
         lines.append("")
-        self._build_rst_table(non_dmo_props, lines)
+        self._build_rst_table(hydro_props, lines)
 
-        # ------------------------------------------------------------------ #
         # Footnotes
-        #
-        # Each footnote is preceded by a named RST target ``.. _footnote-N:``
-        # which is what the ``footnote-N_`` internal references in the table
-        # Name cells resolve to.
-        # ------------------------------------------------------------------ #
         if self.footnotes:
             fn_title = "Footnotes"
             lines.append(fn_title)
             lines.append("-" * len(fn_title))
             lines.append("")
+            # Each footnote is preceded by a named RST target ``.. _footnote-N:``
+            # which is what the ``footnote-N_`` internal references in the table
+            # Name cells resolve to.
             for i, fnote_filename in enumerate(self.footnotes):
                 fn_number = i + 1
                 fn_text = self._read_footnote_rst(fnote_filename, fn_number)
@@ -5658,7 +5648,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
                 lines.append("")
 
         os.makedirs(output_dir, exist_ok=True)
-        with open(f"{output_dir}/properties.rst", "w") as ofile:
+        with open(f"{output_dir}/property_table.rst", "w") as ofile:
             ofile.write("\n".join(lines))
 
 
