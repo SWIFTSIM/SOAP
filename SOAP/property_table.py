@@ -5274,6 +5274,394 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             vel_kms = (1 * unyt.snap_length / unyt.snap_time).to("km/s").value
             ofile.write(f"\\newcommand{{\\velbaseunit}}{{{vel_kms:.4g}}}\n")
 
+    ######### RST generation
+
+    @staticmethod
+    def _camel_to_snake(name: str) -> str:
+        """
+        Convert a CamelCase property name to snake_case, matching the
+        convention used by swiftsimio.
+        """
+
+        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
+
+    @staticmethod
+    def _latex_units_to_rst(latex_units: str) -> str:
+        """
+        Convert a LaTeX units string (as produced by unyt) into RST math format
+        suitable for use in Sphinx documentation.
+
+        Wraps the unit expression in :math:`...` and keeps the LaTeX content
+        as-is, since unyt already produces valid LaTeX math.
+        """
+        if not latex_units or latex_units == "dimensionless":
+            return "dimensionless"
+        return f":math:`{latex_units}`"
+
+    @staticmethod
+    def _compression_to_rst(compression_description: str) -> str:
+        """
+        Convert a compression description string (which may contain LaTeX math)
+        into RST format. Dollar-sign-delimited math is replaced with :math:`...`.
+        """
+
+        def replace_math(match):
+            return f":math:`{match.group(1)}`"
+
+        return re.sub(r"\$(.+?)\$", replace_math, compression_description)
+
+    @staticmethod
+    def _latex_to_rst_math(text: str) -> str:
+        """
+        Convert inline LaTeX math delimited by ``$...$`` in *text* to RST
+        ``:math:`...``` roles.  Dollar signs that are not part of a math
+        expression are left unchanged.
+        """
+
+        def replace_math(match):
+            return f":math:`{match.group(1)}`"
+
+        return re.sub(r"\$(.+?)\$", replace_math, text)
+
+    def _get_output_types_rst(self, prop: dict) -> str:
+        """
+        Return a highlighted string showing all halo type abbreviations.
+
+        All five types are always shown, colour-coded by availability:
+          - ``:avail:``    (green) -- computed for all snapshots
+          - ``:snaponly:`` (blue)  -- computed for snapshots only, not snipshots
+          - ``:unavail:``  (red)   -- not computed
+
+        All three roles must be registered in ``conf.py``
+
+        The abbreviations correspond to:
+          BS  - BoundSubhalo (SubhaloProperties)
+          ES  - ExclusiveSphere (ExclusiveSphereProperties)
+          IS  - InclusiveSphere (InclusiveSphereProperties)
+          P   - ProjectedAperture (ProjectedApertureProperties)
+          SO  - SphericalOverdensity (SOProperties)
+        """
+        type_map = [
+            ("SubhaloProperties", "BS"),
+            ("ExclusiveSphereProperties", "ES"),
+            ("InclusiveSphereProperties", "IS"),
+            ("ProjectedApertureProperties", "EP"),
+            ("SOProperties", "SO"),
+        ]
+        tokens = []
+        for halo_type, abbrev in type_map:
+            # A type is either absent, present for all outputs, or snapshot-only.
+            # The types list contains the exact string "SubhaloProperties" for
+            # full availability, or "SnapshotOnlySubhaloProperties" for
+            # snapshot-only — never both for the same halo type.
+            full_present = halo_type in prop["types"]
+            snap_only = f"SnapshotOnly{halo_type}" in prop["types"]
+            if full_present:
+                role = "avail"
+            elif snap_only:
+                role = "snaponly"
+            else:
+                role = "unavail"
+            tokens.append(f":{role}:`{abbrev}`")
+        return " ".join(tokens)
+
+    def get_footnotes_rst(self, name: str) -> tuple[list[int], str]:
+        """
+        Return RST footnote references for property *name*.
+
+        Returns a tuple of:
+          - list of footnote numbers (ints) associated with this property
+          - string of RST hyperlinks, e.g. `` `¹ <footnote-1_>`_ ``, or ``""``
+
+        We use unicode superscript digits as link text, pointed at named RST
+        targets (``.. _footnote-N:``) in the Footnotes section.  This is a
+        plain inline hyperlink with no role nesting, so it works correctly
+        inside ``list-table`` cells.
+        """
+        footnote_nums = []
+        for fnote in self.explanation.keys():
+            if name in self.explanation[fnote]:
+                try:
+                    i = self.footnotes.index(fnote)
+                except ValueError:
+                    i = len(self.footnotes)
+                    self.footnotes.append(fnote)
+                footnote_nums.append(i + 1)
+        if footnote_nums:
+            refs = " ".join(
+                f"`[{n}] <footnote-{n}_>`_"
+                for n in footnote_nums
+            )
+            return footnote_nums, refs
+        return [], ""
+
+    def _read_footnote_rst(self, fnote_filename: str, footnote_number: int) -> str:
+        r"""
+        Read a LaTeX footnote file from the ``documentation/`` directory and
+        return an RST version suitable for embedding in the output RST file.
+        """
+        import re
+
+        filepath = f"documentation/{fnote_filename}"
+        try:
+            with open(filepath, "r") as fh:
+                text = fh.read()
+        except FileNotFoundError:
+            return f"*(Footnote file ``{fnote_filename}`` not found.)*"
+
+        # Step 1: substitute the plain-text footnote number placeholder FIRST,
+        # before any dollar-sign processing, so that the literal string
+        # "$FOOTNOTE_NUMBER$" is replaced with e.g. "5" and can no longer be
+        # mistaken for a LaTeX math delimiter.
+        text = text.replace("$FOOTNOTE_NUMBER$", str(footnote_number))
+
+        # Step 2: substitute parameter-file-derived values (also plain text).
+        if "$LOG_COLD_GAS_TEMP$" in text:
+            params = self.parameters.get_cold_dense_params()
+            if params.get("initialised"):
+                T = f'{np.log10(params["maximum_temperature_K"]):.2g}'
+                text = text.replace("$LOG_COLD_GAS_TEMP$", T)
+        if "$LOG_COLD_GAS_DENSITY$" in text:
+            params = self.parameters.get_cold_dense_params()
+            if params.get("initialised"):
+                rho = f'{np.log10(params["minimum_hydrogen_number_density_cm3"]):.2g}'
+                text = text.replace("$LOG_COLD_GAS_DENSITY$", rho)
+
+        # Step 3: convert \begin{equation}...\end{equation} blocks to
+        # RST ``.. math::`` directives.
+        #
+        # We stash each converted block behind a NUL-delimited placeholder so
+        # that subsequent LaTeX-stripping steps cannot corrupt the math content.
+        math_blocks: list[str] = []
+
+        def equation_to_rst(match):
+            math_content = match.group(1).strip()
+            # Indent each line of the math block by 3 spaces (directive body)
+            indented = "\n".join(f"   {line}" for line in math_content.splitlines())
+            block = f"\n\n.. math::\n\n{indented}\n\n"
+            placeholder = f"\x00MATHBLOCK{len(math_blocks)}\x00"
+            math_blocks.append(block)
+            return placeholder
+
+        text = re.sub(
+            r"\\begin\{equation\}(.*?)\\end\{equation\}",
+            equation_to_rst,
+            text,
+            flags=re.DOTALL,
+        )
+
+        # Step 4: process \paragraph{$^{N}$Title}\label{footnote:N}
+        #
+        # The paragraph command has the form:
+        #   \paragraph{$^{N}$Title text}\label{footnote:N} rest of sentence...
+        #
+        # We want to:
+        #   - Drop the superscript prefix "$^{N}$" (the number is already
+        #     shown by the caller as **[N]**).
+        #   - Render the title in bold.
+        #   - Keep the rest of the sentence on the same line.
+        #   - Strip the \label{...} command entirely.
+        #
+        # We use a lazy ``.*?`` match for the paragraph argument because the
+        # content may contain braces (e.g. the ``$^{5}$`` superscript prefix),
+        # which would trip up a ``[^}]*`` character class.
+        def paragraph_to_rst(match):
+            # match.group(1): everything inside \paragraph{...}
+            # match.group(2): the \label{...} target (discarded)
+            # match.group(3): the remainder of the line after \label{...}
+            inner = match.group(1)
+            rest = match.group(3).strip()
+            # Strip leading superscript: $^{N}$ or $^N$
+            inner = re.sub(r"^\$\^{?[^}$]*}?\$\s*", "", inner)
+            return f"**{inner.strip()}** {rest}"
+
+        text = re.sub(
+            r"\\paragraph\{(.*?)\}\\label\{[^}]*\}([ \t]*)(.*)",
+            paragraph_to_rst,
+            text,
+        )
+
+        # Step 5: convert $...$ inline math → :math:`...`
+        # Use a non-greedy match that does not cross newlines, to avoid
+        # accidentally swallowing large sections of text.
+        text = re.sub(r"\$([^\n$]+?)\$", lambda m: f":math:`{m.group(1)}`", text)
+
+        # Step 6: common LaTeX text commands → RST equivalents.
+        text = re.sub(r"\\verb\+([^+]+)\+", lambda m: f"``{m.group(1)}``", text)
+        text = re.sub(
+            r"\\(?:textit|emph)\{([^}]+)\}", lambda m: f"*{m.group(1)}*", text
+        )
+        text = re.sub(r"\\textbf\{([^}]+)\}", lambda m: f"**{m.group(1)}**", text)
+
+        # Step 7: strip remaining unrecognised LaTeX commands.
+        # Commands with a brace argument: keep the argument text.
+        # Bare commands (no argument): remove entirely.
+        text = re.sub(r"\\[a-zA-Z]+\{([^}]*)\}", r"\1", text)
+        text = re.sub(r"\\[a-zA-Z]+", "", text)
+
+        # Step 8: restore the protected .. math:: blocks now that all LaTeX
+        # stripping is complete.
+        for i, block in enumerate(math_blocks):
+            text = text.replace(f"\x00MATHBLOCK{i}\x00", block)
+
+        # Step 9: tidy up whitespace.
+        text = re.sub(r"\n{3,}", "\n\n", text).strip()
+
+        return text
+
+    def _build_rst_table(self, prop_names: list, lines: list):
+        """
+        Append RST list-table rows for the given properties to *lines*.
+
+        Note: ``self.footnotes`` is populated as a side-effect (via
+        ``get_footnotes_rst``), so this must be called before the footnote
+        section is rendered.
+        """
+        lines.append(".. list-table::")
+        lines.append("   :widths: 25 10 15 50")
+        lines.append("   :header-rows: 1")
+        lines.append("")
+        lines.append("   * - Name")
+        lines.append("     - Category")
+        lines.append("     - Outputs")
+        lines.append("     - Description & Technical Specs")
+
+        for prop_name in prop_names:
+            prop = self.properties[prop_name]
+
+            # HDF5 output name (prepend InputHalos/ where applicable)
+            output_name = prop["name"]
+            if output_name.split("/")[0] in ("HBTplus", "VR", "FOF"):
+                output_name = "InputHalos/" + output_name
+
+            # swiftsimio names
+            snake_name = "/".join(
+                self._camel_to_snake(part) for part in output_name.split("/")
+            )
+
+            prop_units_rst = self._latex_units_to_rst(prop["units"])
+            prop_comp_rst = self._compression_to_rst(
+                self.compression_description[prop["compression"]]
+            )
+            output_types = self._get_output_types_rst(prop)
+            description = prop["description"].format(
+                label="satisfying a spherical overdensity criterion.",
+                core_excision="excised core",
+            )
+
+            _, footnote_rst = self.get_footnotes_rst(prop_name)
+            display_name = f"``{snake_name}``"
+            if footnote_rst:
+                display_name = f"{display_name} {footnote_rst}"
+
+            lines.append(f"   * - {display_name}")
+            lines.append(f"     - {prop['category']}")
+            lines.append(f"     - {output_types}")
+            # Description + dropdown.  The dropdown content must be indented
+            # seven spaces (five for the cell + two extra) to remain inside
+            # the list-table cell.
+            lines.append(f"     - {description}")
+            lines.append("")
+            lines.append("       .. dropdown:: Dataset specifications")
+            lines.append("          :animate: fade-in")
+            lines.append("")
+            lines.append(f"          * **HDF5 name:** ``{output_name}``")
+            lines.append(f"          * **Shape:** {prop['shape']}")
+            lines.append(f"          * **Type:** {prop['dtype']}")
+            lines.append(f"          * **Units:** {prop_units_rst}")
+            lines.append(f"          * **Compression:** {prop_comp_rst}")
+
+        lines.append("")
+
+    def generate_rst_files(self, output_dir: str):
+        """
+        Generate a single RST documentation file (``properties.rst``) for the
+        SPHYNIX documentation system.
+
+        The file contains two ``list-table`` directives separated by a title:
+          1. **DMO properties** – properties computed for dark-matter-only runs.
+          2. **Non-DMO properties** – properties that require baryonic physics.
+
+        RST footnotes referenced in the tables are appended at the bottom of
+        the file so that the superscript links in the Name column resolve
+        correctly.
+        """
+
+        category_order = [
+            "basic",
+            "general",
+            "gas",
+            "dm",
+            "star",
+            "baryon",
+            "InputHalos",
+            "VR",
+            "HBTplus",
+            "FOF",
+            "SOAP",
+        ]
+        prop_names_sorted = sorted(
+            self.properties.keys(),
+            key=lambda key: (
+                category_order.index(self.properties[key]["category"])
+                if self.properties[key]["category"] in category_order
+                else len(category_order),
+                self.properties[key]["name"].lower(),
+            ),
+        )
+
+        dmo_props = [n for n in prop_names_sorted if self.properties[n]["dmo"]]
+        non_dmo_props = [n for n in prop_names_sorted if not self.properties[n]["dmo"]]
+
+        # Reset footnote list; it is populated as a side-effect of
+        # _build_rst_table calling get_footnotes_rst for each property.
+        self.footnotes = []
+
+        lines = []
+
+        # ------------------------------------------------------------------ #
+        # DMO table
+        # ------------------------------------------------------------------ #
+        dmo_title = "DMO Properties"
+        lines.append(dmo_title)
+        lines.append("-" * len(dmo_title))
+        lines.append("")
+        self._build_rst_table(dmo_props, lines)
+
+        # ------------------------------------------------------------------ #
+        # Non-DMO table
+        # ------------------------------------------------------------------ #
+        non_dmo_title = "Non-DMO Properties"
+        lines.append(non_dmo_title)
+        lines.append("-" * len(non_dmo_title))
+        lines.append("")
+        self._build_rst_table(non_dmo_props, lines)
+
+        # ------------------------------------------------------------------ #
+        # Footnotes
+        #
+        # Each footnote is preceded by a named RST target ``.. _footnote-N:``
+        # which is what the ``footnote-N_`` internal references in the table
+        # Name cells resolve to.
+        # ------------------------------------------------------------------ #
+        if self.footnotes:
+            fn_title = "Footnotes"
+            lines.append(fn_title)
+            lines.append("-" * len(fn_title))
+            lines.append("")
+            for i, fnote_filename in enumerate(self.footnotes):
+                fn_number = i + 1
+                fn_text = self._read_footnote_rst(fnote_filename, fn_number)
+                lines.append(f".. _footnote-{fn_number}:")
+                lines.append("")
+                lines.append(f"**[{fn_number}]** {fn_text}")
+                lines.append("")
+
+        os.makedirs(output_dir, exist_ok=True)
+        with open(f"{output_dir}/properties.rst", "w") as ofile:
+            ofile.write("\n".join(lines))
+
+
 
 class DummyProperties:
     """
@@ -5372,6 +5760,7 @@ if __name__ == "__main__":
     You must pass a parameter file and a snapshot to run this script
     """
 
+    import re
     import sys
     import h5py
     import yaml
@@ -5451,3 +5840,4 @@ if __name__ == "__main__":
     )
 
     table.generate_tex_files("documentation")
+    table.generate_rst_files("documentation")
