@@ -4932,7 +4932,9 @@ class PropertyTable:
                 units = units * unyt.Unit("a") ** prop.a_scale_exponent
             prop_unit = units.units.latex_repr.replace(
                 "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
-            ).replace("\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}")
+            ).replace(
+                "\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}"
+            ).rstrip()
 
             prop_dtype = prop.dtype.__name__
 
@@ -5390,7 +5392,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         if footnote_nums:
             refs = " ".join(
                 f"`[{n}] <footnote-{n}_>`_"
-                for n in footnote_nums
+                for n in sorted(footnote_nums)
             )
             return footnote_nums, refs
         return [], ""
@@ -5450,6 +5452,38 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             flags=re.DOTALL,
         )
 
+        # Step 3b: convert \begin{enumerate}...\end{enumerate} blocks to
+        # RST auto-numbered lists.  Each \item becomes a ``#.`` list entry.
+        # The converted block is stashed behind a placeholder so later
+        # stripping steps leave its content alone.
+        def enumerate_to_rst(match):
+            body = match.group(1)
+            # Split on \item, discard the empty string before the first \item
+            items = re.split(r"\\item\s*", body)
+            rst_items = []
+            for item in items:
+                item = item.strip()
+                if item:
+                    # Collapse internal newlines to spaces within each item
+                    item = " ".join(item.split())
+                    # Convert inline math and non-breaking spaces within the
+                    # item text now, before the block is stashed as a
+                    # placeholder (the main conversion steps run before restore)
+                    item = re.sub(r"\$([^\n\$]+?)\$", lambda m: f":math:`{m.group(1)}`", item)
+                    item = item.replace("~", " ")
+                    rst_items.append(f"#. {item}")
+            block = "\n\n" + "\n".join(rst_items) + "\n\n"
+            placeholder = f"\x00MATHBLOCK{len(math_blocks)}\x00"
+            math_blocks.append(block)
+            return placeholder
+
+        text = re.sub(
+            r"\\begin\{enumerate\}(.*?)\\end\{enumerate\}",
+            enumerate_to_rst,
+            text,
+            flags=re.DOTALL,
+        )
+
         # Step 4: process \paragraph{$^{N}$Title}\label{footnote:N}
         #
         # The paragraph command has the form:
@@ -5472,13 +5506,19 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             inner = match.group(1)
             rest = match.group(3).strip()
             # Strip leading superscript: $^{N}$ or $^N$
-            inner = re.sub(r"^\$\^{?[^}$]*}?\$\s*", "", inner)
-            return f"**{inner.strip()}** {rest}"
+            inner = re.sub(r"^\$\^{?[^}$]*}?\$\s*", "", inner, flags=re.DOTALL)
+            # Collapse any internal newlines in the title to a single space
+            inner = " ".join(inner.split())
+            return f"**{inner}** {rest}"
 
+        # re.DOTALL lets .*? in group 1 match newlines (title may wrap across
+        # lines).  The final group uses [^\n]* to stay single-line so it only
+        # captures the rest of the \label{...} line, not the whole document.
         text = re.sub(
-            r"\\paragraph\{(.*?)\}\\label\{[^}]*\}([ \t]*)(.*)",
+            r"\\paragraph\{(.*?)\}\\label\{[^}]*\}([ \t]*)([^\n]*)",
             paragraph_to_rst,
             text,
+            flags=re.DOTALL,
         )
 
         # Step 5: convert $...$ inline math → :math:`...`
@@ -5498,6 +5538,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         # Bare commands (no argument): remove entirely.
         text = re.sub(r"\\[a-zA-Z]+\{([^}]*)\}", r"\1", text)
         text = re.sub(r"\\[a-zA-Z]+", "", text)
+        text = text.replace("~", " ")  # LaTeX non-breaking space
 
         # Step 8: restore the protected .. math:: blocks now that all LaTeX
         # stripping is complete.
@@ -5529,21 +5570,26 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         for prop_name in prop_names:
             prop = self.properties[prop_name]
 
+            # swiftsimio name
+            snake_name = ".".join(
+                self._camel_to_snake(part) for part in prop['name'].split("/")
+            )
+
             # HDF5 output name (prepend InputHalos/ where applicable)
             output_name = prop["name"]
             if output_name.split("/")[0] in ("HBTplus", "VR", "FOF"):
                 output_name = "InputHalos/" + output_name
-
-            # swiftsimio names
-            snake_name = "/".join(
-                self._camel_to_snake(part) for part in output_name.split("/")
-            )
+                snake_name = 'input_halos_' + snake_name
 
             prop_units_rst = self._latex_units_to_rst(prop["units"])
             prop_comp_rst = self._compression_to_rst(
                 self.compression_description[prop["compression"]]
             )
+            prop_filter = prop['category']
             output_types = self._get_output_types_rst(prop)
+            if 'DummyProperties' in prop['types']:
+                prop_filter = 'basic'
+                output_types = r'\-'
             description = prop["description"].format(
                 label="satisfying a spherical overdensity criterion.",
                 core_excision="excised core",
@@ -5555,14 +5601,13 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
                 description = f"{description} {footnote_rst}"
 
             lines.append(f"   * - .. dropdown:: {display_name}")
-            lines.append("          :animate: fade-in")
             lines.append("")
             lines.append(f"          * **HDF5 name:** ``{output_name}``")
             lines.append(f"          * **Shape:** {prop['shape']}")
             lines.append(f"          * **Type:** {prop['dtype']}")
             lines.append(f"          * **Units:** {prop_units_rst}")
             lines.append(f"          * **Compression:** {prop_comp_rst}")
-            lines.append(f"     - {prop['category']}")
+            lines.append(f"     - {prop_filter}")
             lines.append(f"     - {output_types}")
             lines.append(f"     - {description}")
 
@@ -5573,9 +5618,9 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         Generate a single RST documentation file (``property_table.rst``) for the
         SPHYNIX documentation system.
 
-        The file contains two ``list-table`` directives separated by a title:
-          1. **DMO properties** – properties computed for dark-matter-only runs.
-          2. **Non-DMO properties** – properties that require baryonic physics.
+        A preface to the tables is loaded from (``documentation/property_table_intro.rst``).
+
+        The file contains four ``list-table`` directives separated by titles.
 
         RST footnotes referenced in the tables are appended at the bottom of
         the file so that the superscript links in the Name column resolve
@@ -5605,8 +5650,20 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             ),
         )
 
-        dmo_props = [n for n in prop_names_sorted if self.properties[n]["dmo"]]
-        hydro_props = [n for n in prop_names_sorted if not self.properties[n]["dmo"]]
+        # Sort properties into the different tables
+        input_basic_props = []
+        input_copied_props = []
+        dmo_props = []
+        hydro_props = []
+        for n in prop_names_sorted:
+            if self.properties[n]['category'] == 'InputHalos':
+                input_basic_props.append(n)
+            elif 'DummyProperties' in self.properties[n]['types']:
+                input_copied_props.append(n)
+            elif self.properties[n]['dmo']:
+                dmo_props.append(n)
+            else:
+                hydro_props.append(n)
 
         # Reset footnote list; it is populated as a side-effect of
         # _build_rst_table calling get_footnotes_rst for each property.
@@ -5616,19 +5673,18 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         with open(f'documentation/property_table_intro.rst') as file:
             lines = [line.rstrip() for line in file.readlines()]
 
-        # DMO table
-        dmo_title = "DMO Properties"
-        lines.append(dmo_title)
-        lines.append("-" * len(dmo_title))
-        lines.append("")
-        self._build_rst_table(dmo_props, lines)
+        # Tables
+        for props, table_title in [
+                (input_basic_props, "Input Halo Properties"),
+                (dmo_props, "DMO Properties"),
+                (hydro_props, "HYDRO Properties"),
+                (input_copied_props, "Copied Properties"),
+            ]:
 
-        # HYDRO table
-        hydro_title = "HYDRO Properties"
-        lines.append(hydro_title)
-        lines.append("-" * len(hydro_title))
-        lines.append("")
-        self._build_rst_table(hydro_props, lines)
+            lines.append(table_title)
+            lines.append("-" * len(table_title))
+            lines.append("")
+            self._build_rst_table(props, lines)
 
         # Footnotes
         if self.footnotes:
