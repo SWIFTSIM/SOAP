@@ -63,7 +63,7 @@ def update_vds_paths(dset, modify_function):
 
 
 def make_virtual_snapshot(
-    snapshot, auxiliary_snapshots, output_file, absolute_paths=False
+    snapshot, auxiliary_snapshots, output_file, absolute_paths=False, discard_duplicate_datasets=False,
 ):
     """
     Given a snapshot and auxiliary files, create
@@ -150,6 +150,23 @@ def make_virtual_snapshot(
                         )
                     all_auxiliary_datasets[dset_path] = auxiliary
 
+            # Copy over the named column values, handling the case where we have
+            # dataset names that already exist in the original snapshot
+            for dset in infile.get('SubgridScheme/NamedColumns', []):
+                outfile_named_cols = outfile['SubgridScheme/NamedColumns']
+                if dset in outfile_named_cols:
+                    if discard_duplicate_datasets:
+                        del outfile_named_cols[dset]
+                    else:
+                        outfile.move(
+                            f"SubgridScheme/NamedColumns/{dset}",
+                            f"SubgridScheme/NamedColumns/{dset}_snap",
+                        )
+                outfile_named_cols.create_dataset(
+                    dset,
+                    data=infile[f'SubgridScheme/NamedColumns/{dset}'],
+                )
+
         # Loop over input auxiliary files to get dataset shapes
         file_nr = 0
         filenames = []
@@ -211,9 +228,12 @@ def make_virtual_snapshot(
             # already exist in the snapshot
             for dset, attrs in dset_attrs[f"PartType{ptype}"].items():
                 if f"PartType{ptype}/{dset}" in outfile:
-                    outfile.move(
-                        f"PartType{ptype}/{dset}", f"PartType{ptype}/{dset}_snap"
-                    )
+                    if discard_duplicate_datasets:
+                        del outfile[f"PartType{ptype}/{dset}"]
+                    else:
+                        outfile.move(
+                            f"PartType{ptype}/{dset}", f"PartType{ptype}/{dset}_snap"
+                        )
                 outfile.create_virtual_dataset(
                     f"PartType{ptype}/{dset}", layouts[dset], fillvalue=-999
                 )
@@ -268,7 +288,7 @@ if __name__ == "__main__":
         description=(
             "Link SWIFT snapshots with SWIFT auxiliary snapshots (snapshot-like"
             "files with the same number of particles in the same order as the"
-            "snapshot, but with less metadata), such as the SOAP memberships"
+            "snapshot, but with less metadata), such as the SOAP memberships."
         )
     )
     parser.add_argument(
@@ -302,6 +322,16 @@ if __name__ == "__main__":
         action="store_true",
         help="Use absolute paths in the virtual dataset",
     )
+    parser.add_argument(
+        "--discard-duplicate-datasets",
+        action="store_true",
+        help=(
+            "This flag determines the behaviour when a dataset exists in both the original snapshot"
+            "and the auxilary file. By default the virtual file will rename the original snapshot"
+            "dataset as {dataset_name}_snap. If this flag is passed then the dataset from the original"
+            "snapshot will not be linked to"
+        ),
+    )
     args = parser.parse_args()
 
     print(f"Creating virtual snapshot")
@@ -324,4 +354,5 @@ if __name__ == "__main__":
         auxiliary_snapshots,
         output_file,
         absolute_paths=args.absolute_paths,
+        discard_duplicate_datasets=args.discard_duplicate_datasets,
     )
