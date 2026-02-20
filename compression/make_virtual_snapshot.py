@@ -63,7 +63,11 @@ def update_vds_paths(dset, modify_function):
 
 
 def make_virtual_snapshot(
-    snapshot, auxiliary_snapshots, output_file, absolute_paths=False, discard_duplicate_datasets=False,
+    snapshot,
+    auxiliary_snapshots,
+    output_file,
+    absolute_paths=False,
+    discard_duplicate_datasets=False,
 ):
     """
     Given a snapshot and auxiliary files, create
@@ -152,8 +156,8 @@ def make_virtual_snapshot(
 
             # Copy over the named column values, handling the case where we have
             # dataset names that already exist in the original snapshot
-            for dset in infile.get('SubgridScheme/NamedColumns', []):
-                outfile_named_cols = outfile['SubgridScheme/NamedColumns']
+            for dset in infile.get("SubgridScheme/NamedColumns", []):
+                outfile_named_cols = outfile["SubgridScheme/NamedColumns"]
                 if dset in outfile_named_cols:
                     if discard_duplicate_datasets:
                         del outfile_named_cols[dset]
@@ -164,7 +168,7 @@ def make_virtual_snapshot(
                         )
                 outfile_named_cols.create_dataset(
                     dset,
-                    data=infile[f'SubgridScheme/NamedColumns/{dset}'],
+                    data=infile[f"SubgridScheme/NamedColumns/{dset}"],
                 )
 
         # Loop over input auxiliary files to get dataset shapes
