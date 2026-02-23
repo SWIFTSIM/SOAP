@@ -5534,8 +5534,16 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         text = re.sub(r"\\textbf\{([^}]+)\}", lambda m: f"**{m.group(1)}**", text)
 
         # Step 7: strip remaining unrecognised LaTeX commands.
+        # \href{url}{text} is handled explicitly before the generic stripper,
+        # which would otherwise keep only the first argument (the URL) and
+        # discard the link text
         # Commands with a brace argument: keep the argument text.
         # Bare commands (no argument): remove entirely.
+        text = re.sub(
+            r"\\href\{([^}]+)\}\{([^}]+)\}",
+            lambda m: f"`{m.group(2)} <{m.group(1)}>`_",
+            text,
+        )
         text = re.sub(r"\\[a-zA-Z]+\{([^}]*)\}", r"\1", text)
         text = re.sub(r"\\[a-zA-Z]+", "", text)
         text = text.replace("~", " ")  # LaTeX non-breaking space
