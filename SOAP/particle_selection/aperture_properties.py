@@ -785,7 +785,7 @@ class ApertureParticleData:
         if self.Nstar == 0:
             return None
         Luv = self.corrected_stellar_luminosities[
-            :, self.snapshot_datasets.get_column_index("PartType4/CorrectedLuminosities", "TopHat_UV")
+            :, self.snapshot_datasets.get_column_index("PartType4/CorrectedLuminosities", "TopHat_UV_NE2")
         ]
         Luvtot = Luv.sum()
         if Luvtot == 0:

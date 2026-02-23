@@ -1472,10 +1472,10 @@ class PropertyTable:
         ),
         "HalfCorrectedLightRadiusStar": Property(
             name="HalfCorrectedLightRadiusStars",
-            shape=9,
+            shape=10,
             dtype=np.float32,
             unit="snap_length",
-            description="Stellar half light radius in the 9 IMF-corrected luminosity bands.",
+            description="Stellar half light radius in the 10 IMF-corrected luminosity bands.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -2500,10 +2500,10 @@ class PropertyTable:
         ),
         "CorrectedStellarLuminosity": Property(
             name="CorrectedStellarLuminosity",
-            shape=9,
+            shape=10,
             dtype=np.float32,
             unit="dimensionless",
-            description="IMF-corrected stellar luminosity in bands Top Hat (1450-1550 A); GALEX (FUV,NUV); SDSS (u, g, r, i, z); VISTA (k).",
+            description="IMF-corrected stellar luminosity in 10 bands; Top Hat (1450-1550 A, with and w/out nebular emission); GALEX (FUV,NUV); SDSS (u, g, r, i, z); VISTA (k).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/CorrectedLuminosities"],
@@ -3979,7 +3979,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_time",
-            description="Luminosity weighted mean stellar age. The weight is the IMF-corrected Top Hat UV band luminosity.",
+            description="Luminosity weighted mean stellar age. The weight is the IMF-corrected Top Hat UV band luminosity (incl. nebular emission).",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
