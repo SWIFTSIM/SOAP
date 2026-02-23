@@ -1,10 +1,10 @@
-SOAP property table
-===================
+SOAP properties table
+=====================
 
-The tables below list the properties available within the SOAP catalogues. The first table contains the properties within the ``input_halos`` group.
+The tables below list the (sub)halo properties available within the SOAP catalogues. The first table contains the properties within the ``input_halos`` group.
 The second table contains the properties which are calculated for both DMO and HYDRO simulations.
 The third table contains the properties which are only calculated for the HYDRO simulations.
-The final table contains the datasets copied over from the HBT-HERONS and FOF catalogues.
+The final table contains the datasets copied over from the HBT-HERONS and FoF catalogues.
 Within each table the properties are sorted based on their filters.
 
 The first column gives the name of the property when opened using the `swiftsimio library <https://swiftsimio.readthedocs.io/en/latest/soap/index.html>`_. Clicking on each property name will open a dropdown box, which contains information about the dataset within the HDF5 file. The second column gives the filter applied to that property, as descibred in :doc:`property_filters`. The third column indicates the halo variations for which this property is available (green if the property is computed for a certain variation, red if not). The variations are as follows:

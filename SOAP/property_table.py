@@ -1860,7 +1860,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Fraction of mass that is bound to a satellite in the same FOF group.",
+            description="Fraction of mass that is bound to a satellite in the same FoF group.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[
@@ -1885,7 +1885,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Fraction of mass that is bound to a satellite outside this FOF group.",
+            description="Fraction of mass that is bound to a satellite outside this FoF group.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[
@@ -4629,7 +4629,7 @@ class PropertyTable:
             shape=1,
             dtype=np.int64,
             unit="dimensionless",
-            description="ID of the host FOF halo of this subhalo. Hostless halos have HostFOFId == -1",
+            description="ID of the host FoF halo of this subhalo. Hostless halos have HostFOFId == -1",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
@@ -4750,7 +4750,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float64,
             unit="snap_length",
-            description="Centre of mass of the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            description="Centre of mass of the host FoF halo of this subhalo. Zero for satellite and hostless subhalos.",
             lossy_compression_filter="DScale6",
             dmo_property=True,
             particle_properties=[],
@@ -4762,7 +4762,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Mass of the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            description="Mass of the host FoF halo of this subhalo. Zero for satellite and hostless subhalos.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[],
@@ -4774,7 +4774,7 @@ class PropertyTable:
             shape=1,
             dtype=np.uint64,
             unit="dimensionless",
-            description="Number of particles in the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            description="Number of particles in the host FoF halo of this subhalo. Zero for satellite and hostless subhalos.",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
@@ -4786,7 +4786,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_length",
-            description="Radius of the particle furthest from the FOF centre of mass. Zero for satellite and hostless subhalos. Missing for older runs.",
+            description="Radius of the particle furthest from the FoF centre of mass. Zero for satellite and hostless subhalos. Missing for older runs.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[],
@@ -5675,10 +5675,10 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
 
         # Tables
         for props, table_title in [
-                (input_basic_props, "Input Halo Properties"),
-                (dmo_props, "DMO Properties"),
-                (hydro_props, "HYDRO Properties"),
-                (input_copied_props, "Copied Properties"),
+                (input_basic_props, "Input halo properties"),
+                (dmo_props, "Dark matter only properties"),
+                (hydro_props, "Hydrodynamical properties"),
+                (input_copied_props, "Copied properties"),
             ]:
 
             lines.append(table_title)
