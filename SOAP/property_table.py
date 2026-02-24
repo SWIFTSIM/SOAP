@@ -5325,6 +5325,62 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
 
         return re.sub(r"\$(.+?)\$", replace_math, text)
 
+    # Map from internal snap_* unit names to human-readable physical equivalents.
+    # Values are validated against the live unyt registry by _validate_snap_unit_map.
+    _snap_unit_map = {
+        "snap_mass":        "(1e10*Msun)",
+        "snap_length":      "Mpc",
+        "snap_time":        "(s*Mpc/km)",
+        "snap_temperature": "K",
+    }
+
+    def _resolve_snap_units(self, prop_name: str, prop: dict) -> str:
+        """
+        Return an RST-formatted unit string for *prop_name*, replacing the
+        internal ``snap_*`` base units with their physical equivalents.
+
+        The substitution map is validated once against the live unyt registry
+        in :meth:`_validate_snap_unit_map` (called from ``generate_rst_files``).
+        """
+        # Retrieve the raw unit expression from the canonical property definition
+        prop_obj = self.full_property_list[prop_name]
+        prop_unit = prop_obj.unit
+
+        if prop_name == 'Xraylum':
+            print(prop_unit)
+        for snap_name, replacement in self._snap_unit_map.items():
+            prop_unit = prop_unit.replace(snap_name, replacement)
+            if prop_name == 'Xraylum':
+                print(prop_unit)
+
+        units = unyt.unyt_quantity(1, units=prop_unit)
+        latex = (
+            units.units.latex_repr
+            .replace("\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}")
+            .replace("\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}")
+            .replace(r"1.0 \times ", "")
+            .rstrip()
+        )
+
+        if (not prop_obj.output_physical) and prop_obj.a_scale_exponent:
+            a = prop_obj.a_scale_exponent
+            a_str = "a" if a == 1 else f"a^{{{a}}}"
+            latex = f"{a_str} \\cdot {latex}" if latex else a_str
+
+        return self._latex_units_to_rst(latex)
+
+    def _validate_snap_unit_map(self) -> None:
+        """
+        Assert that every entry in ``_snap_unit_map`` matches the live unyt
+        registry.  Called once at the start of ``generate_rst_files`` so the
+        assertions run exactly once rather than once per property.
+        """
+        for snap_name, replacement in self._snap_unit_map.items():
+            assert np.isclose(
+                unyt.unyt_quantity(1, snap_name),
+                unyt.unyt_quantity(1, replacement),
+            ), f"Unit mismatch: {snap_name} != {replacement}"
+
     def _get_output_types_rst(self, prop: dict) -> str:
         """
         Return a highlighted string showing all halo type abbreviations.
@@ -5589,7 +5645,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
                 output_name = "InputHalos/" + output_name
                 snake_name = 'input_halos_' + snake_name
 
-            prop_units_rst = self._latex_units_to_rst(prop["units"])
+            prop_units_rst = self._resolve_snap_units(prop_name, prop)
             prop_comp_rst = self._compression_to_rst(
                 self.compression_description[prop["compression"]]
             )
@@ -5634,6 +5690,8 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         the file so that the superscript links in the Name column resolve
         correctly.
         """
+
+        self._validate_snap_unit_map()
 
         category_order = [
             "basic",
