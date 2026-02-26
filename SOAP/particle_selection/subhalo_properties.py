@@ -180,6 +180,14 @@ class SubhaloParticleData:
         return self.types == 1
 
     @lazy_property
+    def sink_mask_sh(self) -> NDArray[bool]:
+        """
+        Mask used to mask out sink particles that belong to this subhalo in
+        arrays containing all particles, e.g. self.mass.
+        """
+        return self.types == 3
+
+    @lazy_property
     def star_mask_sh(self) -> NDArray[bool]:
         """
         Mask used to mask out star particles that belong to this subhalo in
@@ -216,6 +224,13 @@ class SubhaloParticleData:
         Number of dark matter particles in the subhalo.
         """
         return self.dm_mask_sh.sum()
+
+    @lazy_property
+    def Nsink(self) -> int:
+        """
+        Number of sink particles in the subhalo.
+        """
+        return self.sink_mask_sh.sum()
 
     @lazy_property
     def Nstar(self) -> int:
@@ -2540,6 +2555,7 @@ class SubhaloProperties(HaloProperty):
         self.particle_properties = {
             "PartType0": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
             "PartType1": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
+            "PartType3": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
             "PartType4": ["Coordinates", "Masses", "Velocities", "GroupNr_bound"],
             "PartType5": [
                 "Coordinates",
@@ -2603,6 +2619,7 @@ class SubhaloProperties(HaloProperty):
             {
                 "BoundSubhalo/NumberOfDarkMatterParticles": part_props.Ndm,
                 "BoundSubhalo/NumberOfGasParticles": part_props.Ngas,
+                "BoundSubhalo/NumberOfSinkParticles": part_props.Nsink,
                 "BoundSubhalo/NumberOfStarParticles": part_props.Nstar,
                 "BoundSubhalo/NumberOfBlackHoleParticles": part_props.Nbh,
             },
@@ -2612,7 +2629,7 @@ class SubhaloProperties(HaloProperty):
         # If not, we need to try again with a larger search radius.
         # For HBT this should not happen since we use the radius of the most distant
         # bound particle.
-        Ntot = part_props.Ngas + part_props.Ndm + part_props.Nstar + part_props.Nbh
+        Ntot = part_props.Ngas + part_props.Ndm + part_props.Nsink + part_props.Nstar + part_props.Nbh
         Nexpected = input_halo["nr_bound_part"]
         if Ntot < Nexpected:
             # Try again with a larger search radius
