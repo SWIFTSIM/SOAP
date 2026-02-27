@@ -1905,6 +1905,22 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
+        "ExSituFraction": Property(
+            name="ExSituFraction",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Mass fraction of bound stars that formed in a different subhalo",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=True,
+            particle_properties=[
+                "PartType4/Masses",
+                "PartType4/BirthHaloCatalogueIndex",
+                "PartType4/GroupNr_bound",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
         "Mgas": Property(
             name="GasMass",
             shape=1,
@@ -5134,7 +5150,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
         # standalone table file footer
         tailstr = "\\end{document}"
 
-        # generate the auxilary documentation files
+        # generate the auxiliary documentation files
         with open(f"{output_dir}/timestamp.tex", "w") as ofile:
             ofile.write(get_version_string())
         with open(f"{output_dir}/table.tex", "w") as ofile:
