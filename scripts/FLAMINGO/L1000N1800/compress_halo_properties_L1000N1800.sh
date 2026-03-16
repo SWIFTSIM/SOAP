@@ -29,7 +29,7 @@ output_dir="/cosma8/data/dp004/dc-mcgi1/FLAMINGO/Runs"
 scratch_dir="/snap8/scratch/dp004/dc-mcgi1/FLAMINGO/Runs"
 
 # compression script
-script="./compression/compress_soap_catalogue.py"
+script="./SOAP/compression/compress_soap_catalogue.py"
 
 # Which snapshot to do
 snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`

@@ -36,7 +36,7 @@ snapshot="${snap_basename}.hdf5"
 membership="${membership_basename}.{file_nr}.hdf5"
 output="${output_basename}.{file_nr}.hdf5"
 virtual="${output_dir}/${sim}/SOAP-ExSitu/birth_${snapnum}.hdf5"
-python compression/make_virtual_snapshot.py \
+python SOAP/compression/make_virtual_snapshot.py \
   --virtual-snapshot "$snapshot" \
   --auxiliary-snapshots "$membership" "$output" \
   --output-file "$virtual" \

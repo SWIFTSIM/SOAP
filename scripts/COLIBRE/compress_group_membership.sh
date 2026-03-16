@@ -90,7 +90,7 @@ echo "Creating virtual snapshot"
 snapshot="${output_dir}/${sim}/snapshots/colibre_${snapnum}/colibre_${snapnum}.hdf5"
 membership="${output_filename}.{file_nr}.hdf5"
 virtual="${outbase}/colibre_with_SOAP_membership_${snapnum}.hdf5"
-python compression/make_virtual_snapshot.py \
+python SOAP/compression/make_virtual_snapshot.py \
   --virtual-snapshot $snapshot \
   --auxiliary-snapshots $membership \
   --output-file $virtual
