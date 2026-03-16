@@ -40,7 +40,6 @@ from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculato
 from SOAP.particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 
-
 # Set numpy to raise divide by zero, overflow and invalid operation errors as exceptions
 np.seterr(divide="raise", over="raise", invalid="raise")
 
