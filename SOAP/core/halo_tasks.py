@@ -10,7 +10,6 @@ from SOAP.core.dataset_names import mass_dataset, ptypes_for_so_masses
 from SOAP.particle_selection.halo_properties import SearchRadiusTooSmallError
 from SOAP.property_table import PropertyTable
 
-
 # Factor by which to increase search radius when looking for density threshold
 SEARCH_RADIUS_FACTOR = 1.2
 

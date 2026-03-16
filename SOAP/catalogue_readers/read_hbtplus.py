@@ -264,7 +264,7 @@ def read_hbtplus_catalogue(
         MassInMsunh = None
         VelInKmS = None
         sorted_file = None
-    (LengthInMpch, MassInMsunh, VelInKmS) = comm.bcast(
+    LengthInMpch, MassInMsunh, VelInKmS = comm.bcast(
         (LengthInMpch, MassInMsunh, VelInKmS)
     )
     sorted_file = comm.bcast(sorted_file)
