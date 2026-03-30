@@ -1,12 +1,12 @@
 # SOAP: Spherical Overdensity and Aperture Processor
 
-[![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252)
-
 This repository contains programs which can be used to compute
 properties of halos in spherical apertures in [SWIFT](https://swift.strw.leidenuniv.nl/) snapshots.
 The resulting output halo catalogues can be read using the
 [swiftsimio](https://swiftsimio.readthedocs.io/en/latest/)
 python package.
+
+Please cite SOAP using the JOSS paper: [![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252)
 
 ## Installation
 
