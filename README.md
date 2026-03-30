@@ -6,7 +6,7 @@ The resulting output halo catalogues can be read using the
 [swiftsimio](https://swiftsimio.readthedocs.io/en/latest/)
 python package.
 
-[![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252) Please cite SOAP using the JOSS paper 
+Please cite SOAP using the [JOSS paper](https://ui.adsabs.harvard.edu/abs/2025JOSS...10.8252M/abstract)       [![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252) 
 
 ## Installation
 
