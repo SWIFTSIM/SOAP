@@ -15,8 +15,10 @@
 # Install Hdecompose with:
 #   pip install git+ssh://git@github.com/kyleaoman/Hdecompose.git
 #
-# Download virtual snapshot script with:
+# Download virtual snapshot script (to the main SOAP directory) with:
 #   wget https://gitlab.cosma.dur.ac.uk/swift/swiftsim/-/raw/master/tools/create_virtual_snapshot.py
+#
+# Submit this script from the main SOAP directory ($ sbatch scripts/EAGLE.sh)
 
 sim_name='L0100N1504'
 snap_nr="028"
@@ -29,6 +31,8 @@ source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 ######## Link files to snap (to remove awful z suffix)
 
 sim_dir="/cosma7/data/Eagle/ScienceRuns/Planck1/${sim_name}/PE/REFERENCE/data"
+# Note that if you update the output directory, you will also need to
+# update the SOAP parameter file
 output_dir="/snap7/scratch/dp004/dc-mcgi1/SOAP_EAGLE/${sim_name}"
 
 sim_snap_dir="${sim_dir}/particledata_${snap_nr}_${z_suffix}"
