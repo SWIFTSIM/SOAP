@@ -570,14 +570,13 @@ if comm_rank == 0:
 
         # DM mass can be a special case
         if "Mass" in properties.get(f"PartType1", {}):
-            if 'Mass' not in infile['PartType1']:
+            if "Mass" not in infile["PartType1"]:
                 # Load DM mass from mass table
                 dm_mass = infile["Header"].attrs["MassTable"][1] / h
                 properties["PartType1"]["Mass"]["conversion_factor"] = dm_mass
             else:
                 # Treat DM mass as any other property
                 dm_mass = 0
-
 
         # Get list of elements for ElementMassFractions
         if "ElementMassFractions" in properties.get(f"PartType0", {}):
