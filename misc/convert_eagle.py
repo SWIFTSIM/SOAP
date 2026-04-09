@@ -212,6 +212,7 @@ if comm_rank == 0:
         G = const_internal_header["newton_G"][0]
         critical_density = 3 * (H**2) / (8 * np.pi * G)
         cosmology_header = {
+            "Cosmological run": 1,
             "Omega_b": header.attrs["OmegaBaryon"],
             "Omega_m": header.attrs["Omega0"],
             "Omega_k": 0,
@@ -318,6 +319,13 @@ properties = {
         "Metallicity": {
             "swift_name": "MetalMassFractions",
             "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
+            "a_exponent": None,
+            "description": None,
+            "conversion_factor": None,
+        },
+        "SmoothingLength": {
+            "swift_name": "SmoothingLengths",
+            "exponents": {"L": 1, "M": 0, "T": 0, "t": 0},
             "a_exponent": None,
             "description": None,
             "conversion_factor": None,
@@ -560,10 +568,15 @@ if comm_rank == 0:
                     "conversion_factor"
                 ] = conversion_factor
 
-        # Load DM mass from mass table
+        # DM mass can be a special case
         if "Mass" in properties.get(f"PartType1", {}):
-            dm_mass = infile["Header"].attrs["MassTable"][1] / h
-            properties["PartType1"]["Mass"]["conversion_factor"] = dm_mass
+            if "Mass" not in infile["PartType1"]:
+                # Load DM mass from mass table
+                dm_mass = infile["Header"].attrs["MassTable"][1] / h
+                properties["PartType1"]["Mass"]["conversion_factor"] = dm_mass
+            else:
+                # Treat DM mass as any other property
+                dm_mass = 0
 
         # Get list of elements for ElementMassFractions
         if "ElementMassFractions" in properties.get(f"PartType0", {}):
@@ -661,8 +674,8 @@ for ptype in ptypes:
         if comm_rank == 0:
             print(f"Converting PartType{ptype}/{prop}")
 
-        # DM particles all have the same mass, so are not saved in the snapshots
-        if (ptype == 1) and (prop == "Mass"):
+        if (ptype == 1) and (prop == "Mass") and (dm_mass == 0):
+            # DM particles all have the same mass, so are not saved in the snapshots
             arr = np.ones(pos.shape[0])
         else:
             # Load data from file and sort according to cell structure
