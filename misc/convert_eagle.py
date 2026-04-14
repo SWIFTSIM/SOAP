@@ -569,14 +569,13 @@ if comm_rank == 0:
                 ] = conversion_factor
 
         # DM mass can be a special case
+        properties['dm_mass_in_table'] = False
         if "Mass" in properties.get(f"PartType1", {}):
             if "Mass" not in infile["PartType1"]:
                 # Load DM mass from mass table
                 dm_mass = infile["Header"].attrs["MassTable"][1] / h
                 properties["PartType1"]["Mass"]["conversion_factor"] = dm_mass
-            else:
-                # Treat DM mass as any other property
-                dm_mass = 0
+                properties['dm_mass_in_table'] = True
 
         # Get list of elements for ElementMassFractions
         if "ElementMassFractions" in properties.get(f"PartType0", {}):
@@ -674,7 +673,7 @@ for ptype in ptypes:
         if comm_rank == 0:
             print(f"Converting PartType{ptype}/{prop}")
 
-        if (ptype == 1) and (prop == "Mass") and (dm_mass == 0):
+        if (ptype == 1) and (prop == "Mass") and properties['dm_mass_in_table']:
             # DM particles all have the same mass, so are not saved in the snapshots
             arr = np.ones(pos.shape[0])
         else:
