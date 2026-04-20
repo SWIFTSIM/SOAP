@@ -1,12 +1,14 @@
 # SOAP: Spherical Overdensity and Aperture Processor
 
-[![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252) 
 
 This repository contains programs which can be used to compute
 properties of halos in spherical apertures in [SWIFT](https://swift.strw.leidenuniv.nl/) snapshots.
 The resulting output halo catalogues can be read using the
 [swiftsimio](https://swiftsimio.readthedocs.io/en/latest/)
 python package.
+
+Please cite SOAP using the [JOSS paper](https://ui.adsabs.harvard.edu/abs/2025JOSS...10.8252M)
 
 ## Installation
 
@@ -116,7 +118,7 @@ The first is lossless compression via GZIP, the second is lossy compression.
 For the group membership files we only apply lossless compression. However,
 each property in the final SOAP catalogue has a lossy compression filter
 associated with it, which are set in `SOAP/property_table.py`. The script 
-`compression/compress_soap_catalogue.py` will apply both lossy and
+`SOAP/compression/compress_soap_catalogue.py` will apply both lossy and
 lossless compression to SOAP catalogues.
 
 ### Documentation

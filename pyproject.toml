@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SOAP"
-version = "0.1"
+version = "0.1.1"
 description = "MPI parallel Python code to compute properties of halos in SWIFT n-body simulations"
 readme = "README.md"
 requires-python = ">=3.10"

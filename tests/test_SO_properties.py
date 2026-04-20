@@ -419,7 +419,7 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
         "crit",
     )
 
-    (input_halo, data, rmax, Mtot, Npart, particle_numbers) = dummy_halos.gen_nfw_halo(
+    input_halo, data, rmax, Mtot, Npart, particle_numbers = dummy_halos.gen_nfw_halo(
         100, c, num_part
     )
 

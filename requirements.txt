@@ -1,6 +1,6 @@
 mpi4py
 h5py
-numpy>=2
+numpy>=2,<2.4
 unyt>=3
 astropy>=6
 scipy

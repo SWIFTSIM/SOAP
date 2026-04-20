@@ -1922,6 +1922,22 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
+        "ExSituFraction": Property(
+            name="ExSituFraction",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Mass fraction of bound stars that formed in a different subhalo",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=True,
+            particle_properties=[
+                "PartType4/Masses",
+                "PartType4/BirthHaloCatalogueIndex",
+                "PartType4/GroupNr_bound",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
         "Mgas": Property(
             name="GasMass",
             shape=1,
@@ -4096,7 +4112,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the oxygen over hydrogen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the oxygen over hydrogen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4113,7 +4129,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the total nitrogen over oxygen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the total nitrogen over oxygen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4130,7 +4146,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the total carbon over oxygen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the total carbon over oxygen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4147,7 +4163,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the diffuse nitrogen over oxygen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the diffuse nitrogen over oxygen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4164,7 +4180,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the diffuse carbon over oxygen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the diffuse carbon over oxygen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4181,7 +4197,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the diffuse oxygen over hydrogen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the diffuse oxygen over hydrogen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4198,7 +4214,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse nitrogen over oxygen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar N/O.",
+            description="Logarithmic sum of the diffuse nitrogen over oxygen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-4 times solar N/O.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4215,7 +4231,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse nitrogen over oxygen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar N/O.",
+            description="Logarithmic sum of the diffuse nitrogen over oxygen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-3 times solar N/O.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4232,7 +4248,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse carbon over oxygen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar C/O.",
+            description="Logarithmic sum of the diffuse carbon over oxygen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-4 times solar C/O.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4249,7 +4265,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse carbon over oxygen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar C/O.",
+            description="Logarithmic sum of the diffuse carbon over oxygen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-3 times solar C/O.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4266,7 +4282,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4283,7 +4299,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4300,7 +4316,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of atomic gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of atomic gas, weighted by the atomic gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4319,7 +4335,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of atomic gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of atomic gas, weighted by the atomic gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4338,7 +4354,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of molecular gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of molecular gas, weighted by the molecular gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4357,7 +4373,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of molecular gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of molecular gas, weighted by the molecular gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4376,7 +4392,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass.",
+            description="Linear sum of the iron over hydrogen ratio of stars, weighted by the stellar mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4388,7 +4404,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-4 times solar Fe/H.",
+            description="Logarithmic sum of the iron over hydrogen ratio of stars, weighted by the stellar mass. Imposes a lower limit of 1.e-4 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4400,7 +4416,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-3 times solar Fe/H.",
+            description="Logarithmic sum of the iron over hydrogen ratio of stars, weighted by the stellar mass. Imposes a lower limit of 1.e-3 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4412,7 +4428,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the magnesium over hydrogen ratio of stars, multiplied with the stellar mass.",
+            description="Linear sum of the magnesium over hydrogen ratio of stars, weighted by the stellar mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4424,7 +4440,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the magnesium over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-4 times solar Fe/H.",
+            description="Logarithmic sum of the magnesium over hydrogen ratio of stars, weighted by the stellar mass. Imposes a lower limit of 1.e-4 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4436,7 +4452,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the magnesium over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-3 times solar Fe/H.",
+            description="Logarithmic sum of the magnesium over hydrogen ratio of stars, weighted by the stellar mass. Imposes a lower limit of 1.e-3 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4466,7 +4482,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass, where only iron from SNIa is included. Imposes a lower limit of 1.e-4 times solar Fe/H.",
+            description="Logarithmic sum of the iron over hydrogen ratio of stars, weighted by the stellar mass, where only iron from SNIa is included. Imposes a lower limit of 1.e-4 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4482,7 +4498,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass, where only iron from SNIa is included.",
+            description="Sum of the iron over hydrogen ratio of stars, weighted by the stellar mass, where only iron from SNIa is included.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -5151,7 +5167,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
         # standalone table file footer
         tailstr = "\\end{document}"
 
-        # generate the auxilary documentation files
+        # generate the auxiliary documentation files
         with open(f"{output_dir}/timestamp.tex", "w") as ofile:
             ofile.write(get_version_string())
         with open(f"{output_dir}/table.tex", "w") as ofile:

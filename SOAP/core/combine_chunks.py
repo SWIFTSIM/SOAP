@@ -420,7 +420,7 @@ def combine_chunks(
             fof_reg = None
             fof_com_unit = None
             fof_mass_unit = None
-        (fof_reg, fof_com_unit, fof_mass_unit) = comm_world.bcast(
+        fof_reg, fof_com_unit, fof_mass_unit = comm_world.bcast(
             (fof_reg, fof_com_unit, fof_mass_unit)
         )
 
