@@ -140,8 +140,8 @@ def get_soap_args(comm):
     args.max_ranks_reading = all_args["Parameters"]["max_ranks_reading"]
     args.output_parameters = all_args["Parameters"]["output_parameters"]
     args.git_hash = all_args["git_hash"]
-    args.min_read_radius_cmpc = all_args["calculations"].get("min_read_radius_cmpc", 0)
-    args.calculations = all_args["calculations"]
+    args.calculations = all_args.get("calculations", {})
+    args.min_read_radius_cmpc = args.calculations.get("min_read_radius_cmpc", 0)
 
     # Extra-input files which are optionally passed in the parameter file are
     # processed the same way as the membership files
@@ -191,5 +191,21 @@ def get_soap_args(comm):
             if not os.path.exists(fof_filename):
                 print(f"Could not find FOF radius catalogue: {fof_filename}")
                 comm.Abort(1)
+
+    # This really should be done in parameter_file.py
+    args.separate_chunks = args.calculations.get("separate_chunks", [])
+    if not isinstance(args.separate_chunks, list):
+        print("Invalid form for separate_chunks")
+        comm.Abort(1)
+    for threshold in args.separate_chunks:
+        if ("n_bound_threshold" not in threshold) or (
+            "n_halo_per_chunk" not in threshold
+        ):
+            print("Invalid form for separate_chunks")
+            comm.Abort(1)
+    args.separate_chunks = sorted(
+        args.separate_chunks,
+        key=lambda x: -x["n_bound_threshold"],
+    )
 
     return args
