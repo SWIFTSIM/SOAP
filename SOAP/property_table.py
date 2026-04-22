@@ -3686,6 +3686,32 @@ class PropertyTable:
             output_physical=False,
             a_scale_exponent=1,
         ),
+        "ShrinkingSphereCentre": Property(
+            name="ShrinkingSphereCentre",
+            shape=3,
+            dtype=np.float64,
+            unit="snap_length",
+            # TODO: Add description
+            description="Centre of mass of stars.",
+            lossy_compression_filter="DScale6",
+            dmo_property=False,
+            particle_properties=["PartType0/Coordinates", "PartType0/Masses", "PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=False,
+            a_scale_exponent=1,
+        ),
+        "StellarAsymmetry": Property(
+            name="StellarAsymmetry",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            # TODO: Add description
+            description="Centre of mass of stars.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType0/Coordinates", "PartType0/Masses", "PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
         "compY": Property(
             name="ComptonY",
             shape=1,
