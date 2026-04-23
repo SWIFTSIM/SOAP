@@ -143,14 +143,6 @@ class PropertyTable:
             "proj_veldisp_dm",
             "proj_veldisp_star",
         ],
-        "footnote_elements.tex": [
-            "gasOfrac",
-            "gasOfrac_SF",
-            "gasFefrac",
-            "gasFefrac_SF",
-            "gasmetalfrac",
-            "gasmetalfrac_SF",
-        ],
         "footnote_halfmass.tex": [
             "HalfMassRadiusTot",
             "HalfMassRadiusGas",
@@ -5346,12 +5338,8 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         prop_obj = self.full_property_list[prop_name]
         prop_unit = prop_obj.unit
 
-        if prop_name == 'Xraylum':
-            print(prop_unit)
         for snap_name, replacement in self._snap_unit_map.items():
             prop_unit = prop_unit.replace(snap_name, replacement)
-            if prop_name == 'Xraylum':
-                print(prop_unit)
 
         units = unyt.unyt_quantity(1, units=prop_unit)
         latex = (
