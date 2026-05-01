@@ -8,13 +8,14 @@ and the \verb+GasTemperatureWithoutRecentAGNHeating+ variant uses the same defin
 that satisfy
 
 \begin{equation}
-    \verb+LastAGNFeedbackScaleFactors+_i \geq{} a - 15{\rm{}Myr}
+    0.1 \Delta{}T_{\rm{}AGN} \leq{} T_i \leq{} 10^{0.3} \Delta{}T_{\rm{}AGN},
 \end{equation}
 
 and
 
 \begin{equation}
-    0.1 \Delta{}T_{\rm{}AGN} \leq{} T_i \leq{} 10^{0.3} \Delta{}T_{\rm{}AGN},
+    \verb+LastAGNFeedbackScaleFactors+_i \geq{} a(t - 15{\rm{}Myr})
 \end{equation}
 
-using the same parameters as used internally by SWIFT and with $a$ the current scale factor.
+where $\Delta T_{\rm{}AGN}$ is the same value as used internally by SWIFT, $t$ is the cosmic time, and $a()$ 
+gives the scale factor as a function of time.
