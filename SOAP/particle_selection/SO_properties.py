@@ -3211,6 +3211,28 @@ class SOParticleData:
             "momentum", Tmin=Tmin
         )
 
+    @lazy_property
+    def EulerMassThermalSupport() -> unyt.unyt_array:
+        """
+        Computes the contribution of gas thermal support against gravity.
+        """
+        return
+
+    @lazy_property
+    def EulerMassRotationalSupport() -> unyt.unyt_array:
+        """
+        Computes the contribution of gas rotational support against gravitational
+        collapse.
+        """
+        return
+
+    @lazy_property
+    def EulerMassStreamingSupport() -> unyt.unyt_array:
+        """
+        Computes the contribution of gas streaming  support against gravitational
+        collapse.
+        """
+        return
 
 class SOProperties(HaloProperty):
     """
@@ -3364,6 +3386,9 @@ class SOProperties(HaloProperty):
             "concentration_soft",
             "concentration_dmo_unsoft",
             "concentration_dmo_soft",
+            "EulerMassThermalSupport",
+            "EulerMassRotationalSupport",
+            "EulerMassStreamingSupport",
         ]
     }
 
