@@ -201,7 +201,7 @@ def read_gadget4_catalogue(comm, basename, a_unit, registry, boxsize):
     length_conversion = (gadget_length_unit / swift_pmpc).to(unyt.dimensionless)
 
     # Get position in comoving Mpc, assuming input position from Gadget is comoving
-    cofp = data["Subhalo/SubhaloPos"] * length_conversion * swift_cmpc
+    cofp = (data["Subhalo/SubhaloPos"] * length_conversion * swift_cmpc) % boxsize
 
     # Store central halo flag
     is_central = np.where(data["Subhalo/SubhaloRankInGr"] == 0, 1, 0)
@@ -227,7 +227,7 @@ def read_gadget4_catalogue(comm, basename, a_unit, registry, boxsize):
 
     # Store initial search radius
     search_radius = (
-        data["Subhalo/SubhaloHalfmassRad"] * length_conversion * swift_pmpc
+        (4 * data["Subhalo/SubhaloHalfmassRad"]) * length_conversion * swift_pmpc
     )  # different units from cofm, not a typo!
 
     local_halo = {

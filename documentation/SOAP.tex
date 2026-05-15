@@ -74,12 +74,16 @@ aperture radius of \verb+XXX+ \textbf{physical} kpc. Groups with a property name
 of the property calculated for the bound subhalo (e.g. the aperture cut for \verb+ExclusiveSphere/HalfMassRadiusTotal+
 is given by the value of \verb+BoundSubhalo/HalfMassRadiusTotal+), meaning a different radial cut is used for each subhalo.
 
-\paragraph{Inclusive sphere quantities (IS)} apply a aperture radii cut, the same as the exclusive sphere 
-quantities. However for the inclusive sphere we include all particles within the radius, regardless of their 
+\paragraph{Inclusive sphere quantities (IS)} apply a aperture radii cut, the same as the exclusive sphere
+quantities. However for the inclusive sphere we include all particles within the radius, regardless of their
 membership status. If the aperture radius of an inclusive sphere variation is greater than the EncloseRadius
 (the maximum distance between a bound particle and the halo centre) of a subhalo, then for that subhalo no
 properties are computed for the variation.
 The quantities are stored within the group \verb+InclusiveSphere+.
+
+For each subhalo InclusiveSphere variations are calculated for all apertures up to and including the first
+aperture that exceeds the EncloseRadius(the maximum distance between any bound particle and the halo centre).
+Apertures larger than this are not computed.
 
 \paragraph{Exclusive projected quantities (EP)} are similar to exclusive sphere quantities, except that their
 aperture cut is applied in projection. For each radii there are three  independent projections: along the 

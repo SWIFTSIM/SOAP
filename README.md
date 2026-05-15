@@ -125,6 +125,8 @@ lossless compression to SOAP catalogues.
 
 A pdf describing the SOAP output can be generated. First run `SOAP/property_table.py` passing the parameter file used to run SOAP (to get the properties and halo types to include) and a snapshot (to get the units), e.g. `python SOAP/property_table.py parameter_files/COLIBRE_THERMAL.yml /cosma8/data/dp004/colibre/Runs/L0100N0752/Thermal/snapshots/colibre_0127/colibre_0127.hdf5`. This will generate a table containing all the properties which are enabled in the parameter file. To create the pdf run `cd documentation; pdflatex SOAP.tex; pdflatex SOAP.tex`. If you wish to see all possible properties then first run `python SOAP/property_table.py`, and then generate the pdf.
 
+The `property_table.py` script also generates the file `documentation/property_table.rst`, which is a version of the property table that can be useful for sphnix websites.
+
 ### Slurm scripts for running on COSMA
 
 The files in the `scripts` directory are made for running on cosma.
