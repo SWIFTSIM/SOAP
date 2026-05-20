@@ -213,6 +213,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "BirthTemperatures",
                 "SmoothedElementMassFractions",
                 "IronMassFractionsFromSNIa",
+                "BirthHaloCatalogueIndex",
             ],
             "PartType5": [
                 "Coordinates",
@@ -1170,6 +1171,10 @@ class DummyHaloGenerator:
             data["PartType4"]["GroupNr_all"] = groupnr_all[star_mask]
             data["PartType4"]["GroupNr_bound"] = groupnr_bound[star_mask]
             data["PartType4"]["FOFGroupIDs"] = fof_group_ids[star_mask]
+            # Some in-situ stars, some ex-situ
+            data["PartType4"]["BirthHaloCatalogueIndex"] = groupnr_bound[star_mask]
+            mask = np.random.random(Nstar) < 0.1
+            data["PartType4"]["BirthHaloCatalogueIndex"][mask] = -1
             # initial masses are always larger than the actual mass
             data["PartType4"]["InitialMasses"] = unyt.unyt_array(
                 mass[star_mask].value * (1.0 + np.random.random(Nstar)),
