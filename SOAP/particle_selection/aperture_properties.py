@@ -3587,6 +3587,7 @@ class ApertureParticleData:
         # aperture
         mass = self.get_dataset("PartType4/Masses")[self.star_mask_all]
         position = (
+            # TODO: Remove shrinking sphere
             self.get_dataset("PartType4/Coordinates")[self.star_mask_all] - self.centre - self.shrinking_sphere_centre
         )
 
@@ -3725,6 +3726,8 @@ class ApertureParticleData:
             Maximum number of iterations
         """
 
+        min_particles = min(200, 0.1*self.Nbaryon)
+
         if self.Mbaryons == 0:
             return None
 
@@ -3751,8 +3754,20 @@ class ApertureParticleData:
         """
         return (self.shrinking_sphere_centre + self.centre) % self.boxsize
 
+
     @lazy_property
-    def StellarAsymmetry(self, npix=12):
+    def StellarAsymmetry(self):
+        return self.stellar_asymmetry()
+
+    @lazy_property
+    def StellarAsymmetry48(self):
+        return self.stellar_asymmetry(npix=48)
+
+    @lazy_property
+    def StellarAsymmetry192(self):
+        return self.stellar_asymmetry(npix=192)
+
+    def stellar_asymmetry(self, npix=12):
         """
         Compute stellar asymmetry following https://arxiv.org/abs/1805.03210
 
@@ -3988,6 +4003,8 @@ class ApertureProperties(HaloProperty):
         "StellarInertiaTensorReducedNoniterativeLuminosityWeighted": False,
         "ShrinkingSphereCentre": False,
         "StellarAsymmetry": False,
+        "StellarAsymmetry48": False,
+        "StellarAsymmetry192": False,
     }
 
     property_list = {
