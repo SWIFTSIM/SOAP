@@ -33,7 +33,7 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
     if comm_rank == 0:
         if os.path.exists(hbt_filename(basename, 0)):
             with h5py.File(hbt_filename(basename, 0), "r") as infile:
-                nr_files = int(infile["NumberOfFiles"][...])
+                nr_files = infile["NumberOfFiles"][0]
             sorted_file = False
         elif os.path.exists(basename):
             with h5py.File(basename, "r") as infile:
@@ -241,9 +241,9 @@ def read_hbtplus_catalogue(
         have_units = False
         with h5py.File(filename, "r") as infile:
             if "Units" in infile:
-                LengthInMpch = float(infile["Units/LengthInMpch"][...])
-                MassInMsunh = float(infile["Units/MassInMsunh"][...])
-                VelInKmS = float(infile["Units/VelInKmS"][...])
+                LengthInMpch = infile["Units/LengthInMpch"][0]
+                MassInMsunh = infile["Units/MassInMsunh"][0]
+                VelInKmS = infile["Units/VelInKmS"][0]
                 have_units = True
         # Otherwise, will have to read the Parameters.log file
         if not (have_units):

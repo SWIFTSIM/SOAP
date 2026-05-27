@@ -1,11 +1,11 @@
 mpi4py
 h5py
-numpy>=2,<2.4
+numpy>=2
 unyt>=3
 astropy>=6
 scipy
 matplotlib
 psutil
-virgodc
+virgodc>=1.0.3
 numba
 pytest-mpi
