@@ -4938,11 +4938,15 @@ class PropertyTable:
             units = unyt.unyt_quantity(1, units=prop.unit)
             if not prop.output_physical:
                 units = units * unyt.Unit("a") ** prop.a_scale_exponent
-            prop_unit = units.units.latex_repr.replace(
-                "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
-            ).replace(
-                "\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}"
-            ).rstrip()
+            prop_unit = (
+                units.units.latex_repr.replace(
+                    "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
+                )
+                .replace(
+                    "\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}"
+                )
+                .rstrip()
+            )
 
             prop_dtype = prop.dtype.__name__
 
@@ -5336,9 +5340,9 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
     # Map from internal snap_* unit names to human-readable physical equivalents.
     # Values are validated against the live unyt registry by _validate_snap_unit_map.
     _snap_unit_map = {
-        "snap_mass":        "(1e10*Msun)",
-        "snap_length":      "Mpc",
-        "snap_time":        "(s*Mpc/km)",
+        "snap_mass": "(1e10*Msun)",
+        "snap_length": "Mpc",
+        "snap_time": "(s*Mpc/km)",
         "snap_temperature": "K",
     }
 
@@ -5359,8 +5363,9 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
 
         units = unyt.unyt_quantity(1, units=prop_unit)
         latex = (
-            units.units.latex_repr
-            .replace("\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}")
+            units.units.latex_repr.replace(
+                "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
+            )
             .replace("\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}")
             .replace(r"1.0 \times ", "")
             .rstrip()
@@ -5450,10 +5455,7 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
                     self.footnotes.append(fnote)
                 footnote_nums.append(i + 1)
         if footnote_nums:
-            refs = " ".join(
-                f"`[{n}] <footnote-{n}_>`_"
-                for n in sorted(footnote_nums)
-            )
+            refs = " ".join(f"`[{n}] <footnote-{n}_>`_" for n in sorted(footnote_nums))
             return footnote_nums, refs
         return [], ""
 
@@ -5529,7 +5531,9 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
                     # Convert inline math and non-breaking spaces within the
                     # item text now, before the block is stashed as a
                     # placeholder (the main conversion steps run before restore)
-                    item = re.sub(r"\$([^\n\$]+?)\$", lambda m: f":math:`{m.group(1)}`", item)
+                    item = re.sub(
+                        r"\$([^\n\$]+?)\$", lambda m: f":math:`{m.group(1)}`", item
+                    )
                     item = item.replace("~", " ")
                     rst_items.append(f"#. {item}")
             block = "\n\n" + "\n".join(rst_items) + "\n\n"
@@ -5640,24 +5644,24 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
 
             # swiftsimio name
             snake_name = ".".join(
-                self._camel_to_snake(part) for part in prop['name'].split("/")
+                self._camel_to_snake(part) for part in prop["name"].split("/")
             )
 
             # HDF5 output name (prepend InputHalos/ where applicable)
             output_name = prop["name"]
             if output_name.split("/")[0] in ("HBTplus", "VR", "FOF"):
                 output_name = "InputHalos/" + output_name
-                snake_name = 'input_halos_' + snake_name
+                snake_name = "input_halos_" + snake_name
 
             prop_units_rst = self._resolve_snap_units(prop_name, prop)
             prop_comp_rst = self._compression_to_rst(
                 self.compression_description[prop["compression"]]
             )
-            prop_filter = prop['category']
+            prop_filter = prop["category"]
             output_types = self._get_output_types_rst(prop)
-            if 'DummyProperties' in prop['types']:
-                prop_filter = 'basic'
-                output_types = r'\-'
+            if "DummyProperties" in prop["types"]:
+                prop_filter = "basic"
+                output_types = r"\-"
             description = prop["description"].format(
                 label="satisfying a spherical overdensity criterion.",
                 core_excision="excised core",
@@ -5713,9 +5717,11 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         prop_names_sorted = sorted(
             self.properties.keys(),
             key=lambda key: (
-                category_order.index(self.properties[key]["category"])
-                if self.properties[key]["category"] in category_order
-                else len(category_order),
+                (
+                    category_order.index(self.properties[key]["category"])
+                    if self.properties[key]["category"] in category_order
+                    else len(category_order)
+                ),
                 self.properties[key]["name"].lower(),
             ),
         )
@@ -5726,11 +5732,11 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         dmo_props = []
         hydro_props = []
         for n in prop_names_sorted:
-            if self.properties[n]['category'] == 'InputHalos':
+            if self.properties[n]["category"] == "InputHalos":
                 input_basic_props.append(n)
-            elif 'DummyProperties' in self.properties[n]['types']:
+            elif "DummyProperties" in self.properties[n]["types"]:
                 input_copied_props.append(n)
-            elif self.properties[n]['dmo']:
+            elif self.properties[n]["dmo"]:
                 dmo_props.append(n)
             else:
                 hydro_props.append(n)
@@ -5740,16 +5746,16 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         self.footnotes = []
 
         # Introduction
-        with open(f'documentation/property_table_intro.rst') as file:
+        with open(f"documentation/property_table_intro.rst") as file:
             lines = [line.rstrip() for line in file.readlines()]
 
         # Tables
         for props, table_title in [
-                (input_basic_props, "Input halo properties"),
-                (dmo_props, "Dark matter only properties"),
-                (hydro_props, "Hydrodynamical properties"),
-                (input_copied_props, "Copied properties"),
-            ]:
+            (input_basic_props, "Input halo properties"),
+            (dmo_props, "Dark matter only properties"),
+            (hydro_props, "Hydrodynamical properties"),
+            (input_copied_props, "Copied properties"),
+        ]:
 
             lines.append(table_title)
             lines.append("-" * len(table_title))
@@ -5776,7 +5782,6 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
         os.makedirs(output_dir, exist_ok=True)
         with open(f"{output_dir}/property_table.rst", "w") as ofile:
             ofile.write("\n".join(lines))
-
 
 
 class DummyProperties:
