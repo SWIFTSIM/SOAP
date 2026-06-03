@@ -3719,21 +3719,21 @@ class ApertureParticleData:
         Parameters
         ----------
         min_particles : int, default=200
-            Stop iteration when enclosed particle count is below this threshold.
+            Stop iteration when enclosed particle count is below this threshold, or 10% of particle count.
         shrink_factor : float, default=0.83
             Radius scaling factor applied at each iteration (0 < shrink_factor < 1).
         max_iter : int, default=256
             Maximum number of iterations
         """
 
-        min_particles = min(200, 0.1*self.Nbaryon)
+        min_particles = min(min_particles, 0.1*self.Nbaryon)
 
         if self.Mbaryons == 0:
             return None
 
         centre = (self.baryon_mass_fraction[:, None] * self.pos_baryons).sum(axis=0)
         dist = np.linalg.norm(self.pos_baryons - centre, axis=1)
-        radius = max(self.aperture_radius, dist.max())
+        radius = np.max(dist) * 1.01
 
         for i in range(max_iter):
             mask = dist <= radius
@@ -3741,7 +3741,8 @@ class ApertureParticleData:
             if n_in < min_particles:
                 break
 
-            centre = (self.baryon_mass_fraction[mask, None] * self.pos_baryons[mask]).sum(axis=0)
+            centre = (self.mass_baryons[mask, None] * self.pos_baryons[mask]).sum(axis=0)
+            centre /= np.sum(self.mass_baryons[mask])
             dist = np.linalg.norm(self.pos_baryons - centre, axis=1)
             radius *= shrink_factor
 
@@ -3752,6 +3753,9 @@ class ApertureParticleData:
         """
         Centre computed by applying shrinking spheres method to baryons
         """
+        if self.Mbaryons == 0:
+            return None
+
         return (self.shrinking_sphere_centre + self.centre) % self.boxsize
 
 
