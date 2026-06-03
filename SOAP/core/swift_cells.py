@@ -100,7 +100,7 @@ class ReadTask:
                 np.s_[mem_start:mem_end, ...],
             )
         except OSError as e:
-            print(f'Error reading {dataset_name}')
+            print(f"Error reading {dataset_name}")
             raise e
 
 
