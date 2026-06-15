@@ -9,7 +9,7 @@ Parameters:
 # Location of the Swift snapshots:
 Snapshots:
   # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
-  filename: "{sim_dir}/{sim_name}/swift_snapshots/swift_{snap_nr:03d}/snap_{snap_nr:03d}.{file_nr}.hdf5"
+  filename: "{sim_dir}/{sim_name}/snapshots/snap_{snap_nr:03d}/snap_{snap_nr:03d}.{file_nr}.hdf5"
 
 # Which halo finder we're using, and base name for halo finder output files
 HaloFinder:
