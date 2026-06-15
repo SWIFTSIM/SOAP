@@ -556,13 +556,13 @@ if comm_rank == 0:
                 ] = conversion_factor
 
         # DM mass can be a special case
-        properties['dm_mass_in_table'] = False
+        properties["dm_mass_in_table"] = False
         if "Mass" in properties.get(f"PartType1", {}):
             if "Mass" not in infile["PartType1"]:
                 # Load DM mass from mass table
                 dm_mass = infile["Header"].attrs["MassTable"][1] / h
                 properties["PartType1"]["Mass"]["conversion_factor"] = dm_mass
-                properties['dm_mass_in_table'] = True
+                properties["dm_mass_in_table"] = True
 
         # Get list of elements for ElementMassFractions
         if "ElementMassFractions" in properties.get(f"PartType0", {}):
@@ -646,7 +646,7 @@ for ptype in ptypes:
     elements_per_file[1:] -= elements_per_file[:-1]
     assert np.sum(elements_per_file) == np.sum(cell_counts[ptype])
 
-    # Each rank writes the files assigned to it by MultiFile, so it 
+    # Each rank writes the files assigned to it by MultiFile, so it
     # must hold the concatenation of the data of those files.
     elements_per_rank = np.zeros(comm_size, dtype=elements_per_file.dtype)
     for rank in range(comm_size):
@@ -672,7 +672,7 @@ for ptype in ptypes:
         if comm_rank == 0:
             print(f"Converting PartType{ptype}/{prop}")
 
-        if (ptype == 1) and (prop == "Mass") and properties['dm_mass_in_table']:
+        if (ptype == 1) and (prop == "Mass") and properties["dm_mass_in_table"]:
             # DM particles all have the same mass, so are not saved in the snapshots
             arr = np.ones(pos.shape[0])
         else:
@@ -764,7 +764,6 @@ for ptype in ptypes:
             attrs={"ElementMassFractions": attrs},
         )
 
-
     # Load the GroupNumber and SubGroupNumber of particles by matching
     # the snapshot_* files with the particledata_* files
     snap_ids = snap_file.read(f"PartType{ptype}/ParticleIDs")
@@ -773,7 +772,9 @@ for ptype in ptypes:
 
     # EAGLE uses a value of 2^30 to indicate unbound particles
     # Particles missing from the particledata_* files are always unbound
-    particledata_sub_group_nr = particledata_file.read(f"PartType{ptype}/SubGroupNumber")
+    particledata_sub_group_nr = particledata_file.read(
+        f"PartType{ptype}/SubGroupNumber"
+    )
     sub_group_nr = 1073741824 * np.ones(snap_ids.shape[0], dtype=np.int32)
     sub_group_nr[idx != -1] = psort.fetch_elements(
         particledata_sub_group_nr,
