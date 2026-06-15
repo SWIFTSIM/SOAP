@@ -3764,6 +3764,14 @@ class ApertureParticleData:
         return self.stellar_asymmetry()
 
     @lazy_property
+    def StellarAsymmetryShrink(self):
+        return self.stellar_asymmetry(shrink_centre=True)
+
+    @lazy_property
+    def StellarAsymmetrySubsample(self):
+        return self.stellar_asymmetry(N=8)
+
+    @lazy_property
     def StellarAsymmetry48(self):
         return self.stellar_asymmetry(npix=48)
 
@@ -3771,7 +3779,7 @@ class ApertureParticleData:
     def StellarAsymmetry192(self):
         return self.stellar_asymmetry(npix=192)
 
-    def stellar_asymmetry(self, npix=12):
+    def stellar_asymmetry(self, npix=12, N=None, shrink_centre=False):
         """
         Compute stellar asymmetry following https://arxiv.org/abs/1805.03210
 
@@ -3783,6 +3791,10 @@ class ApertureParticleData:
             Number of equal-area angular regions (HEALPix pixels) for directional
             partitioning. Must satisfy npix = 12 * nside^2 where nside is a
             power of 2 (e.g. 12, 48, 192, 768, ...).
+        N : int, optional
+            Randomly select 1/N of the original stellar particle set before
+            computing the asymmetry. If the total number of particles is smaller
+            than or equal to N, all particles are used.
 
         """
 
@@ -3794,8 +3806,26 @@ class ApertureParticleData:
         assert npix == 12 * nside ** 2
         assert nside.bit_count() == 1
 
+        if N is None:
+            indices = slice(None)
+        else:
+            N = int(N)
+            if N <= 0:
+                raise ValueError("N must be a positive integer")
+            if self.Nstar <= N:
+                indices = slice(None)
+            else:
+                indices = np.random.choice(
+                    self.Nstar, size=self.Nstar // N, replace=False
+                )
+
+        mass_star = self.mass_star[indices]
+
         # Centre using the shrinking sphere
-        pos = self.pos_star - self.shrinking_sphere_centre
+        if shrink_centre:
+            pos = self.pos_star[indices] - self.shrinking_sphere_centre
+        else:
+            pos = self.pos_star[indices]
         r = np.linalg.norm(pos, axis=1)
 
         # Remove particles close to the centre, they are symmetric
@@ -3803,11 +3833,12 @@ class ApertureParticleData:
         if np.sum(mask):
             pos = pos[np.logical_not(mask)]
             r = r[np.logical_not(mask)]
-            mass_star = self.mass_star[np.logical_not(mask)]
+            mass_star = mass_star[np.logical_not(mask)]
             if r.shape[0] == 0:
                 return np.float32(0)
-        else:
-            mass_star = self.mass_star
+
+        if mass_star.shape[0] < 3:
+            return None
 
         # Compute the mass in each pixel
         vecs = (pos / r[:, None]).value
@@ -3829,7 +3860,7 @@ class ApertureParticleData:
 
         # Calculate asymmetry
         mass_diff = np.abs(region_mass_msun - region_mass_msun[anti_indices])
-        asymmetry = np.sum(mass_diff) / (2.0 * self.Mstar.to_value('Msun'))
+        asymmetry = np.sum(mass_diff) / (2.0 * mass_star.sum().to_value('Msun'))
 
         return asymmetry
 
@@ -4007,6 +4038,8 @@ class ApertureProperties(HaloProperty):
         "StellarInertiaTensorReducedNoniterativeLuminosityWeighted": False,
         "ShrinkingSphereCentre": False,
         "StellarAsymmetry": False,
+        "StellarAsymmetryShrink": False,
+        "StellarAsymmetrySubsample": False,
         "StellarAsymmetry48": False,
         "StellarAsymmetry192": False,
     }

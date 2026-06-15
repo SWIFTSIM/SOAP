@@ -3712,6 +3712,32 @@ class PropertyTable:
             output_physical=True,
             a_scale_exponent=0,
         ),
+        "StellarAsymmetryShrink": Property(
+            name="StellarAsymmetryShrink",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            # TODO: Add description
+            description="Centre of mass of stars.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType0/Coordinates", "PartType0/Masses", "PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "StellarAsymmetrySubsample": Property(
+            name="StellarAsymmetrySubsample",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            # TODO: Add description
+            description="Centre of mass of stars.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType0/Coordinates", "PartType0/Masses", "PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
         "StellarAsymmetry48": Property(
             name="StellarAsymmetry48",
             shape=1,
