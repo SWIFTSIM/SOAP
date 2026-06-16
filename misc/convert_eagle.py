@@ -8,11 +8,15 @@ Usage:
 
   mpirun -- python convert_eagle.py \
           --snapshot-basename=SNAPSHOT \
+          --particledata-basename=PARTICLE_DATA \
+          --subfind-basename=SUBFIND \
           --output-basename=OUTPUT \
           --membership-basename=MEMBERSHIP
 
-where SNAPSHOT is the EAGLE snapshot (use the particledata_*** files,
-since the normal snapshots don't store SubGroupNumber), and OUTPUT &
+where SNAPSHOT is the EAGLE snapshot (the snapshots_*** files),
+PARTICLE_DATA are the EAGLE membership files (the particledata_*** files,
+since the normal snapshots don't store SubGroupNumber), SUBFIND are
+the SubFind catalogues (the subfind_tab_*** files), and OUTPUT &
 MEMBERSHIP are the names of the output files. You must run with
 the same number of ranks as input files.
 
@@ -83,10 +87,20 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
+    "--particledata-basename",
+    type=str,
+    required=True,
+    help=(
+        "The basename for the particle data files (the files which "
+        "contain the GroupNumber and SubGroupNumber values for bound "
+        "particles. For EAGLE these are separate to the snapshots."
+    ),
+)
+parser.add_argument(
     "--subfind-basename",
     type=str,
     required=True,
-    help=("The basename for the subfind files"),
+    help="The basename for the subfind files",
 )
 parser.add_argument(
     "--output-basename",
@@ -102,6 +116,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 snap_filename = args.snap_basename + ".{file_nr}.hdf5"
+particledata_filename = args.particledata_basename + ".{file_nr}.hdf5"
 subfind_filename = args.subfind_basename + ".{file_nr}.hdf5"
 output_filename = args.output_basename + ".{file_nr}.hdf5"
 membership_filename = args.membership_basename + ".{file_nr}.hdf5"
@@ -132,7 +147,7 @@ a = comm.bcast(a)
 h = comm.bcast(h)
 box_size_cmpc = comm.bcast(box_size_cmpc)
 
-assert comm_size == n_file
+assert comm_size <= n_file
 
 # Specify the unit system of the output SWIFT snapshot
 if comm_rank == 0:
@@ -281,13 +296,6 @@ properties = {
             "description": None,
             "conversion_factor": None,
         },
-        "GroupNumber": {
-            "swift_name": "FOFGroupIDs",
-            "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
-            "a_exponent": None,
-            "description": None,
-            "conversion_factor": None,
-        },
         "ParticleIDs": {
             "swift_name": "ParticleIDs",
             "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
@@ -380,13 +388,6 @@ properties = {
             "description": "Particle mass",
             "conversion_factor": None,
         },
-        "GroupNumber": {
-            "swift_name": "FOFGroupIDs",
-            "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
-            "a_exponent": None,
-            "description": None,
-            "conversion_factor": None,
-        },
         "ParticleIDs": {
             "swift_name": "ParticleIDs",
             "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
@@ -413,13 +414,6 @@ properties = {
         "Mass": {
             "swift_name": "Masses",
             "exponents": {"L": 0, "M": 1, "T": 0, "t": 0},
-            "a_exponent": None,
-            "description": None,
-            "conversion_factor": None,
-        },
-        "GroupNumber": {
-            "swift_name": "FOFGroupIDs",
-            "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
             "a_exponent": None,
             "description": None,
             "conversion_factor": None,
@@ -506,13 +500,6 @@ properties = {
             "description": None,
             "conversion_factor": None,
         },
-        "GroupNumber": {
-            "swift_name": "FOFGroupIDs",
-            "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
-            "a_exponent": None,
-            "description": None,
-            "conversion_factor": None,
-        },
         "ParticleIDs": {
             "swift_name": "ParticleIDs",
             "exponents": {"L": 0, "M": 0, "T": 0, "t": 0},
@@ -569,14 +556,13 @@ if comm_rank == 0:
                 ] = conversion_factor
 
         # DM mass can be a special case
+        properties["dm_mass_in_table"] = False
         if "Mass" in properties.get(f"PartType1", {}):
             if "Mass" not in infile["PartType1"]:
                 # Load DM mass from mass table
                 dm_mass = infile["Header"].attrs["MassTable"][1] / h
                 properties["PartType1"]["Mass"]["conversion_factor"] = dm_mass
-            else:
-                # Treat DM mass as any other property
-                dm_mass = 0
+                properties["dm_mass_in_table"] = True
 
         # Get list of elements for ElementMassFractions
         if "ElementMassFractions" in properties.get(f"PartType0", {}):
@@ -607,6 +593,9 @@ cell_centres += cell_size_cmpc / 2
 # Load and process the snapshot files using multiple ranks
 snap_file = phdf5.MultiFile(
     snap_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
+)
+particledata_file = phdf5.MultiFile(
+    particledata_filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
 )
 # Load the SubFind catalogue and create an array that links the GroupNumber
 # and SubGroupNumber of a subhalo to its index within the subhalo catalogue
@@ -657,6 +646,15 @@ for ptype in ptypes:
     elements_per_file[1:] -= elements_per_file[:-1]
     assert np.sum(elements_per_file) == np.sum(cell_counts[ptype])
 
+    # Each rank writes the files assigned to it by MultiFile, so it
+    # must hold the concatenation of the data of those files.
+    elements_per_rank = np.zeros(comm_size, dtype=elements_per_file.dtype)
+    for rank in range(comm_size):
+        first = snap_file.first_file_on_rank[rank]
+        num = snap_file.num_files_on_rank[rank]
+        elements_per_rank[rank] = np.sum(elements_per_file[first : first + num])
+    assert np.sum(elements_per_rank) == np.sum(elements_per_file)
+
     # Calculate offsets of the first particle in each cell
     cell_files[ptype] = np.repeat(np.arange(n_file), cells_per_file)
     absolute_offset = np.cumsum(cell_counts[ptype]) - cell_counts[ptype]
@@ -674,7 +672,7 @@ for ptype in ptypes:
         if comm_rank == 0:
             print(f"Converting PartType{ptype}/{prop}")
 
-        if (ptype == 1) and (prop == "Mass") and (dm_mass == 0):
+        if (ptype == 1) and (prop == "Mass") and properties["dm_mass_in_table"]:
             # DM particles all have the same mass, so are not saved in the snapshots
             arr = np.ones(pos.shape[0])
         else:
@@ -704,7 +702,7 @@ for ptype in ptypes:
         attrs.update(unit_attrs)
 
         # Write to the output file
-        arr = psort.repartition(arr, elements_per_file, comm=comm)
+        arr = psort.repartition(arr, elements_per_rank, comm=comm)
         if create_output_file:
             mode = "w"
             create_output_file = False
@@ -751,7 +749,7 @@ for ptype in ptypes:
         attrs.update(unit_attrs)
 
         # Write to the output file
-        arr = psort.repartition(arr, elements_per_file, comm=comm)
+        arr = psort.repartition(arr, elements_per_rank, comm=comm)
         if create_output_file:
             mode = "w"
             create_output_file = False
@@ -766,44 +764,78 @@ for ptype in ptypes:
             attrs={"ElementMassFractions": attrs},
         )
 
+    # Load the GroupNumber and SubGroupNumber of particles by matching
+    # the snapshot_* files with the particledata_* files
+    snap_ids = snap_file.read(f"PartType{ptype}/ParticleIDs")
+    particledata_ids = particledata_file.read(f"PartType{ptype}/ParticleIDs")
+    idx = psort.parallel_match(snap_ids, particledata_ids, comm=comm)
+
+    # EAGLE uses a value of 2^30 to indicate unbound particles
+    # Particles missing from the particledata_* files are always unbound
+    particledata_sub_group_nr = particledata_file.read(
+        f"PartType{ptype}/SubGroupNumber"
+    )
+    sub_group_nr = 1073741824 * np.ones(snap_ids.shape[0], dtype=np.int32)
+    sub_group_nr[idx != -1] = psort.fetch_elements(
+        particledata_sub_group_nr,
+        idx[idx != -1],
+        comm=comm,
+    )
+
+    # Negative values indicate that the particle is not part of a FoF,
+    # but is within the SO group of a FoF (the FoF it is part of is the positive
+    # value, e.g. -10 means it is within the SO of FoF 10)
+    particledata_group_nr = particledata_file.read(f"PartType{ptype}/GroupNumber")
+    particledata_group_nr[particledata_group_nr < 0] = 1073741824
+    group_nr = 1073741824 * np.ones(snap_ids.shape[0], dtype=np.int32)
+    group_nr[idx != -1] = psort.fetch_elements(
+        particledata_group_nr,
+        idx[idx != -1],
+        comm=comm,
+    )
+
     # Create a subhalo id for each particle by combining the
     # group number and subgroup number
-    sub_group = snap_file.read(f"PartType{ptype}/SubGroupNumber")
-    subhalo = snap_file.read(f"PartType{ptype}/GroupNumber").astype(np.int64)
+    subhalo = group_nr.astype(np.int64)
     subhalo <<= 32
-    subhalo += sub_group.astype(np.int64)
-    # Indicate unbound particles with -1
-    bound = sub_group != 1073741824
+    subhalo += sub_group_nr.astype(np.int64)
+    # For SOAP we want unbound particles to be indicated with a value of -1
+    bound = sub_group_nr != 1073741824
     subhalo[np.logical_not(bound)] = -1
     # Get SubFind index of bound particles
     subhalo[bound] = psort.parallel_match(subhalo[bound], subfind_id, comm=comm)
     assert np.all(subhalo[bound] != -1)
 
-    # Sort, add units, and write to file (same as for other properties)
+    # Sort values spatially (same as for other properties)
     subhalo = psort.fetch_elements(subhalo, order, comm=comm)
+    group_nr = psort.fetch_elements(group_nr, order, comm=comm)
+    # Add units, and write to file
     units = unyt.Unit("dimensionless", registry=reg)
     unit_attrs = swift_units.attributes_from_units(units, False, 0)
-    attrs = {
+    subhalo_attrs = {
         "Description": (
             "Unique identifier of the subhalo this particle is "
             "bound to. This is a combination of the GroupNumber and"
             "the SubGroupNumber. -1 if the particle is not bound"
         )
     }
-    attrs.update(unit_attrs)
-    subhalo = psort.repartition(subhalo, elements_per_file, comm=comm)
+    subhalo_attrs.update(unit_attrs)
+    fof_attrs = {"Description": "FoF group number particle is in"}
+    fof_attrs.update(unit_attrs)
+    subhalo = psort.repartition(subhalo, elements_per_rank, comm=comm)
+    group_nr = psort.repartition(group_nr, elements_per_rank, comm=comm)
     if create_membership_file:
         mode = "w"
         create_membership_file = False
     else:
         mode = "r+"
     snap_file.write(
-        {"GroupNr_bound": subhalo},
+        {"GroupNr_bound": subhalo, "FOFGroupIDs": group_nr},
         elements_per_file,
         filenames=membership_filename,
         mode=mode,
         group=f"PartType{ptype}",
-        attrs={"GroupNr_bound": attrs},
+        attrs={"GroupNr_bound": subhalo_attrs, "FOFGroupIDs": fof_attrs},
     )
 
 # Add headers to the snapshots
@@ -814,7 +846,7 @@ if comm_rank == 0:
             header = outfile.create_group("Header")
             for name, value in swift_header.items():
                 header.attrs[name] = value
-                n_part = np.zeros(max(ptypes) + 1)
+                n_part = np.zeros(max(ptypes) + 1, dtype=np.int64)
                 for ptype in ptypes:
                     n_part[ptype] = outfile[f"PartType{ptype}/Coordinates"].shape[0]
                 header.attrs["NumPart_ThisFile"] = n_part
