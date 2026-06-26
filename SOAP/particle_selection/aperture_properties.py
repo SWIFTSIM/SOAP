@@ -3587,8 +3587,7 @@ class ApertureParticleData:
         # aperture
         mass = self.get_dataset("PartType4/Masses")[self.star_mask_all]
         position = (
-            # TODO: Remove shrinking sphere
-            self.get_dataset("PartType4/Coordinates")[self.star_mask_all] - self.centre - self.shrinking_sphere_centre
+            self.get_dataset("PartType4/Coordinates")[self.star_mask_all] - self.centre
         )
 
         return get_inertia_tensor_mass_weighted(
@@ -3726,13 +3725,13 @@ class ApertureParticleData:
             Maximum number of iterations
         """
 
-        min_particles = min(min_particles, 0.1*self.Nbaryon)
+        min_particles = min(min_particles, 0.1*self.Nstar)
 
-        if self.Mbaryons == 0:
+        if self.Mstar == 0:
             return None
 
-        centre = (self.baryon_mass_fraction[:, None] * self.pos_baryons).sum(axis=0)
-        dist = np.linalg.norm(self.pos_baryons - centre, axis=1)
+        centre = (self.star_mass_fraction[:, None] * self.pos_star).sum(axis=0)
+        dist = np.linalg.norm(self.pos_star - centre, axis=1)
         radius = np.max(dist) * 1.01
 
         for i in range(max_iter):
@@ -3741,9 +3740,9 @@ class ApertureParticleData:
             if n_in < min_particles:
                 break
 
-            centre = (self.mass_baryons[mask, None] * self.pos_baryons[mask]).sum(axis=0)
-            centre /= np.sum(self.mass_baryons[mask])
-            dist = np.linalg.norm(self.pos_baryons - centre, axis=1)
+            centre = (self.mass_star[mask, None] * self.pos_star[mask]).sum(axis=0)
+            centre /= np.sum(self.mass_star[mask])
+            dist = np.linalg.norm(self.pos_star - centre, axis=1)
             radius *= shrink_factor
 
         return centre
@@ -3751,9 +3750,9 @@ class ApertureParticleData:
     @lazy_property
     def ShrinkingSphereCentre(self) -> unyt.unyt_array:
         """
-        Centre computed by applying shrinking spheres method to baryons
+        Centre computed by applying shrinking spheres method to stars
         """
-        if self.Mbaryons == 0:
+        if self.Mstar == 0:
             return None
 
         return (self.shrinking_sphere_centre + self.centre) % self.boxsize

@@ -3692,10 +3692,10 @@ class PropertyTable:
             dtype=np.float64,
             unit="snap_length",
             # TODO: Add description
-            description="Centre of mass of stars.",
+            description="Shrinking sphere centre computed using stars.",
             lossy_compression_filter="DScale6",
             dmo_property=False,
-            particle_properties=["PartType0/Coordinates", "PartType0/Masses", "PartType4/Coordinates", "PartType4/Masses"],
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=False,
             a_scale_exponent=1,
         ),
