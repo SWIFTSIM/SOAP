@@ -137,6 +137,7 @@ import time
 import numpy as np
 from numpy.typing import NDArray
 from typing import Dict, List, Tuple
+import healpy as hp
 import unyt
 
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
@@ -3698,6 +3699,170 @@ class ApertureParticleData:
             reduced=True, max_iterations=1
         )
 
+    @lazy_property
+    def shrinking_sphere_centre(
+            self,
+            min_particles=200,
+            shrink_factor=0.83,
+            max_iter = 256
+        ) -> unyt.unyt_array:
+        """
+        Estimate the galaxy center (center of mass) with iterative shrinking aperture.
+
+        Procedure:
+        1) Initialize center as the COM of all input particles.
+        2) Initialize radius as max(aperture_radius, farthest particle distance).
+        3) Recompute COM inside current aperture, recenter, then shrink radius by shrink_factor.
+        4) Stop when enclosed particle count is < min_particles, and return the last valid center.
+
+        Parameters
+        ----------
+        min_particles : int, default=200
+            Stop iteration when enclosed particle count is below this threshold, or 10% of particle count.
+        shrink_factor : float, default=0.83
+            Radius scaling factor applied at each iteration (0 < shrink_factor < 1).
+        max_iter : int, default=256
+            Maximum number of iterations
+        """
+
+        min_particles = min(min_particles, 0.1*self.Nstar)
+
+        if self.Mstar == 0:
+            return None
+
+        centre = (self.star_mass_fraction[:, None] * self.pos_star).sum(axis=0)
+        dist = np.linalg.norm(self.pos_star - centre, axis=1)
+        radius = np.max(dist) * 1.01
+
+        for i in range(max_iter):
+            mask = dist <= radius
+            n_in = np.sum(mask)
+            if n_in < min_particles:
+                break
+
+            centre = (self.mass_star[mask, None] * self.pos_star[mask]).sum(axis=0)
+            centre /= np.sum(self.mass_star[mask])
+            dist = np.linalg.norm(self.pos_star - centre, axis=1)
+            radius *= shrink_factor
+
+        return centre
+
+    @lazy_property
+    def ShrinkingSphereCentre(self) -> unyt.unyt_array:
+        """
+        Centre computed by applying shrinking spheres method to stars
+        """
+        if self.Mstar == 0:
+            return None
+
+        return (self.shrinking_sphere_centre + self.centre) % self.boxsize
+
+
+    @lazy_property
+    def StellarAsymmetry(self):
+        return self.stellar_asymmetry()
+
+    @lazy_property
+    def StellarAsymmetryShrink(self):
+        return self.stellar_asymmetry(shrink_centre=True)
+
+    @lazy_property
+    def StellarAsymmetrySubsample(self):
+        return self.stellar_asymmetry(N=8)
+
+    @lazy_property
+    def StellarAsymmetry48(self):
+        return self.stellar_asymmetry(npix=48)
+
+    @lazy_property
+    def StellarAsymmetry192(self):
+        return self.stellar_asymmetry(npix=192)
+
+    def stellar_asymmetry(self, npix=12, N=None, shrink_centre=False):
+        """
+        Compute stellar asymmetry following https://arxiv.org/abs/1805.03210
+
+        TODO: Is equation (3) incorrect?
+
+        Parameters
+        ----------
+        npix : int, default=12
+            Number of equal-area angular regions (HEALPix pixels) for directional
+            partitioning. Must satisfy npix = 12 * nside^2 where nside is a
+            power of 2 (e.g. 12, 48, 192, 768, ...).
+        N : int, optional
+            Randomly select 1/N of the original stellar particle set before
+            computing the asymmetry. If the total number of particles is smaller
+            than or equal to N, all particles are used.
+
+        """
+
+        if self.Mstar == 0:
+            return None
+
+        # Check we are using a valid value for npix
+        nside = int(round(np.sqrt(npix // 12)))
+        assert npix == 12 * nside ** 2
+        assert nside.bit_count() == 1
+
+        if N is None:
+            indices = slice(None)
+        else:
+            N = int(N)
+            if N <= 0:
+                raise ValueError("N must be a positive integer")
+            if self.Nstar <= N:
+                indices = slice(None)
+            else:
+                indices = np.random.choice(
+                    self.Nstar, size=self.Nstar // N, replace=False
+                )
+
+        mass_star = self.mass_star[indices]
+
+        # Centre using the shrinking sphere
+        if shrink_centre:
+            pos = self.pos_star[indices] - self.shrinking_sphere_centre
+        else:
+            pos = self.pos_star[indices]
+        r = np.linalg.norm(pos, axis=1)
+
+        # Remove particles close to the centre, they are symmetric
+        mask = r.to_value('kpc') < 0.1
+        if np.sum(mask):
+            pos = pos[np.logical_not(mask)]
+            r = r[np.logical_not(mask)]
+            mass_star = mass_star[np.logical_not(mask)]
+            if r.shape[0] == 0:
+                return np.float32(0)
+
+        if mass_star.shape[0] < 3:
+            return None
+
+        # Compute the mass in each pixel
+        vecs = (pos / r[:, None]).value
+        idx = hp.vec2pix(nside, vecs[:, 0], vecs[:, 1], vecs[:, 2])
+        # np.bincount will not return a unyt array
+        region_mass_msun = np.bincount(
+            idx,
+            weights=mass_star.to_value('Msun'),
+            minlength=npix,
+        )
+
+        # Create antipodal mapping
+        # Find the center vector of every pixel
+        vecs = hp.pix2vec(nside, np.arange(npix))
+        # Negate vectors to find antipodal points
+        anti_vecs = -np.array(vecs)
+        # Map those points back to pixel IDs
+        anti_indices = hp.vec2pix(nside, anti_vecs[0], anti_vecs[1], anti_vecs[2])
+
+        # Calculate asymmetry
+        mass_diff = np.abs(region_mass_msun - region_mass_msun[anti_indices])
+        asymmetry = np.sum(mass_diff) / (2.0 * mass_star.sum().to_value('Msun'))
+
+        return asymmetry
+
 
 class ApertureProperties(HaloProperty):
     """
@@ -3870,6 +4035,12 @@ class ApertureProperties(HaloProperty):
         "StellarInertiaTensorReducedLuminosityWeighted": True,
         "StellarInertiaTensorNoniterativeLuminosityWeighted": False,
         "StellarInertiaTensorReducedNoniterativeLuminosityWeighted": False,
+        "ShrinkingSphereCentre": False,
+        "StellarAsymmetry": False,
+        "StellarAsymmetryShrink": False,
+        "StellarAsymmetrySubsample": False,
+        "StellarAsymmetry48": False,
+        "StellarAsymmetry192": False,
     }
 
     property_list = {
