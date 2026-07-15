@@ -2575,6 +2575,29 @@ class ApertureParticleData:
         return ratio
 
     @lazy_property
+    def gas_C_over_N_total(self) -> unyt.unyt_array:
+        """
+        Total carbon over nitrogen ratio of gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        nC = self.gas_element_fractions[
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Carbon"
+            ),
+        ]
+        nN = self.gas_element_fractions[
+            :,
+            self.snapshot_datasets.get_column_index(
+                "PartType0/ElementMassFractions", "Nitrogen"
+            ),
+        ]
+        ratio = np.zeros_like(nC)
+        ratio[nN != 0] = (14.0 * nC[nN != 0]) / (12.011 * nN[nN != 0])
+        return ratio
+
+    @lazy_property
     def gas_N_over_O_diffuse(self) -> unyt.unyt_array:
         """
         Diffuse nitrogen over oxygen ratio of gas particles.
@@ -2870,6 +2893,19 @@ class ApertureParticleData:
             return None
         return (
             self.gas_C_over_O_total[self.gas_is_cold_dense]
+            * self.mass_gas[self.gas_is_cold_dense]
+        ).sum() / self.GasMassInColdDenseGas
+
+    @lazy_property
+    def LinearMassWeightedCarbonOverNitrogenOfGas(self) -> unyt.unyt_quantity:
+        """
+        Mass-weighted sum of the total carbon over nitrogen ratio of gas particles.
+        This includes the contribution from dust!
+        """
+        if (self.Ngas == 0) or (self.GasMassInColdDenseGas == 0):
+            return None
+        return (
+            self.gas_C_over_N_total[self.gas_is_cold_dense]
             * self.mass_gas[self.gas_is_cold_dense]
         ).sum() / self.GasMassInColdDenseGas
 
@@ -3728,6 +3764,7 @@ class ApertureProperties(HaloProperty):
         "LinearMassWeightedOxygenOverHydrogenOfGas": False,
         "LinearMassWeightedNitrogenOverOxygenOfGas": False,
         "LinearMassWeightedCarbonOverOxygenOfGas": False,
+        "LinearMassWeightedCarbonOverNitrogenOfGas": False,
         "LinearMassWeightedDiffuseOxygenOverHydrogenOfGas": False,
         "LinearMassWeightedDiffuseNitrogenOverOxygenOfGas": False,
         "LinearMassWeightedDiffuseCarbonOverOxygenOfGas": False,
