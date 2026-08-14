@@ -244,7 +244,7 @@ class ChunkTask:
                 try:
                     cellgrid.check_datasets_exist(properties, self.halo_prop_list)
                 except KeyError as err_msg:
-                    print(err_msg)
+                    print(err_msg, flush=True)
                     comm.Abort(1)
             else:
                 properties = None

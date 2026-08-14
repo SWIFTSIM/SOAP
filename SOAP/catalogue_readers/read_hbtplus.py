@@ -41,7 +41,7 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
             nr_files = 1
             sorted_file = True
         else:
-            print(f"No HBT files found for basename {basename}")
+            print(f"No HBT files found for basename {basename}", flush=True)
             comm.Abort()
     else:
         nr_files = None
