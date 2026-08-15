@@ -115,7 +115,6 @@ class H5copier:
             elif name == "Parameters":
                 for attr in self.ifile[name].attrs:
                     self.ofile[name].attrs[attr] = self.ifile[name].attrs[attr]
-                self.ofile[name].attrs["halo_indices"] = np.array([], dtype="int64")
                 self.ofile[name].attrs["snapshot_nr"] = self.snapnum
             else:
                 for attr in self.ifile[name].attrs:

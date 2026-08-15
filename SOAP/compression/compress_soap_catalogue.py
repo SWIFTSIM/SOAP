@@ -206,7 +206,7 @@ if __name__ == "__main__":
             datasets = h5copy.dsets.copy()
 
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error: {e}", flush=True)
             comm.Abort(1)
     else:
         tmp_dir = None

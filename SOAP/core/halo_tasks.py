@@ -10,7 +10,6 @@ from SOAP.core.dataset_names import mass_dataset, ptypes_for_so_masses
 from SOAP.particle_selection.halo_properties import SearchRadiusTooSmallError
 from SOAP.property_table import PropertyTable
 
-
 # Factor by which to increase search radius when looking for density threshold
 SEARCH_RADIUS_FACTOR = 1.2
 
@@ -355,7 +354,7 @@ def process_halos(
         next_task.win.Lock(0)
         next_task.win.Fetch_and_op(one, task_to_do, 0)
         next_task.win.Unlock(0)
-        task_to_do = int(task_to_do)
+        task_to_do = int(task_to_do.flat[0])
 
         # Execute the task, if there's one left
         if task_to_do < nr_halos:

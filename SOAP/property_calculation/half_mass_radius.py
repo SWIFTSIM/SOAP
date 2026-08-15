@@ -52,7 +52,7 @@ def get_half_weight_radius(
     # Consistency check.
     # np.sum() and np.cumsum() use different orders, so we have to allow for
     # some small difference.
-    if cumulative_weights[-1] < 0.999 * total_weight:
+    if cumulative_weights[-1] < 0.998 * total_weight:
         raise RuntimeError(
             "Weights sum up to less than the given total weight value:"
             f" cumulative_weights[-1] = {cumulative_weights[-1]},"

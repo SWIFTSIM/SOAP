@@ -236,6 +236,15 @@ ApertureProperties:
     StellarMassFractionInMetals: true
     StellarMassFractionInOxygen: true
     StellarVelocityDispersionMatrix: general
+    StellarCylindricalVelocityDispersion: false
+    StellarCylindricalVelocityDispersionVertical: false
+    StellarCylindricalVelocityDispersionDiscPlane: false
+    StellarCylindricalVelocityDispersionLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionVerticalLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted: false
+    StellarRotationalVelocity: false
+    StellarRotationalVelocityLuminosityWeighted: false
+    ExSituFraction: false
     TotalMass: true
     TotalSNIaRate: true
     GasMassInColdDenseDiffuseMetals:
@@ -730,6 +739,11 @@ SubhaloProperties:
     StellarCylindricalVelocityDispersion: general
     StellarCylindricalVelocityDispersionVertical: false
     StellarCylindricalVelocityDispersionDiscPlane: false
+    StellarRotationalVelocityLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionVerticalLuminosityWeighted: false
+    StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted: false
+    ExSituFraction: false
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
@@ -780,3 +794,10 @@ calculations:
   cold_dense_gas_filter:
     maximum_temperature_K: 3.16e4
     minimum_hydrogen_number_density_cm3: 0.1
+  separate_chunks:
+    - n_bound_threshold: 300000000
+      n_halo_per_chunk: 1
+    - n_bound_threshold: 100000000
+      n_halo_per_chunk: 2
+    - n_bound_threshold: 50000000
+      n_halo_per_chunk: 5

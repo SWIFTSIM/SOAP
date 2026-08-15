@@ -147,6 +147,10 @@ from SOAP.property_calculation.half_mass_radius import (
 )
 from SOAP.property_calculation.kinematic_properties import (
     get_velocity_dispersion_matrix,
+    get_cylindrical_velocity_dispersion_vector_mass_weighted,
+    get_cylindrical_velocity_dispersion_vector_luminosity_weighted,
+    get_rotation_velocity_mass_weighted,
+    get_rotation_velocity_luminosity_weighted,
     get_angular_momentum,
     get_angular_momentum_and_kappa_corot_mass_weighted,
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
@@ -155,6 +159,9 @@ from SOAP.property_calculation.kinematic_properties import (
 from SOAP.property_calculation.inertia_tensors import (
     get_inertia_tensor_mass_weighted,
     get_inertia_tensor_luminosity_weighted,
+)
+from SOAP.property_calculation.cylindrical_coordinates import (
+    calculate_cylindrical_velocities,
 )
 from SOAP.core.swift_cells import SWIFTCellGrid
 from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculator
@@ -802,6 +809,24 @@ class ApertureParticleData:
         return self.get_dataset("PartType4/SNIaRates")[self.star_mask_all][
             self.star_mask_ap
         ].sum()
+
+    @lazy_property
+    def ExSituFraction(self) -> unyt.unyt_quantity:
+        """
+        Mass fraction of bound stars that formed in a different subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+
+        group_nr = self.get_dataset("PartType4/GroupNr_bound")[self.star_mask_all][
+            self.star_mask_ap
+        ]
+        birth_group_nr = self.get_dataset("PartType4/BirthHaloCatalogueIndex")[
+            self.star_mask_all
+        ][self.star_mask_ap]
+        ex_situ = group_nr != birth_group_nr
+
+        return self.star_mass_fraction[ex_situ].sum()
 
     @lazy_property
     def bh_mask_all(self) -> NDArray[bool]:
@@ -1496,6 +1521,162 @@ class ApertureParticleData:
             return None
         return get_velocity_dispersion_matrix(
             self.star_mass_fraction, self.vel_star, self.vcom_star
+        )
+
+    @lazy_property
+    def star_cylindrical_velocities(self) -> unyt.unyt_array:
+        """
+        Calculate the velocities of the star particles in cyclindrical
+        coordinates, where the axes are centred on the stellar CoM,
+        and the z axis is aligned with the stellar angular momentum.
+        """
+
+        # We need at least 2 particles to have an angular momentum vector
+        if self.Nstar < 2:
+            return None
+
+        # This can happen if we have particles on top of each other
+        # or with the same velocity
+        if np.sum(self.Lstar) == 0:
+            return None
+
+        # Get velocities in cylindrical coordinates
+        return calculate_cylindrical_velocities(
+            self.pos_star,
+            self.vel_star,
+            self.Lstar,
+            reference_velocity=self.vcom_star,
+        )
+
+    @lazy_property
+    def StellarRotationalVelocity(self) -> unyt.unyt_array:
+        """
+        Mass-weighted average azimuthal velocity of stars.
+        """
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
+            return None
+        return get_rotation_velocity_mass_weighted(
+            self.mass_star, self.star_cylindrical_velocities[:, 1]
+        )
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionVector(self) -> unyt.unyt_array:
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
+            return None
+        return get_cylindrical_velocity_dispersion_vector_mass_weighted(
+            self.mass_star, self.star_cylindrical_velocities
+        )
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersion(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVector is None:
+            return None
+        return np.sqrt((self.StellarCylindricalVelocityDispersionVector**2).sum() / 3)
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionVertical(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVector is None:
+            return None
+        return self.StellarCylindricalVelocityDispersionVector[2]
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionDiscPlane(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVector is None:
+            return None
+        return np.sqrt((self.StellarCylindricalVelocityDispersionVector[:2] ** 2).sum())
+
+    @lazy_property
+    def star_cylindrical_velocities_luminosity_weighted(self) -> unyt.unyt_array:
+        """
+        Calculate the velocities of the star particles in cylindrical
+        coordinates, where the origin and reference frame are centred on the
+        stellar centre of light in each band. The z axis is aligned with the
+        stellar angular momentum obtained from each band.
+        """
+
+        # We need at least 2 particles to have an angular momentum vector
+        if self.Nstar < 2:
+            return None
+
+        # This can happen if we have particles on top of each other
+        # or with the same velocity
+        if np.sum(self.Lstar_luminosity_weighted) == 0:
+            return None
+
+        # We iterate over bands to use their own reference vector and luminosity-
+        # weighted centre of mass phase space coordinates.
+        cylindrical_velocities = (
+            np.zeros(
+                (
+                    self.stellar_luminosities.shape[1],
+                    self.stellar_luminosities.shape[0],
+                    3,
+                )
+            )
+            * self.vel_star.units
+        )
+        for i_band, particle_luminosities_i_band in enumerate(
+            self.stellar_luminosities.T
+        ):
+            cylindrical_velocities[i_band] = calculate_cylindrical_velocities(
+                self.pos_star,
+                self.vel_star,
+                self.Lstar_luminosity_weighted[i_band * 3 : (1 + i_band) * 3],
+                reference_velocity=self.vcom_star,
+            )
+
+        return cylindrical_velocities
+
+    @lazy_property
+    def StellarRotationalVelocityLuminosityWeighted(self) -> unyt.unyt_array:
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
+            return None
+        return get_rotation_velocity_luminosity_weighted(
+            self.stellar_luminosities,
+            self.star_cylindrical_velocities_luminosity_weighted[:, :, 1],
+        )
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionVectorLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
+        if (self.Nstar < 2) or (np.sum(self.Lstar) == 0):
+            return None
+        return get_cylindrical_velocity_dispersion_vector_luminosity_weighted(
+            self.stellar_luminosities,
+            self.star_cylindrical_velocities_luminosity_weighted,
+        )
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionLuminosityWeighted(self) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted is None:
+            return None
+        return np.sqrt(
+            (
+                self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted**2
+            ).sum(axis=1)
+            / 3
+        )
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionVerticalLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted is None:
+            return None
+        return self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted[:, 2]
+
+    @lazy_property
+    def StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted(
+        self,
+    ) -> unyt.unyt_array:
+        if self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted is None:
+            return None
+        return np.sqrt(
+            (
+                self.StellarCylindricalVelocityDispersionVectorLuminosityWeighted[:, :2]
+                ** 2
+            ).sum(axis=1)
         )
 
     @lazy_property
@@ -3694,6 +3875,14 @@ class ApertureProperties(HaloProperty):
         "veldisp_matrix_gas": False,
         "veldisp_matrix_dm": False,
         "veldisp_matrix_star": False,
+        "StellarRotationalVelocity": False,
+        "StellarCylindricalVelocityDispersion": False,
+        "StellarCylindricalVelocityDispersionVertical": False,
+        "StellarCylindricalVelocityDispersionDiscPlane": False,
+        "StellarRotationalVelocityLuminosityWeighted": False,
+        "StellarCylindricalVelocityDispersionLuminosityWeighted": False,
+        "StellarCylindricalVelocityDispersionVerticalLuminosityWeighted": False,
+        "StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted": False,
         "KineticEnergyGas": False,
         "KineticEnergyStars": False,
         "Mgas_SF": False,
@@ -3733,6 +3922,7 @@ class ApertureProperties(HaloProperty):
         "stellar_age_lw": False,
         "stellar_age_uvlw": False,
         "TotalSNIaRate": False,
+        "ExSituFraction": False,
         "HydrogenMass": False,
         "HeliumMass": False,
         "MolecularHydrogenMass": False,

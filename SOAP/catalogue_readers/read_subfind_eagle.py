@@ -117,7 +117,8 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
     )
 
     # Store initial search radius
-    search_radius = (5 * data["Subhalo/VmaxRadius"] / h) * swift_cmpc
+    search_radius_cmpc = np.minimum((5 * data["Subhalo/VmaxRadius"] / h), 5)
+    search_radius = search_radius_cmpc * swift_cmpc
 
     local_halo = {
         "cofp": cofp,

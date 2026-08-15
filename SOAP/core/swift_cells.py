@@ -93,11 +93,15 @@ class ReadTask:
         file_start = self.file_offset
         file_end = self.file_offset + self.count
 
-        dataset.read_direct(
-            data[self.ptype][self.dataset].full,
-            np.s_[file_start:file_end, ...],
-            np.s_[mem_start:mem_end, ...],
-        )
+        try:
+            dataset.read_direct(
+                data[self.ptype][self.dataset].full,
+                np.s_[file_start:file_end, ...],
+                np.s_[mem_start:mem_end, ...],
+            )
+        except OSError as e:
+            print(f"Error reading {dataset_name}")
+            raise e
 
 
 def identify_datasets(filename, nr_files, ptypes, registry):
@@ -438,7 +442,10 @@ class SWIFTCellGrid:
                         dset = list(extra_metadata[parttype].keys())[0]
                         npart_extra = extra_file[f"{parttype}/{dset}"].shape[0]
                         if npart_snapshot[parttype] != npart_extra:
-                            print(f"Incorrect number of {parttype} in {extra_filename}")
+                            print(
+                                f"Incorrect number of {parttype} in {extra_filename}",
+                                flush=True,
+                            )
                             comm.Abort(1)
 
     def check_datasets_exist(self, required_datasets, halo_prop_list):
