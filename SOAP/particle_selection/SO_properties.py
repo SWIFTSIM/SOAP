@@ -604,7 +604,7 @@ class SOParticleData:
         """
         Spin parameter of all particles in the spherical overdensity.
 
-        Computed as in Bullock et al. (2021):
+        Computed as in Bullock et al. (2001):
           lambda = |Ltot| / (sqrt(2) * M * v_max * R)
         """
         if self.Mtotpart == 0:

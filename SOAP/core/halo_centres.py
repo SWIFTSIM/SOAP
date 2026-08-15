@@ -9,7 +9,6 @@ import numpy as np
 import unyt
 
 import virgo.util.match
-import virgo.mpi.gather_array as g
 import virgo.mpi.parallel_sort as psort
 
 from SOAP.catalogue_readers import (
@@ -107,14 +106,36 @@ class SOCatalogue:
         del halo_data
 
         # Only keep halos in the supplied list of halo IDs.
-        if (args.halo_indices is not None) and (local_halo["index"].shape[0]):
+        if args.halo_indices is not None:
             halo_indices = np.asarray(args.halo_indices, dtype=np.int64)
-            keep = np.zeros_like(local_halo["index"], dtype=bool)
-            matching_index = virgo.util.match.match(halo_indices, local_halo["index"])
-            have_match = matching_index >= 0
-            keep[matching_index[have_match]] = True
-            for name in local_halo:
-                local_halo[name] = local_halo[name][keep, ...]
+            nr_requested = halo_indices.shape[0]
+            have_match = np.zeros(nr_requested, dtype=np.int8)
+            if local_halo["index"].shape[0]:
+                keep = np.zeros_like(local_halo["index"], dtype=bool)
+                matching_index = virgo.util.match.match(
+                    halo_indices, local_halo["index"]
+                )
+                have_match[:] = matching_index >= 0
+                keep[matching_index[have_match.astype(bool)]] = True
+                for name in local_halo:
+                    local_halo[name] = local_halo[name][keep, ...]
+
+            # Report any requested halos which are not in the catalogue. This
+            # is collective, so it must be done on all ranks.
+            comm.Allreduce(MPI.IN_PLACE, have_match, op=MPI.MAX)
+            have_match = have_match.astype(bool)
+            nr_matched = np.sum(have_match)
+            if comm_rank == 0:
+                print(f"Matched {nr_matched} of {nr_requested} requested halo indices")
+                if nr_matched < nr_requested:
+                    # Written to the directory SOAP is being run from, and
+                    # named after the output catalogue
+                    output_file = sub_snapnum(args.output_file, args.snapshot_nr)
+                    basename = os.path.basename(output_file)
+                    basename = os.path.splitext(basename)[0]
+                    filename = f"{basename}_unmatched_halo_indices.txt"
+                    np.savetxt(filename, halo_indices[~have_match], fmt="%d")
+                    print(f"WARNING: wrote unmatched halo indices to {filename}")
 
         # Discard satellites, if necessary
         if args.centrals_only:
@@ -143,23 +164,25 @@ class SOCatalogue:
         for name in local_halo:
             local_halo[name] = psort.repartition(local_halo[name], ndesired, comm=comm)
 
-        # Store total number of halos
-        self.nr_local_halos = len(local_halo["index"])
-        self.nr_halos = comm.allreduce(self.nr_local_halos, op=MPI.SUM)
-
-        if (self.nr_halos == 0) and (comm_rank == 0):
-            print("No halos found, aborting run")
+        # Exit if we don't have any halos
+        if (total_nr_halos == 0) and (comm_rank == 0):
+            print("No halos found, aborting run", flush=True)
             comm.Abort(1)
-
-        # Reduce the number of chunks if necessary so that all chunks have at least one halo
-        nr_chunks = min(args.chunks, self.nr_halos)
-        self.nr_chunks = nr_chunks
 
         # Assign halos to chunk tasks:
         # This sorts the halos by chunk across all MPI ranks and returns the size of each chunk.
         chunk_size = domain_decomposition.peano_decomposition(
-            boxsize, local_halo, nr_chunks, comm
+            boxsize,
+            local_halo,
+            args.chunks,
+            comm,
+            args.separate_chunks,
         )
+        self.nr_chunks = chunk_size.shape[0]
+
+        # Store total number of halos
+        self.nr_local_halos = local_halo["index"].shape[0]
+        self.nr_halos = comm.allreduce(self.nr_local_halos, op=MPI.SUM)
 
         # Compute initial radius to read in about each halo
         local_halo["read_radius"] = local_halo["search_radius"].copy()
@@ -235,9 +258,9 @@ class SOCatalogue:
 
         # Determine local offset to the first halo in each chunk.
         # This will be different on each MPI rank.
-        self.local_chunk_size = np.zeros(nr_chunks, dtype=int)
-        self.local_chunk_offset = np.zeros(nr_chunks, dtype=int)
-        for chunk_nr in range(nr_chunks):
+        self.local_chunk_size = np.zeros(self.nr_chunks, dtype=int)
+        self.local_chunk_offset = np.zeros(self.nr_chunks, dtype=int)
+        for chunk_nr in range(self.nr_chunks):
             # Find the range of local halos which are in this chunk (may be none)
             i1 = self.chunk_offset[chunk_nr] - self.local_halo_offset
             if i1 < 0:
@@ -263,10 +286,12 @@ class SOCatalogue:
         # index in every chunk for which it has >0 halos. We then find the min and max of
         # each array element over all MPI ranks.
         chunk_min_rank = (
-            np.ones(nr_chunks, dtype=int) * comm_size
+            np.ones(self.nr_chunks, dtype=int) * comm_size
         )  # One more than maximum rank
-        chunk_max_rank = np.ones(nr_chunks, dtype=int) - 1  # One less than minimum rank
-        for chunk_nr in range(nr_chunks):
+        chunk_max_rank = (
+            np.ones(self.nr_chunks, dtype=int) - 1
+        )  # One less than minimum rank
+        for chunk_nr in range(self.nr_chunks):
             if self.local_chunk_size[chunk_nr] > 0:
                 chunk_min_rank[chunk_nr] = comm_rank
                 chunk_max_rank[chunk_nr] = comm_rank
@@ -278,7 +303,7 @@ class SOCatalogue:
         assert np.all(chunk_max_rank >= 0)
 
         # Check that chunk_[min|max]_rank is consistent with local_chunk_size
-        for chunk_nr in range(nr_chunks):
+        for chunk_nr in range(self.nr_chunks):
             assert (
                 comm_rank >= chunk_min_rank[chunk_nr]
                 and comm_rank <= chunk_max_rank[chunk_nr]

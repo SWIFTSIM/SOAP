@@ -29,7 +29,7 @@ output_dir="/cosma8/data/dp004/dc-mcgi1/COLIBRE/Runs"
 scratch_dir="/snap8/scratch/dp004/dc-mcgi1/COLIBRE/Runs"
 
 # compression script
-script="./compression/compress_soap_catalogue.py"
+script="./SOAP/compression/compress_soap_catalogue.py"
 
 # Which snapshot to do
 snapnum=`printf '%04d' ${SLURM_ARRAY_TASK_ID}`
@@ -41,7 +41,7 @@ sim="${SLURM_JOB_NAME}"
 input_filename="${input_dir}/${sim}/SOAP_uncompressed/halo_properties_${snapnum}.hdf5"
 
 # Location and name of the output SOAP catalogue
-outbase="${output_dir}/${sim}/SOAP"
+outbase="${output_dir}/${sim}/SOAP-ExSitu"
 mkdir -p $outbase
 output_filename="${outbase}/halo_properties_${snapnum}.hdf5"
 

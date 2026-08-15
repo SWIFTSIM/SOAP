@@ -44,7 +44,6 @@ from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculato
 from SOAP.particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 
-
 # Set numpy to raise divide by zero, overflow and invalid operation errors as exceptions
 np.seterr(divide="raise", over="raise", invalid="raise")
 
@@ -131,7 +130,7 @@ def compute_halo_properties():
                 swift_filename, extra_input, swift_filename_ref, extra_input_ref
             )
         except Exception as err_msg:
-            print(err_msg)
+            print(err_msg, flush=True)
             # Thrown if there are issues with the input files
             comm_world.Abort(1)
         parsec_cgs = cellgrid.constants["parsec"]
@@ -239,7 +238,7 @@ def compute_halo_properties():
     # We require BoundSubhalo since it's used for filters
     if comm_world_rank == 0:
         if "SubhaloProperties" not in parameter_file.parameters:
-            print("SubhaloProperties must be in the parameter file")
+            print("SubhaloProperties must be in the parameter file", flush=True)
             comm_world.Abort(1)
     halo_prop_list.append(
         subhalo_properties.SubhaloProperties(
@@ -549,7 +548,7 @@ def compute_halo_properties():
         try:
             os.makedirs(os.path.dirname(args.output_file), exist_ok=True)
         except OSError as e:
-            print(f"Error creating output directory: {e}")
+            print(f"Error creating output directory: {e}", flush=True)
             comm_world.Abort(1)
     comm_world.barrier()
 
@@ -591,7 +590,7 @@ def compute_halo_properties():
             try:
                 os.makedirs(scratch_file_dir, exist_ok=True)
             except OSError as e:
-                print(f"Error creating scratch directory: {e}")
+                print(f"Error creating scratch directory: {e}", flush=True)
                 comm_world.Abort(1)
     comm_world.barrier()
 
