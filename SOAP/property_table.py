@@ -365,6 +365,61 @@ class PropertyTable:
             output_physical=False,
             a_scale_exponent=1,
         ),
+        "AtomicHydrogenCloudsCount": Property(
+            name="AtomicHydrogenCloudsCount",
+            shape=1,
+            dtype=np.int32,
+            unit="dimensionless",
+            description="Number of HI clouds from a FOF catalogue including gas particles"
+            " with HI species fraction > 0.5 and linking length 1 kpc, not counting"
+            " largest cloud.",
+            lossy_compression_filter="None",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
+            ],
+            output_physical=False,
+            a_scale_exponent=0,
+        ),
+        "AtomicHydrogenCloudsMassFraction": Property(
+            name="AtomicHydrogenCloudsMassFraction",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Total mass in HI clouds (not including the most massive) divided"
+            " by the mass of the most massive cloud.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
+            ],
+            output_physical=False,
+            a_scale_exponent=0,
+        ),
+        "AtomicHydrogenCloudsMainCloudMass": Property(
+            name="AtomicHydrogenCloudsMainCloudMass",
+            shape=1,
+            dtype=np.float32,
+            unit="snap_mass",
+            description="Mass of the most massive HI cloud, presumed to belong to the"
+            " galaxy.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=[
+                "PartType0/Coordinates",
+                "PartType0/Masses",
+                "PartType0/SpeciesFractions",
+                "PartType0/ElementMassFractions",
+            ],
+            output_physical=False,
+            a_scale_exponent=0,
+        ),
         "BHlasteventa": Property(
             name="BlackHolesLastEventScalefactor",
             shape=1,

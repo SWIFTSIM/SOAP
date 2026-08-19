@@ -55,6 +55,8 @@ from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.swift_cells import SWIFTCellGrid
 
+from pyfof import friends_of_friends as fof
+
 
 class SubhaloParticleData:
     """
@@ -535,7 +537,7 @@ class SubhaloParticleData:
         if self.Ngas == 0:
             return None
         mHI = (
-            self.mass[self.gas_mask_sh]
+            self.mass_gas
             * self.get_dataset("PartType0/SpeciesFractions")[
                 self.gas_mask_all,
                 self.snapshot_datasets.get_column_index(
@@ -570,6 +572,80 @@ class SubhaloParticleData:
         return mids[i_lastcross] - (thresh - hist[i_lastcross]) * (
             mids[i_lastcross + 1] - mids[i_lastcross]
         ) / ((thresh - hist[i_lastcross + 1]) - (thresh - hist[i_lastcross]))
+
+    def compute_HI_cloud_props(self):
+        """
+        Auxiliary function used to compute a number of properties concerning HI clouds.
+        It is more efficient to compute these properties together.
+        """
+        fHI = self.get_dataset("PartType0/SpeciesFractions")[
+            self.gas_mask_all,
+            self.snapshot_datasets.get_column_index("PartType0/SpeciesFractions", "HI"),
+        ]
+        mHI = (
+            self.mass_gas
+            * fHI
+            * self.get_dataset("PartType0/ElementMassFractions")[
+                self.gas_mask_all,
+                self.snapshot_datasets.get_column_index(
+                    "PartType0/ElementMassFractions", "Hydrogen"
+                ),
+            ]
+        )
+        HI_mask = fHI > 0.5
+        fof_groups = fof(self.pos_gas[HI_mask].to_value(unyt.kpc), linking_length=1)
+        if len(fof_groups) == 0:
+            return (None, None, None)
+        sorted_fof_group_masses = np.sort(
+            unyt.unyt_array([mHI[HI_mask][fg].sum() for fg in fof_groups])
+        )
+        (
+            self.internal_HI_cloud_count,
+            self.internal_HI_cloud_mass_fraction,
+            self.internal_HI_cloud_max_mass,
+        ) = (
+            np.asarray(len(fof_groups) - 1),
+            sorted_fof_group_masses[:-1].sum() / sorted_fof_group_masses[-1]
+            if len(fof_groups) > 1
+            else 0 * unyt.dimensionless,
+            sorted_fof_group_masses[-1],
+        )
+
+    @lazy_property
+    def AtomicHydrogenCloudsCount(self) -> int:
+        """
+        Number of HI clouds from a FOF catalogue including gas particles
+        with HI species fraction > 0.5 and linking length 1 kpc, not counting
+        largest cloud.
+        """
+        if self.Ngas == 0:
+            return None
+        if not hasattr(self, "internal_HI_cloud_count"):
+            self.compute_HI_cloud_props()
+        return self.internal_HI_cloud_count
+
+    @lazy_property
+    def AtomicHydrogenCloudsMassFraction(self) -> unyt.unyt_quantity:
+        """
+        Total mass in HI clouds (not including the most massive) divided
+        by the mass of the most massive cloud.
+        """
+        if self.Ngas == 0:
+            return None
+        if not hasattr(self, "internal_HI_cloud_mass_fraction"):
+            self.compute_HI_cloud_props()
+        return self.internal_HI_cloud_mass_fraction
+
+    @lazy_property
+    def AtomicHydrogenCloudsMainCloudMass(self) -> unyt.unyt_quantity:
+        """
+        Mass of the most massive HI cloud, presumed to belong to the galaxy.
+        """
+        if self.Ngas == 0:
+            return None
+        if not hasattr(self, "internal_HI_cloud_max_mass"):
+            self.compute_HI_cloud_props()
+        return self.internal_HI_cloud_max_mass
 
     @lazy_property
     def BHlasteventa(self) -> unyt.unyt_quantity:
@@ -2423,6 +2499,9 @@ class SubhaloProperties(HaloProperty):
             "BHmaxvel",
             "BHmaxAR",
             "AtomicHydrogenRadius",
+            "AtomicHydrogenCloudsCount",
+            "AtomicHydrogenCloudsMassFraction",
+            "AtomicHydrogenCloudsMainCloudMass",
             "BHmaxlasteventa",
             "BlackHolesTotalInjectedThermalEnergy",
             "BlackHolesTotalInjectedJetEnergy",
