@@ -245,11 +245,18 @@ if comm_rank == 0:
             "w_0": -1,
             "w_a": 0,
         }
+        # SWIFT's Header/Time is the time since the Big Bang in internal time
+        # units (not the scale factor, which is what EAGLE stores).
+        time_since_big_bang = (
+            astropy.cosmology.Planck13.age(z).to("s").value
+            / units_header["Unit time in cgs (U_t)"][0]
+        )
         swift_header = {
             "BoxSize": [box_size_cmpc, box_size_cmpc, box_size_cmpc],
             "NumFilesPerSnapshot": [n_file],
             "NumPartTypes": [max(ptypes) + 1],
             "Scale-factor": [header.attrs["ExpansionFactor"]],
+            "Time": [time_since_big_bang],
             "Dimension": [3],
             "Redshift": [z],
             "RunName": snap_filename.encode(),
