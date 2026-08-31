@@ -1,5 +1,8 @@
 import numpy as np
 
+def vecdot(a, b, axis=-1):
+    return np.sum(np.conjugate(a) * b, axis=axis)
+
 def get_scalar_projection(vector_to_project, projection_direction_vector):
     """
     Projects one or more vectors along the provided direction(s) and returns the
