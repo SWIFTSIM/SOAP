@@ -36,6 +36,15 @@ from SOAP.property_calculation.kinematic_properties import (
     get_angular_momentum_and_kappa_corot_luminosity_weighted,
     get_vmax,
 )
+from SOAP.property_calculation.euler_mass_terms import (
+    get_radial_bins,
+    get_angular_bins,
+    get_sph_quantities_with_grad,
+    get_integrand_thermal_support,
+    get_integrand_streaming_support,
+    do_surface_integral)
+
+from SOAP.property_calculation.spherical_coordinates import cartesian_to_spherical_system
 from SOAP.property_calculation.inertia_tensors import get_inertia_tensor_mass_weighted
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 from SOAP.property_table import PropertyTable
@@ -711,6 +720,20 @@ class SOParticleData:
         Velocities of gas particles.
         """
         return self.velocity[self.types == 0]
+
+    @lazy_property
+    def gas_smoothing_lengths(self) -> unyt.unyt_array:
+        """
+        Smoothing length of gas particles.
+        """
+        return self.get_dataset("PartType0/SmoothingLengths")[self.gas_selection]
+
+    @lazy_property
+    def gas_pressures(self) -> unyt.unyt_array:
+        """
+        Pressure of gas particles.
+        """
+        return self.get_dataset("PartType0/Pressures")[self.gas_selection]
 
     @lazy_property
     def Mgas(self) -> unyt.unyt_quantity:
@@ -3053,6 +3076,173 @@ class SOParticleData:
             internal_energies=internal_energies,
         )
 
+
+    @lazy_property
+    def KineticEnergyGas(self) -> unyt.unyt_quantity:
+        """
+        Total kinetic energy of gas particles.
+        """
+        if self.Ngas == 0:
+            return None
+        v_gas = self.gas_vel - self.vcom[None, :]
+        v_gas += self.gas_pos * self.cosmology["H"]
+        ekin_gas = self.gas_masses * (v_gas**2).sum(axis=1)
+        return 0.5 * ekin_gas.sum()
+
+    def _calculate_euler_mass_terms(self, inner_radius, outer_radius, number_radial_bins = 2, number_angular_bins = 12):
+        """
+        Returns the values of all the Euler mass terms for a halo as a function of
+        radius.
+
+        Parameters
+        ----------
+        inner_radius: float
+            Smallest radial distance where we will compute the Euler mass term,
+            in units of the SO radius of the halo.
+        outer_radius: float
+            Largest radial distance where we will compute the Euler mass term,
+            in units of the SO radius of the halo.
+        number_radial_bins: int
+            Number of radial shells to use.
+        number_angular_bins: int
+            Number of angular bins to use. Needs to be in the form of 12 * 2**alpha
+            because we are using healpix.
+
+        Returns
+        -------
+        S_thermal: swiftsimio.objects.cosmo_array
+            Euler mass term for thermal support.
+        S_rotation: swiftsimio.objects.cosmo_array
+            Euler mass term for rotational support.
+        S_streaming: swiftsimio.objects.cosmo_array
+            Euler mass term for velocity streaming support.
+        """
+
+        #===========================================================================
+        # Defining radial bins.
+        #===========================================================================
+        radial_bin_centres, _ = get_radial_bins(inner_radius * self.SO_r , outer_radius * self.SO_r, number_radial_bins, 'log')
+        print (radial_bin_centres)
+
+        #===========================================================================
+        # Defining angular bins.
+        #===========================================================================
+        sphere_point_angles, sphere_points_cartesian = get_angular_bins(number_angular_bins)
+        theta, phi  = sphere_point_angles[0], sphere_point_angles[1]
+
+        #===========================================================================
+        # Build a series of concentric healpix shells of radius equal to the radial
+        # bin centres we have chosen, which will define points at which we evaluate
+        # gas-related fields.
+        #===========================================================================
+        all_query_points = np.concatenate([sphere_points_cartesian * r for r in radial_bin_centres], axis=0)
+        print (all_query_points)
+        #===========================================================================
+        # Cartesian to spherical coordinates and velocities. Note that the return
+        # type is a list, to propagate units in the radial direction.
+        #===========================================================================
+
+        gas_coordinates = self.gas_pos
+        gas_velocities  = self.gas_vel - self.vcom[None, :] + gas_coordinates * self.cosmology["H"]
+        print ("Centred phase-space of gas particles")
+
+        gas_spherical_coordinates, gas_spherical_velocities = cartesian_to_spherical_system(gas_coordinates, gas_velocities)
+        print ("Converted coordintes to spherical")
+
+        #===========================================================================
+        # Remove gas particles that are beyond our radial range of interest. We keep
+        # gas interior to our closest radial bin for enclosed mass calculations.
+        #===========================================================================
+
+        # The gas outside the SO will have already been removed.
+        # TODO: include gas outside of the spherical overdensity, but at what factor?
+        # radial_mask = gas_spherical_coordinates[0] <= outer_radial_bin_edge
+
+        # # Cosmo arrays, use numpy indexing.
+        # gas_coordinates = gas_coordinates[radial_mask]
+        # gas_pressures   = gas_pressures  [radial_mask]
+        # gas_densities   = gas_densities  [radial_mask]
+        # gas_smoothing   = gas_smoothing  [radial_mask]
+        # gas_masses      = gas_masses     [radial_mask]
+
+        # # Lists, so we need to iterate over each element.
+        # gas_spherical_coordinates = [spherical_coordinate_dimension[radial_mask] for spherical_coordinate_dimension in gas_spherical_coordinates]
+        # gas_spherical_velocities  = [spherical_velocity_dimension  [radial_mask] for spherical_velocity_dimension   in gas_spherical_velocities ]
+
+        print ("Removed particles beyond radius")
+
+        #===========================================================================
+        # Conversion to appropiate units
+        #===========================================================================
+
+        # Spatial dimensions
+        gas_coordinates.convert_to_units(unyt.Mpc)
+        self.gas_smoothing_lengths.convert_to_units(unyt.Mpc)
+        gas_spherical_coordinates[0].convert_to_units(unyt.Mpc) # Only radial direction has units.
+
+        # Mass dimensions
+        self.gas_masses.convert_to_units(unyt.Msun)
+
+        # Velocity dimensions
+        for spherical_velocity_dimension in gas_spherical_velocities:
+            spherical_velocity_dimension.convert_to_units(unyt.km / unyt.s)
+
+        # Mixed dimensions
+        self.gas_pressures.convert_to_units(unyt.kg * unyt.Mpc ** (-1) * unyt.s ** (-2))
+        self.gas_densities.convert_to_units(unyt.Msun * unyt.Mpc ** (-3))
+        print ("Converted units")
+
+        #===========================================================================
+        # Do SPH-smoothing for quantities relevant to the EM-terms
+        #===========================================================================
+
+        # We construct a tree to speed up neighbour look up.
+        from scipy.spatial import cKDTree
+        gas_tree = cKDTree(gas_coordinates,)
+
+        # Pack together all required gas properties we need to smooth.
+        properties_to_smooth = (self.gas_densities, self.gas_pressures, gas_spherical_velocities[0], gas_spherical_velocities[1], gas_spherical_velocities[2])
+        properties_to_smooth = tuple(property.astype(np.float64) for property in properties_to_smooth)
+
+        # Smooth quantities, which will return the results as (N_query, N_quantities) shape.
+        smoothed_values, smoothed_spherical_gradients = get_sph_quantities_with_grad(gas_tree, gas_coordinates, self.gas_masses, properties_to_smooth, self.gas_smoothing_lengths, self.gas_densities, all_query_points)
+
+        print ("Smoothed particles.")
+
+        # Reshape to get back to the original radial decomposition shape.
+        smoothed_values              = smoothed_values             .reshape(number_radial_bins, number_angular_bins, len(Q)   )
+        smoothed_spherical_gradients = smoothed_spherical_gradients.reshape(number_radial_bins, number_angular_bins, len(Q), 3)
+
+        # Add back the lost units, which are lost within jit.
+        smoothed_densities            = smoothed_values[:, :, 0] * self.gas_densities.units
+        smoothed_pressures            = smoothed_values[:, :, 1] * self.gas_pressures.units
+        smoothed_vr                   = smoothed_values[:, :, 2] * gas_spherical_velocities[0].units
+        smoothed_vtheta               = smoothed_values[:, :, 3] * gas_spherical_velocities[1].units
+        smoothed_vphi                 = smoothed_values[:, :, 4] * gas_spherical_velocities[2].units
+
+        # The angular derivatives already include 1/R and 1/Rsin(theta) hence we only need units
+        # for the radial dimension.
+        smoothed_dP_dr                = smoothed_spherical_gradients[:, :, 1, 0] * gas_pressures.units / r_centers.units
+        smoothed_dvr_dr               = smoothed_spherical_gradients[:, :, 2, 0] * gas_spherical_velocities[0].units / r_centers.units
+        smoothed_dvr_dtheta_R         = smoothed_spherical_gradients[:, :, 2, 1] * gas_spherical_velocities[0].units / r_centers.units
+        smoothed_dvr_dphi_R_sin_theta = smoothed_spherical_gradients[:, :, 2, 2] * gas_spherical_velocities[0].units / r_centers.units
+
+        #===========================================================================
+        # Surface integrals of the Euler mass terms
+        #===========================================================================
+        R = (radial_bin_centres)[:, None]
+
+        integrand_thermal   = get_integrand_thermal_support(smoothed_dP_dr, smoothed_densities)
+        integrand_rotation  = get_integrand_rotational_support (smoothed_vtheta, smoothed_vphi, R)
+        integrand_streaming = get_integrand_streaming_support(smoothed_vr, smoothed_vtheta, smoothed_vphi, smoothed_dvr_dr, smoothed_dvr_dtheta_R, smoothed_dvr_dphi_R_sin_theta)
+
+        # HEALPix provides equal area surfaces
+        area_per_angular_bin =  4 * np.pi * R**2 / number_angular_bins
+
+        self.EulerMassThermalSupport = do_surface_integral(integrand_thermal  , area_per_angular_bin).to(unyt.Msun)
+        self.EulerMassRotationalSupport = do_surface_integral(integrand_rotation , area_per_angular_bin).to(unyt.Msun)
+        self.EulerMassStreamingSupport = do_surface_integral(integrand_streaming, area_per_angular_bin).to(unyt.Msun)
+
     @lazy_property
     def ColdGasMassFlowRate(self) -> unyt.unyt_array:
         """
@@ -3216,7 +3406,10 @@ class SOParticleData:
         """
         Computes the contribution of gas thermal support against gravity.
         """
-        return
+
+        if not hasattr(self, "EulerMassThermalSupport"):
+          self._calculate_euler_mass_terms(0.01, 1)
+        return self.EulerMassThermalSupport
 
     @lazy_property
     def EulerMassRotationalSupport(self) -> unyt.unyt_array:
@@ -3224,7 +3417,10 @@ class SOParticleData:
         Computes the contribution of gas rotational support against gravitational
         collapse.
         """
-        return
+
+        if not hasattr(self, "EulerMassRotationalSupport"):
+            self._calculate_euler_mass_terms(0.01, 1)
+        return self.EulerMassRotationalSupport
 
     @lazy_property
     def EulerMassStreamingSupport(self) -> unyt.unyt_array:
@@ -3232,7 +3428,10 @@ class SOParticleData:
         Computes the contribution of gas streaming  support against gravitational
         collapse.
         """
-        return
+
+        if not hasattr(self, "EulerMassStreamingSupport"):
+            self._calculate_euler_mass_terms(0.01, 1)
+        return self.EulerMassStreamingSupport
 
 class SOProperties(HaloProperty):
     """
