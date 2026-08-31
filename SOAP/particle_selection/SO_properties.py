@@ -3212,14 +3212,14 @@ class SOParticleData:
         )
 
     @lazy_property
-    def EulerMassThermalSupport() -> unyt.unyt_array:
+    def EulerMassThermalSupport(self) -> unyt.unyt_array:
         """
         Computes the contribution of gas thermal support against gravity.
         """
         return
 
     @lazy_property
-    def EulerMassRotationalSupport() -> unyt.unyt_array:
+    def EulerMassRotationalSupport(self) -> unyt.unyt_array:
         """
         Computes the contribution of gas rotational support against gravitational
         collapse.
@@ -3227,7 +3227,7 @@ class SOParticleData:
         return
 
     @lazy_property
-    def EulerMassStreamingSupport() -> unyt.unyt_array:
+    def EulerMassStreamingSupport(self) -> unyt.unyt_array:
         """
         Computes the contribution of gas streaming  support against gravitational
         collapse.
