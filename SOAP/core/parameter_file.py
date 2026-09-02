@@ -86,6 +86,33 @@ class ParameterFile:
         with open(file_name, "w") as handle:
             yaml.safe_dump(self.parameters, handle)
 
+    def _validate_filter_name(self, filter_name, context: str) -> None:
+        """
+        Check that a filter referenced in the parameter file is one that SOAP
+        can apply.
+
+        The only always-available filter is "basic" (computed for every halo).
+        Any other filter must be defined in the "filters" section of the
+        parameter file; there are no default filters.
+
+        Parameters:
+         - filter_name:
+           The filter as read from the parameter file.
+         - context: str
+           Human readable description of where the filter is used, included in
+           the error message.
+
+        Raises ValueError if the filter is not "basic" and is not defined in the
+        "filters" section.
+        """
+        if filter_name == "basic":
+            return
+        if filter_name not in self.parameters.get("filters", {}):
+            raise ValueError(
+                f'{context} uses filter "{filter_name}" which is not defined in '
+                f'the "filters" section of the parameter file'
+            )
+
     def get_property_filters(self, base_halo_type: str, full_list: List[str]) -> Dict:
         """
         Get a dictionary with the filter that should be applied to each
@@ -148,9 +175,9 @@ class ParameterFile:
                 else:
                     filters[property] = False
             if isinstance(filters[property], str):
-                assert (filters[property] in self.parameters.get("filters", {})) or (
-                    filters[property] == "basic"
-                ), f'Filter "{filters[property]}" is not defined in paramter file'
+                self._validate_filter_name(
+                    filters[property], f"{base_halo_type}/{property}"
+                )
             else:
                 assert filters[property] == False
 
@@ -282,6 +309,13 @@ class ParameterFile:
             section["variations"] = {}
             return {}
 
+        # Check that any filters referenced by the variations are defined
+        for name, variation in section["variations"].items():
+            self._validate_filter_name(
+                variation.get("filter", "basic"),
+                f"{base_halo_type} variation '{name}'",
+            )
+
         return dict(section["variations"])
 
     def print_variation_warnings(self) -> None:
@@ -342,30 +376,17 @@ class ParameterFile:
                 self.aliases = dict()
         return self.aliases
 
-    def get_filters(self, default_filters: Dict) -> Dict:
+    def get_filters(self) -> Dict:
         """
-        Get a dictionary with filters to use for SOAP.
+        Get the category filters defined in the parameter file.
 
-        Parameters:
-         - default_filter: Dict
-           Dictionary with default filters, which are used
-           if no filters are found in the parameter file or if a particular
-           category is missing.
-
-        Returns a dictionary with a threshold value for each category present,
-        the properties to use for the filter, and how to combine the properties
-        if multiple are listed.
+        Returns the contents of the "filters" section, or an empty dictionary if
+        the section is absent. There are no default filters: any filter
+        referenced by a property or a halo type variation must be defined in the
+        parameter file. The only exception is the implicit "basic" filter, which
+        is always computed and is not listed in the "filters" section.
         """
-        filters = dict(default_filters)
-        if "filters" in self.parameters:
-            for category in default_filters:
-                if category in self.parameters["filters"]:
-                    filters[category] = self.parameters["filters"][category]
-                else:
-                    self.parameters["filters"][category] = filters[category]
-        else:
-            self.parameters["filters"] = dict(default_filters)
-        return filters
+        return dict(self.parameters.get("filters", {}))
 
     def get_defined_constants(self) -> Dict:
         """

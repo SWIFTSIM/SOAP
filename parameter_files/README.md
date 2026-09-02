@@ -196,6 +196,11 @@ SOAP uses filters to determine whether to skip the calculation of an aperture or
 property based on the number of bound particles. This section of the parameter file
 defines the particle limits for each filter. New filters can be added if required.
 
+There are no default filters. Every filter referenced by a property or a halo type
+variation must be defined here, with the sole exception of the implicit `basic`
+filter (always computed, never listed). SOAP raises an error at startup if a
+property or variation references a filter that is not defined.
+
 ```
 filters:
   general:

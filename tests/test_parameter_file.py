@@ -6,7 +6,7 @@ from SOAP.core.parameter_file import ParameterFile
 
 
 def make_parameter_file(
-    section=None, calculate_missing_properties=True, snipshot=False
+    section=None, calculate_missing_properties=True, snipshot=False, filters=None
 ):
     """
     Build a ParameterFile with a single ApertureProperties section.
@@ -16,10 +16,29 @@ def make_parameter_file(
     }
     if section is not None:
         parameters["ApertureProperties"] = section
+    if filters is not None:
+        parameters["filters"] = filters
     return ParameterFile(parameter_dictionary=parameters, snipshot=snipshot)
 
 
 VARIATIONS = {"exclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": False}}
+
+GENERAL_FILTER = {
+    "general": {
+        "limit": 100,
+        "properties": ["BoundSubhalo/NumberOfDarkMatterParticles"],
+    }
+}
+
+
+def variation_with_filter(filter_name):
+    return {
+        "exclusive_50_kpc": {
+            "radius_in_kpc": 50.0,
+            "inclusive": False,
+            "filter": filter_name,
+        }
+    }
 
 
 def test_missing_section_computes_nothing():
@@ -155,3 +174,68 @@ def test_missing_variations_key_not_reported_as_invalid(capsys):
     assert "ProjectedApertureProperties" not in captured
     assert "NotARealProperty" not in captured
     assert "AlsoNotReal" in captured
+
+
+def test_variation_with_defined_filter_is_accepted():
+    pf = make_parameter_file(
+        section={
+            "properties": {"Mtot": True},
+            "variations": variation_with_filter("general"),
+        },
+        filters=GENERAL_FILTER,
+    )
+    assert list(pf.get_halo_type_variations("ApertureProperties")) == [
+        "exclusive_50_kpc"
+    ]
+
+
+def test_variation_with_basic_filter_is_accepted_without_filters_section():
+    pf = make_parameter_file(
+        section={
+            "properties": {"Mtot": True},
+            "variations": variation_with_filter("basic"),
+        },
+    )
+    assert list(pf.get_halo_type_variations("ApertureProperties")) == [
+        "exclusive_50_kpc"
+    ]
+
+
+def test_variation_without_filter_key_is_accepted_without_filters_section():
+    pf = make_parameter_file(
+        section={"properties": {"Mtot": True}, "variations": VARIATIONS},
+    )
+    assert list(pf.get_halo_type_variations("ApertureProperties")) == [
+        "exclusive_50_kpc"
+    ]
+
+
+def test_variation_with_undefined_filter_raises():
+    pf = make_parameter_file(
+        section={
+            "properties": {"Mtot": True},
+            "variations": variation_with_filter("not_a_filter"),
+        },
+    )
+    with pytest.raises(ValueError, match="not_a_filter"):
+        pf.get_halo_type_variations("ApertureProperties")
+
+
+def test_property_with_defined_filter_is_accepted():
+    pf = make_parameter_file(
+        section={"properties": {"Mtot": "general"}}, filters=GENERAL_FILTER
+    )
+    filters = pf.get_property_filters("ApertureProperties", ["Mtot"])
+    assert filters["Mtot"] == "general"
+
+
+def test_property_true_resolves_to_basic_without_filters_section():
+    pf = make_parameter_file(section={"properties": {"Mtot": True}})
+    filters = pf.get_property_filters("ApertureProperties", ["Mtot"])
+    assert filters["Mtot"] == "basic"
+
+
+def test_property_with_undefined_filter_raises():
+    pf = make_parameter_file(section={"properties": {"Mtot": "not_a_filter"}})
+    with pytest.raises(ValueError, match="not_a_filter"):
+        pf.get_property_filters("ApertureProperties", ["Mtot"])

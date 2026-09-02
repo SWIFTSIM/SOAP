@@ -195,33 +195,7 @@ def compute_halo_properties():
         cold_dense_params["initialised"],
     )
 
-    default_filters = {
-        "general": {
-            "limit": 100,
-            "properties": [
-                "BoundSubhalo/NumberOfDarkMatterParticles",
-                "BoundSubhalo/NumberOfGasParticles",
-                "BoundSubhalo/NumberOfStarParticles",
-                "BoundSubhalo/NumberOfBlackHoleParticles",
-            ],
-            "combine_properties": "sum",
-        },
-        "dm": {
-            "limit": 100,
-            "properties": ["BoundSubhalo/NumberOfDarkMatterParticles"],
-        },
-        "gas": {"limit": 100, "properties": ["BoundSubhalo/NumberOfGasParticles"]},
-        "star": {"limit": 100, "properties": ["BoundSubhalo/NumberOfStarParticles"]},
-        "baryon": {
-            "limit": 100,
-            "properties": [
-                "BoundSubhalo/NumberOfGasParticles",
-                "BoundSubhalo/NumberOfStarParticles",
-            ],
-            "combine_properties": "sum",
-        },
-    }
-    filters = parameter_file.get_filters(default_filters)
+    filters = parameter_file.get_filters()
     category_filter = CategoryFilter(filters, dmo=args.dmo)
 
     # Get the full list of property calculations we can do
