@@ -113,15 +113,7 @@ ApertureProperties:
       radius_multiple: 2.0
 ```
 
-If you do not wish to calculate any apertures then pass any empty dict to both the properties and the variations, e.g.
-
-```
-ApertureProperties:
-  properties:
-    {}
-  variations:
-    {}
-```
+There are no default variations. If the ApertureProperties section is missing, or no `variations` are listed, then no apertures are computed. If `variations` are listed but no properties are enabled, apertures are still skipped unless `calculate_missing_properties` is true. The same applies to the `ProjectedApertureProperties` and `SOProperties` sections below.
 
 ### ProjectedApertureProperties
 

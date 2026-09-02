@@ -37,10 +37,6 @@ def test_subhalo_properties():
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
         parameters.get_aliases()
     )
-    parameters.get_halo_type_variations(
-        "SubhaloProperties",
-        {},
-    )
 
     recently_heated_gas_filter = dummy_halos.get_recently_heated_gas_filter()
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())

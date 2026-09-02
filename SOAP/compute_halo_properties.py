@@ -246,20 +246,7 @@ def compute_halo_properties():
         )
     )
 
-    SO_variations = parameter_file.get_halo_type_variations(
-        "SOProperties",
-        {
-            "200_mean": {"value": 200.0, "type": "mean"},
-            "50_crit": {"value": 50.0, "type": "crit"},
-            "100_crit": {"value": 100.0, "type": "crit"},
-            "200_crit": {"value": 200.0, "type": "crit"},
-            "500_crit": {"value": 500.0, "type": "crit"},
-            "1000_crit": {"value": 1000.0, "type": "crit"},
-            "2500_crit": {"value": 2500.0, "type": "crit"},
-            "BN98": {"value": 0.0, "type": "BN98"},
-            "5xR500_crit": {"value": 500.0, "type": "crit", "radius_multiple": 5.0},
-        },
-    )
+    SO_variations = parameter_file.get_halo_type_variations("SOProperties")
     # first add non radius multiples to make sure the radius multiples can be
     # computed
     for variation in SO_variations:
@@ -314,27 +301,7 @@ def compute_halo_properties():
                 )
             )
 
-    aperture_variations = parameter_file.get_halo_type_variations(
-        "ApertureProperties",
-        {
-            "inclusive_10_kpc": {"radius_in_kpc": 10.0, "inclusive": True},
-            "inclusive_30_kpc": {"radius_in_kpc": 30.0, "inclusive": True},
-            "inclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": True},
-            "inclusive_100_kpc": {"radius_in_kpc": 100.0, "inclusive": True},
-            "inclusive_300_kpc": {"radius_in_kpc": 300.0, "inclusive": True},
-            "inclusive_500_kpc": {"radius_in_kpc": 500.0, "inclusive": True},
-            "inclusive_1000_kpc": {"radius_in_kpc": 1000.0, "inclusive": True},
-            "inclusive_3000_kpc": {"radius_in_kpc": 3000.0, "inclusive": True},
-            "exclusive_10_kpc": {"radius_in_kpc": 10.0, "inclusive": False},
-            "exclusive_30_kpc": {"radius_in_kpc": 30.0, "inclusive": False},
-            "exclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": False},
-            "exclusive_100_kpc": {"radius_in_kpc": 100.0, "inclusive": False},
-            "exclusive_300_kpc": {"radius_in_kpc": 300.0, "inclusive": False},
-            "exclusive_500_kpc": {"radius_in_kpc": 500.0, "inclusive": False},
-            "exclusive_1000_kpc": {"radius_in_kpc": 1000.0, "inclusive": False},
-            "exclusive_3000_kpc": {"radius_in_kpc": 3000.0, "inclusive": False},
-        },
-    )
+    aperture_variations = parameter_file.get_halo_type_variations("ApertureProperties")
 
     # Sort the aperture variations based on their radii, and create a list
     # of all apertures. This is required since we can skip some of the larger
@@ -440,13 +407,7 @@ def compute_halo_properties():
             )
 
     projected_aperture_variations = parameter_file.get_halo_type_variations(
-        "ProjectedApertureProperties",
-        {
-            "10_kpc": {"radius_in_kpc": 10.0},
-            "30_kpc": {"radius_in_kpc": 30.0},
-            "50_kpc": {"radius_in_kpc": 50.0},
-            "100_kpc": {"radius_in_kpc": 100.0},
-        },
+        "ProjectedApertureProperties"
     )
     # Sort the aperture variations based on their radii, and create a list
     # of all apertures. This is required since we can skip some of the larger
@@ -533,6 +494,7 @@ def compute_halo_properties():
             print("Storing processing time for each property")
         parameter_file.print_unregistered_properties()
         parameter_file.print_invalid_properties(halo_prop_list)
+        parameter_file.print_variation_warnings()
         if not parameter_file.renclose_enabled():
             print(
                 "BoundSubhalo/EncloseRadius is not enabled. This means apertures with r > r_enclose will be calculated explicitly, rather than copying over values from smaller apertures"

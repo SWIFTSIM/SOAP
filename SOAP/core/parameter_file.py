@@ -65,6 +65,10 @@ class ParameterFile:
 
         self.property_filters = {}
 
+        # Warnings generated while resolving halo type variations, printed later
+        # on a single rank via print_variation_warnings()
+        self.variation_warnings = []
+
     def get_parameters(self) -> Dict:
         """
         Get a copy of the parameter dictionary.
@@ -179,6 +183,11 @@ class ParameterFile:
             # Skip keys which aren't halo types
             if "properties" not in self.parameters[key]:
                 continue
+            # Skip halo types which have a variations key that is an empty dict.
+            # SubhaloProperties never has a variations key, so is still checked.
+            variations = self.parameters[key].get("variations", None)
+            if isinstance(variations, dict) and len(variations) == 0:
+                continue
             # Add all properties to the invalid list
             for prop in self.parameters[key]["properties"]:
                 invalid_properties.add((key, prop))
@@ -200,39 +209,88 @@ class ParameterFile:
             for base_halo_type, prop in invalid_properties:
                 print(f"  {base_halo_type}  {prop}")
 
-    def get_halo_type_variations(
-        self, base_halo_type: str, default_variations: Dict
-    ) -> Dict:
+    def has_enabled_properties(self, base_halo_type: str) -> bool:
+        """
+        Return True if the parameter file enables at least one property for the
+        given halo type, taking the current snapshot/snipshot mode into account.
+        """
+        section = self.parameters.get(base_halo_type) or {}
+        properties = section.get("properties") or {}
+        for value in properties.values():
+            # value may be a dict specifying different behaviour for
+            # snapshots/snipshots
+            if isinstance(value, dict):
+                value = value["snipshot"] if self.snipshot else value["snapshot"]
+            if value:
+                return True
+        return False
+
+    def get_halo_type_variations(self, base_halo_type: str) -> Dict:
         """
         Get a dictionary of variations for the given halo type.
 
-        Different variations are for example bound/unbound SubhaloProperties or
-        aperture properties with different aperture sizes.
+        Different variations are for example aperture properties with different
+        aperture sizes, or spherical overdensities with different definitions.
 
-        If the given halo type is not found in the parameter file, or no
-        variations are specified, the default variations are used.
+        There are no default variations. A missing section, a missing or empty
+        "variations", and a "variations: {}" are all treated identically. The
+        behaviour depends on whether any properties are enabled for the halo
+        type (see has_enabled_properties):
+
+         - No variations, no properties enabled: nothing is computed, no message.
+         - No variations, but properties enabled: nothing is computed, a warning
+           is recorded.
+         - Variations set, no properties enabled, calculate_missing_properties
+           is False: nothing is computed, the variations are cleared and a
+           warning is recorded.
+         - Variations set, no properties enabled, calculate_missing_properties
+           is True: all properties are computed for the variations.
+         - Variations set and properties enabled: the variations are computed.
 
         Parameters:
          - base_halo_type: str
            Halo type identifier in the parameter file, can be one of
-           ApertureProperties, ProjectedApertureProperties, SOProperties
-           or SubhaloProperties.
-         - default_variations: Dict
-           Dictionary with default variations that will be used if the
-           halo type variations are not provided in the parameter file.
+           ApertureProperties, ProjectedApertureProperties or SOProperties.
 
         Returns a dictionary from which different versions of the
         corresponding HaloProperty specialisation can be constructed.
         """
-        if not base_halo_type in self.parameters:
-            self.parameters[base_halo_type] = {}
-        if not "variations" in self.parameters[base_halo_type]:
-            self.parameters[base_halo_type]["variations"] = {}
-            for variation in default_variations:
-                self.parameters[base_halo_type]["variations"][variation] = dict(
-                    default_variations[variation]
+        section = self.parameters.get(base_halo_type)
+        if not isinstance(section, dict):
+            section = {}
+            self.parameters[base_halo_type] = section
+        if not isinstance(section.get("variations"), dict):
+            section["variations"] = {}
+
+        has_variations = len(section["variations"]) > 0
+        has_properties = self.has_enabled_properties(base_halo_type)
+
+        if not has_variations:
+            if has_properties:
+                self.variation_warnings.append(
+                    f"{base_halo_type}: properties are enabled but no variations "
+                    f"are set, so nothing will be computed for {base_halo_type}."
                 )
-        return dict(self.parameters[base_halo_type]["variations"])
+            return {}
+
+        if not has_properties and not self.calculate_missing_properties():
+            self.variation_warnings.append(
+                f"{base_halo_type}: variations are set but no properties are "
+                f"enabled and calculate_missing_properties is False, so nothing "
+                f"will be computed for {base_halo_type}."
+            )
+            section["variations"] = {}
+            return {}
+
+        return dict(section["variations"])
+
+    def print_variation_warnings(self) -> None:
+        """
+        Print any warnings recorded while resolving halo type variations, for
+        example a halo type section that lists properties but no variations.
+        """
+        for warning in self.variation_warnings:
+            print(warning)
 
     def get_particle_property(self, property_name: str) -> Tuple[str, str]:
         """
