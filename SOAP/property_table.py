@@ -5175,7 +5175,9 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
 
         # Particle limits for each filter
         with open(f"{output_dir}/filters.tex", "w") as ofile:
-            for name, filter_info in self.parameters.parameters["filters"].items():
+            for name, filter_info in self.parameters.parameters.get(
+                "filters", {}
+            ).items():
                 value = filter_info["limit"]
                 ofile.write(f"\\newcommand{{\\{name.lower()}filter}}{{{value}}}\n")
 

@@ -37,9 +37,6 @@ def test_projected_aperture_properties():
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
         parameters.get_aliases()
     )
-    parameters.get_halo_type_variations(
-        "ProjectedApertureProperties", {"30_kpc": {"radius_in_kpc": 30.0}}
-    )
 
     pc_projected = ProjectedApertureProperties(
         dummy_halos.get_cell_grid(),

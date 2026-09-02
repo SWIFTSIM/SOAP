@@ -113,15 +113,7 @@ ApertureProperties:
       radius_multiple: 2.0
 ```
 
-If you do not wish to calculate any apertures then pass any empty dict to both the properties and the variations, e.g.
-
-```
-ApertureProperties:
-  properties:
-    {}
-  variations:
-    {}
-```
+There are no default variations. If the ApertureProperties section is missing, or no `variations` are listed, then no apertures are computed. If `variations` are listed but no properties are enabled, apertures are still skipped unless `calculate_missing_properties` is true. The same applies to the `ProjectedApertureProperties` and `SOProperties` sections below.
 
 ### ProjectedApertureProperties
 
@@ -203,6 +195,11 @@ For each alias the key is the name of the property that SOAP expects, and the va
 SOAP uses filters to determine whether to skip the calculation of an aperture or
 property based on the number of bound particles. This section of the parameter file
 defines the particle limits for each filter. New filters can be added if required.
+
+There are no default filters. Every filter referenced by a property or a halo type
+variation must be defined here, with the sole exception of the implicit `basic`
+filter (always computed, never listed). SOAP raises an error at startup if a
+property or variation references a filter that is not defined.
 
 ```
 filters:

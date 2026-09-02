@@ -15,6 +15,41 @@ import yaml
 
 from SOAP import property_table
 
+# Known parameter file structure, used by check_schema to flag typos. A value
+# of None means the keys directly under that section are user-named or free-form
+# and are not checked; a set lists the only keys allowed directly under that
+# section. Add a key here when a new option is introduced.
+_ALLOWED_KEYS = {
+    "Parameters": None,
+    "Snapshots": {"filename", "fof_filename"},
+    "HaloFinder": {
+        "type",
+        "filename",
+        "fof_filename",
+        "fof_radius_filename",
+        "read_potential_energies",
+    },
+    "GroupMembership": {"filename"},
+    "ExtraInput": None,
+    "HaloProperties": {"filename", "chunk_dir"},
+    "SubhaloProperties": {"properties"},
+    "ApertureProperties": {"properties", "variations"},
+    "ProjectedApertureProperties": {"properties", "variations"},
+    "SOProperties": {"properties", "variations"},
+    "aliases": None,
+    "filters": None,
+    "defined_constants": None,
+    "calculations": {
+        "calculate_missing_properties",
+        "min_read_radius_cmpc",
+        "strict_halo_copy",
+        "reduced_snapshots",
+        "recently_heated_gas_filter",
+        "cold_dense_gas_filter",
+        "separate_chunks",
+    },
+}
+
 
 class ParameterFile:
     """
@@ -65,6 +100,10 @@ class ParameterFile:
 
         self.property_filters = {}
 
+        # Warnings generated while resolving halo type variations, printed later
+        # on a single rank via print_variation_warnings()
+        self.variation_warnings = []
+
     def get_parameters(self) -> Dict:
         """
         Get a copy of the parameter dictionary.
@@ -81,6 +120,33 @@ class ParameterFile:
         """
         with open(file_name, "w") as handle:
             yaml.safe_dump(self.parameters, handle)
+
+    def _validate_filter_name(self, filter_name, context: str) -> None:
+        """
+        Check that a filter referenced in the parameter file is one that SOAP
+        can apply.
+
+        The only always-available filter is "basic" (computed for every halo).
+        Any other filter must be defined in the "filters" section of the
+        parameter file; there are no default filters.
+
+        Parameters:
+         - filter_name:
+           The filter as read from the parameter file.
+         - context: str
+           Human readable description of where the filter is used, included in
+           the error message.
+
+        Raises ValueError if the filter is not "basic" and is not defined in the
+        "filters" section.
+        """
+        if filter_name == "basic":
+            return
+        if filter_name not in self.parameters.get("filters", {}):
+            raise ValueError(
+                f'{context} uses filter "{filter_name}" which is not defined in '
+                f'the "filters" section of the parameter file'
+            )
 
     def get_property_filters(self, base_halo_type: str, full_list: List[str]) -> Dict:
         """
@@ -144,9 +210,9 @@ class ParameterFile:
                 else:
                     filters[property] = False
             if isinstance(filters[property], str):
-                assert (filters[property] in self.parameters.get("filters", {})) or (
-                    filters[property] == "basic"
-                ), f'Filter "{filters[property]}" is not defined in paramter file'
+                self._validate_filter_name(
+                    filters[property], f"{base_halo_type}/{property}"
+                )
             else:
                 assert filters[property] == False
 
@@ -179,6 +245,11 @@ class ParameterFile:
             # Skip keys which aren't halo types
             if "properties" not in self.parameters[key]:
                 continue
+            # Skip halo types which have a variations key that is an empty dict.
+            # SubhaloProperties never has a variations key, so is still checked.
+            variations = self.parameters[key].get("variations", None)
+            if isinstance(variations, dict) and len(variations) == 0:
+                continue
             # Add all properties to the invalid list
             for prop in self.parameters[key]["properties"]:
                 invalid_properties.add((key, prop))
@@ -200,39 +271,115 @@ class ParameterFile:
             for base_halo_type, prop in invalid_properties:
                 print(f"  {base_halo_type}  {prop}")
 
-    def get_halo_type_variations(
-        self, base_halo_type: str, default_variations: Dict
-    ) -> Dict:
+    def has_enabled_properties(self, base_halo_type: str) -> bool:
+        """
+        Return True if the parameter file enables at least one property for the
+        given halo type, taking the current snapshot/snipshot mode into account.
+        """
+        section = self.parameters.get(base_halo_type) or {}
+        properties = section.get("properties") or {}
+        for value in properties.values():
+            # value may be a dict specifying different behaviour for
+            # snapshots/snipshots
+            if isinstance(value, dict):
+                value = value["snipshot"] if self.snipshot else value["snapshot"]
+            if value:
+                return True
+        return False
+
+    def get_halo_type_variations(self, base_halo_type: str) -> Dict:
         """
         Get a dictionary of variations for the given halo type.
 
-        Different variations are for example bound/unbound SubhaloProperties or
-        aperture properties with different aperture sizes.
+        Different variations are for example aperture properties with different
+        aperture sizes, or spherical overdensities with different definitions.
 
-        If the given halo type is not found in the parameter file, or no
-        variations are specified, the default variations are used.
+        There are no default variations. A missing section, a missing or empty
+        "variations", and a "variations: {}" are all treated identically. The
+        behaviour depends on whether any properties are enabled for the halo
+        type (see has_enabled_properties):
+
+         - No variations, no properties enabled: nothing is computed, no message.
+         - No variations, but properties enabled: nothing is computed, a warning
+           is recorded.
+         - Variations set, no properties enabled, calculate_missing_properties
+           is False: nothing is computed, the variations are cleared and a
+           warning is recorded.
+         - Variations set, no properties enabled, calculate_missing_properties
+           is True: all properties are computed for the variations.
+         - Variations set and properties enabled: the variations are computed.
 
         Parameters:
          - base_halo_type: str
            Halo type identifier in the parameter file, can be one of
-           ApertureProperties, ProjectedApertureProperties, SOProperties
-           or SubhaloProperties.
-         - default_variations: Dict
-           Dictionary with default variations that will be used if the
-           halo type variations are not provided in the parameter file.
+           ApertureProperties, ProjectedApertureProperties or SOProperties.
 
         Returns a dictionary from which different versions of the
         corresponding HaloProperty specialisation can be constructed.
         """
-        if not base_halo_type in self.parameters:
-            self.parameters[base_halo_type] = {}
-        if not "variations" in self.parameters[base_halo_type]:
-            self.parameters[base_halo_type]["variations"] = {}
-            for variation in default_variations:
-                self.parameters[base_halo_type]["variations"][variation] = dict(
-                    default_variations[variation]
+        section = self.parameters.get(base_halo_type)
+        if not isinstance(section, dict):
+            section = {}
+            self.parameters[base_halo_type] = section
+        if not isinstance(section.get("variations"), dict):
+            section["variations"] = {}
+
+        has_variations = len(section["variations"]) > 0
+        has_properties = self.has_enabled_properties(base_halo_type)
+
+        if not has_variations:
+            if has_properties:
+                self.variation_warnings.append(
+                    f"{base_halo_type}: properties are enabled but no variations "
+                    f"are set, so nothing will be computed for {base_halo_type}."
                 )
-        return dict(self.parameters[base_halo_type]["variations"])
+            return {}
+
+        if not has_properties and not self.calculate_missing_properties():
+            self.variation_warnings.append(
+                f"{base_halo_type}: variations are set but no properties are "
+                f"enabled and calculate_missing_properties is False, so nothing "
+                f"will be computed for {base_halo_type}."
+            )
+            section["variations"] = {}
+            return {}
+
+        # Check that any filters referenced by the variations are defined
+        for name, variation in section["variations"].items():
+            self._validate_filter_name(
+                variation.get("filter", "basic"),
+                f"{base_halo_type} variation '{name}'",
+            )
+
+        return dict(section["variations"])
+
+    def print_variation_warnings(self) -> None:
+        """
+        Print any warnings recorded while resolving halo type variations, for
+        example a halo type section that lists properties but no variations.
+        """
+        for warning in self.variation_warnings:
+            print(warning)
+
+    def check_schema(self) -> None:
+        """
+        Abort if the parameter file has an unrecognised section, or a mistyped
+        key directly under a section which has a fixed set of keys (see
+        _ALLOWED_KEYS). This catches typos which would otherwise be silently
+        ignored. It does not check value types, or keys nested more deeply.
+        """
+        errors = []
+        for section, block in self.parameters.items():
+            if section not in _ALLOWED_KEYS:
+                errors.append(f'unknown section "{section}"')
+            elif _ALLOWED_KEYS[section] is not None and isinstance(block, dict):
+                errors += [
+                    f'unknown key "{section}/{key}"'
+                    for key in block
+                    if key not in _ALLOWED_KEYS[section]
+                ]
+        if errors:
+            raise ValueError("Invalid parameter file: " + "; ".join(errors))
 
     def get_particle_property(self, property_name: str) -> Tuple[str, str]:
         """
@@ -284,30 +431,17 @@ class ParameterFile:
                 self.aliases = dict()
         return self.aliases
 
-    def get_filters(self, default_filters: Dict) -> Dict:
+    def get_filters(self) -> Dict:
         """
-        Get a dictionary with filters to use for SOAP.
+        Get the category filters defined in the parameter file.
 
-        Parameters:
-         - default_filter: Dict
-           Dictionary with default filters, which are used
-           if no filters are found in the parameter file or if a particular
-           category is missing.
-
-        Returns a dictionary with a threshold value for each category present,
-        the properties to use for the filter, and how to combine the properties
-        if multiple are listed.
+        Returns the contents of the "filters" section, or an empty dictionary if
+        the section is absent. There are no default filters: any filter
+        referenced by a property or a halo type variation must be defined in the
+        parameter file. The only exception is the implicit "basic" filter, which
+        is always computed and is not listed in the "filters" section.
         """
-        filters = dict(default_filters)
-        if "filters" in self.parameters:
-            for category in default_filters:
-                if category in self.parameters["filters"]:
-                    filters[category] = self.parameters["filters"][category]
-                else:
-                    self.parameters["filters"][category] = filters[category]
-        else:
-            self.parameters["filters"] = dict(default_filters)
-        return filters
+        return dict(self.parameters.get("filters", {}))
 
     def get_defined_constants(self) -> Dict:
         """
