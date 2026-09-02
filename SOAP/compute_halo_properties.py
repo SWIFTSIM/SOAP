@@ -151,6 +151,11 @@ def compute_halo_properties():
         parameter_file = ParameterFile(
             file_name=args.config_filename, snipshot=args.snipshot
         )
+        try:
+            parameter_file.check_schema()
+        except ValueError as e:
+            print(e, flush=True)
+            comm_world.Abort(1)
     else:
         parameter_file = None
     parameter_file = comm_world.bcast(parameter_file)

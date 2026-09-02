@@ -15,6 +15,41 @@ import yaml
 
 from SOAP import property_table
 
+# Known parameter file structure, used by check_schema to flag typos. A value
+# of None means the keys directly under that section are user-named or free-form
+# and are not checked; a set lists the only keys allowed directly under that
+# section. Add a key here when a new option is introduced.
+_ALLOWED_KEYS = {
+    "Parameters": None,
+    "Snapshots": {"filename", "fof_filename"},
+    "HaloFinder": {
+        "type",
+        "filename",
+        "fof_filename",
+        "fof_radius_filename",
+        "read_potential_energies",
+    },
+    "GroupMembership": {"filename"},
+    "ExtraInput": None,
+    "HaloProperties": {"filename", "chunk_dir"},
+    "SubhaloProperties": {"properties"},
+    "ApertureProperties": {"properties", "variations"},
+    "ProjectedApertureProperties": {"properties", "variations"},
+    "SOProperties": {"properties", "variations"},
+    "aliases": None,
+    "filters": None,
+    "defined_constants": None,
+    "calculations": {
+        "calculate_missing_properties",
+        "min_read_radius_cmpc",
+        "strict_halo_copy",
+        "reduced_snapshots",
+        "recently_heated_gas_filter",
+        "cold_dense_gas_filter",
+        "separate_chunks",
+    },
+}
+
 
 class ParameterFile:
     """
@@ -325,6 +360,26 @@ class ParameterFile:
         """
         for warning in self.variation_warnings:
             print(warning)
+
+    def check_schema(self) -> None:
+        """
+        Abort if the parameter file has an unrecognised section, or a mistyped
+        key directly under a section which has a fixed set of keys (see
+        _ALLOWED_KEYS). This catches typos which would otherwise be silently
+        ignored. It does not check value types, or keys nested more deeply.
+        """
+        errors = []
+        for section, block in self.parameters.items():
+            if section not in _ALLOWED_KEYS:
+                errors.append(f'unknown section "{section}"')
+            elif _ALLOWED_KEYS[section] is not None and isinstance(block, dict):
+                errors += [
+                    f'unknown key "{section}/{key}"'
+                    for key in block
+                    if key not in _ALLOWED_KEYS[section]
+                ]
+        if errors:
+            raise ValueError("Invalid parameter file: " + "; ".join(errors))
 
     def get_particle_property(self, property_name: str) -> Tuple[str, str]:
         """
