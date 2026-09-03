@@ -455,9 +455,9 @@ SOProperties:
     DiscToTotalLuminosityRatioLuminosityWeighted: false
     DiscToTotalMassRatioLuminosityWeighted: false
     DopplerB: false
-    EulerMassThermalSupport: false    # Requires numba
-    EulerMassRotationalSupport: false # Requires numba
-    EulerMassStreamingSupport: false  # Requires numba
+    EulerMassThermalSupport: false    # Requires numba and healpy
+    EulerMassRotationalSupport: false # Requires numba and healpy
+    EulerMassStreamingSupport: false  # Requires numba and healpy
     GasCentreOfMass: true
     GasCentreOfMassVelocity: true
     GasMass: true

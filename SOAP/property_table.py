@@ -1170,10 +1170,10 @@ class PropertyTable:
         ),
         "EulerMassThermalSupport": Property(
             name="EulerMassThermalSupport",
-            shape=10,
+            shape=2,
             dtype=np.float32,
             unit="snap_mass",
-            description="The mass supported by gas thermal energy against gravitational collapse, measured at several halo-centric radii.",
+            description="The mass supported by gas thermal energy against gravitational collapse, measured at two halo-centric radii.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1189,10 +1189,10 @@ class PropertyTable:
         ),
         "EulerMassRotationalSupport": Property(
             name="EulerMassRotationalSupport",
-            shape=10,
+            shape=2,
             dtype=np.float32,
             unit="snap_mass",
-            description="The mass supported by gas rotational motions against gravitational collapse, measured at several halo-centric radii.",
+            description="The mass supported by gas rotational motions against gravitational collapse, measured at two halo-centric radii.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -1208,10 +1208,10 @@ class PropertyTable:
         ),
         "EulerMassStreamingSupport": Property(
             name="EulerMassStreamingSupport",
-            shape=10,
+            shape=2,
             dtype=np.float32,
             unit="snap_mass",
-            description="The mass supported by gas streaming motions against gravitational collapse, measured at several halo-centric radii.",
+            description="The mass supported by gas streaming motions against gravitational collapse, measured at two halo-centric radii.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[

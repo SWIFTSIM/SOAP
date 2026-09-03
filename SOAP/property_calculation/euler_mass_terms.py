@@ -17,7 +17,8 @@ from math import sqrt
 from numba import jit
 from numba.typed import List
 
-# G = unyt.Unit("newton_G", registry=masses.units.registry)
+from SOAP.property_calculation.spherical_coordinates import project_to_spherical_components
+
 #===============================================================================
 # Euler mass integrands
 #===============================================================================
@@ -248,14 +249,15 @@ def get_sph_quantities_with_grad(tree, particle_coordinates, particle_masses, pa
 
     neighbors_numba = List()
     neighbors_numba = convert1(tmp_neighbors, dtype=np.int64, depth=1) # found on a github page https://github.com/numba/numba/issues/7727
-    # print (neighbors_numba)
     for i, neighbors_qp in enumerate(neighbors_numba):
         sum_w_Q[i, :], sum_Gw_Q[i, :, :], sum_w[i], sum_Gw[i,:] = compute_qp_sph_with_grad(x, y, z, particle_masses, particle_properties, particle_smoothing_lengths, particle_densities, neighbors_qp, query_points[i])
-    print (sum_w.shape)
-    print (sum_w)
-    print ((sum_w[:, None, None])**2)
-    SPH_Q_grad_car = (sum_Gw_Q * sum_w[:, None, None] -  sum_w_Q[:, :, None] * sum_Gw[:, None, :]) / (sum_w[:, None, None])**2
-    sum_w_Q /= sum_w[:, None]
+
+    # Query points with no gas neighbours have sum_w == 0. The resulting 0/0 is a
+    # NaN by design (do_surface_integral uses np.nansum to drop those points), so
+    # suppress the divide warning/error that SOAP's global np.seterr would raise.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        SPH_Q_grad_car = (sum_Gw_Q * sum_w[:, None, None] -  sum_w_Q[:, :, None] * sum_Gw[:, None, :]) / (sum_w[:, None, None])**2
+        sum_w_Q /= sum_w[:, None]
 
     SPH_Q_grad_spherical = project_to_spherical_components(SPH_Q_grad_car, query_points)
 

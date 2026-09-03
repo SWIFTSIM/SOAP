@@ -104,6 +104,56 @@ def cartesian_to_spherical_coordinates(cartesian_coordinates):
 
     return spherical_vectors, spherical_unit_vectors
 
+def project_to_spherical_components(cartesian_vectors, cartesian_coordinates):
+    """
+    Expresses Cartesian vector fields in the local orthonormal spherical basis
+    (e_r, e_theta, e_phi) evaluated at each provided position.
+
+    This is used to convert SPH-smoothed Cartesian gradients into spherical
+    components. Because the spherical basis vectors are unit length, the
+    components returned for a gradient field are the physical derivatives, i.e.
+    (df/dr, (1/r) df/dtheta, (1/(r sin(theta))) df/dphi).
+
+    Parameters
+    ----------
+    cartesian_vectors: np.ndarray
+        Vectors to project, with the Cartesian (x, y, z) components along the
+        last axis and one entry per position along the first axis. Any axes in
+        between (e.g. a quantity axis) are preserved. Shape (N_points, ..., 3).
+    cartesian_coordinates: np.ndarray
+        Cartesian positions at which the spherical basis is evaluated, with
+        shape (N_points, 3).
+
+    Returns
+    -------
+    np.ndarray
+        The input vectors expressed in spherical components, with the same shape
+        as cartesian_vectors and the (r, theta, phi) components along the last
+        axis.
+    """
+
+    if cartesian_vectors.shape[-1] != 3:
+        raise ValueError("The vectors to project should have their Cartesian components along the last axis.")
+
+    if cartesian_coordinates.ndim != 2 or cartesian_coordinates.shape[-1] != 3:
+        raise ValueError("The positions should have shape (N_points, 3).")
+
+    if cartesian_vectors.shape[0] != cartesian_coordinates.shape[0]:
+        raise ValueError("There should be one position for each vector (or set of vectors) to project.")
+
+    _, spherical_unit_vectors = cartesian_to_spherical_coordinates(cartesian_coordinates)
+
+    # Reshape the (N_points, 3) unit vectors so they broadcast against any axes
+    # sitting between the position axis and the component axis of cartesian_vectors.
+    broadcast_shape = (cartesian_coordinates.shape[0],) + (1,) * (cartesian_vectors.ndim - 2) + (3,)
+
+    spherical_components = [
+        vecdot(cartesian_vectors, spherical_unit_vector.reshape(broadcast_shape))
+        for spherical_unit_vector in spherical_unit_vectors
+    ]
+
+    return np.stack(spherical_components, axis=-1)
+
 def cartesian_to_spherical_system(cartesian_coordinates, cartesian_velocities = None):
     """
     Returns the spherical velocity coordinates and velocities for a given set of
