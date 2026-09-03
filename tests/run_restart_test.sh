@@ -100,7 +100,9 @@ diff "${WORKDIR}/schema1.txt" "${WORKDIR}/schema2.txt" \
 
 echo
 echo "=== Run 3: one scratch file deleted, expect $((CHUNKS - 1)) chunks reused ==="
-chunk_files=( "${SCRATCH_DIR}"/*/chunk_*.hdf5 )
+mapfile -t chunk_files < <(find "${SCRATCH_DIR}" -name 'chunk_*.hdf5' | sort)
+[[ ${#chunk_files[@]} -eq ${CHUNKS} ]] \
+    || fail "expected ${CHUNKS} scratch files, found ${#chunk_files[@]}: ${chunk_files[*]}"
 rm -f "${chunk_files[0]}"
 echo "Deleted ${chunk_files[0]}"
 run_soap ${CONFIG} "${WORKDIR}/run3.log"
