@@ -98,9 +98,11 @@ mpirun python -u SOAP/compute_halo_properties.py \
 Here, `--chunks` determines how many chunks the simulation box is
 split into. Ideally it should be set such that one chunk fills a compute node.
 
-The optional `--max-ranks-reading` flag determines how many MPI ranks per node
-read the snapshot. This can be used to avoid overloading the file system. The
-default value is 32.
+As each chunk finishes, its halo properties are written to a scratch file in the
+directory given by `chunk_dir`; once all chunks are done these are combined into
+the final catalogue and then deleted. If a run is interrupted, rerunning it with
+the same arguments reuses any scratch files that were completely written rather
+than recomputing those chunks.
 
 ### Selecting which subhalos to process
 

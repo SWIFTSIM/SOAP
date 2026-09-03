@@ -179,6 +179,12 @@ def get_soap_args(comm):
         help="Run in snapshot mode, overriding the value of SelectOutput in the "
         "snapshot header",
     )
+    parser.add_argument(
+        "--keep-scratch-files",
+        action="store_true",
+        help="Don't delete the per-chunk scratch files after the combined output "
+        "has been written. Mainly useful for testing the restart logic",
+    )
     all_args = parser.parse_args()
 
     # Combine with parameters from configuration file
@@ -223,6 +229,7 @@ def get_soap_args(comm):
     args.profile = all_args["Parameters"]["profile"]
     args.max_ranks_reading = all_args["Parameters"]["max_ranks_reading"]
     args.output_parameters = all_args["Parameters"]["output_parameters"]
+    args.keep_scratch_files = all_args["Parameters"]["keep_scratch_files"]
     args.git_hash = all_args["git_hash"]
     args.calculations = all_args.get("calculations", {})
     args.min_read_radius_cmpc = args.calculations.get("min_read_radius_cmpc", 0)

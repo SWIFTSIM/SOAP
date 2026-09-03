@@ -120,26 +120,38 @@ class ChunkTask:
                 self.halo_arrays[name] = self.halo_arrays[name][order]
 
             chunk_file_already_exists = False
-            # Check if the chunk file exists, was fully written, and has the correct objects
+            # Check if the chunk file exists, was fully written,
+            # and has the correct objects
             filename = scratch_file_format % {"file_nr": self.chunk_nr}
             if os.path.exists(filename):
                 try:
                     with h5py.File(filename, "r") as outfile:
-                        chunk_file_already_exists = outfile.attrs.get(
-                            "Write complete", False
+                        meta = outfile["RestartMetadata"]
+                        chunk_file_already_exists = bool(
+                            meta.attrs.get("Write complete", False)
                         )
                         index = np.sort(outfile["InputHalos/HaloCatalogueIndex"][:])
-                        file_calc_names = sorted(outfile.attrs["calc_names"].tolist())
+                        file_calc_names = sorted(meta["calc_names"].asstr()[:])
+                        file_dataset_names = set(meta["dataset_names"].asstr()[:])
                     # Check we have the correct halo indices
                     if not np.all(index == np.sort(self.halo_arrays["index"].value)):
                         chunk_file_already_exists = False
-                    # Check halo properties are the same
+                    # Check the same set of calculations is enabled
                     calc_names = sorted([hp.name for hp in self.halo_prop_list])
-                    if len(calc_names) != len(file_calc_names):
+                    if calc_names != file_calc_names:
                         chunk_file_already_exists = False
-                    for name1, name2 in zip(calc_names, file_calc_names):
-                        if name1 != name2:
-                            chunk_file_already_exists = False
+                    # Check the same individual properties are being calculated.
+                    # InputHalos datasets are covered by the halo index check above.
+                    expected_dataset_names = set()
+                    for hp in self.halo_prop_list:
+                        expected_dataset_names |= hp.expected_dataset_names()
+                    file_calc_dataset_names = {
+                        name
+                        for name in file_dataset_names
+                        if not name.startswith("InputHalos/")
+                    }
+                    if file_calc_dataset_names != expected_dataset_names:
+                        chunk_file_already_exists = False
                 except Exception as e:
                     # Blanket catch in case there are i/o issues with the chunk file
                     chunk_file_already_exists = False
@@ -386,15 +398,31 @@ class ChunkTask:
         # Store time taken for this task
         timings.append(task_time_all_iterations)
 
-        # Write metadata in case this file is used for restarts
+        # Gather the names of every dataset written for this chunk, so that a
+        # later restart can check the same properties are being calculated.
+        local_dataset_names = set(results.result_arrays.keys())
+        all_dataset_names = comm.gather(local_dataset_names, root=0)
+
+        # Write metadata in case this file is used for restarts.
         if comm_rank == 0:
+            written_dataset_names = sorted(set().union(*all_dataset_names))
+            calc_names = sorted([hp.name for hp in self.halo_prop_list])
+            string_dt = h5py.string_dtype(encoding="utf-8")
             with h5py.File(filename, "a") as outfile:
                 units = outfile.create_group("Units")
                 for name, value in cellgrid.swift_units_group.items():
                     units.attrs[name] = [value]
-                calc_names = sorted([hp.name for hp in self.halo_prop_list])
-                outfile.attrs["calc_names"] = calc_names
-                outfile.attrs["Write complete"] = True
+                meta = outfile.create_group("RestartMetadata")
+                meta.create_dataset(
+                    "calc_names", data=np.array(calc_names, dtype=string_dt)
+                )
+                meta.create_dataset(
+                    "dataset_names",
+                    data=np.array(written_dataset_names, dtype=string_dt),
+                )
+            # Reopen to guarantee "Write complete" is the final thing written
+            with h5py.File(filename, "a") as outfile:
+                outfile["RestartMetadata"].attrs["Write complete"] = True
         comm.barrier()
 
         # Return the names, dimensions and units of the quantities we computed

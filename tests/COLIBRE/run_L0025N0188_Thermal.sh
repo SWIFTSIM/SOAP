@@ -28,7 +28,7 @@ halo_indices_file="tests/COLIBRE/halo_indices_{snap_nr:04d}.txt"
 python tests/COLIBRE/create_parameters_file.py
 
 # Remove tmp directory (so we don't load chunks if they already exist)
-rm -r output/SOAP-tmp
+rm -r test_output/SOAP-tmp
 
 # Run SOAP on eight cores processing the selected halos. Use 'python3 -m pdb' to start in the debugger.
 mpirun -np 8 python SOAP/compute_halo_properties.py \

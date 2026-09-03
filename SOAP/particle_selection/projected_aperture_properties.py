@@ -1795,6 +1795,24 @@ class ProjectedApertureProperties(HaloProperty):
                 if not dset in self.particle_properties[pgroup]:
                     self.particle_properties[pgroup].append(dset)
 
+    def expected_dataset_names(self):
+        """
+        ProjectedApertureProperties writes each property under three projection
+        sub-groups (projx/projy/projz), with the optional timing dataset stored
+        once at the aperture group level.
+        """
+        names = set()
+        for prop in self.property_list.values():
+            if not self.property_filters[prop.name]:
+                continue
+            if self.category_filter.dmo and not prop.dmo_property:
+                continue
+            for projname in ("projx", "projy", "projz"):
+                names.add(f"{self.group_name}/{projname}/{prop.name}")
+            if self.record_timings:
+                names.add(f"{self.group_name}/{prop.name}_time")
+        return names
+
     def calculate(
         self,
         input_halo: Dict,

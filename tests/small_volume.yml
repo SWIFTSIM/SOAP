@@ -1,7 +1,7 @@
 Parameters:
   sim_dir: ./test_data
-  output_dir: ./output
-  scratch_dir: ./output
+  output_dir: ./test_output
+  scratch_dir: ./test_output
 
 Snapshots:
   filename: "{sim_dir}/snap_{snap_nr:04d}.hdf5"
