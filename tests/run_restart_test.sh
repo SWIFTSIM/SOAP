@@ -9,11 +9,12 @@
 #
 #   1. initial run                -> no chunks reused (none exist yet)
 #   2. identical rerun            -> every chunk reused from the scratch files,
-#                                    and the output schema is unchanged
+#                                    and the catalogue is identical to run 1
 #   3. rerun with one chunk file  -> only the surviving chunks are reused, the
-#      deleted                       missing one is recomputed, and combining
-#                                    the mixed old/new chunks does not trip the
-#                                    metadata consistency check
+#      deleted                       missing one is recomputed, combining the
+#                                    mixed old/new chunks does not trip the
+#                                    metadata consistency check, and the
+#                                    catalogue is still identical to run 1
 #   4. rerun with a property      -> no chunks reused (the stored dataset list
 #      disabled in the config        no longer matches), and the disabled
 #                                    property is absent from the new output
@@ -64,15 +65,48 @@ count_reused () {
     grep -c "using pre-existing file for chunk" "$1" || true
 }
 
-dump_schema () {
-    # Sorted list of every dataset path in an HDF5 file
-    python - "$1" <<'EOF'
-import sys, h5py
+compare_catalogues () {
+    # Assert two catalogues have identical per-halo datasets (names and values)
+    python - "$1" "$2" <<'EOF'
+import sys
+import h5py
+import numpy as np
 
-paths = []
-with h5py.File(sys.argv[1], "r") as f:
-    f.visititems(lambda name, obj: paths.append(name) if isinstance(obj, h5py.Dataset) else None)
-print("\n".join(sorted(paths)))
+
+def per_halo_datasets(fname):
+    """Every dataset whose first axis has length equal to the number of halos."""
+    out = {}
+    with h5py.File(fname, "r") as f:
+        n_halo = f["InputHalos/HaloCatalogueIndex"].shape[0]
+
+        def visit(name, obj):
+            if isinstance(obj, h5py.Dataset) and obj.shape[:1] == (n_halo,):
+                out[name] = obj[...]
+
+        f.visititems(visit)
+    return out
+
+
+a = per_halo_datasets(sys.argv[1])
+b = per_halo_datasets(sys.argv[2])
+if set(a) != set(b):
+    print(
+        f"dataset sets differ: missing={sorted(set(a) - set(b))}, "
+        f"extra={sorted(set(b) - set(a))}"
+    )
+    sys.exit(1)
+bad = []
+for name in sorted(a):
+    x, y = a[name], b[name]
+    if np.issubdtype(x.dtype, np.floating):
+        same = x.shape == y.shape and np.array_equal(x, y, equal_nan=True)
+    else:
+        same = np.array_equal(x, y)
+    if not same:
+        bad.append(name)
+if bad:
+    print("datasets with differing values: " + ", ".join(bad))
+    sys.exit(1)
 EOF
 }
 
@@ -87,16 +121,14 @@ run_soap ${CONFIG} "${WORKDIR}/run1.log"
 [[ $(count_reused "${WORKDIR}/run1.log") -eq 0 ]] \
     || fail "run 1 reused chunk files that should not exist yet"
 cp "${OUTPUT_FILE}" "${WORKDIR}/out1.hdf5"
-dump_schema "${WORKDIR}/out1.hdf5" > "${WORKDIR}/schema1.txt"
 
 echo
 echo "=== Run 2: identical rerun, expect all ${CHUNKS} chunks reused ==="
 run_soap ${CONFIG} "${WORKDIR}/run2.log"
 n=$(count_reused "${WORKDIR}/run2.log")
 [[ ${n} -eq ${CHUNKS} ]] || fail "run 2 reused ${n}/${CHUNKS} chunks"
-dump_schema "${OUTPUT_FILE}" > "${WORKDIR}/schema2.txt"
-diff "${WORKDIR}/schema1.txt" "${WORKDIR}/schema2.txt" \
-    || fail "run 2 output schema differs from run 1"
+compare_catalogues "${WORKDIR}/out1.hdf5" "${OUTPUT_FILE}" \
+    || fail "run 2 catalogue differs from run 1"
 
 echo
 echo "=== Run 3: one scratch file deleted, expect $((CHUNKS - 1)) chunks reused ==="
@@ -108,9 +140,8 @@ echo "Deleted ${chunk_files[0]}"
 run_soap ${CONFIG} "${WORKDIR}/run3.log"
 n=$(count_reused "${WORKDIR}/run3.log")
 [[ ${n} -eq $((CHUNKS - 1)) ]] || fail "run 3 reused ${n} chunks, expected $((CHUNKS - 1))"
-dump_schema "${OUTPUT_FILE}" > "${WORKDIR}/schema3.txt"
-diff "${WORKDIR}/schema1.txt" "${WORKDIR}/schema3.txt" \
-    || fail "run 3 output schema differs from run 1"
+compare_catalogues "${WORKDIR}/out1.hdf5" "${OUTPUT_FILE}" \
+    || fail "run 3 catalogue differs from run 1"
 
 echo
 echo "=== Run 4: property disabled in config, expect no chunks reused ==="

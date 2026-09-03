@@ -111,7 +111,9 @@ def test_expected_dataset_names_matches_calculate():
 
     calculators = _build_calculators(dummy_halos, parameters)
 
-    for i in range(20):
+    # The set of datasets calculate() writes does not depend on the halo (even
+    # filtered halos get zero-filled entries), so a few halos is plenty.
+    for i in range(3):
         input_halo, data, _, _, _, particle_numbers = dummy_halos.get_random_halo(
             [10, 100, 1000, 10000]
         )

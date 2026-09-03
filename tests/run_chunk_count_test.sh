@@ -7,8 +7,14 @@
 # index) (see combine_chunks.spatial_sort), which is a total order that does
 # not depend on --chunks. Each halo's properties are computed from its own
 # particles on a single rank, so runs with different chunk counts must produce
-# identical per-halo datasets. This catches halos being dropped or duplicated
-# at chunk boundaries, box-wrap bugs, and metadata-combination regressions.
+# the same catalogue.
+#
+# The chunk count does change the box-wrap reference position (chunk_tasks.py:
+# ref_pos) and the order particles are read in, so float reductions differ in
+# the last few bits: float datasets are compared with a relative tolerance,
+# integer datasets (counts, indices, flags) must match exactly. This catches
+# halos being dropped or duplicated at chunk boundaries, gross box-wrap bugs,
+# and metadata-combination regressions.
 #
 # Uses the same small DMO box as run_small_volume.sh.
 #
@@ -59,6 +65,10 @@ import sys
 import h5py
 import numpy as np
 
+# Float datasets only need to agree to round-off (see the header comment for
+# why they can't be bit-identical); integer datasets must match exactly.
+RTOL = 1e-6
+
 workdir = sys.argv[1]
 counts = sys.argv[2:]
 
@@ -77,6 +87,22 @@ def per_halo_datasets(fname):
     return n_halo, out
 
 
+def float_diff(a, b):
+    """(max abs diff, max rel diff) for two float arrays, or None if their
+    NaN patterns differ."""
+    a = a.astype(np.float64)
+    b = b.astype(np.float64)
+    nan_a, nan_b = np.isnan(a), np.isnan(b)
+    if not np.array_equal(nan_a, nan_b):
+        return None
+    good = ~nan_a
+    if not good.any():
+        return 0.0, 0.0
+    absdiff = np.abs(a[good] - b[good])
+    denom = max(np.max(np.abs(a[good])), 1e-300)
+    return float(np.max(absdiff)), float(np.max(absdiff) / denom)
+
+
 ref_count = counts[0]
 ref_n, ref = per_halo_datasets(f"{workdir}/chunks_{ref_count}.hdf5")
 print(f"chunks={ref_count}: {ref_n} halos, {len(ref)} per-halo datasets (reference)")
@@ -88,24 +114,45 @@ for count in counts[1:]:
         print(f"FAIL chunks={count}: {n} halos vs reference {ref_n}")
         ok = False
         continue
+
+    problems = []
     if set(cur) != set(ref):
-        print(
-            f"FAIL chunks={count}: dataset set differs "
-            f"(missing={sorted(set(ref) - set(cur))}, "
+        problems.append(
+            f"dataset set differs (missing={sorted(set(ref) - set(cur))}, "
             f"extra={sorted(set(cur) - set(ref))})"
         )
-        ok = False
+
+    worst_rel, worst_name = 0.0, "-"
     for name in sorted(set(cur) & set(ref)):
         a, b = ref[name], cur[name]
-        if np.issubdtype(a.dtype, np.floating):
-            identical = a.shape == b.shape and np.array_equal(a, b, equal_nan=True)
-        else:
-            identical = np.array_equal(a, b)
-        if not identical:
-            print(f"FAIL chunks={count}: {name} differs from reference")
-            ok = False
-    if ok:
-        print(f"chunks={count}: identical to reference")
+        if a.shape != b.shape:
+            problems.append(f"{name}: shape {a.shape} vs {b.shape}")
+        elif np.issubdtype(a.dtype, np.floating):
+            res = float_diff(a, b)
+            if res is None:
+                problems.append(f"{name}: NaN pattern differs")
+            else:
+                absdiff, reldiff = res
+                if reldiff > worst_rel:
+                    worst_rel, worst_name = reldiff, name
+                if reldiff > RTOL:
+                    problems.append(
+                        f"{name}: max abs diff {absdiff:.3e}, "
+                        f"max rel diff {reldiff:.3e}"
+                    )
+        elif not np.array_equal(a, b):
+            problems.append(f"{name}: integer/bool dataset differs")
+
+    if problems:
+        ok = False
+        print(f"FAIL chunks={count}:")
+        for p in problems:
+            print(f"    {p}")
+    else:
+        print(
+            f"chunks={count}: OK (largest float rel diff "
+            f"{worst_rel:.2e} in {worst_name})"
+        )
 
 sys.exit(0 if ok else 1)
 EOF
