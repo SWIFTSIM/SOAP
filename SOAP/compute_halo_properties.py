@@ -12,6 +12,7 @@ comm_world_size = comm_world.Get_size()
 
 import os
 import os.path
+import sys
 import time
 import traceback
 import numpy as np
@@ -564,6 +565,8 @@ def compute_halo_properties():
         )
     except Exception as e:
         traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
         comm_world.Abort(1)
 
     # Can stop the halo request thread now that all chunk tasks have executed
