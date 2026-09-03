@@ -25,6 +25,7 @@ COMMAND_LINE_ONLY_PARAMETERS = frozenset(
         "output_parameters",
         "snipshot",
         "snapshot",
+        "keep_scratch_files",
     )
 )
 

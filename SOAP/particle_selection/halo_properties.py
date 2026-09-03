@@ -36,7 +36,7 @@ class HaloProperty:
 
     def expected_dataset_names(self):
         """
-        Return the set of HDF5 dataset names that this calculation will add 
+        Return the set of HDF5 dataset names that this calculation will add
         to halo_result for the current parameter file and run configuration.
         """
         names = set()

@@ -648,11 +648,14 @@ def compute_halo_properties():
         cold_dense_gas_filter,
     )
 
-    # Delete scratch files
+    # Delete scratch files, unless we've been asked to keep them
     if comm_world_rank == 0:
-        for file_nr in range(nr_chunks):
-            os.remove(scratch_file_format % {"file_nr": file_nr})
-        print("Deleted scratch files.")
+        if args.keep_scratch_files:
+            print("Keeping scratch files.")
+        else:
+            for file_nr in range(nr_chunks):
+                os.remove(scratch_file_format % {"file_nr": file_nr})
+            print("Deleted scratch files.")
     comm_world.barrier()
 
     # Stop the clock
