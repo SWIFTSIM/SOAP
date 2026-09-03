@@ -26,8 +26,35 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       # Runs the formatting script
       - name: Formatting
         run: bash format.sh --check
+
+  # Non-MPI unit tests
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    # Don't run for draft PRs
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      # mpi4py needs a system MPI to build against, even though these tests
+      # don't run under mpirun
+      - name: Install MPI
+        run: sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin
+
+      - name: Install SOAP
+        run: pip install -e ".[test]"
+
+      - name: Run non-MPI tests
+        run: pytest -m "not mpi" -W error

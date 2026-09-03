@@ -33,3 +33,21 @@ class HaloProperty:
         # No density criterion by default
         self.mean_density_multiple = None
         self.critical_density_multiple = None
+
+    def expected_dataset_names(self):
+        """
+        Return the set of HDF5 dataset names that this calculation will add
+        to halo_result for the current parameter file and run configuration.
+        """
+        names = set()
+        for prop in self.property_list.values():
+            # Skip properties disabled in the parameter file
+            if not self.property_filters[prop.name]:
+                continue
+            # Skip non-DMO properties for DMO runs
+            if self.category_filter.dmo and not prop.dmo_property:
+                continue
+            names.add(f"{self.group_name}/{prop.name}")
+            if getattr(self, "record_timings", False):
+                names.add(f"{self.group_name}/{prop.name}_time")
+        return names

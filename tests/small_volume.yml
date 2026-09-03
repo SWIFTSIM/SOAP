@@ -1,7 +1,7 @@
 Parameters:
   sim_dir: ./test_data
-  output_dir: ./output
-  scratch_dir: ./output
+  output_dir: ./test_output
+  scratch_dir: ./test_output
 
 Snapshots:
   filename: "{sim_dir}/snap_{snap_nr:04d}.hdf5"
@@ -68,33 +68,6 @@ SubhaloProperties:
     MaximumCircularVelocityRadiusUnsoftened: true
     SpinParameter: true
     TotalMass: true
-filters:
-  general:
-    limit: 100
-    properties:
-      - BoundSubhalo/NumberOfGasParticles
-      - BoundSubhalo/NumberOfDarkMatterParticles
-      - BoundSubhalo/NumberOfStarParticles
-      - BoundSubhalo/NumberOfBlackHoleParticles
-    combine_properties: sum
-  baryon:
-    limit: 100
-    properties:
-      - BoundSubhalo/NumberOfGasParticles
-      - BoundSubhalo/NumberOfStarParticles
-    combine_properties: sum
-  dm:
-    limit: 100
-    properties:
-      - BoundSubhalo/NumberOfDarkMatterParticles
-  gas:
-    limit: 100
-    properties:
-      - BoundSubhalo/NumberOfGasParticles
-  star:
-    limit: 100
-    properties:
-      - BoundSubhalo/NumberOfStarParticles
 calculations:
   calculate_missing_properties: false
   min_read_radius_cmpc: 5

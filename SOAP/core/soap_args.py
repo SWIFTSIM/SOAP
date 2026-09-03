@@ -4,11 +4,58 @@ import argparse
 import os
 import subprocess
 import sys
+import warnings
 from mpi4py import MPI
+import numpy as np
 
 from virgo.mpi.util import MPIArgumentParser
+from virgo.util.partial_formatter import PartialFormatter
 
 from . import combine_args
+
+
+def get_halo_indices(parameters):
+    """
+    Return the indices of the halos to process, or None if all halos should
+    be processed. The indices are either passed on the command line, or are
+    read from a file which contains one index per line. Blank lines and lines
+    starting with "#" are ignored.
+
+    Returns a sorted array of the unique indices which were requested.
+    """
+
+    filename = parameters["halo_indices_file"]
+    if filename is not None:
+        # Substitute the snapshot number into the filename
+        pf = PartialFormatter()
+        filename = pf.format(filename, snap_nr=parameters["snap_nr"], file_nr=None)
+        if not os.path.exists(filename):
+            raise ValueError(f"Unable to find halo indices file: {filename}")
+        try:
+            with warnings.catch_warnings():
+                # Empty files generate a warning, but we handle them below
+                warnings.filterwarnings(
+                    "ignore", message="loadtxt: input contained no data"
+                )
+                # converters=int prevents non-integer values from being silently
+                # truncated, which np.loadtxt would otherwise do
+                halo_indices = np.loadtxt(
+                    filename, dtype=np.int64, ndmin=1, comments="#", converters=int
+                )
+        except Exception as e:
+            raise ValueError(f"Unable to read halo indices file {filename}: {e}")
+        if halo_indices.ndim != 1:
+            raise ValueError(
+                f"Halo indices file must contain one index per line: {filename}"
+            )
+        if halo_indices.shape[0] == 0:
+            raise ValueError(f"Halo indices file is empty: {filename}")
+    elif parameters["halo_indices"] is not None:
+        halo_indices = np.asarray(parameters["halo_indices"], dtype=np.int64)
+    else:
+        return None
+
+    return np.unique(halo_indices)
 
 
 def get_git_hash() -> str:
@@ -46,13 +93,18 @@ def get_soap_args(comm):
         metavar="N",
         type=int,
         default=1,
-        help="Splits volume into N chunks and each compute node processes one chunk at a time",
+        help="Splits volume into N chunks and each compute node processes one chunk "
+        "at a time. Should be at least the number of nodes (default: 1)",
     )
     parser.add_argument(
-        "--dmo", action="store_true", help="Run in dark matter only mode"
+        "--dmo",
+        action="store_true",
+        help="Run in dark matter only mode, skipping any hydro-only properties",
     )
     parser.add_argument(
-        "--centrals-only", action="store_true", help="Only process central halos"
+        "--centrals-only",
+        action="store_true",
+        help="Only process central halos, discarding satellites",
     )
     parser.add_argument(
         "--record-halo-timings",
@@ -62,7 +114,8 @@ def get_soap_args(comm):
     parser.add_argument(
         "--record-property-timings",
         action="store_true",
-        help="Record time taken to process each property",
+        help="Record time taken to process each property. This doubles the size of "
+        "the output catalogue",
     )
     parser.add_argument(
         "--max-halos",
@@ -71,15 +124,25 @@ def get_soap_args(comm):
         default=0,
         help="(For debugging) only process the first N halos in the catalogue",
     )
-    parser.add_argument(
+    halo_index_group = parser.add_mutually_exclusive_group()
+    halo_index_group.add_argument(
         "--halo-indices",
         nargs="*",
         type=int,
         help="Only process the specified halo indices",
     )
+    halo_index_group.add_argument(
+        "--halo-indices-file",
+        type=str,
+        help="Only process the halo indices listed in the specified file, which "
+        "must contain one index per line. The snapshot number is substituted "
+        "into the filename, e.g. halo_indices_{snap_nr:04d}.txt",
+    )
     parser.add_argument(
         "--reference-snapshot",
-        help="Specify reference snapshot number containing all particle types",
+        help="Specify reference snapshot number containing all particle types. "
+        "Used to determine the datasets and units of any particle types which "
+        "are missing from the snapshot being processed",
         metavar="N",
         type=int,
     )
@@ -88,27 +151,54 @@ def get_soap_args(comm):
         metavar="LEVEL",
         type=int,
         default=0,
-        help="Run with profiling (0=off, 1=first MPI rank only, 2=all ranks)",
+        help="Run with profiling (0=off, 1=first MPI rank only, 2=all ranks) "
+        "(default: 0)",
     )
     parser.add_argument(
         "--max-ranks-reading",
         type=int,
         default=32,
-        help="Number of ranks per node reading snapshot data",
+        help="Number of ranks per node reading snapshot data. Can be reduced to "
+        "avoid overloading the file system (default: 32)",
     )
     parser.add_argument(
         "--output-parameters",
         type=str,
         default="",
-        help="Where to write the used parameters",
+        help="Where to write the parameters used by this run, in yaml format",
     )
-    parser.add_argument("--snipshot", action="store_true", help="Run in snipshot mode")
-    parser.add_argument("--snapshot", action="store_true", help="Run in snapshot mode")
+    parser.add_argument(
+        "--snipshot",
+        action="store_true",
+        help="Run in snipshot mode, overriding the value of SelectOutput in the "
+        "snapshot header",
+    )
+    parser.add_argument(
+        "--snapshot",
+        action="store_true",
+        help="Run in snapshot mode, overriding the value of SelectOutput in the "
+        "snapshot header",
+    )
+    parser.add_argument(
+        "--keep-scratch-files",
+        action="store_true",
+        help="Don't delete the per-chunk scratch files after the combined output "
+        "has been written. Mainly useful for testing the restart logic",
+    )
     all_args = parser.parse_args()
 
     # Combine with parameters from configuration file
     if comm.Get_rank() == 0:
-        all_args = combine_args.combine_arguments(all_args, all_args.config_file)
+        try:
+            all_args = combine_args.combine_arguments(all_args, all_args.config_file)
+            # Halo indices are read on this rank and broadcast as an array,
+            # since there can be a large number of them
+            all_args["Parameters"]["halo_indices"] = get_halo_indices(
+                all_args["Parameters"]
+            )
+        except ValueError as e:
+            print(e, flush=True)
+            comm.Abort(1)
         all_args["git_hash"] = get_git_hash()
     else:
         all_args = None
@@ -139,6 +229,7 @@ def get_soap_args(comm):
     args.profile = all_args["Parameters"]["profile"]
     args.max_ranks_reading = all_args["Parameters"]["max_ranks_reading"]
     args.output_parameters = all_args["Parameters"]["output_parameters"]
+    args.keep_scratch_files = all_args["Parameters"]["keep_scratch_files"]
     args.git_hash = all_args["git_hash"]
     args.calculations = all_args.get("calculations", {})
     args.min_read_radius_cmpc = args.calculations.get("min_read_radius_cmpc", 0)
@@ -173,7 +264,7 @@ def get_soap_args(comm):
         while not os.path.exists(dirname):
             dirname = os.path.dirname(dirname)
         if not os.access(dirname, os.W_OK):
-            print("Can't write to output directory")
+            print("Can't write to output directory", flush=True)
             comm.Abort(1)
         # Check if the FOF files exist
         if args.fof_group_filename != "":
@@ -181,7 +272,7 @@ def get_soap_args(comm):
                 snap_nr=args.snapshot_nr, file_nr=0
             )
             if not os.path.exists(fof_filename):
-                print(f"Could not find FOF group catalogue: {fof_filename}")
+                print(f"Could not find FOF group catalogue: {fof_filename}", flush=True)
                 comm.Abort(1)
         if args.fof_radius_filename != "":
             assert args.fof_group_filename != ""
@@ -189,19 +280,21 @@ def get_soap_args(comm):
                 snap_nr=args.snapshot_nr, file_nr=0
             )
             if not os.path.exists(fof_filename):
-                print(f"Could not find FOF radius catalogue: {fof_filename}")
+                print(
+                    f"Could not find FOF radius catalogue: {fof_filename}", flush=True
+                )
                 comm.Abort(1)
 
     # This really should be done in parameter_file.py
     args.separate_chunks = args.calculations.get("separate_chunks", [])
     if not isinstance(args.separate_chunks, list):
-        print("Invalid form for separate_chunks")
+        print("Invalid form for separate_chunks", flush=True)
         comm.Abort(1)
     for threshold in args.separate_chunks:
         if ("n_bound_threshold" not in threshold) or (
             "n_halo_per_chunk" not in threshold
         ):
-            print("Invalid form for separate_chunks")
+            print("Invalid form for separate_chunks", flush=True)
             comm.Abort(1)
     args.separate_chunks = sorted(
         args.separate_chunks,

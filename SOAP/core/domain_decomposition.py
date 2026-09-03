@@ -85,9 +85,14 @@ def peano_decomposition(boxsize, local_halo, nr_chunks, comm, separate_chunks):
     )
     del ipos
 
-    # Get sorting index to put halos in PH key order
-    order = psort.parallel_sort(phkey, return_index=True, comm=comm)
+    # Sort by PH key, breaking ties with the halo catalogue index.
+    sort_key_dtype = [("phkey", np.int64), ("index", np.int64)]
+    sort_key = np.zeros(nr_halos, dtype=sort_key_dtype)
+    sort_key["phkey"] = phkey
+    sort_key["index"] = local_halo["index"]
     del phkey
+    order = psort.parallel_sort(sort_key, return_index=True, comm=comm)
+    del sort_key
 
     # Reorder the halos
     for name in local_halo:
@@ -95,8 +100,14 @@ def peano_decomposition(boxsize, local_halo, nr_chunks, comm, separate_chunks):
 
     # Handle the halos which should be on separate chunks
     if (nr_large_halo > 0) and (comm_rank == comm_size - 1):
-        # Sort the halos based on the number of bound particles
-        argsort = np.argsort(large_halo["nr_bound_part"])[::-1]
+        # Sort the halos by number of bound particles (descending), breaking
+        # ties with the catalogue index.
+        argsort = np.lexsort(
+            (
+                np.asarray(large_halo["index"]),
+                -np.asarray(large_halo["nr_bound_part"], dtype=np.int64),
+            )
+        )
         for name in large_halo:
             large_halo[name] = large_halo[name][argsort]
 

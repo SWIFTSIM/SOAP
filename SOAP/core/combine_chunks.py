@@ -224,11 +224,6 @@ def combine_chunks(
             params.attrs["centrals_only"] = 0 if args.centrals_only == False else 1
             calc_names = sorted([hp.name for hp in halo_prop_list])
             params.attrs["calculations"] = calc_names
-            params.attrs["halo_indices"] = (
-                args.halo_indices
-                if args.halo_indices is not None
-                else np.ndarray(0, dtype=int)
-            )
             if recently_heated_gas_filter.initialised:
                 recently_heated_gas_metadata = recently_heated_gas_filter.get_metadata()
                 recently_heated_gas_params = params.create_group(

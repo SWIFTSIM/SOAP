@@ -4,6 +4,31 @@ import yaml
 
 from virgo.util.partial_formatter import PartialFormatter
 
+# Arguments which must be passed on the command line. The Parameters section
+# of the config file is intended for values which are substituted into the
+# other sections, so we don't allow these to be set there. Note that most of
+# them would be silently ignored if they were, since command line arguments
+# which have a default value always take precedence over the config file.
+COMMAND_LINE_ONLY_PARAMETERS = frozenset(
+    (
+        "config_file",
+        "chunks",
+        "dmo",
+        "centrals_only",
+        "record_halo_timings",
+        "record_property_timings",
+        "max_halos",
+        "halo_indices",
+        "halo_indices_file",
+        "profile",
+        "max_ranks_reading",
+        "output_parameters",
+        "snipshot",
+        "snapshot",
+        "keep_scratch_files",
+    )
+)
+
 
 def combine_arguments(command_line_args, config_file):
     """
@@ -20,6 +45,16 @@ def combine_arguments(command_line_args, config_file):
     # Read the config file
     with open(config_file, "r") as infile:
         config_file_args = yaml.safe_load(infile)
+
+    # Check the config file doesn't set arguments which must be passed
+    # on the command line
+    invalid = COMMAND_LINE_ONLY_PARAMETERS.intersection(config_file_args["Parameters"])
+    if invalid:
+        raise ValueError(
+            "The following cannot be set in the Parameters section of the "
+            f"config file, they must be passed on the command line: "
+            f"{', '.join(sorted(invalid))}"
+        )
 
     # Combine the two
     all_args = {"Parameters": {}}
