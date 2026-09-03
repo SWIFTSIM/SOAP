@@ -2678,7 +2678,14 @@ class SubhaloProperties(HaloProperty):
             )
             if do_calculation[filter_name]:
                 t0_calc = time.time()
-                val = getattr(part_props, name)
+                try:
+                    val = getattr(part_props, name)
+                except Exception as e:
+                    e.add_note(
+                        f"Error calculating {prop.name} for subhalo "
+                        f"{input_halo['index']}"
+                    )
+                    raise
                 if val is not None:
                     assert (
                         subhalo[name].shape == val.shape
