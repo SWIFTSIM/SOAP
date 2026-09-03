@@ -36,8 +36,8 @@ CHUNKS=2
 SNAP=18
 CONFIG=tests/small_volume.yml
 
-SCRATCH_DIR=./output/SOAP-tmp
-OUTPUT_FILE=$(printf "./output/halo_properties_%04d.hdf5" ${SNAP})
+SCRATCH_DIR=./test_output/SOAP-tmp
+OUTPUT_FILE=$(printf "./test_output/halo_properties_%04d.hdf5" ${SNAP})
 WORKDIR=$(mktemp -d)
 trap 'rm -rf "${WORKDIR}" "${SCRATCH_DIR}"' EXIT
 

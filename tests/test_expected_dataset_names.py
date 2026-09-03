@@ -107,7 +107,7 @@ def test_expected_dataset_names_matches_calculate():
         "ProjectedApertureProperties",
         "SubhaloProperties",
     ):
-        parameters.get_halo_type_variations(halo_type, {})
+        parameters.get_halo_type_variations(halo_type)
 
     calculators = _build_calculators(dummy_halos, parameters)
 
@@ -167,7 +167,7 @@ def test_expected_dataset_names_tracks_property_filters():
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
         parameters.get_aliases()
     )
-    parameters.get_halo_type_variations("SubhaloProperties", {})
+    parameters.get_halo_type_variations("SubhaloProperties")
     rhg_filter = dummy_halos.get_recently_heated_gas_filter()
     stellar_age_calculator = StellarAgeCalculator(dummy_halos.get_cell_grid())
     cat_filter = CategoryFilter(dummy_halos.get_filters({"general": 0}))
