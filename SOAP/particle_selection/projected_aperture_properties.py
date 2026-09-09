@@ -32,6 +32,7 @@ from SOAP.core.lazy_properties import lazy_property
 from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
+from SOAP.core.shared_particle_data import SharedParticleData
 from SOAP.core.dataset_names import mass_dataset
 from SOAP.property_calculation.half_mass_radius import (
     get_half_mass_radius,
@@ -1819,6 +1820,7 @@ class ProjectedApertureProperties(HaloProperty):
         search_radius: unyt.unyt_quantity,
         data: Dict,
         halo_result: Dict,
+        shared_particle_data: SharedParticleData = None,
     ):
         """
         Compute centre of mass etc of bound particles
@@ -1831,6 +1833,9 @@ class ProjectedApertureProperties(HaloProperty):
                            has the particle coordinates for type 1
         halo_result      - dict with halo properties computed so far. Properties
                            computed here should be added to halo_result.
+        shared_particle_data - cache of particle quantities shared with the other
+                           property calculations for this halo. Not used yet by
+                           this calculation.
 
         Input particle data arrays are unyt_arrays.
         The halo_result dictionary is updated with the properties computed by this function.

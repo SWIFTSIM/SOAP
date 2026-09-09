@@ -2584,7 +2584,9 @@ class SubhaloProperties(HaloProperty):
                 if not dset in self.particle_properties[pgroup]:
                     self.particle_properties[pgroup].append(dset)
 
-    def calculate(self, input_halo, search_radius, data, halo_result):
+    def calculate(
+        self, input_halo, search_radius, data, halo_result, shared_particle_data=None
+    ):
         """
         Compute centre of mass etc of bound particles
 
@@ -2595,6 +2597,9 @@ class SubhaloProperties(HaloProperty):
                            has the particle coordinates for type 1
         halo_result      - dict with halo properties computed so far. Properties
                            computed here should be added to halo_result.
+        shared_particle_data - cache of particle quantities shared with the other
+                           property calculations for this halo. Not used yet by
+                           this calculation.
 
         Input particle data arrays are unyt_arrays.
         """

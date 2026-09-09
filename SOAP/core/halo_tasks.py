@@ -6,6 +6,7 @@ import numpy as np
 import unyt
 
 from SOAP.core import memory_use, shared_array
+from SOAP.core.shared_particle_data import SharedParticleData
 from SOAP.core.dataset_names import mass_dataset, ptypes_for_so_masses
 from SOAP.particle_selection.halo_properties import SearchRadiusTooSmallError
 from SOAP.property_table import PropertyTable
@@ -116,6 +117,12 @@ def process_single_halo(
                 offset = input_halo["cofp"] - 0.5 * boxsize
                 pos[:, :] = ((pos - offset) % boxsize) + offset
 
+            # Cache for quantities derived from these particles which more than
+            # one property calculation needs. It is created here, inside the
+            # search radius loop, so that it is discarded as soon as the set of
+            # particles changes.
+            shared_particle_data = SharedParticleData()
+
             # Try to compute properties of this halo which haven't been done yet
             for prop_nr, halo_prop in enumerate(halo_prop_list):
                 if halo_prop_done[prop_nr]:
@@ -124,7 +131,11 @@ def process_single_halo(
                 try:
                     t0_halo_prop = time.time()
                     halo_prop.calculate(
-                        input_halo, current_radius, particle_data, halo_result
+                        input_halo,
+                        current_radius,
+                        particle_data,
+                        halo_result,
+                        shared_particle_data,
                     )
                 except SearchRadiusTooSmallError:
                     # Search radius was too small, so will need to try again with a larger radius.
