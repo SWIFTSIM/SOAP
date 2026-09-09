@@ -173,6 +173,9 @@ from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.shared_particle_data import SharedParticleData
+from SOAP.particle_selection.shared_halo_particle_data import (
+    SharedHaloParticleData,
+)
 
 
 class ApertureParticleData:
@@ -201,16 +204,11 @@ class ApertureParticleData:
 
     def __init__(
         self,
-        input_halo: Dict,
-        data: Dict,
-        types_present: List[str],
-        inclusive: bool,
+        shared: SharedHaloParticleData,
         aperture_radius: unyt.unyt_quantity,
         stellar_age_calculator: StellarAgeCalculator,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         cold_dense_gas_filter: ColdDenseGasFilter,
-        snapshot_datasets: SnapshotDatasets,
-        softening_of_parttype: unyt.unyt_array,
         boxsize: unyt.unyt_quantity,
         cosmology: dict,
     ):
@@ -218,16 +216,10 @@ class ApertureParticleData:
         Constructor.
 
         Parameters:
-         - input_halo: Dict
-           Dictionary containing properties of the halo read from the VR catalogue.
-         - data: Dict
-           Dictionary containing particle data.
-         - types_present: List
-           List of all particle types (e.g. 'PartType0') that are present in the data
-           dictionary.
-         - inclusive: bool
-           Whether or not to include particles not gravitationally bound to the subhalo
-           in the property calculations.
+         - shared: SharedHaloParticleData
+           Object holding the concatenated particle arrays for this halo, shared
+           with the other aperture calculations that use the same particles
+           (i.e. that have the same value of "inclusive").
          - aperture_radius: unyt.unyt_quantity
            Aperture radius.
          - stellar_age_calculator: StellarAgeCalculator
@@ -238,26 +230,22 @@ class ApertureParticleData:
            AGN feedback.
          - cold_dense_gas_filter: ColdDenseGasFilter
            Filter used to mask out gas particles containing cold, dense gas.
-         - snapshot_datasets: SnapshotDatasets
-           Object containing metadata about the datasets in the snapshot, like
-           appropriate aliases and column names.
-         - softening_of_parttype: unyt.unyt_array
-           Softening length of each particle types
          - boxsize: unyt.unyt_quantity
            Boxsize for correcting periodic boundary conditions
          - cosmology: dict
            Cosmological parameters required for SO calculation
         """
-        self.input_halo = input_halo
-        self.data = data
-        self.types_present = types_present
-        self.inclusive = inclusive
+        self.shared = shared
+        self.input_halo = shared.input_halo
+        self.data = shared.data
+        self.types_present = shared.types_present
+        self.inclusive = shared.inclusive
+        self.snapshot_datasets = shared.snapshot_datasets
+        self.softening_of_parttype = shared.softening_of_parttype
         self.aperture_radius = aperture_radius
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
         self.cold_dense_gas_filter = cold_dense_gas_filter
-        self.snapshot_datasets = snapshot_datasets
-        self.softening_of_parttype = softening_of_parttype
         self.boxsize = boxsize
         self.cosmology = cosmology
         self.compute_basics()
@@ -270,52 +258,26 @@ class ApertureParticleData:
 
     def compute_basics(self):
         """
-        Compute some properties that are always needed, regardless of which
-        properties we actually want to compute.
+        Select the particles that are inside the aperture radius.
+
+        The concatenated arrays covering the whole halo are computed once by
+        SharedHaloParticleData; all that is left to do here is apply the
+        aperture mask. Note that self.types is deliberately left unmasked,
+        since it is what the *_mask_ap masks below are indexed with, whereas
+        self.type refers only to the particles inside the aperture.
         """
-        self.centre = self.input_halo["cofp"]
-        self.index = self.input_halo["index"]
-        mass = []
-        position = []
-        radius = []
-        velocity = []
-        types = []
-        softening = []
-        for ptype in self.types_present:
-            grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
-            if self.inclusive:
-                in_halo = np.ones(grnr.shape, dtype=bool)
-            else:
-                in_halo = grnr == self.index
-            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
-            pos = (
-                self.get_dataset(f"{ptype}/Coordinates")[in_halo, :]
-                - self.centre[None, :]
-            )
-            position.append(pos)
-            r = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2 + pos[:, 2] ** 2)
-            radius.append(r)
-            velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
-            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
-            types.append(typearr)
-            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
-            softening.append(s)
+        self.centre = self.shared.centre
+        self.index = self.shared.index
+        self.types = self.shared.types
 
-        self.mass = np.concatenate(mass)
-        self.position = np.concatenate(position)
-        self.radius = np.concatenate(radius)
-        self.velocity = np.concatenate(velocity)
-        self.types = np.concatenate(types)
-        self.softening = np.concatenate(softening)
+        self.mask = self.shared.radius <= self.aperture_radius
 
-        self.mask = self.radius <= self.aperture_radius
-
-        self.mass = self.mass[self.mask]
-        self.position = self.position[self.mask]
-        self.velocity = self.velocity[self.mask]
-        self.radius = self.radius[self.mask]
-        self.type = self.types[self.mask]
-        self.softening = self.softening[self.mask]
+        self.mass = self.shared.mass[self.mask]
+        self.position = self.shared.position[self.mask]
+        self.velocity = self.shared.velocity[self.mask]
+        self.radius = self.shared.radius[self.mask]
+        self.type = self.shared.types[self.mask]
+        self.softening = self.shared.softening[self.mask]
 
     @lazy_property
     def gas_mask_ap(self) -> NDArray[bool]:
@@ -548,11 +510,7 @@ class ApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        groupnr_bound = self.get_dataset("PartType4/GroupNr_bound")
-        if self.inclusive:
-            return np.ones(groupnr_bound.shape, dtype=bool)
-        else:
-            return groupnr_bound == self.index
+        return self.shared.in_halo_mask("PartType4")
 
     @lazy_property
     def Mstar_init(self) -> unyt.unyt_quantity:
@@ -788,11 +746,7 @@ class ApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        groupnr_bound = self.get_dataset("PartType5/GroupNr_bound")
-        if self.inclusive:
-            return np.ones(groupnr_bound.shape, dtype=bool)
-        else:
-            return groupnr_bound == self.index
+        return self.shared.in_halo_mask("PartType5")
 
     @lazy_property
     def BH_subgrid_masses(self) -> unyt.unyt_array:
@@ -1715,11 +1669,7 @@ class ApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        groupnr_bound = self.get_dataset("PartType0/GroupNr_bound")
-        if self.inclusive:
-            return np.ones(groupnr_bound.shape, dtype=bool)
-        else:
-            return groupnr_bound == self.index
+        return self.shared.in_halo_mask("PartType0")
 
     @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
@@ -4042,8 +3992,9 @@ class ApertureProperties(HaloProperty):
         halo_result      - dict with halo properties computed so far. Properties
                            computed here should be added to halo_result.
         shared_particle_data - cache of particle quantities shared with the other
-                           property calculations for this halo. Not used yet by
-                           this calculation.
+                           property calculations for this halo. If None, the
+                           quantities this calculation needs are computed for
+                           its own use only.
 
         Input particle data arrays are unyt_arrays.
         The halo_result dictionary is updated with the properties computed by this function.
@@ -4148,17 +4099,36 @@ class ApertureProperties(HaloProperty):
                 )
 
             types_present = [type for type in self.particle_properties if type in data]
+
+            # Every aperture with the same value of "inclusive" sees the same
+            # particles, so the concatenated arrays are computed once and shared
+            # (with the bound subhalo and the projected apertures too, for the
+            # exclusive ones). The particle types are part of the cache key
+            # because they determine the order of the concatenated arrays.
+            def make_shared():
+                return SharedHaloParticleData(
+                    input_halo,
+                    data,
+                    types_present,
+                    self.inclusive,
+                    self.snapshot_datasets,
+                    self.softening_of_parttype,
+                )
+
+            if shared_particle_data is None:
+                shared = make_shared()
+            else:
+                shared = shared_particle_data.get(
+                    ("SharedHaloParticleData", self.inclusive, tuple(types_present)),
+                    make_shared,
+                )
+
             part_props = ApertureParticleData(
-                input_halo,
-                data,
-                types_present,
-                self.inclusive,
+                shared,
                 aperture_radius,
                 self.stellar_ages,
                 self.recently_heated_gas_filter,
                 self.cold_dense_gas_filter,
-                self.snapshot_datasets,
-                self.softening_of_parttype,
                 self.boxsize,
                 self.cosmology,
             )
