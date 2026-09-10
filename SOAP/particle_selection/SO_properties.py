@@ -45,7 +45,10 @@ from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.swift_cells import SWIFTCellGrid
-from SOAP.core.shared_particle_data import SharedParticleData
+from SOAP.core.shared_particle_data import ParticleDataCache
+from SOAP.particle_selection.shared_halo_particle_data import (
+    SharedHaloParticleData,
+)
 
 
 def cumulative_mass_intersection(r: float, rho_dim: float, slope_dim: float) -> float:
@@ -218,186 +221,6 @@ def find_SO_radius_and_mass(
     return SO_r, SO_mass, SO_volume
 
 
-class SOSharedParticleData:
-    """
-    Particle quantities that are shared by all SO variations of a halo.
-
-    Every SO variation of a halo (200_crit, 200_mean, 500_crit, ...) is handed
-    the same particles, and differs only in the threshold that determines the
-    SO radius. The quantities computed here are therefore identical for all of
-    them: the concatenated particle arrays, the cumulative mass profile that
-    the SO radius is read off, and the masks flagging particles that are bound
-    to another halo. Computing them once rather than once per variation avoids
-    repeatedly sorting every particle within the search radius.
-
-    The quantities that do depend on the threshold (the SO radius itself, and
-    the particle selections derived from it) are computed by SOParticleData,
-    which holds a reference to one of these objects.
-
-    Note that neutrinos are kept separate from the other particle types, since
-    they only contribute to the spherical overdensity radius calculation and to
-    neutrino specific properties.
-    """
-
-    def __init__(
-        self,
-        input_halo: Dict,
-        data: Dict,
-        types_present: List[str],
-        snapshot_datasets: SnapshotDatasets,
-        softening_of_parttype: unyt.unyt_array,
-        cosmology: dict,
-        boxsize: unyt.unyt_quantity,
-    ):
-        """
-        Constructor.
-
-        Parameters:
-         - input_halo: Dict
-           Dictionary containing properties of the halo read from the VR catalogue.
-         - data: Dict
-           Dictionary containing particle data.
-         - types_present: List
-           List of all particle types (e.g. 'PartType0') that are present in the data
-           dictionary.
-         - snapshot_datasets: SnapshotDatasets
-           Object containing metadata about the datasets in the snapshot, like
-           appropriate aliases and column names.
-         - softening_of_parttype: unyt.unyt_array
-           Softening length of each particle types
-         - cosmology: dict
-           Cosmological parameters required for SO calculation
-         - boxsize: unyt.unyt_quantity
-           Boxsize for correcting periodic boundary conditions
-        """
-        self.input_halo = input_halo
-        self.data = data
-        self.has_neutrinos = "PartType6" in data
-        self.types_present = types_present
-        self.snapshot_datasets = snapshot_datasets
-        self.softening_of_parttype = softening_of_parttype
-        self.cosmology = cosmology
-        self.boxsize = boxsize
-        self.compute_basics()
-        self.compute_mass_profile()
-
-    def get_dataset(self, name: str) -> unyt.unyt_array:
-        """
-        Local wrapper for SnapshotDatasets.get_dataset().
-        """
-        return self.snapshot_datasets.get_dataset(name, self.data)
-
-    def compute_basics(self):
-        """
-        Compute some properties that are always needed, regardless of which
-        properties we actually want to compute.
-        """
-        self.centre = self.input_halo["cofp"]
-        self.index = self.input_halo["index"]
-
-        # Make an array of particle masses, radii and positions
-        mass = []
-        radius = []
-        position = []
-        velocity = []
-        types = []
-        groupnr = []
-        fofid = []
-        softening = []
-        for ptype in self.types_present:
-            if ptype == "PartType6":
-                # add neutrinos separately, since we need to treat them
-                # differently
-                continue
-            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}"))
-            pos = self.get_dataset(f"{ptype}/Coordinates") - self.centre[None, :]
-            position.append(pos)
-            r = np.sqrt(np.sum(pos**2, axis=1))
-            radius.append(r)
-            velocity.append(self.get_dataset(f"{ptype}/Velocities"))
-            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
-            types.append(typearr)
-            groupnr.append(self.get_dataset(f"{ptype}/GroupNr_bound"))
-            fofid.append(self.get_dataset(f"{ptype}/FOFGroupIDs"))
-            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
-            softening.append(s)
-        self.mass = np.concatenate(mass)
-        self.radius = np.concatenate(radius)
-        self.position = np.concatenate(position)
-        self.velocity = np.concatenate(velocity)
-        self.types = np.concatenate(types)
-        self.groupnr = np.concatenate(groupnr)
-        self.fofid = np.concatenate(fofid)
-        self.softening = np.concatenate(softening)
-
-    def compute_mass_profile(self):
-        """
-        Compute the cumulative mass profile used to determine the SO radius.
-
-        Adds the contribution from neutrinos (if present) to the masses and
-        radii, sorts the particles by radius, and computes the cumulative mass
-        profile and the mean density within the radius of each particle. Also
-        determines the FOF ID of this object from its central particle, and
-        uses that to flag the particles which are bound to another halo.
-
-        None of this depends on the density threshold of an individual SO
-        variation, so it is computed once and used by all of them.
-        """
-        # add neutrinos
-        if self.has_neutrinos:
-            numass = self.get_dataset("PartType6/Masses") * self.get_dataset(
-                "PartType6/Weights"
-            )
-            pos = self.get_dataset("PartType6/Coordinates") - self.centre[None, :]
-            nur = np.sqrt(np.sum(pos**2, axis=1))
-            self.nu_mass = numass
-            self.nu_radius = nur
-            self.nu_softening = (
-                np.ones_like(nur) * self.softening_of_parttype["PartType6"]
-            )
-            all_mass = np.concatenate([self.mass, numass / unyt.dimensionless])
-            all_r = np.concatenate([self.radius, nur])
-        else:
-            all_mass = self.mass
-            all_r = self.radius
-
-        # Sort by radius
-        order = np.argsort(all_r)
-        ordered_radius = all_r[order]
-        cumulative_mass = np.cumsum(all_mass[order], dtype=np.float64).astype(
-            self.mass.dtype
-        )
-        # add mean neutrino mass
-        cumulative_mass += (
-            self.cosmology["nu_density"] * 4.0 / 3.0 * np.pi * ordered_radius**3
-        )
-        # Determine FOF ID of object using the central non-neutrino particle
-        non_neutrino_order = order[order < self.radius.shape[0]]
-        fofid = self.fofid[non_neutrino_order[0]]
-
-        # Compute density within radius of each particle.
-        # Will need to skip any at zero radius.
-        # Note that because of the definition of the centre of potential, the first
-        # particle *should* be at r=0. We need to manually exclude it, in case round
-        # off error places it at a very small non-zero radius.
-        nskip = max(1, np.argmax(ordered_radius > 0.0 * ordered_radius.units))
-        self.ordered_radius = ordered_radius[nskip:]
-        self.cumulative_mass = cumulative_mass[nskip:]
-        self.nr_parts = len(self.ordered_radius)
-        self.density = self.cumulative_mass / (
-            4.0 / 3.0 * np.pi * self.ordered_radius**3
-        )
-
-        # figure out which particles in the list are bound to a halo that is not the
-        # central halo
-        self.is_bound_to_satellite = (
-            (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid == fofid)
-        )
-        self.is_bound_to_external = (
-            (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid != fofid)
-        )
-
-
 class SOParticleData:
     """
     Halo calculation class.
@@ -421,20 +244,23 @@ class SOParticleData:
 
     def __init__(
         self,
-        shared: "SOSharedParticleData",
+        shared: SharedHaloParticleData,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         observer_position: unyt.unyt_array,
         core_excision_fraction: float,
         virial_definition: bool,
         search_radius: unyt.unyt_quantity,
+        cosmology: dict,
+        boxsize: unyt.unyt_quantity,
     ):
         """
         Constructor.
 
         Parameters:
-         - shared: SOSharedParticleData
-           Object holding the particle quantities that are the same for every
-           SO variation of this halo.
+         - shared: SharedHaloParticleData
+           Object holding the concatenated particle arrays for this halo,
+           shared with the other SO variations and with the inclusive
+           apertures.
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
@@ -450,8 +276,17 @@ class SOParticleData:
          - search_radius: unyt.unyt_quantity
            Current search radius. Particles are guaranteed to be included up to
            this radius.
+         - cosmology: dict
+           Cosmological parameters required for SO calculation
+         - boxsize: unyt.unyt_quantity
+           Boxsize for correcting periodic boundary conditions
         """
         self.shared = shared
+        # The radial profile needs the cosmology, which the aperture
+        # calculations sharing this object do not have, so it is requested
+        # here rather than built with the object. Only the first SO variation
+        # of a halo actually computes it.
+        shared.compute_mass_profile(cosmology)
 
         # Quantities that are the same for every SO variation of this halo.
         # Note that compute_SO_radius_and_mass() only ever rebinds these arrays
@@ -462,8 +297,8 @@ class SOParticleData:
         self.types_present = shared.types_present
         self.snapshot_datasets = shared.snapshot_datasets
         self.softening_of_parttype = shared.softening_of_parttype
-        self.cosmology = shared.cosmology
-        self.boxsize = shared.boxsize
+        self.cosmology = cosmology
+        self.boxsize = boxsize
         self.centre = shared.centre
         self.index = shared.index
         self.mass = shared.mass
@@ -499,7 +334,7 @@ class SOParticleData:
         Compute the SO radius from the density profile of the particles.
 
         Uses the cumulative mass profile computed once for this halo by
-        SOSharedParticleData, and calls find_SO_radius_and_mass(), unless a
+        SharedHaloParticleData, and calls find_SO_radius_and_mass(), unless a
         radius multiple is used as aperture radius. Particles outside the SO
         radius are then removed.
 
@@ -3322,6 +3157,9 @@ class SOProperties(HaloProperty):
     sattelites.
     """
 
+    # SOs always use every particle in the search radius
+    shared_inclusive = True
+
     """
     List of properties from the table that we want to compute.
     Each property should have a corresponding method/property/lazy_property in
@@ -3670,7 +3508,7 @@ class SOProperties(HaloProperty):
         search_radius: unyt.unyt_quantity,
         data: Dict,
         halo_result: Dict,
-        shared_particle_data: SharedParticleData = None,
+        shared_particle_data: ParticleDataCache = None,
     ):
         """
         Compute spherical masses and overdensities for a halo
@@ -3735,22 +3573,19 @@ class SOProperties(HaloProperty):
             # types are part of the cache key because they determine the order
             # in which the particle arrays are concatenated.
             def make_shared():
-                return SOSharedParticleData(
+                return SharedHaloParticleData(
                     input_halo,
                     data,
                     types_present,
+                    True,
                     self.snapshot_datasets,
                     self.softening_of_parttype,
-                    self.cosmology,
-                    self.boxsize,
                 )
 
             if shared_particle_data is None:
                 shared = make_shared()
             else:
-                shared = shared_particle_data.get(
-                    ("SOSharedParticleData", tuple(types_present)), make_shared
-                )
+                shared = shared_particle_data.get(self.shared_key(data), make_shared)
 
             part_props = SOParticleData(
                 shared,
@@ -3759,6 +3594,8 @@ class SOProperties(HaloProperty):
                 self.core_excision_fraction,
                 self.virial_definition,
                 search_radius,
+                self.cosmology,
+                self.boxsize,
             )
 
             # we need to make sure the physical radius uses the correct unit
@@ -4009,7 +3846,7 @@ class RadiusMultipleSOProperties(SOProperties):
         search_radius: unyt.unyt_quantity,
         data: Dict,
         halo_result: Dict,
-        shared_particle_data: SharedParticleData = None,
+        shared_particle_data: ParticleDataCache = None,
     ):
         """
         Calculate the properties of an SO of which the radius is the multiple of
@@ -4027,7 +3864,7 @@ class RadiusMultipleSOProperties(SOProperties):
            Dictionary in which halo properties for this halo are stored. Should
            contain a valid result for the "parent" SO, i.e. the SO that determines
            the radius of this SO.
-         - shared_particle_data: SharedParticleData
+         - shared_particle_data: ParticleDataCache
            Cache of particle quantities shared with the other property
            calculations for this halo. If None, the quantities this calculation
            needs are computed for its own use only.

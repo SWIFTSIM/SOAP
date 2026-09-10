@@ -5,8 +5,10 @@ import time
 import numpy as np
 import unyt
 
+from mpi4py import MPI
+
 from SOAP.core import memory_use, shared_array
-from SOAP.core.shared_particle_data import SharedParticleData
+from SOAP.core.shared_particle_data import ParticleDataCache
 from SOAP.core.dataset_names import mass_dataset, ptypes_for_so_masses
 from SOAP.particle_selection.halo_properties import SearchRadiusTooSmallError
 from SOAP.property_table import PropertyTable
@@ -20,6 +22,10 @@ READ_RADIUS_FACTOR = 1.5
 # Radius in Mpc at which we report halos which have a large search radius
 REPORT_RADIUS = 20.0
 
+# TEMPORARY (issue 64): number of shared particle data objects created for each
+# halo processed by this rank. Strip this out after testing.
+shared_data_created = []
+
 
 def process_single_halo(
     mesh,
@@ -31,6 +37,7 @@ def process_single_halo(
     boxsize,
     input_halo,
     target_density,
+    shared_keys=None,
 ):
     """
     This computes properties for one halo and runs on a single
@@ -121,7 +128,14 @@ def process_single_halo(
             # one property calculation needs. It is created here, inside the
             # search radius loop, so that it is discarded as soon as the set of
             # particles changes.
-            shared_particle_data = SharedParticleData()
+            shared_particle_data = ParticleDataCache()
+
+            # The key each calculation will look up, so that an entry can be
+            # dropped as soon as no calculation which is still to run needs it.
+            # The keys depend only on which particle types are present, so they
+            # are the same for every halo in this chunk.
+            if shared_keys is None:
+                shared_keys = [hp.shared_key(particle_data) for hp in halo_prop_list]
 
             # Try to compute properties of this halo which haven't been done yet
             for prop_nr, halo_prop in enumerate(halo_prop_list):
@@ -172,8 +186,18 @@ def process_single_halo(
                             time.time() - t0_halo_prop
                         )
 
+                # Drop any shared particle arrays which none of the calculations
+                # still to do for this halo will ask for
+                shared_particle_data.keep_only(
+                    key
+                    for nr, key in enumerate(shared_keys)
+                    if nr > prop_nr and not halo_prop_done[nr]
+                )
+
             # If we computed all of the properties, we're done with this halo
             if np.all(halo_prop_done):
+                # TEMPORARY (issue 64)
+                shared_data_created.append(shared_particle_data.nr_created)
                 break
 
         # Either the density is still too high or the property calculation failed.
@@ -329,6 +353,11 @@ def process_halos(
             if target_density is None or density < target_density:
                 target_density = density
 
+    # The shared particle data key each calculation uses depends only on which
+    # particle types were read in, so it is the same for every halo in this
+    # chunk and can be worked out once here.
+    shared_keys = [hp.shared_key(data) for hp in halo_prop_list]
+
     # Allocate shared storage for a single integer and initialize to zero
     if comm.Get_rank() == 0:
         local_shape = (1,)
@@ -392,6 +421,7 @@ def process_halos(
                     boxsize,
                     input_halo,
                     target_density if input_halo["is_central"] == 1 else None,
+                    shared_keys,
                 )
                 if halo_result is not None:
                     # Store results and flag this halo as done
@@ -429,6 +459,38 @@ def process_halos(
     # Count halos left to do
     comm.barrier()
     nr_halos_left = comm.allreduce(np.sum(halo_arrays["done"].local.value == 0))
+
+    # TEMPORARY (issue 64): how many shared particle data objects each halo
+    # needed. One per distinct set of particles is expected (two for a central,
+    # which also does the SO calculations, one for a satellite); anything more
+    # means an entry was evicted while a later calculation still wanted it.
+    # Strip this out after testing.
+    local_hist = np.zeros(5, dtype=np.int64)
+    for nr in shared_data_created:
+        local_hist[min(nr, 4)] += 1
+    hist = comm.allreduce(local_hist, op=MPI.SUM)
+    if comm.Get_rank() == 0 and hist.sum() > 0:
+        print(
+            "SHARED_DATA_CREATED_PER_HALO "
+            + " ".join(
+                f"{n if n < 4 else '4+'}={hist[n]}" for n in range(5) if hist[n]
+            ),
+            flush=True,
+        )
+
+    # TEMPORARY (issue 64): report peak per-rank memory, to check the effect of
+    # sharing and evicting the particle arrays. Strip this out after testing.
+    peak_gb = memory_use.get_peak_rss_gb()
+    if peak_gb is not None:
+        peak_max = comm.allreduce(peak_gb, op=MPI.MAX)
+        peak_sum = comm.allreduce(peak_gb, op=MPI.SUM)
+        if comm.Get_rank() == 0:
+            print(
+                f"PEAK_RSS_PER_RANK max={peak_max:.3f}GB "
+                f"mean={peak_sum / comm.Get_size():.3f}GB "
+                f"over {comm.Get_size()} ranks",
+                flush=True,
+            )
 
     # Stop the clock
     comm.barrier()

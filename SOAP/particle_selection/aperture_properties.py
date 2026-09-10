@@ -172,7 +172,7 @@ from SOAP.core.lazy_properties import lazy_property
 from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
-from SOAP.core.shared_particle_data import SharedParticleData
+from SOAP.core.shared_particle_data import ParticleDataCache
 from SOAP.particle_selection.shared_halo_particle_data import (
     SharedHaloParticleData,
 )
@@ -3912,6 +3912,8 @@ class ApertureProperties(HaloProperty):
         self.aperture_physical_radius_kpc = aperture_physical_radius_kpc
         self.aperture_property = aperture_property
         self.inclusive = inclusive
+        # which particles this aperture uses, for the shared particle arrays
+        self.shared_inclusive = inclusive
 
         if self.aperture_physical_radius_kpc is not None:
             self.physical_radius_mpc = 0.001 * self.aperture_physical_radius_kpc
@@ -3978,7 +3980,7 @@ class ApertureProperties(HaloProperty):
         search_radius: unyt.unyt_quantity,
         data: Dict,
         halo_result: Dict,
-        shared_particle_data: SharedParticleData = None,
+        shared_particle_data: ParticleDataCache = None,
     ):
         """
         Compute centre of mass etc of bound particles
@@ -4103,8 +4105,7 @@ class ApertureProperties(HaloProperty):
             # Every aperture with the same value of "inclusive" sees the same
             # particles, so the concatenated arrays are computed once and shared
             # (with the bound subhalo and the projected apertures too, for the
-            # exclusive ones). The particle types are part of the cache key
-            # because they determine the order of the concatenated arrays.
+            # exclusive ones).
             def make_shared():
                 return SharedHaloParticleData(
                     input_halo,
@@ -4118,10 +4119,7 @@ class ApertureProperties(HaloProperty):
             if shared_particle_data is None:
                 shared = make_shared()
             else:
-                shared = shared_particle_data.get(
-                    ("SharedHaloParticleData", self.inclusive, tuple(types_present)),
-                    make_shared,
-                )
+                shared = shared_particle_data.get(self.shared_key(data), make_shared)
 
             part_props = ApertureParticleData(
                 shared,

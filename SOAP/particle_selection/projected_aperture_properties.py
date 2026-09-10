@@ -32,7 +32,7 @@ from SOAP.core.lazy_properties import lazy_property
 from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
-from SOAP.core.shared_particle_data import SharedParticleData
+from SOAP.core.shared_particle_data import ParticleDataCache
 from SOAP.particle_selection.shared_halo_particle_data import (
     SharedHaloParticleData,
 )
@@ -1559,6 +1559,9 @@ class ProjectedApertureProperties(HaloProperty):
     the halo along the projection axis.
     """
 
+    # projected apertures always use the particles bound to the halo
+    shared_inclusive = False
+
     base_halo_type = "ProjectedApertureProperties"
     # Properties to calculate. The key is the name of the property,
     # the value indicates the property has a direct dependence on aperture size.
@@ -1791,7 +1794,7 @@ class ProjectedApertureProperties(HaloProperty):
         search_radius: unyt.unyt_quantity,
         data: Dict,
         halo_result: Dict,
-        shared_particle_data: SharedParticleData = None,
+        shared_particle_data: ParticleDataCache = None,
     ):
         """
         Compute centre of mass etc of bound particles
@@ -1900,8 +1903,7 @@ class ProjectedApertureProperties(HaloProperty):
 
             # The concatenated arrays for the bound particles of this halo are
             # also used by the bound subhalo and the exclusive apertures, so they
-            # are computed once and shared. The particle types are part of the
-            # cache key because they determine the order of the arrays.
+            # are computed once and shared.
             def make_shared():
                 return SharedHaloParticleData(
                     input_halo,
@@ -1915,9 +1917,7 @@ class ProjectedApertureProperties(HaloProperty):
             if shared_particle_data is None:
                 shared = make_shared()
             else:
-                shared = shared_particle_data.get(
-                    ("SharedHaloParticleData", False, tuple(types_present)), make_shared
-                )
+                shared = shared_particle_data.get(self.shared_key(data), make_shared)
 
             part_props = ProjectedApertureParticleData(
                 shared,

@@ -12,21 +12,23 @@ begin by deriving the same quantities from that set (concatenated masses and
 radii, sorted radial profiles, ...), which is wasted work when it is repeated
 once per calculation.
 
-A SharedParticleData object lets those calculations look up quantities that
-have already been derived from the same particles. It is created inside the
-search radius loop of process_single_halo(), so a new (empty) cache is used
-whenever the set of particles changes.
+A ParticleDataCache lets those calculations look up quantities that have
+already been derived from the same particles. It is created inside the search
+radius loop of process_single_halo(), so a new (empty) cache is used whenever
+the set of particles changes, and entries are dropped as soon as no remaining
+calculation needs them.
 """
 
-from typing import Any, Callable, Hashable
+from typing import Any, Callable, Hashable, Iterable
 
 
-class SharedParticleData:
+class ParticleDataCache:
     """
     Cache of quantities derived from the particles of a single halo.
 
     Entries are created on first use, so nothing is computed for a halo unless
-    a property calculation actually asks for it.
+    a property calculation actually asks for it, and discarded once the
+    calculations which need them have all run.
     """
 
     def __init__(self):
@@ -34,6 +36,11 @@ class SharedParticleData:
         Constructor. Creates an empty cache.
         """
         self.cache = {}
+        # TEMPORARY (issue 64): how many entries this cache has had to create.
+        # One per distinct set of particles is expected; more means an entry was
+        # dropped while a later calculation still needed it, which is a waste of
+        # time rather than a correctness problem. Strip this out after testing.
+        self.nr_created = 0
 
     def get(self, key: Hashable, factory: Callable[[], Any]) -> Any:
         """
@@ -45,11 +52,30 @@ class SharedParticleData:
            Identifies the quantity being requested. Calculations that want to
            share an entry have to agree on the key, so it needs to include
            everything the entry depends on (e.g. the particle types that were
-           used to compute it).
+           used to compute it). See HaloProperty.shared_key().
          - factory: Callable
            Function taking no arguments which computes the entry. It is only
            called if the key is not already in the cache.
         """
         if key not in self.cache:
             self.cache[key] = factory()
+            self.nr_created += 1  # TEMPORARY (issue 64)
         return self.cache[key]
+
+    def keep_only(self, keys: Iterable[Hashable]):
+        """
+        Drop every entry whose key is not in keys.
+
+        Called after each calculation with the keys the remaining calculations
+        for this halo still need, so that particle arrays are not kept alive
+        for longer than they are used. Dropping an entry too early is a
+        performance problem rather than a correctness one: the next calculation
+        that wants it simply rebuilds it.
+
+        Parameters:
+         - keys: Iterable
+           Keys to keep. Anything else is discarded.
+        """
+        keys = set(keys)
+        for key in [k for k in self.cache if k not in keys]:
+            del self.cache[key]

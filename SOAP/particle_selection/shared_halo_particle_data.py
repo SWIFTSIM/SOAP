@@ -3,8 +3,8 @@
 """
 shared_halo_particle_data.py
 
-Particle arrays shared between the aperture, projected aperture and subhalo
-property calculations of a single halo.
+Particle arrays shared between the aperture, projected aperture, subhalo and
+spherical overdensity property calculations of a single halo.
 
 All of those calculations start by concatenating the same per particle
 quantities (masses, positions, velocities and particle types) for either the
@@ -78,7 +78,13 @@ class SharedHaloParticleData:
         """
         self.input_halo = input_halo
         self.data = data
-        self.types_present = types_present
+        # Neutrinos are never part of the concatenated arrays: they only
+        # contribute to the spherical overdensity radius and to neutrino
+        # specific properties, and are handled separately below. Dropping them
+        # here is also what lets the SO calculations share this object with the
+        # inclusive apertures, whose particle types never include PartType6.
+        self.types_present = [t for t in types_present if t != "PartType6"]
+        self.has_neutrinos = "PartType6" in data
         self.inclusive = inclusive
         self.snapshot_datasets = snapshot_datasets
         self.softening_of_parttype = softening_of_parttype
@@ -193,3 +199,105 @@ class SharedHaloParticleData:
         """
         pos = self.position
         return np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2)
+
+    @lazy_property
+    def groupnr(self) -> unyt.unyt_array:
+        """
+        Index of the subhalo each particle is bound to, or a negative value for
+        unbound particles.
+        """
+        return np.concatenate(
+            [
+                self.get_dataset(f"{ptype}/GroupNr_bound")[self.in_halo_mask(ptype)]
+                for ptype, _ in self.nr_part_of_type
+            ]
+        )
+
+    @lazy_property
+    def fofid(self) -> unyt.unyt_array:
+        """
+        FOF group ID of each particle.
+        """
+        return np.concatenate(
+            [
+                self.get_dataset(f"{ptype}/FOFGroupIDs")[self.in_halo_mask(ptype)]
+                for ptype, _ in self.nr_part_of_type
+            ]
+        )
+
+    def compute_mass_profile(self, cosmology: Dict):
+        """
+        Compute the cumulative mass profile used to determine the SO radius.
+
+        Adds the contribution from neutrinos (if present) to the masses and
+        radii, sorts the particles by radius, and computes the cumulative mass
+        profile and the mean density within the radius of each particle. Also
+        determines the FOF ID of this object from its central particle, and
+        uses that to flag the particles which are bound to another halo.
+
+        None of this depends on the density threshold of an individual SO
+        variation, so it is computed once and used by all of them. It is a
+        method rather than a lazy property because it needs the cosmology,
+        which the aperture calculations that also use this object do not have.
+        Repeated calls after the first are no-ops.
+
+        Parameters:
+         - cosmology: dict
+           Cosmological parameters required for the SO calculation.
+        """
+        if getattr(self, "have_mass_profile", False):
+            return
+        # add neutrinos
+        if self.has_neutrinos:
+            numass = self.get_dataset("PartType6/Masses") * self.get_dataset(
+                "PartType6/Weights"
+            )
+            pos = self.get_dataset("PartType6/Coordinates") - self.centre[None, :]
+            nur = np.sqrt(np.sum(pos**2, axis=1))
+            self.nu_mass = numass
+            self.nu_radius = nur
+            self.nu_softening = (
+                np.ones_like(nur) * self.softening_of_parttype["PartType6"]
+            )
+            all_mass = np.concatenate([self.mass, numass / unyt.dimensionless])
+            all_r = np.concatenate([self.radius, nur])
+        else:
+            all_mass = self.mass
+            all_r = self.radius
+
+        # Sort by radius
+        order = np.argsort(all_r)
+        ordered_radius = all_r[order]
+        cumulative_mass = np.cumsum(all_mass[order], dtype=np.float64).astype(
+            self.mass.dtype
+        )
+        # add mean neutrino mass
+        cumulative_mass += (
+            cosmology["nu_density"] * 4.0 / 3.0 * np.pi * ordered_radius**3
+        )
+        # Determine FOF ID of object using the central non-neutrino particle
+        non_neutrino_order = order[order < self.radius.shape[0]]
+        fofid = self.fofid[non_neutrino_order[0]]
+
+        # Compute density within radius of each particle.
+        # Will need to skip any at zero radius.
+        # Note that because of the definition of the centre of potential, the first
+        # particle *should* be at r=0. We need to manually exclude it, in case round
+        # off error places it at a very small non-zero radius.
+        nskip = max(1, np.argmax(ordered_radius > 0.0 * ordered_radius.units))
+        self.ordered_radius = ordered_radius[nskip:]
+        self.cumulative_mass = cumulative_mass[nskip:]
+        self.nr_parts = len(self.ordered_radius)
+        self.density = self.cumulative_mass / (
+            4.0 / 3.0 * np.pi * self.ordered_radius**3
+        )
+
+        # figure out which particles in the list are bound to a halo that is not the
+        # central halo
+        self.is_bound_to_satellite = (
+            (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid == fofid)
+        )
+        self.is_bound_to_external = (
+            (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid != fofid)
+        )
+        self.have_mass_profile = True

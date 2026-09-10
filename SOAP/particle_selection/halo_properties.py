@@ -34,6 +34,36 @@ class HaloProperty:
         self.mean_density_multiple = None
         self.critical_density_multiple = None
 
+    # Whether the particles this calculation uses are all of them (True) or only
+    # those bound to the halo (False). Calculations which share a
+    # SharedHaloParticleData object must agree on this. None means the
+    # calculation does not use one.
+    shared_inclusive = None
+
+    def shared_key(self, data):
+        """
+        Return the key identifying the SharedHaloParticleData object this
+        calculation would use for the given particle data, or None if it does
+        not use one.
+
+        The particle types are part of the key because they determine the order
+        in which the arrays are concatenated. Neutrinos are excluded because
+        they are never part of those arrays, which is what allows the SO
+        calculations to share an object with the inclusive apertures.
+
+        Parameters:
+         - data: Dict
+           Dictionary containing particle data.
+        """
+        if self.shared_inclusive is None:
+            return None
+        types_present = tuple(
+            ptype
+            for ptype in self.particle_properties
+            if ptype in data and ptype != "PartType6"
+        )
+        return ("SharedHaloParticleData", self.shared_inclusive, types_present)
+
     def expected_dataset_names(self):
         """
         Return the set of HDF5 dataset names that this calculation will add

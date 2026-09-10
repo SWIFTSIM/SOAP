@@ -2324,6 +2324,9 @@ class SubhaloProperties(HaloProperty):
     gravitationally bound particles.
     """
 
+    # the bound subhalo uses the particles bound to the halo
+    shared_inclusive = False
+
     """
     List of properties from the table that we want to compute.
     Each property should have a corresponding method/property/lazy_property in
@@ -2581,8 +2584,7 @@ class SubhaloProperties(HaloProperty):
 
         # The concatenated arrays for the bound particles of this halo are also
         # used by the exclusive and projected aperture calculations, so they are
-        # computed once and shared. The particle types are part of the cache key
-        # because they determine the order in which the arrays are concatenated.
+        # computed once and shared.
         def make_shared():
             return SharedHaloParticleData(
                 input_halo,
@@ -2596,9 +2598,7 @@ class SubhaloProperties(HaloProperty):
         if shared_particle_data is None:
             shared = make_shared()
         else:
-            shared = shared_particle_data.get(
-                ("SharedHaloParticleData", False, tuple(types_present)), make_shared
-            )
+            shared = shared_particle_data.get(self.shared_key(data), make_shared)
 
         part_props = SubhaloParticleData(
             shared,
