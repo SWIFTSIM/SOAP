@@ -16,7 +16,11 @@ SHIPPED_PARAMETER_FILES = sorted(
 
 
 def make_parameter_file(
-    section=None, calculate_missing_properties=True, snipshot=False, filters=None
+    section=None,
+    calculate_missing_properties=True,
+    snipshot=False,
+    filters=None,
+    available_datasets=None,
 ):
     """
     Build a ParameterFile with a single ApertureProperties section.
@@ -28,7 +32,10 @@ def make_parameter_file(
         parameters["ApertureProperties"] = section
     if filters is not None:
         parameters["filters"] = filters
-    return ParameterFile(parameter_dictionary=parameters, snipshot=snipshot)
+    pf = ParameterFile(parameter_dictionary=parameters, snipshot=snipshot)
+    if available_datasets is not None:
+        pf.set_available_datasets(available_datasets)
+    return pf
 
 
 VARIATIONS = {"exclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": False}}
@@ -323,3 +330,51 @@ def test_check_schema_reports_all_errors_together():
     message = str(excinfo.value)
     assert "Nonsense" in message
     assert "oops" in message
+
+
+def test_auto_enabled_property_is_skipped_when_datasets_missing():
+    # GasMass requires PartType0/Masses, DustMass additionally requires
+    # PartType0/TotalDustMassFractions, so only DustMass cannot be computed
+    pf = make_parameter_file(
+        section={"properties": {}, "variations": VARIATIONS},
+        available_datasets={"PartType0": {"Masses"}},
+    )
+    filters = pf.get_property_filters("ApertureProperties", ["GasMass", "DustMass"])
+
+    assert filters["GasMass"] == "basic"
+    assert filters["DustMass"] == False
+    assert pf.skipped_properties == {"DustMass"}
+    assert pf.uncomputable_properties == {}
+    # The property must be recorded as disabled, so that the used parameters
+    # file does not claim SOAP computed something it did not
+    assert pf.parameters["ApertureProperties"]["properties"]["DustMass"] == False
+
+
+def test_enabled_property_with_missing_datasets_is_uncomputable():
+    # A property asked for by name is never quietly skipped
+    pf = make_parameter_file(
+        section={"properties": {"DustMass": True}, "variations": VARIATIONS},
+        available_datasets={"PartType0": {"Masses"}},
+    )
+    filters = pf.get_property_filters("ApertureProperties", ["GasMass", "DustMass"])
+
+    assert filters["DustMass"] == "basic"
+    assert pf.skipped_properties == set()
+    # Only the missing datasets are reported, not every dataset it requires
+    assert pf.uncomputable_properties == {
+        "DustMass": ["PartType0/TotalDustMassFractions"]
+    }
+
+
+def test_absent_particle_type_is_not_treated_as_missing():
+    # A particle type which is absent entirely (e.g. gas in a DMO run) is
+    # handled elsewhere, so it must not make properties look uncomputable
+    pf = make_parameter_file(
+        section={"properties": {}, "variations": VARIATIONS},
+        available_datasets={"PartType1": {"Masses"}},
+    )
+    filters = pf.get_property_filters("ApertureProperties", ["GasMass", "DustMass"])
+
+    assert filters["DustMass"] == "basic"
+    assert pf.skipped_properties == set()
+    assert pf.uncomputable_properties == {}

@@ -15,6 +15,28 @@ import yaml
 
 from SOAP import property_table
 
+# Lazily built map from the output name of a property to its entry in the
+# property table. The property table itself is keyed on an internal name.
+_PROPERTY_BY_NAME = None
+
+
+def _property_by_name(name: str):
+    """
+    Look up a property in the property table by its output name.
+
+    Returns None if there is no property with this name, which happens for
+    properties that are not defined by the property table (e.g. the dummy
+    properties used when generating the documentation).
+    """
+    global _PROPERTY_BY_NAME
+    if _PROPERTY_BY_NAME is None:
+        _PROPERTY_BY_NAME = {
+            prop.name: prop
+            for prop in property_table.PropertyTable.full_property_list.values()
+        }
+    return _PROPERTY_BY_NAME.get(name)
+
+
 # Known parameter file structure, used by check_schema to flag typos. A value
 # of None means the keys directly under that section are user-named or free-form
 # and are not checked; a set lists the only keys allowed directly under that
@@ -104,6 +126,24 @@ class ParameterFile:
         # on a single rank via print_variation_warnings()
         self.variation_warnings = []
 
+        # Datasets present in the input files, as {particle type: set of dataset
+        # names}. While this is None no property is considered uncomputable,
+        # which is the case when building a parameter file from a dictionary.
+        self.available_datasets = None
+
+        # Properties which are not in the parameter file, and which are not
+        # calculated because the input files lack the datasets they need.
+        # Only used when calculate_missing_properties is True.
+        self.skipped_properties = set()
+
+        # Properties which are enabled in the parameter file, but which cannot
+        # be calculated because the input files lack the datasets they need.
+        self.uncomputable_properties = {}
+
+        # Names of the properties used by the filters defined in the parameter
+        # file, generated on demand by _filter_property_names()
+        self.filter_property_names = None
+
     def get_parameters(self) -> Dict:
         """
         Get a copy of the parameter dictionary.
@@ -148,6 +188,63 @@ class ParameterFile:
                 f'the "filters" section of the parameter file'
             )
 
+    def set_available_datasets(self, datasets_in_file: Dict) -> None:
+        """
+        Record which datasets are present in the input files
+
+        Parameters:
+         - datasets_in_file: Dict
+           Dictionary of the datasets present in the snapshot and extra-input
+           files, as {particle type: set of dataset names}.
+        """
+        self.available_datasets = datasets_in_file
+
+    def missing_datasets(self, property_name: str) -> List[str]:
+        """
+        Get the datasets which are required to compute the given property, but
+        which are not present in the input files.
+
+        Particle types which are absent from the input files entirely are not
+        considered. This matches the check done in SWIFTCellGrid.check_datasets_exist.
+
+        Returns the (aliased) names of the missing datasets. An empty list is
+        returned if the property can be computed.
+        """
+        if self.available_datasets is None:
+            return []
+        prop = _property_by_name(property_name)
+        if prop is None:
+            return []
+        missing = []
+        for dataset in prop.particle_properties:
+            ptype, name = self.get_particle_property(dataset)
+            # Skip particle types which are not in the input files at all
+            if ptype not in self.available_datasets:
+                continue
+            dataset_name = f"{ptype}/{name}"
+            if (name not in self.available_datasets[ptype]) and (
+                dataset_name not in missing
+            ):
+                missing.append(dataset_name)
+        return missing
+
+    def _filter_property_names(self) -> set:
+        """
+        Get the names of the properties used by the filters defined in the
+        parameter file.
+
+        These properties are never skipped, since the filters that use them
+        would otherwise be undefined.
+        """
+        if self.filter_property_names is None:
+            self.filter_property_names = set()
+            for filter_info in self.get_filters().values():
+                for prop in filter_info.get("properties", []):
+                    # Filters name properties by their full path in the output,
+                    # e.g. BoundSubhalo/NumberOfGasParticles
+                    self.filter_property_names.add(prop.split("/")[-1])
+        return self.filter_property_names
+
     def get_property_filters(self, base_halo_type: str, full_list: List[str]) -> Dict:
         """
         Get a dictionary with the filter that should be applied to each
@@ -176,18 +273,18 @@ class ParameterFile:
 
         if not base_halo_type in self.parameters:
             self.parameters[base_halo_type] = {}
-        # Handle the case where no properties are listed for the halo type
+        # Handle the case where no properties are listed for the halo type. Each
+        # property is then treated as if it were missing from the parameter file.
         if not "properties" in self.parameters[base_halo_type]:
             self.parameters[base_halo_type]["properties"] = {}
-            for property in full_list:
-                self.parameters[base_halo_type]["properties"][
-                    property
-                ] = self.calculate_missing_properties()
+        listed = self.parameters[base_halo_type]["properties"]
         filters = {}
         for property in full_list:
+            # Datasets this property needs which are not in the input files
+            missing = self.missing_datasets(property)
             # Check if property is listed in the parameter file for this base_halo_type
-            if property in self.parameters[base_halo_type]["properties"]:
-                filter_name = self.parameters[base_halo_type]["properties"][property]
+            if property in listed:
+                filter_name = listed[property]
                 # filter_name will a dict if we want different behaviour
                 # for snapshots/snipshots
                 if isinstance(filter_name, dict):
@@ -200,15 +297,27 @@ class ParameterFile:
                 if filter_name == True:
                     filter_name = "basic"
                 filters[property] = filter_name
+                # An uncomputable property enabled in the parameter file was asked for
+                # explicitly, so we abort rather than quietly omitting it
+                if filter_name and missing:
+                    self.uncomputable_properties[property] = missing
             # Property is not listed in the parameter file for this base_halo_type
+            elif not self.calculate_missing_properties():
+                filters[property] = False
+            elif missing and property not in self._filter_property_names():
+                # The property was not asked for explicitly and cannot be
+                # computed, so it is skipped. Properties used by a filter are
+                # never skipped, since the filter would then be undefined.
+                filters[property] = False
+                listed[property] = False
+                self.skipped_properties.add(property)
             else:
-                if self.calculate_missing_properties():
-                    filters[property] = "basic"
-                    self.parameters[base_halo_type]["properties"][property] = "basic"
-                    if self.unregistered_parameters is not None:
-                        self.unregistered_parameters.add((base_halo_type, property))
-                else:
-                    filters[property] = False
+                filters[property] = "basic"
+                listed[property] = "basic"
+                if self.unregistered_parameters is not None:
+                    self.unregistered_parameters.add((base_halo_type, property))
+                if missing:
+                    self.uncomputable_properties[property] = missing
             if isinstance(filters[property], str):
                 self._validate_filter_name(
                     filters[property], f"{base_halo_type}/{property}"
@@ -241,12 +350,9 @@ class ParameterFile:
         # In a DMO run, drop properties that will be skipped because they are
         # not DMO properties, so the printed list matches the output
         if dmo and halo_prop_list is not None:
-            dmo_flag = {}
-            for halo_type in halo_prop_list:
-                for prop in halo_type.property_list.values():
-                    dmo_flag[(halo_type.base_halo_type, prop.name)] = prop.dmo_property
+            non_dmo_names = self._non_dmo_property_names(halo_prop_list)
             unregistered = {
-                entry for entry in unregistered if dmo_flag.get(entry, True)
+                entry for entry in unregistered if entry[1] not in non_dmo_names
             }
 
         if len(unregistered):
@@ -255,6 +361,72 @@ class ParameterFile:
             )
             for base_halo_type, property in sorted(unregistered):
                 print(f"  {base_halo_type.ljust(30)}{property}")
+
+    def _non_dmo_property_names(self, halo_prop_list) -> set:
+        """
+        Get the names of the properties which are not calculated in a DMO run.
+
+        Properties which are not found in halo_prop_list are not included, since
+        we cannot tell whether they would be calculated.
+
+        Parameters:
+         - halo_prop_list: List
+           List of the halo property calculations that are enabled.
+        """
+        names = set()
+        for halo_type in halo_prop_list:
+            for prop in halo_type.property_list.values():
+                if not prop.dmo_property:
+                    names.add(prop.name)
+        return names
+
+    def print_skipped_properties(self, halo_prop_list=None, dmo: bool = False) -> None:
+        """
+        Print a list of the properties which are not in the parameter file, and
+        which are not calculated because the input files lack the datasets they
+        need.
+
+        Each property is listed once, rather than once per halo type, since
+        whether a dataset is present does not depend on the halo type.
+
+        In a DMO run the property calculators skip any property that is not
+        flagged as a DMO property.
+        """
+
+        # A property that is explicitly enabled in the parameter file
+        # is reported as uncomputable instead
+        skipped = set(self.skipped_properties) - set(self.uncomputable_properties)
+
+        # In a DMO run, drop properties that would be skipped anyway because
+        # they are not DMO properties
+        if dmo and halo_prop_list is not None:
+            skipped -= self._non_dmo_property_names(halo_prop_list)
+
+        if len(skipped):
+            print(
+                "Not computing the following properties as required datasets are missing:"
+            )
+            for property in sorted(skipped):
+                print(f"  {property}")
+
+    def print_uncomputable_properties(self) -> None:
+        """
+        Print a list of the properties which are enabled in the parameter file,
+        but which cannot be calculated because the input files lack the datasets
+        they need. Only the missing datasets are listed for each property, not
+        all of the datasets it requires.
+        """
+        if not len(self.uncomputable_properties):
+            return
+        print(
+            f"Cannot compute {len(self.uncomputable_properties)} properties enabled in "
+            f"the parameter file (only the missing datasets are listed for each one):",
+            flush=True,
+        )
+        for property in sorted(self.uncomputable_properties):
+            print(f"  {property}", flush=True)
+            for dataset in self.uncomputable_properties[property]:
+                print(f"    {dataset}", flush=True)
 
     def print_invalid_properties(self, halo_prop_list) -> None:
         """
