@@ -164,6 +164,9 @@ def compute_halo_properties():
     cellgrid.snapshot_datasets.setup_defined_constants(
         parameter_file.get_defined_constants()
     )
+    # Tell the parameter file which datasets are in the input files, so that
+    # properties which cannot be computed can be skipped or reported
+    parameter_file.set_available_datasets(cellgrid.snapshot_datasets.datasets_in_file)
     parameter_file.record_property_timings = args.record_property_timings
 
     # Try to load parameters for RecentlyHeatedGasFilter. If a property that uses the
@@ -473,6 +476,7 @@ def compute_halo_properties():
         if args.record_property_timings:
             print("Storing processing time for each property")
         parameter_file.print_unregistered_properties(halo_prop_list, dmo=args.dmo)
+        parameter_file.print_skipped_properties(halo_prop_list, dmo=args.dmo)
         parameter_file.print_invalid_properties(halo_prop_list)
         parameter_file.print_variation_warnings()
         if not parameter_file.renclose_enabled():
@@ -480,6 +484,12 @@ def compute_halo_properties():
                 "BoundSubhalo/EncloseRadius is not enabled. This means apertures with r > r_enclose will be calculated explicitly, rather than copying over values from smaller apertures"
             )
         category_filter.print_filters()
+
+        # Properties enabled in the parameter file must be computed, so abort
+        # if the input files do not contain the datasets they require
+        parameter_file.print_uncomputable_properties()
+        if len(parameter_file.uncomputable_properties):
+            comm_world.Abort(1)
 
     # Ensure output dir exists
     if comm_world_rank == 0:

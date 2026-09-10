@@ -451,9 +451,15 @@ class SWIFTCellGrid:
     def check_datasets_exist(self, required_datasets, halo_prop_list):
         # Check we have all the fields needed for each property
         # Doing it at this point rather than in masked cells since we want
-        # to output a list of properties that require the missing fields
-        for ptype in set(self.ptypes).intersection(set(required_datasets.keys())):
-            for name in required_datasets[ptype]:
+        # to output a list of properties that require the missing fields.
+        # Properties which cannot be computed are normally skipped or reported
+        # when the parameter file is resolved, so reaching this point indicates
+        # a problem with an alias or with a declared dependency.
+        missing_datasets = []
+        for ptype in sorted(
+            set(self.ptypes).intersection(set(required_datasets.keys()))
+        ):
+            for name in sorted(required_datasets[ptype]):
                 # Note that the field names in required_datasets have already had
                 # any aliases applied, so we can check the raw files themselves
                 in_extra = (self.extra_filenames is not None) and (
@@ -461,21 +467,34 @@ class SWIFTCellGrid:
                 )
                 in_snap = name in self.snap_metadata[ptype]
                 if not (in_extra or in_snap):
-                    dataset = f"{ptype}/{name}"
-                    print(f"The following properties require {dataset}:")
-                    full_property_list = property_table.PropertyTable.full_property_list
-                    for k, v in full_property_list.items():
-                        # Skip property if it doesn't require this dataset
-                        if dataset not in v.particle_properties:
-                            continue
-                        # Only print if the property is being calculated for some halo type
-                        for halo_prop in halo_prop_list:
-                            if halo_prop.property_filters.get(v.name, False):
-                                print(f"  {v.name}")
-                                break
-                    raise KeyError(
-                        f"Can't find required dataset {dataset} in input file(s)!"
-                    )
+                    missing_datasets.append(f"{ptype}/{name}")
+
+        if not missing_datasets:
+            return
+
+        # Report the missing datasets
+        full_property_list = property_table.PropertyTable.full_property_list
+        for dataset in missing_datasets:
+            print(f"The following properties require {dataset}:")
+            n_properties = 0
+            for k, v in full_property_list.items():
+                # Skip property if it doesn't require this dataset
+                if dataset not in v.particle_properties:
+                    continue
+                # Only print if the property is being calculated for some halo type
+                for halo_prop in halo_prop_list:
+                    if halo_prop.property_filters.get(v.name, False):
+                        print(f"  {v.name}")
+                        n_properties += 1
+                        break
+            if n_properties == 0:
+                # No enabled property lists this dataset, so it is one that SOAP
+                # always reads. Disabling properties will not help here.
+                print(f"  (none, {dataset} is required for every calculation)")
+        raise KeyError(
+            "Can't find required dataset(s) "
+            f"{', '.join(missing_datasets)} in input file(s)!"
+        )
 
     def prepare_read(self, ptype, mask):
         """
