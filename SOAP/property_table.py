@@ -74,6 +74,56 @@ def word_wrap_name(name):
     return "".join(output)
 
 
+# LaTeX symbols for the particle number properties that filters are defined
+# on. Any other property falls back to its name typeset as-is.
+FILTER_PROPERTY_SYMBOLS = {
+    "NumberOfGasParticles": r"N_{\rm{}gas}",
+    "NumberOfDarkMatterParticles": r"N_{\rm{}dm}",
+    "NumberOfStarParticles": r"N_{\rm{}star}",
+    "NumberOfBlackHoleParticles": r"N_{\rm{}BH}",
+    "NumberOfNeutrinoParticles": r"N_{\rm{}nu}",
+}
+
+
+def filter_property_symbol(full_name):
+    """
+    Get the LaTeX symbol (for use in maths mode) of a property a filter is
+    defined on, e.g. "BoundSubhalo/NumberOfGasParticles" becomes N_gas.
+
+    Properties of a halo type other than BoundSubhalo get the halo type added
+    as a superscript, since the symbols would otherwise be ambiguous.
+    """
+    halo_type, _, name = full_name.rpartition("/")
+    symbol = FILTER_PROPERTY_SYMBOLS.get(name)
+    if symbol is None:
+        symbol = r"\mathrm{" + name.replace("_", r"\_") + "}"
+    if halo_type and halo_type != "BoundSubhalo":
+        symbol += r"^{\mathrm{" + halo_type.replace("_", r"\_") + "}}"
+    return symbol
+
+
+def filter_criterion(name, filter_info):
+    """
+    Get the LaTeX criterion (for use in maths mode) that a filter applies,
+    e.g. "N_gas + N_star >= 100".
+
+    Parameters:
+     - name: str
+       Name of the filter, only used for error messages.
+     - filter_info: Dict
+       Filter description from the parameter file, see CategoryFilter.
+    """
+    properties = filter_info["properties"]
+    # combine_properties is only required when there are several properties
+    combine = filter_info.get("combine_properties", "sum")
+    if (len(properties) > 1) and (combine != "sum"):
+        raise NotImplementedError(
+            f"Invalid combine_properties function for filter {name}"
+        )
+    symbols = "+".join(filter_property_symbol(prop) for prop in properties)
+    return f"{symbols} \\geq{{}} {filter_info['limit']}"
+
+
 @dataclass
 class Property:
     """
@@ -5009,7 +5059,8 @@ class PropertyTable:
           - a footnotes.tex file which will contain the contents of
             the various hand-written footnote*.tex files
           - a version and time stamp file, called timestamp.tex
-          - a filters.tex which contains the threshold value of each filter
+          - a filters.tex which contains a table of the filters defined in
+            the parameter file, and the criterion each one applies
           - a variations.tex file which contains a table of all the halo type
             variations present in the parameter file, and the filter for each
 
@@ -5173,13 +5224,22 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                     fnstr = fnstr.replace("$LOG_COLD_GAS_DENSITY$", rho)
                 ofile.write(f"{fnstr}\n\n")
 
-        # Particle limits for each filter
+        # Table of the filters defined in the parameter file. The rows are
+        # generated rather than hard-coded in SOAP.tex because the "filters"
+        # section is optional, and parameter files define different subsets of
+        # filters (or none at all).
         with open(f"{output_dir}/filters.tex", "w") as ofile:
+            ofile.write("\\begin{longtable}{ll}\n")
+            ofile.write("Name & criterion \\\\\n")
+            # "basic" is not listed in the parameter file: it is always
+            # satisfied, so every halo has its basic properties calculated
+            ofile.write("\\hline{}basic & (all halos) \\\\\n")
             for name, filter_info in self.parameters.parameters.get(
                 "filters", {}
             ).items():
-                value = filter_info["limit"]
-                ofile.write(f"\\newcommand{{\\{name.lower()}filter}}{{{value}}}\n")
+                criterion = filter_criterion(name, filter_info)
+                ofile.write(f"{name} & ${criterion}$ \\\\\n")
+            ofile.write("\\end{longtable}\n")
 
         # Create table of variations of each halo type, always add BoundSubhalo
         tablestr = """\\pagebreak
