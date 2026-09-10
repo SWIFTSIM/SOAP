@@ -219,19 +219,41 @@ class ParameterFile:
             self.property_filters[base_halo_type][property] = filters[property]
         return filters
 
-    def print_unregistered_properties(self) -> None:
+    def print_unregistered_properties(
+        self, halo_prop_list=None, dmo: bool = False
+    ) -> None:
         """
         Prints a list of any properties that will be calculated that are not present in the parameter file
+
+        In a DMO run the property calculators skip any property that is not
+        flagged as a DMO property.
         """
         if not self.calculate_missing_properties():
             print("Properties not present in the parameter file will not be calculated")
-        elif (self.unregistered_parameters is not None) and (
-            len(self.unregistered_parameters) != 0
+            return
+        if (self.unregistered_parameters is None) or (
+            len(self.unregistered_parameters) == 0
         ):
+            return
+
+        unregistered = set(self.unregistered_parameters)
+
+        # In a DMO run, drop properties that will be skipped because they are
+        # not DMO properties, so the printed list matches the output
+        if dmo and halo_prop_list is not None:
+            dmo_flag = {}
+            for halo_type in halo_prop_list:
+                for prop in halo_type.property_list.values():
+                    dmo_flag[(halo_type.base_halo_type, prop.name)] = prop.dmo_property
+            unregistered = {
+                entry for entry in unregistered if dmo_flag.get(entry, True)
+            }
+
+        if len(unregistered):
             print(
                 "The following properties were not found in the parameter file, but will be calculated:"
             )
-            for base_halo_type, property in self.unregistered_parameters:
+            for base_halo_type, property in sorted(unregistered):
                 print(f"  {base_halo_type.ljust(30)}{property}")
 
     def print_invalid_properties(self, halo_prop_list) -> None:

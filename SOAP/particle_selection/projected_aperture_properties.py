@@ -1950,7 +1950,14 @@ class ProjectedApertureProperties(HaloProperty):
                         unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
                     if do_calculation[filter_name]:
                         t0_calc = time.time()
-                        val = getattr(proj_part_props, name)
+                        try:
+                            val = getattr(proj_part_props, name)
+                        except Exception as e:
+                            e.add_note(
+                                f"Error calculating {prop.name} ({projname}) "
+                                f"for subhalo {input_halo['index']}"
+                            )
+                            raise
                         if val is not None:
                             assert (
                                 projected_aperture[projname][name].shape == val.shape

@@ -141,7 +141,9 @@ def process_single_halo(
                     # Calculation caused an unexpected error.
                     # Output the halo ID so we can debug this.
                     print(
-                        f"Object with HaloCatalogueIndex={input_halo['index']} encountered an error"
+                        f"Object with HaloCatalogueIndex={input_halo['index']} encountered an error "
+                        f"while calculating {halo_prop.name}",
+                        flush=True,
                     )
                     raise
                 else:
