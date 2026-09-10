@@ -28,7 +28,7 @@ dependencies = [
     "scipy",
     "matplotlib",
     "psutil",
-    "virgodc",
+    "virgodc>=1.0.5",
 ]
 
 [project.optional-dependencies]

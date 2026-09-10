@@ -3,19 +3,23 @@
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252) 
 
 This repository contains programs which can be used to compute
-properties of halos in spherical apertures in [SWIFT](https://swift.strw.leidenuniv.nl/) snapshots.
+properties of halos in spherical apertures in
+[SWIFT](https://swift.strw.leidenuniv.nl/) snapshots.
 The resulting output halo catalogues can be read using the
 [swiftsimio](https://swiftsimio.readthedocs.io/en/latest/)
 python package.
 
-Please cite SOAP using the [JOSS paper](https://ui.adsabs.harvard.edu/abs/2025JOSS...10.8252M)
+Please cite SOAP using the
+[JOSS paper](https://ui.adsabs.harvard.edu/abs/2025JOSS...10.8252M).
 
 ## Installation
 
 The code is written in python and uses mpi4py for parallelism.
-IO is carried out in parallel, and so [parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is required. SOAP and it's dependencies can also be 
+IO is also intended to run in parallel, and so
+[parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is recommended.
+SOAP and its dependencies can be
 installed directly using the command
-`pip install git+https://github.com/SWIFTSIM/SOAP.git@soap_runtime`
+`pip install git+https://github.com/SWIFTSIM/SOAP.git`
 but this may install a serial version of h5py. Therefore the following
 steps are recommended for install
 ```

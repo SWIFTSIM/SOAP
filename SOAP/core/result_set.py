@@ -6,9 +6,9 @@ import h5py
 import numpy as np
 from mpi4py import MPI
 import unyt
-import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 
+from . import parallel_io
 from . import swift_units
 
 
@@ -243,6 +243,9 @@ class ResultSet:
     def collective_write(self, outfile, comm):
         """
         Write the results to a file in collective mode
+
+        outfile is None on ranks which don't have the file open, which is the
+        case for ranks other than rank 0 if we don't have parallel HDF5.
         """
 
         # Ensure arrays are exactly the right size
@@ -253,24 +256,26 @@ class ResultSet:
 
         # Ensure any HDF5 groups we need exist
         group_names = comm.bcast(self.find_groups_to_create(names))
-        for group_name in group_names:
-            outfile.create_group(group_name)
+        if outfile is not None:
+            for group_name in group_names:
+                outfile.create_group(group_name)
 
         # Loop over output arrays
         for name in names:
 
             # Write this array
             data, description, physical, a_exponent = self.result_arrays[name]
-            phdf5.collective_write(outfile, name, data, comm)
+            parallel_io.collective_write(outfile, name, data, comm)
 
             # Attach units metadata and description
-            if hasattr(data, "units"):
-                attrs = swift_units.attributes_from_units(
-                    data.units, physical, a_exponent
-                )
-                for attr_name, attr_value in attrs.items():
-                    outfile[name].attrs[attr_name] = attr_value
-            outfile[name].attrs["Description"] = description
+            if outfile is not None:
+                if hasattr(data, "units"):
+                    attrs = swift_units.attributes_from_units(
+                        data.units, physical, a_exponent
+                    )
+                    for attr_name, attr_value in attrs.items():
+                        outfile[name].attrs[attr_name] = attr_value
+                outfile[name].attrs["Description"] = description
 
     def get_metadata(self, comm):
         """

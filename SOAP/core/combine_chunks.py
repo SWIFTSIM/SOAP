@@ -14,7 +14,7 @@ from virgo.util.partial_formatter import PartialFormatter
 from SOAP.catalogue_readers import read_hbtplus
 from SOAP.property_calculation.subhalo_rank import compute_subhalo_rank
 from SOAP.property_table import PropertyTable
-from . import lustre, swift_units
+from . import lustre, parallel_io, swift_units
 from .mpi_timer import MPITimer
 
 
@@ -364,8 +364,8 @@ def combine_chunks(
             outfile.close()
     comm_world.barrier()
 
-    # Reopen the output file in parallel mode
-    outfile = h5py.File(output_file, "r+", driver="mpio", comm=comm_world)
+    # Reopen the output file for writing by all ranks.
+    outfile = parallel_io.open_collective(output_file, "r+", comm_world)
     props_kept = {}
 
     with MPITimer("Writing output properties", comm_world):
@@ -392,7 +392,7 @@ def combine_chunks(
 
             # Write these properties to the output file
             for name in names:
-                phdf5.collective_write(
+                parallel_io.collective_write(
                     outfile, name, data[name], create_dataset=False, comm=comm_world
                 )
 
@@ -453,7 +453,7 @@ def combine_chunks(
         if not physical:
             soap_com_unit = soap_com_unit * cellgrid.get_unit("a") ** a_exponent
         fof_com = (fof_com * fof_com_unit).to(soap_com_unit)
-        phdf5.collective_write(
+        parallel_io.collective_write(
             outfile,
             "InputHalos/FOF/Centres",
             fof_com,
@@ -472,7 +472,7 @@ def combine_chunks(
         if not physical:
             soap_mass_unit = soap_mass_unit * cellgrid.get_unit("a") ** a_exponent
         fof_mass = (fof_mass * fof_mass_unit).to(soap_mass_unit)
-        phdf5.collective_write(
+        parallel_io.collective_write(
             outfile,
             "InputHalos/FOF/Masses",
             fof_mass,
@@ -484,7 +484,7 @@ def combine_chunks(
         fof_size[keep] = psort.fetch_elements(
             fof_file.read("Groups/Sizes"), indices, comm=comm_world
         )
-        phdf5.collective_write(
+        parallel_io.collective_write(
             outfile,
             "InputHalos/FOF/Sizes",
             fof_size,
@@ -518,7 +518,7 @@ def combine_chunks(
             if not physical:
                 soap_radii_unit = soap_radii_unit * cellgrid.get_unit("a") ** a_exponent
             fof_radii = (fof_radii * fof_com_unit).to(soap_radii_unit)
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 "InputHalos/FOF/Radii",
                 fof_radii,
@@ -558,7 +558,7 @@ def combine_chunks(
                 host_halo_index = -1 * np.ones(sat_mask.shape[0], dtype=np.int64)
                 host_halo_index[has_host_mask] = indices
 
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 "SOAP/HostHaloIndex",
                 host_halo_index,
@@ -587,7 +587,7 @@ def combine_chunks(
             subhalo_rank = compute_subhalo_rank(
                 host_id, props_kept["BoundSubhalo/TotalMass"], comm_world
             )
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 "SOAP/SubhaloRankByBoundMass",
                 subhalo_rank,
@@ -657,7 +657,7 @@ def combine_chunks(
                 assert n_keep[i_bin] <= np.sum(mask)
                 keep_idx = np.random.choice(idx, size=n_keep[i_bin], replace=False)
                 reduced_snapshot[keep_idx] = 1
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 "SOAP/IncludedInReducedSnapshot",
                 reduced_snapshot,
@@ -721,7 +721,7 @@ def combine_chunks(
                     track_id, prev_track_id, comm=comm_world
                 )
 
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 f"SOAP/{name}Index",
                 prev_index,
@@ -730,4 +730,4 @@ def combine_chunks(
             )
 
     # Done.
-    outfile.close()
+    parallel_io.close_collective(outfile, comm_world)
