@@ -11,6 +11,7 @@ from . import shared_array
 from . import shared_mesh
 from . import result_set
 from . import memory_use
+from . import parallel_io
 from .dataset_names import mass_dataset, ptypes_for_so_masses
 from .halo_tasks import process_halos
 from .mask_cells import mask_cells
@@ -388,10 +389,9 @@ class ChunkTask:
         comm_have_results = comm.Split(colour, comm_rank)
         if len(results) > 0:
             filename = scratch_file_format % {"file_nr": self.chunk_nr}
-            with h5py.File(
-                filename, "w", driver="mpio", comm=comm_have_results
-            ) as outfile:
-                results.collective_write(outfile, comm_have_results)
+            outfile = parallel_io.open_collective(filename, "w", comm_have_results)
+            results.collective_write(outfile, comm_have_results)
+            parallel_io.close_collective(outfile, comm_have_results)
         comm_have_results.Free()
         comm.barrier()
 
