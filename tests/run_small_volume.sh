@@ -14,6 +14,10 @@ fi
 # Download the required data
 python tests/helpers.py
 
+# Set "oversubscribe" for MPI so we don't fail on machines with <8 cores
+export OMPI_MCA_rmaps_base_oversubscribe=1
+export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
+
 # Run the group membership script
 mpirun -np 8 python -u SOAP/group_membership.py \
     --sim-name=DM_test \
