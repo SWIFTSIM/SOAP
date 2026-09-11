@@ -200,30 +200,62 @@ class SharedHaloParticleData:
         pos = self.position
         return np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2)
 
-    @lazy_property
-    def groupnr(self) -> unyt.unyt_array:
+    def fofid_of_particle(self, index: int) -> int:
         """
-        Index of the subhalo each particle is bound to, or a negative value for
-        unbound particles.
-        """
-        return np.concatenate(
-            [
-                self.get_dataset(f"{ptype}/GroupNr_bound")[self.in_halo_mask(ptype)]
-                for ptype, _ in self.nr_part_of_type
-            ]
-        )
+        FOF group ID of a single particle in the concatenated arrays.
 
-    @lazy_property
-    def fofid(self) -> unyt.unyt_array:
+        Only the particle type that particle belongs to is read, so the full
+        length array of FOF IDs never has to be built just to look up one value.
+
+        Parameters:
+         - index: int
+           Position of the particle in the concatenated arrays.
         """
-        FOF group ID of each particle.
+        # np.argsort() on a unyt_array returns the indices as a unyt_array
+        # carrying the units of the array that was sorted, so make sure we have
+        # a plain integer before doing any arithmetic with it
+        index = int(index)
+        offset = 0
+        for ptype, nr_part in self.nr_part_of_type:
+            if index < offset + nr_part:
+                fofid = self.get_dataset(f"{ptype}/FOFGroupIDs")
+                if self.inclusive:
+                    # every particle is included, so the position in the
+                    # concatenated array is also the position in the raw array
+                    return fofid[index - offset]
+                return fofid[self.in_halo_mask(ptype)][index - offset]
+            offset += nr_part
+        raise IndexError(f"particle {index} is not in the concatenated arrays")
+
+    def compute_bound_masks(self, fofid_central: int):
         """
-        return np.concatenate(
-            [
-                self.get_dataset(f"{ptype}/FOFGroupIDs")[self.in_halo_mask(ptype)]
-                for ptype, _ in self.nr_part_of_type
-            ]
-        )
+        Flag the particles which are bound to a halo other than this one,
+        separating those in the same FOF group from those in another one.
+
+        The group numbers and FOF IDs are read one particle type at a time and
+        reduced to masks immediately. They are 8 bytes per particle each, so for
+        the largest halos holding both of them over the whole search radius
+        costs several GB, while the masks that are actually wanted are 1 byte
+        per particle.
+
+        Parameters:
+         - fofid_central: int
+           FOF group ID of this halo.
+        """
+        satellite = []
+        external = []
+        for ptype, _ in self.nr_part_of_type:
+            in_halo = self.in_halo_mask(ptype)
+            groupnr = self.get_dataset(f"{ptype}/GroupNr_bound")[in_halo]
+            bound_elsewhere = (groupnr >= 0) & (groupnr != self.index)
+            del groupnr
+            fofid = self.get_dataset(f"{ptype}/FOFGroupIDs")[in_halo]
+            same_fof = fofid == fofid_central
+            del fofid
+            satellite.append(bound_elsewhere & same_fof)
+            external.append(bound_elsewhere & ~same_fof)
+        self.is_bound_to_satellite = np.concatenate(satellite)
+        self.is_bound_to_external = np.concatenate(external)
 
     def compute_mass_profile(self, cosmology: Dict):
         """
@@ -271,13 +303,16 @@ class SharedHaloParticleData:
         cumulative_mass = np.cumsum(all_mass[order], dtype=np.float64).astype(
             self.mass.dtype
         )
+        del all_mass, all_r
         # add mean neutrino mass
         cumulative_mass += (
             cosmology["nu_density"] * 4.0 / 3.0 * np.pi * ordered_radius**3
         )
         # Determine FOF ID of object using the central non-neutrino particle
         non_neutrino_order = order[order < self.radius.shape[0]]
-        fofid = self.fofid[non_neutrino_order[0]]
+        fofid_central = self.fofid_of_particle(non_neutrino_order[0])
+        # The sort order is 8 bytes per particle and is not needed again
+        del order, non_neutrino_order
 
         # Compute density within radius of each particle.
         # Will need to skip any at zero radius.
@@ -294,10 +329,5 @@ class SharedHaloParticleData:
 
         # figure out which particles in the list are bound to a halo that is not the
         # central halo
-        self.is_bound_to_satellite = (
-            (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid == fofid)
-        )
-        self.is_bound_to_external = (
-            (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid != fofid)
-        )
+        self.compute_bound_masks(fofid_central)
         self.have_mass_profile = True

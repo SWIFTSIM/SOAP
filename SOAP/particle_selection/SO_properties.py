@@ -306,8 +306,6 @@ class SOParticleData:
         self.position = shared.position
         self.velocity = shared.velocity
         self.types = shared.types
-        self.groupnr = shared.groupnr
-        self.fofid = shared.fofid
         self.softening = shared.softening
         if shared.has_neutrinos:
             self.nu_mass = shared.nu_mass

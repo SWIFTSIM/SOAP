@@ -491,12 +491,17 @@ def compute_halo_properties():
     #    search radius. Nothing outside the SO calculations reads an SO result,
     #    which is what lets them move after the apertures; the assertions above
     #    keep that true.
+    #  - The SO calculations come last, after the inclusive apertures they share
+    #    their particle arrays with. The SO calculations add quantities to those
+    #    arrays which no aperture uses (the group and FOF IDs, the sorted mass
+    #    profile), and for the largest halos those are several GB. Running them
+    #    last means nothing else is still holding the arrays while they exist.
     halo_prop_list = (
         subhalo_props
         + exclusive_apertures
         + projected_apertures
-        + so_props
         + inclusive_apertures
+        + so_props
     )
 
     if len(halo_prop_list) < 1:
