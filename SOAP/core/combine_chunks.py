@@ -61,6 +61,68 @@ def spatial_sort(halo_cofp, halo_index, cellgrid, comm):
     return order, cell_counts
 
 
+def write_named_columns(outfile, args, cellgrid, all_metadata):
+    """
+    Write SubgridScheme/NamedColumns metadata for properties that declare
+    a `columns_from_snapshot` source (see property_table.Property)
+    """
+    # Skip if we want the old behaviour
+    if args.skip_named_columns:
+        return
+
+    # Properties actually present in this output, keyed by basename, with
+    # their output shape excluding the halo axis (e.g. (9,) or ()).
+    present_props = {}
+    for metadata in all_metadata:
+        name, size = metadata[0], metadata[1]
+        present_props[name.split("/")[-1]] = size
+
+    # Of those, which declare a snapshot field to source column names from.
+    wanted = {
+        prop.name: prop.columns_from_snapshot
+        for prop in PropertyTable.full_property_list.values()
+        if prop.columns_from_snapshot is not None and prop.name in present_props
+    }
+    if not wanted:
+        return
+
+    snap_named_columns = {}
+    snap_filename = cellgrid.snap_filename.format(file_nr=0)
+    with h5py.File(snap_filename, "r") as snap_file:
+        try:
+            group = snap_file["SubgridScheme/NamedColumns"]
+            snap_named_columns = {
+                key: [x.decode("utf-8") for x in group[key][:]] for key in group.keys()
+            }
+        except KeyError:
+            pass
+
+    named_columns_group = outfile.require_group("SubgridScheme/NamedColumns")
+    for prop_name, snap_field in wanted.items():
+        columns = snap_named_columns.get(snap_field)
+        expected_shape = present_props[prop_name]
+        expected_len = expected_shape[0] if len(expected_shape) else 1
+        if columns is None:
+            print(
+                f"named columns requested for {prop_name}, but "
+                f"SubgridScheme/NamedColumns/{snap_field} was not found in "
+                f"the input snapshot ({snap_filename}); skipping.",
+                flush=True,
+            )
+            continue
+        if len(columns) != expected_len:
+            print(
+                f"named columns for {prop_name} (from snapshot field "
+                f"{snap_field}) have length {len(columns)}, but the property "
+                f"has shape {expected_len}; skipping.",
+                flush=True,
+            )
+            continue
+        named_columns_group.create_dataset(
+            prop_name, data=[c.encode("utf-8") for c in columns]
+        )
+
+
 def combine_chunks(
     args,
     cellgrid,
@@ -347,6 +409,11 @@ def combine_chunks(
                 attrs.update(compression_metadata)
                 for attr_name, attr_value in attrs.items():
                     dataset.attrs[attr_name] = attr_value
+
+            # Write named-column metadata for properties that support it
+            write_named_columns(
+                outfile, args, cellgrid, ref_metadata + soap_metadata + fof_metadata
+            )
 
             # Save the names of the groups containing the data
             subhalo_types = set()

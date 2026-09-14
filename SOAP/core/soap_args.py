@@ -107,6 +107,12 @@ def get_soap_args(comm):
         help="Only process central halos, discarding satellites",
     )
     parser.add_argument(
+        "--skip-named-columns",
+        action="store_true",
+        help="Skip writing SubgridScheme/NamedColumns metadata for properties that "
+        "support it (e.g. StellarLuminosity)",
+    )
+    parser.add_argument(
         "--record-halo-timings",
         action="store_true",
         help="Record time taken to process each halo",
@@ -220,6 +226,7 @@ def get_soap_args(comm):
     args.snapshot_nr = all_args["Parameters"]["snap_nr"]
     args.chunks = all_args["Parameters"]["chunks"]
     args.centrals_only = all_args["Parameters"]["centrals_only"]
+    args.skip_named_columns = all_args["Parameters"]["skip_named_columns"]
     args.record_halo_timings = all_args["Parameters"]["record_halo_timings"]
     args.record_property_timings = all_args["Parameters"]["record_property_timings"]
     args.dmo = all_args["Parameters"]["dmo"]
