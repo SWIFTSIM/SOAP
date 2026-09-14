@@ -119,15 +119,10 @@ def process_single_halo(
                 pos[:, :] = ((pos - offset) % boxsize) + offset
 
             # Cache for quantities derived from these particles which more than
-            # one property calculation needs. It is created here, inside the
-            # search radius loop, so that it is discarded as soon as the set of
-            # particles changes.
+            # one property calculation needs.
             shared_particle_data = ParticleDataCache()
-
             # The key each calculation will look up, so that an entry can be
             # dropped as soon as no calculation which is still to run needs it.
-            # The keys depend only on which particle types are present, so they
-            # are the same for every halo in this chunk.
             if shared_keys is None:
                 shared_keys = [hp.shared_key(particle_data) for hp in halo_prop_list]
 
@@ -345,9 +340,7 @@ def process_halos(
             if target_density is None or density < target_density:
                 target_density = density
 
-    # The shared particle data key each calculation uses depends only on which
-    # particle types were read in, so it is the same for every halo in this
-    # chunk and can be worked out once here.
+    # The shared particle data key each calculation uses
     shared_keys = [hp.shared_key(data) for hp in halo_prop_list]
 
     # Allocate shared storage for a single integer and initialize to zero

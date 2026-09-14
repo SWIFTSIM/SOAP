@@ -53,10 +53,10 @@ from SOAP.core.lazy_properties import lazy_property
 from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
+from SOAP.core.swift_cells import SWIFTCellGrid
 from SOAP.particle_selection.shared_halo_particle_data import (
     SharedHaloParticleData,
 )
-from SOAP.core.swift_cells import SWIFTCellGrid
 
 
 class SubhaloParticleData:
@@ -2580,25 +2580,10 @@ class SubhaloProperties(HaloProperty):
         Input particle data arrays are unyt_arrays.
         """
 
-        types_present = [type for type in self.particle_properties if type in data]
-
         # The concatenated arrays for the bound particles of this halo are also
         # used by the exclusive and projected aperture calculations, so they are
         # computed once and shared.
-        def make_shared():
-            return SharedHaloParticleData(
-                input_halo,
-                data,
-                types_present,
-                False,
-                self.snapshot_datasets,
-                self.softening_of_parttype,
-            )
-
-        if shared_particle_data is None:
-            shared = make_shared()
-        else:
-            shared = shared_particle_data.get(self.shared_key(data), make_shared)
+        shared = self.get_shared_particle_data(input_halo, data, shared_particle_data)
 
         part_props = SubhaloParticleData(
             shared,

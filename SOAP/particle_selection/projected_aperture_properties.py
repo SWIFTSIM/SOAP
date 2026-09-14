@@ -1899,25 +1899,12 @@ class ProjectedApertureProperties(HaloProperty):
                     * halo_result[self.aperture_property[0]][0]
                 )
 
-            types_present = [type for type in self.particle_properties if type in data]
-
             # The concatenated arrays for the bound particles of this halo are
             # also used by the bound subhalo and the exclusive apertures, so they
             # are computed once and shared.
-            def make_shared():
-                return SharedHaloParticleData(
-                    input_halo,
-                    data,
-                    types_present,
-                    False,
-                    self.snapshot_datasets,
-                    self.softening_of_parttype,
-                )
-
-            if shared_particle_data is None:
-                shared = make_shared()
-            else:
-                shared = shared_particle_data.get(self.shared_key(data), make_shared)
+            shared = self.get_shared_particle_data(
+                input_halo, data, shared_particle_data
+            )
 
             part_props = ProjectedApertureParticleData(
                 shared,

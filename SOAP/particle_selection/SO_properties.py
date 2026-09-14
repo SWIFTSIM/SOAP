@@ -3564,26 +3564,14 @@ class SOProperties(HaloProperty):
         # SOs only exist for central galaxies
         # Determine whether to skip this halo because of filter
         if input_halo["is_central"] and do_calculation[self.halo_filter]:
-            types_present = [type for type in self.particle_properties if type in data]
 
             # Quantities which are the same for every SO variation of this halo
             # are computed once and reused by the other variations. The particle
             # types are part of the cache key because they determine the order
             # in which the particle arrays are concatenated.
-            def make_shared():
-                return SharedHaloParticleData(
-                    input_halo,
-                    data,
-                    types_present,
-                    True,
-                    self.snapshot_datasets,
-                    self.softening_of_parttype,
-                )
-
-            if shared_particle_data is None:
-                shared = make_shared()
-            else:
-                shared = shared_particle_data.get(self.shared_key(data), make_shared)
+            shared = self.get_shared_particle_data(
+                input_halo, data, shared_particle_data
+            )
 
             part_props = SOParticleData(
                 shared,

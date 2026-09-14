@@ -4100,26 +4100,13 @@ class ApertureProperties(HaloProperty):
                     "Search radius is smaller than aperture"
                 )
 
-            types_present = [type for type in self.particle_properties if type in data]
-
             # Every aperture with the same value of "inclusive" sees the same
             # particles, so the concatenated arrays are computed once and shared
             # (with the bound subhalo and the projected apertures too, for the
             # exclusive ones).
-            def make_shared():
-                return SharedHaloParticleData(
-                    input_halo,
-                    data,
-                    types_present,
-                    self.inclusive,
-                    self.snapshot_datasets,
-                    self.softening_of_parttype,
-                )
-
-            if shared_particle_data is None:
-                shared = make_shared()
-            else:
-                shared = shared_particle_data.get(self.shared_key(data), make_shared)
+            shared = self.get_shared_particle_data(
+                input_halo, data, shared_particle_data
+            )
 
             part_props = ApertureParticleData(
                 shared,

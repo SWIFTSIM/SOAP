@@ -205,10 +205,6 @@ def compute_halo_properties():
     category_filter = CategoryFilter(filters, dmo=args.dmo)
 
     # Get the full list of property calculations we can do
-    # Note that the order matters: we need to do the BoundSubhalo first,
-    # since quantities are filtered based on the particle numbers in there
-    # Similarly, things like SO 5xR500_crit can only be done after
-    # SO 500_crit for obvious reasons
     # Each kind of calculation is collected separately so that the final list
     # can be built in a deliberate order (see where it is assembled below),
     # rather than relying on the order things happen to be created in.
@@ -362,8 +358,6 @@ def compute_halo_properties():
         if "radius_in_kpc" in aperture_variations[variation]:
             continue
         assert "property" in aperture_variations[variation]
-        # Apertures are computed before the SO calculations, so they cannot
-        # be defined in terms of an SO property
         assert not aperture_variations[variation]["property"].startswith(
             "SO/"
         ), "Apertures cannot be defined by an SO property"
@@ -445,8 +439,6 @@ def compute_halo_properties():
         if "radius_in_kpc" in projected_aperture_variations[variation]:
             continue
         assert "property" in projected_aperture_variations[variation]
-        # Projected apertures are computed before the SO calculations, so they
-        # cannot be defined in terms of an SO property
         assert not projected_aperture_variations[variation]["property"].startswith(
             "SO/"
         ), "Projected apertures cannot be defined by an SO property"
@@ -488,14 +480,11 @@ def compute_halo_properties():
     #    the shared particle arrays can be dropped as soon as the last
     #    calculation needing them has run. Everything using only the bound
     #    particles comes first, then everything using every particle in the
-    #    search radius. Nothing outside the SO calculations reads an SO result,
-    #    which is what lets them move after the apertures; the assertions above
-    #    keep that true.
+    #    search radius.
     #  - The SO calculations come last, after the inclusive apertures they share
     #    their particle arrays with. The SO calculations add quantities to those
-    #    arrays which no aperture uses (the group and FOF IDs, the sorted mass
-    #    profile), and for the largest halos those are several GB. Running them
-    #    last means nothing else is still holding the arrays while they exist.
+    #    arrays which no aperture uses Running them last means nothing else is
+    #    still holding the arrays once they're not needed exist.
     halo_prop_list = (
         subhalo_props
         + exclusive_apertures

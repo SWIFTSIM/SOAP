@@ -64,6 +64,51 @@ class HaloProperty:
         )
         return ("SharedHaloParticleData", self.shared_inclusive, types_present)
 
+    def get_shared_particle_data(self, input_halo, data, cache):
+        """
+        Return the SharedHaloParticleData object this calculation should use,
+        taking it from the cache if another calculation has already built the
+        same one.
+
+        The object is built from the key, so which calculation happens to
+        create it cannot change what it contains. That matters because several
+        calculations share a key: the bound subhalo, the exclusive apertures
+        and the projected apertures all use one object, and the inclusive
+        apertures and the SO calculations another.
+
+        Parameters:
+         - input_halo: Dict
+           Dictionary containing properties of the halo read from the halo
+           catalogue.
+         - data: Dict
+           Dictionary containing particle data.
+         - cache: ParticleDataCache or None
+           Cache shared with the other calculations for this halo. If None, the
+           object is built for this calculation's own use.
+        """
+        # imported here rather than at module scope because
+        # SnapshotDatasets imports the property table, which imports this module
+        from SOAP.particle_selection.shared_halo_particle_data import (
+            SharedHaloParticleData,
+        )
+
+        key = self.shared_key(data)
+
+        def build():
+            _, inclusive, types_present = key
+            return SharedHaloParticleData(
+                input_halo,
+                data,
+                list(types_present),
+                inclusive,
+                self.snapshot_datasets,
+                self.softening_of_parttype,
+            )
+
+        if cache is None:
+            return build()
+        return cache.get(key, build)
+
     def expected_dataset_names(self):
         """
         Return the set of HDF5 dataset names that this calculation will add

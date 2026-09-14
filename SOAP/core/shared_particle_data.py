@@ -5,18 +5,6 @@ shared_particle_data.py
 
 Cache of particle quantities that are shared between the property
 calculations of a single halo.
-
-process_single_halo() in halo_tasks.py hands the same set of particles to
-every property calculation it runs for a halo. Several of those calculations
-begin by deriving the same quantities from that set (concatenated masses and
-radii, sorted radial profiles, ...), which is wasted work when it is repeated
-once per calculation.
-
-A ParticleDataCache lets those calculations look up quantities that have
-already been derived from the same particles. It is created inside the search
-radius loop of process_single_halo(), so a new (empty) cache is used whenever
-the set of particles changes, and entries are dropped as soon as no remaining
-calculation needs them.
 """
 
 from typing import Any, Callable, Hashable, Iterable
@@ -24,8 +12,6 @@ from typing import Any, Callable, Hashable, Iterable
 
 class ParticleDataCache:
     """
-    Cache of quantities derived from the particles of a single halo.
-
     Entries are created on first use, so nothing is computed for a halo unless
     a property calculation actually asks for it, and discarded once the
     calculations which need them have all run.
