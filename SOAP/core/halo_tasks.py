@@ -5,8 +5,6 @@ import time
 import numpy as np
 import unyt
 
-from mpi4py import MPI
-
 from SOAP.core import memory_use, shared_array
 from SOAP.core.shared_particle_data import ParticleDataCache
 from SOAP.core.dataset_names import mass_dataset, ptypes_for_so_masses
@@ -21,10 +19,6 @@ READ_RADIUS_FACTOR = 1.5
 
 # Radius in Mpc at which we report halos which have a large search radius
 REPORT_RADIUS = 20.0
-
-# TEMPORARY (issue 64): number of shared particle data objects created for each
-# halo processed by this rank. Strip this out after testing.
-shared_data_created = []
 
 
 def process_single_halo(
@@ -196,8 +190,6 @@ def process_single_halo(
 
             # If we computed all of the properties, we're done with this halo
             if np.all(halo_prop_done):
-                # TEMPORARY (issue 64)
-                shared_data_created.append(shared_particle_data.nr_created)
                 break
 
         # Either the density is still too high or the property calculation failed.
@@ -459,38 +451,6 @@ def process_halos(
     # Count halos left to do
     comm.barrier()
     nr_halos_left = comm.allreduce(np.sum(halo_arrays["done"].local.value == 0))
-
-    # TEMPORARY (issue 64): how many shared particle data objects each halo
-    # needed. One per distinct set of particles is expected (two for a central,
-    # which also does the SO calculations, one for a satellite); anything more
-    # means an entry was evicted while a later calculation still wanted it.
-    # Strip this out after testing.
-    local_hist = np.zeros(5, dtype=np.int64)
-    for nr in shared_data_created:
-        local_hist[min(nr, 4)] += 1
-    hist = comm.allreduce(local_hist, op=MPI.SUM)
-    if comm.Get_rank() == 0 and hist.sum() > 0:
-        print(
-            "SHARED_DATA_CREATED_PER_HALO "
-            + " ".join(
-                f"{n if n < 4 else '4+'}={hist[n]}" for n in range(5) if hist[n]
-            ),
-            flush=True,
-        )
-
-    # TEMPORARY (issue 64): report peak per-rank memory, to check the effect of
-    # sharing and evicting the particle arrays. Strip this out after testing.
-    peak_gb = memory_use.get_peak_rss_gb()
-    if peak_gb is not None:
-        peak_max = comm.allreduce(peak_gb, op=MPI.MAX)
-        peak_sum = comm.allreduce(peak_gb, op=MPI.SUM)
-        if comm.Get_rank() == 0:
-            print(
-                f"PEAK_RSS_PER_RANK max={peak_max:.3f}GB "
-                f"mean={peak_sum / comm.Get_size():.3f}GB "
-                f"over {comm.Get_size()} ranks",
-                flush=True,
-            )
 
     # Stop the clock
     comm.barrier()

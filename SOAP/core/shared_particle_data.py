@@ -36,11 +36,6 @@ class ParticleDataCache:
         Constructor. Creates an empty cache.
         """
         self.cache = {}
-        # TEMPORARY (issue 64): how many entries this cache has had to create.
-        # One per distinct set of particles is expected; more means an entry was
-        # dropped while a later calculation still needed it, which is a waste of
-        # time rather than a correctness problem. Strip this out after testing.
-        self.nr_created = 0
 
     def get(self, key: Hashable, factory: Callable[[], Any]) -> Any:
         """
@@ -59,7 +54,6 @@ class ParticleDataCache:
         """
         if key not in self.cache:
             self.cache[key] = factory()
-            self.nr_created += 1  # TEMPORARY (issue 64)
         return self.cache[key]
 
     def keep_only(self, keys: Iterable[Hashable]):
