@@ -144,9 +144,7 @@ def compress_dataset(input_name, output_name, dset):
             if len(data.shape) == 1:
                 compression_opts["chunks"] = min(chunksize, data.shape[0])
             else:
-                compression_opts["chunks"] = get_chunk_shape(
-                    data.shape, named_columns
-                )
+                compression_opts["chunks"] = get_chunk_shape(data.shape, named_columns)
             ofile.create_dataset("data", data=data, **compression_opts)
         else:
             create_lossy_dataset(ofile, "data", data.shape, filter, named_columns)
