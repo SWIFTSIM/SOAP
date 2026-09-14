@@ -15,6 +15,7 @@ COMMAND_LINE_ONLY_PARAMETERS = frozenset(
         "chunks",
         "dmo",
         "centrals_only",
+        "skip_named_columns",
         "record_halo_timings",
         "record_property_timings",
         "max_halos",

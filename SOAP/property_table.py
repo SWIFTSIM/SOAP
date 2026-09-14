@@ -90,6 +90,9 @@ class Property:
     particle_properties: list
     output_physical: bool
     a_scale_exponent: int
+    # Name of the snapshot particle dataset (e.g. "Luminosities")
+    # whose NamedColumns entry should be copied for this property
+    columns_from_snapshot: str = None
 
 
 class PropertyTable:
@@ -2536,6 +2539,7 @@ class PropertyTable:
             particle_properties=["PartType4/Luminosities"],
             output_physical=True,
             a_scale_exponent=None,
+            columns_from_snapshot="Luminosities",
         ),
         "Tgas": Property(
             name="GasTemperature",
