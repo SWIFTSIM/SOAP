@@ -70,12 +70,6 @@ class HaloProperty:
         taking it from the cache if another calculation has already built the
         same one.
 
-        The object is built from the key, so which calculation happens to
-        create it cannot change what it contains. That matters because several
-        calculations share a key: the bound subhalo, the exclusive apertures
-        and the projected apertures all use one object, and the inclusive
-        apertures and the SO calculations another.
-
         Parameters:
          - input_halo: Dict
            Dictionary containing properties of the halo read from the halo

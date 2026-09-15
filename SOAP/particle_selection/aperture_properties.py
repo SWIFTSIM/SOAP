@@ -4098,10 +4098,7 @@ class ApertureProperties(HaloProperty):
                     "Search radius is smaller than aperture"
                 )
 
-            # Every aperture with the same value of "inclusive" sees the same
-            # particles, so the concatenated arrays are computed once and shared
-            # (with the bound subhalo and the projected apertures too, for the
-            # exclusive ones).
+            # Concatenated arrayss are computed once for inclusive/exclusive apertures
             shared = self.get_shared_particle_data(
                 input_halo, data, shared_particle_data
             )

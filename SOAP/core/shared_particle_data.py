@@ -30,10 +30,7 @@ class ParticleDataCache:
 
         Parameters:
          - key: Hashable
-           Identifies the quantity being requested. Calculations that want to
-           share an entry have to agree on the key, so it needs to include
-           everything the entry depends on (e.g. the particle types that were
-           used to compute it). See HaloProperty.shared_key().
+           Identifies the quantity being requested. See HaloProperty.shared_key().
          - factory: Callable
            Function taking no arguments which computes the entry. It is only
            called if the key is not already in the cache.
@@ -45,12 +42,6 @@ class ParticleDataCache:
     def keep_only(self, keys: Iterable[Hashable]):
         """
         Drop every entry whose key is not in keys.
-
-        Called after each calculation with the keys the remaining calculations
-        for this halo still need, so that particle arrays are not kept alive
-        for longer than they are used. Dropping an entry too early is a
-        performance problem rather than a correctness one: the next calculation
-        that wants it simply rebuilds it.
 
         Parameters:
          - keys: Iterable

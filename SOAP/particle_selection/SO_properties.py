@@ -282,15 +282,9 @@ class SOParticleData:
            Boxsize for correcting periodic boundary conditions
         """
         self.shared = shared
-        # The radial profile needs the cosmology, which the aperture
-        # calculations sharing this object do not have, so it is requested
-        # here rather than built with the object. Only the first SO variation
-        # of a halo actually computes it.
         shared.compute_mass_profile(cosmology)
 
         # Quantities that are the same for every SO variation of this halo.
-        # Note that compute_SO_radius_and_mass() only ever rebinds these arrays
-        # (it never modifies them in place), so it is safe to share them.
         self.input_halo = shared.input_halo
         self.data = shared.data
         self.has_neutrinos = shared.has_neutrinos

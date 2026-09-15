@@ -78,11 +78,9 @@ class SharedHaloParticleData:
         """
         self.input_halo = input_halo
         self.data = data
-        # Neutrinos are never part of the concatenated arrays: they only
+        # Neutrinos are not part of the concatenated arrays: they only
         # contribute to the spherical overdensity radius and to neutrino
-        # specific properties, and are handled separately below. Dropping them
-        # here is also what lets the SO calculations share this object with the
-        # inclusive apertures, whose particle types never include PartType6.
+        # specific properties, and are handled separately below.
         self.types_present = [t for t in types_present if t != "PartType6"]
         self.has_neutrinos = "PartType6" in data
         self.inclusive = inclusive
@@ -103,11 +101,7 @@ class SharedHaloParticleData:
         """
         Mask which selects the particles of ptype that are included in the
         calculations: only the particles bound to this halo for exclusive
-        calculations, all of them for inclusive ones. This mask needs to be
-        applied _first_ to raw "PartTypeX" datasets.
-
-        The mask is computed once per particle type and then reused, since
-        every calculation sharing this object needs the same one.
+        calculations, all of them for inclusive ones.
 
         Parameters:
          - ptype: str
@@ -126,9 +120,6 @@ class SharedHaloParticleData:
         """
         Concatenate the quantities which every calculation sharing this object
         needs, over all particle types that are present.
-
-        Also records the number of particles of each type, which the lazy
-        softening below uses to rebuild a per type quantity in the same order.
         """
         mass = []
         position = []
@@ -211,9 +202,6 @@ class SharedHaloParticleData:
          - index: int
            Position of the particle in the concatenated arrays.
         """
-        # np.argsort() on a unyt_array returns the indices as a unyt_array
-        # carrying the units of the array that was sorted, so make sure we have
-        # a plain integer before doing any arithmetic with it
         index = int(index)
         offset = 0
         for ptype, nr_part in self.nr_part_of_type:
@@ -231,12 +219,6 @@ class SharedHaloParticleData:
         """
         Flag the particles which are bound to a halo other than this one,
         separating those in the same FOF group from those in another one.
-
-        The group numbers and FOF IDs are read one particle type at a time and
-        reduced to masks immediately. They are 8 bytes per particle each, so for
-        the largest halos holding both of them over the whole search radius
-        costs several GB, while the masks that are actually wanted are 1 byte
-        per particle.
 
         Parameters:
          - fofid_central: int
@@ -311,12 +293,11 @@ class SharedHaloParticleData:
         # Determine FOF ID of object using the central non-neutrino particle
         non_neutrino_order = order[order < self.radius.shape[0]]
         fofid_central = self.fofid_of_particle(non_neutrino_order[0])
-        # The sort order is 8 bytes per particle and is not needed again
         del order, non_neutrino_order
 
         # Compute density within radius of each particle.
         # Will need to skip any at zero radius.
-        # Note that because of the definition of the centre of potential, the first
+        # Note that because of the definition of the halo centre, the first
         # particle *should* be at r=0. We need to manually exclude it, in case round
         # off error places it at a very small non-zero radius.
         nskip = max(1, np.argmax(ordered_radius > 0.0 * ordered_radius.units))
@@ -331,3 +312,4 @@ class SharedHaloParticleData:
         # central halo
         self.compute_bound_masks(fofid_central)
         self.have_mass_profile = True
+

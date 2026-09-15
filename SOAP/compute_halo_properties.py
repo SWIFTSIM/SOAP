@@ -202,18 +202,12 @@ def compute_halo_properties():
     )
 
     filters = parameter_file.get_filters()
-    # The SO calculations run after everything else (see where halo_prop_list is
-    # assembled below), so their results are not available to the filters which
-    # the other calculations are selected with. Reject this here rather than
-    # letting it fail with a KeyError part way through the first halo.
     for filter_name, filter_info in filters.items():
         for prop in filter_info.get("properties", []):
-            if prop.startswith("SO/"):
-                raise ValueError(
-                    f'Filter "{filter_name}" uses "{prop}", but SO properties '
-                    "are computed after the calculations which are selected "
-                    "using filters. Use a BoundSubhalo property instead."
-                )
+            assert prop.split("/")[0] == "BoundSubhalo", (
+                f'Filter "{filter_name}" uses "{prop}", but filters can only '
+                "use BoundSubhalo properties."
+            )
     category_filter = CategoryFilter(filters, dmo=args.dmo)
 
     # Get the full list of property calculations we can do
@@ -448,9 +442,6 @@ def compute_halo_properties():
         if "radius_in_kpc" in projected_aperture_variations[variation]:
             continue
         assert "property" in projected_aperture_variations[variation]
-        # Only BoundSubhalo properties are available: it is the one calculation
-        # guaranteed to have run first. ApertureProperties asserts the same in
-        # its constructor, but ProjectedApertureProperties does not.
         assert (
             projected_aperture_variations[variation]["property"].split("/")[0]
             == "BoundSubhalo"
@@ -501,9 +492,6 @@ def compute_halo_properties():
     #    several GB. Running SO last means they only exist while the
     #    calculations which need them are running.
     #
-    # Note that nothing outside the SO calculations may therefore depend on an
-    # SO result: not as an aperture radius (asserted above), and not as a
-    # category filter property (asserted where the filters are read).
     halo_prop_list = (
         subhalo_props
         + exclusive_apertures
