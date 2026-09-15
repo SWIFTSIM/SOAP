@@ -195,6 +195,8 @@ For each alias the key is the name of the property that SOAP expects, and the va
 SOAP uses filters to determine whether to skip the calculation of an aperture or
 property based on the number of bound particles. This section of the parameter file
 defines the particle limits for each filter. New filters can be added if required.
+Filter properties must be `BoundSubhalo` properties, since filters are evaluated
+before other calculations run.
 
 There are no default filters. Every filter referenced by a property or a halo type
 variation must be defined here, with the sole exception of the implicit `basic`

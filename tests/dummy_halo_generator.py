@@ -579,14 +579,6 @@ class DummyHaloGenerator:
                 ),
                 "Dummy Nbh for filter",
             ),
-            f"SO/200_crit/{PropertyTable.full_property_list['Ngas'].name}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"].dtype,
-                    units="dimensionless",
-                ),
-                "Dummy SO Ngas for filter",
-            ),
             f"BoundSubhalo/EncloseRadius": (
                 unyt.unyt_array(
                     100,

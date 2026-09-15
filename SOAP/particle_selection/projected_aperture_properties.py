@@ -32,6 +32,10 @@ from SOAP.core.lazy_properties import lazy_property
 from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
+from SOAP.core.shared_particle_data import ParticleDataCache
+from SOAP.particle_selection.shared_halo_particle_data import (
+    SharedHaloParticleData,
+)
 from SOAP.core.dataset_names import mass_dataset
 from SOAP.property_calculation.half_mass_radius import (
     get_half_mass_radius,
@@ -55,37 +59,29 @@ class ProjectedApertureParticleData:
 
     def __init__(
         self,
-        input_halo: Dict,
-        data: Dict,
-        types_present: List[str],
+        shared: SharedHaloParticleData,
         aperture_radius: unyt.unyt_quantity,
-        snapshot_datasets: SnapshotDatasets,
         boxsize: unyt.unyt_quantity,
     ):
         """
         Constructor.
 
         Parameters:
-         - input_halo: Dict
-           Dictionary containing properties of the halo read from the VR catalogue.
-         - data: Dict
-           Dictionary containing particle data.
-         - types_present: List
-           List of all particle types (e.g. 'PartType0') that are present in the data
-           dictionary.
+         - shared: SharedHaloParticleData
+           Object holding the concatenated particle arrays for the bound
+           particles of this halo, shared with the exclusive aperture
+           calculations and the bound subhalo.
          - aperture_radius: unyt.unyt_quantity
            Aperture radius.
-         - snapshot_datasets: SnapshotDatasets
-           Object containing metadata about the datasets in the snapshot, like
-           appropriate aliases and column names.
          - boxsize: unyt.unyt_quantity
            Boxsize for correcting periodic boundary conditions
         """
-        self.input_halo = input_halo
-        self.data = data
-        self.types_present = types_present
+        self.shared = shared
+        self.input_halo = shared.input_halo
+        self.data = shared.data
+        self.types_present = shared.types_present
+        self.snapshot_datasets = shared.snapshot_datasets
         self.aperture_radius = aperture_radius
-        self.snapshot_datasets = snapshot_datasets
         self.boxsize = boxsize
         self.compute_basics()
 
@@ -97,45 +93,21 @@ class ProjectedApertureParticleData:
 
     def compute_basics(self):
         """
-        Compute some properties that are always needed, regardless of which
-        properties and projection we actually want to compute.
+        Take the particle arrays that are always needed from the shared object,
+        and mask out the particles outside the aperture in each projection.
+
+        The projected radii are computed once per halo by the shared object, so
+        they are not recomputed for every projected aperture.
         """
-        self.centre = self.input_halo["cofp"]
-        self.index = self.input_halo["index"]
-
-        mass = []
-        position = []
-        radius_projx = []
-        radius_projy = []
-        radius_projz = []
-        velocity = []
-        types = []
-        for ptype in self.types_present:
-            grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
-            in_halo = grnr == self.index
-            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
-            pos = (
-                self.get_dataset(f"{ptype}/Coordinates")[in_halo, :]
-                - self.centre[None, :]
-            )
-            position.append(pos)
-            rprojx = np.sqrt(pos[:, 1] ** 2 + pos[:, 2] ** 2)
-            radius_projx.append(rprojx)
-            rprojy = np.sqrt(pos[:, 0] ** 2 + pos[:, 2] ** 2)
-            radius_projy.append(rprojy)
-            rprojz = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2)
-            radius_projz.append(rprojz)
-            velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
-            typearr = int(ptype[-1]) * np.ones(rprojx.shape, dtype=np.int32)
-            types.append(typearr)
-
-        self.mass = np.concatenate(mass)
-        self.position = np.concatenate(position)
-        self.radius_projx = np.concatenate(radius_projx)
-        self.radius_projy = np.concatenate(radius_projy)
-        self.radius_projz = np.concatenate(radius_projz)
-        self.velocity = np.concatenate(velocity)
-        self.types = np.concatenate(types)
+        self.centre = self.shared.centre
+        self.index = self.shared.index
+        self.mass = self.shared.mass
+        self.position = self.shared.position
+        self.velocity = self.shared.velocity
+        self.types = self.shared.types
+        self.radius_projx = self.shared.radius_projx
+        self.radius_projy = self.shared.radius_projy
+        self.radius_projz = self.shared.radius_projz
 
         self.mask_projx = self.radius_projx <= self.aperture_radius
         self.mask_projy = self.radius_projy <= self.aperture_radius
@@ -385,7 +357,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nstar == 0:
             return None
-        return self.part_props.get_dataset("PartType4/GroupNr_bound") == self.index
+        return self.part_props.shared.in_halo_mask("PartType4")
 
     @lazy_property
     def Mstar_init(self) -> unyt.unyt_quantity:
@@ -429,7 +401,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.part_props.get_dataset("PartType5/GroupNr_bound") == self.index
+        return self.part_props.shared.in_halo_mask("PartType5")
 
     @lazy_property
     def BH_subgrid_masses(self) -> unyt.unyt_array:
@@ -1137,7 +1109,7 @@ class SingleProjectionProjectedApertureParticleData:
         """
         if self.Ngas == 0:
             return None
-        return self.part_props.get_dataset("PartType0/GroupNr_bound") == self.index
+        return self.part_props.shared.in_halo_mask("PartType0")
 
     @lazy_property
     def gas_total_dust_mass_fractions(self) -> unyt.unyt_array:
@@ -1587,6 +1559,9 @@ class ProjectedApertureProperties(HaloProperty):
     the halo along the projection axis.
     """
 
+    # projected apertures always use the particles bound to the halo
+    inclusive = False
+
     base_halo_type = "ProjectedApertureProperties"
     # Properties to calculate. The key is the name of the property,
     # the value indicates the property has a direct dependence on aperture size.
@@ -1819,6 +1794,7 @@ class ProjectedApertureProperties(HaloProperty):
         search_radius: unyt.unyt_quantity,
         data: Dict,
         halo_result: Dict,
+        shared_particle_data: ParticleDataCache = None,
     ):
         """
         Compute centre of mass etc of bound particles
@@ -1831,6 +1807,10 @@ class ProjectedApertureProperties(HaloProperty):
                            has the particle coordinates for type 1
         halo_result      - dict with halo properties computed so far. Properties
                            computed here should be added to halo_result.
+        shared_particle_data - cache of particle quantities shared with the other
+                           property calculations for this halo. If None, the
+                           quantities this calculation needs are computed for
+                           its own use only.
 
         Input particle data arrays are unyt_arrays.
         The halo_result dictionary is updated with the properties computed by this function.
@@ -1919,13 +1899,16 @@ class ProjectedApertureProperties(HaloProperty):
                     * halo_result[self.aperture_property[0]][0]
                 )
 
-            types_present = [type for type in self.particle_properties if type in data]
+            # The concatenated arrays for the bound particles of this halo are
+            # also used by the bound subhalo and the exclusive apertures, so they
+            # are computed once and shared.
+            shared = self.get_shared_particle_data(
+                input_halo, data, shared_particle_data
+            )
+
             part_props = ProjectedApertureParticleData(
-                input_halo,
-                data,
-                types_present,
+                shared,
                 aperture_radius,
-                self.snapshot_datasets,
                 self.boxsize,
             )
             for projname in ["projx", "projy", "projz"]:
