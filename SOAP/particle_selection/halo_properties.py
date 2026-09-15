@@ -38,7 +38,7 @@ class HaloProperty:
     # those bound to the halo (False). Calculations which share a
     # SharedHaloParticleData object must agree on this. None means the
     # calculation does not use one.
-    shared_inclusive = None
+    inclusive = None
 
     def shared_key(self, data):
         """
@@ -55,14 +55,14 @@ class HaloProperty:
          - data: Dict
            Dictionary containing particle data.
         """
-        if self.shared_inclusive is None:
+        if self.inclusive is None:
             return None
         types_present = tuple(
             ptype
             for ptype in self.particle_properties
             if ptype in data and ptype != "PartType6"
         )
-        return ("SharedHaloParticleData", self.shared_inclusive, types_present)
+        return ("SharedHaloParticleData", self.inclusive, types_present)
 
     def get_shared_particle_data(self, input_halo, data, cache):
         """

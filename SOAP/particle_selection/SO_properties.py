@@ -3156,7 +3156,7 @@ class SOProperties(HaloProperty):
     """
 
     # SOs always use every particle in the search radius
-    shared_inclusive = True
+    inclusive = True
 
     """
     List of properties from the table that we want to compute.

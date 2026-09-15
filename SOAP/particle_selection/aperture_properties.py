@@ -3912,8 +3912,6 @@ class ApertureProperties(HaloProperty):
         self.aperture_physical_radius_kpc = aperture_physical_radius_kpc
         self.aperture_property = aperture_property
         self.inclusive = inclusive
-        # which particles this aperture uses, for the shared particle arrays
-        self.shared_inclusive = inclusive
 
         if self.aperture_physical_radius_kpc is not None:
             self.physical_radius_mpc = 0.001 * self.aperture_physical_radius_kpc

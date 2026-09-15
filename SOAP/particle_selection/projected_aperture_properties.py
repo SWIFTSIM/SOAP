@@ -1560,7 +1560,7 @@ class ProjectedApertureProperties(HaloProperty):
     """
 
     # projected apertures always use the particles bound to the halo
-    shared_inclusive = False
+    inclusive = False
 
     base_halo_type = "ProjectedApertureProperties"
     # Properties to calculate. The key is the name of the property,

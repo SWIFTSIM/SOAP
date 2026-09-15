@@ -2325,7 +2325,7 @@ class SubhaloProperties(HaloProperty):
     """
 
     # the bound subhalo uses the particles bound to the halo
-    shared_inclusive = False
+    inclusive = False
 
     """
     List of properties from the table that we want to compute.
