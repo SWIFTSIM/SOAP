@@ -312,4 +312,3 @@ class SharedHaloParticleData:
         # central halo
         self.compute_bound_masks(fofid_central)
         self.have_mass_profile = True
-
