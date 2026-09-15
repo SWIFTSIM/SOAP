@@ -202,6 +202,18 @@ def compute_halo_properties():
     )
 
     filters = parameter_file.get_filters()
+    # The SO calculations run after everything else (see where halo_prop_list is
+    # assembled below), so their results are not available to the filters which
+    # the other calculations are selected with. Reject this here rather than
+    # letting it fail with a KeyError part way through the first halo.
+    for filter_name, filter_info in filters.items():
+        for prop in filter_info.get("properties", []):
+            if prop.startswith("SO/"):
+                raise ValueError(
+                    f'Filter "{filter_name}" uses "{prop}", but SO properties '
+                    "are computed after the calculations which are selected "
+                    "using filters. Use a BoundSubhalo property instead."
+                )
     category_filter = CategoryFilter(filters, dmo=args.dmo)
 
     # Get the full list of property calculations we can do
@@ -358,9 +370,6 @@ def compute_halo_properties():
         if "radius_in_kpc" in aperture_variations[variation]:
             continue
         assert "property" in aperture_variations[variation]
-        assert not aperture_variations[variation]["property"].startswith(
-            "SO/"
-        ), "Apertures cannot be defined by an SO property"
         radius_multiple = aperture_variations[variation].get("radius_multiple", 1)
         # Only allow integer radius mutiples, otherwise swiftsimio will
         # struggle to handle the group names
@@ -439,9 +448,13 @@ def compute_halo_properties():
         if "radius_in_kpc" in projected_aperture_variations[variation]:
             continue
         assert "property" in projected_aperture_variations[variation]
-        assert not projected_aperture_variations[variation]["property"].startswith(
-            "SO/"
-        ), "Projected apertures cannot be defined by an SO property"
+        # Only BoundSubhalo properties are available: it is the one calculation
+        # guaranteed to have run first. ApertureProperties asserts the same in
+        # its constructor, but ProjectedApertureProperties does not.
+        assert (
+            projected_aperture_variations[variation]["property"].split("/")[0]
+            == "BoundSubhalo"
+        ), "Projected apertures can only be defined by a BoundSubhalo property"
         radius_multiple = projected_aperture_variations[variation].get(
             "radius_multiple", 1
         )
@@ -468,7 +481,7 @@ def compute_halo_properties():
         parameter_file.write_parameters(args.output_parameters)
 
     # Assemble the calculations in the order they will be run for each halo.
-    # This order matters, for three separate reasons:
+    # This order matters, for four separate reasons:
     #
     #  - BoundSubhalo must come first: its results are used by the category
     #    filters and by the enclose radius check of every aperture.
@@ -482,9 +495,15 @@ def compute_halo_properties():
     #    particles comes first, then everything using every particle in the
     #    search radius.
     #  - The SO calculations come last, after the inclusive apertures they share
-    #    their particle arrays with. The SO calculations add quantities to those
-    #    arrays which no aperture uses Running them last means nothing else is
-    #    still holding the arrays once they're not needed exist.
+    #    their particle arrays with. SO adds quantities to that shared object
+    #    which no aperture uses (the sorted mass profile, the masks flagging
+    #    particles bound to another halo), and for the largest halos those are
+    #    several GB. Running SO last means they only exist while the
+    #    calculations which need them are running.
+    #
+    # Note that nothing outside the SO calculations may therefore depend on an
+    # SO result: not as an aperture radius (asserted above), and not as a
+    # category filter property (asserted where the filters are read).
     halo_prop_list = (
         subhalo_props
         + exclusive_apertures
