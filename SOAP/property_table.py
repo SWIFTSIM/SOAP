@@ -143,6 +143,10 @@ class Property:
     # Name of the snapshot particle dataset (e.g. "Luminosities")
     # whose NamedColumns entry should be copied for this property
     columns_from_snapshot: str = None
+    # If set, the property is only calculated when it is explicitly enabled in the
+    # parameter file, even if calculate_missing_properties is True. The value is a
+    # short reason (<= 20 chars), which is printed when the property is skipped.
+    opt_in_reason: str = None
 
 
 class PropertyTable:
@@ -739,6 +743,7 @@ class PropertyTable:
             particle_properties=["PartType1/Coordinates", "PartType1/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "DarkMatterInertiaTensorReduced": Property(
             name="DarkMatterInertiaTensorReduced",
@@ -751,6 +756,7 @@ class PropertyTable:
             particle_properties=["PartType1/Coordinates", "PartType1/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "DarkMatterInertiaTensorNoniterative": Property(
             name="DarkMatterInertiaTensorNoniterative",
@@ -1342,6 +1348,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "GasInertiaTensorReduced": Property(
             name="GasInertiaTensorReduced",
@@ -1354,6 +1361,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "GasInertiaTensorNoniterative": Property(
             name="GasInertiaTensorNoniterative",
@@ -2218,6 +2226,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedTotalInertiaTensorReduced": Property(
             name="ProjectedTotalInertiaTensorReduced",
@@ -2239,6 +2248,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedTotalInertiaTensorNoniterative": Property(
             name="ProjectedTotalInertiaTensorNoniterative",
@@ -2293,6 +2303,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedGasInertiaTensorReduced": Property(
             name="ProjectedGasInertiaTensorReduced",
@@ -2305,6 +2316,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedGasInertiaTensorNoniterative": Property(
             name="ProjectedGasInertiaTensorNoniterative",
@@ -2341,6 +2353,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorReduced": Property(
             name="ProjectedStellarInertiaTensorReduced",
@@ -2353,6 +2366,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorNoniterative": Property(
             name="ProjectedStellarInertiaTensorNoniterative",
@@ -2393,6 +2407,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorReducedLuminosityWeighted": Property(
             name="ProjectedStellarInertiaTensorReducedLuminosityWeighted",
@@ -2409,6 +2424,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted": Property(
             name="ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted",
@@ -2477,6 +2493,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorReduced": Property(
             name="StellarInertiaTensorReduced",
@@ -2489,6 +2506,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorNoniterative": Property(
             name="StellarInertiaTensorNoniterative",
@@ -2529,6 +2547,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorReducedLuminosityWeighted": Property(
             name="StellarInertiaTensorReducedLuminosityWeighted",
@@ -2545,6 +2564,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorNoniterativeLuminosityWeighted": Property(
             name="StellarInertiaTensorNoniterativeLuminosityWeighted",
@@ -2795,6 +2815,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "TotalInertiaTensorReduced": Property(
             name="TotalInertiaTensorReduced",
@@ -2816,6 +2837,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "TotalInertiaTensorNoniterative": Property(
             name="TotalInertiaTensorNoniterative",

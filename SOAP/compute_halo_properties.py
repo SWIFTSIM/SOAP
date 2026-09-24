@@ -523,6 +523,7 @@ def compute_halo_properties():
             print("Storing processing time for each property")
         parameter_file.print_unregistered_properties(halo_prop_list, dmo=args.dmo)
         parameter_file.print_skipped_properties(halo_prop_list, dmo=args.dmo)
+        parameter_file.print_optin_skipped_properties(halo_prop_list, dmo=args.dmo)
         parameter_file.print_invalid_properties(halo_prop_list)
         parameter_file.print_variation_warnings()
         if not parameter_file.renclose_enabled():

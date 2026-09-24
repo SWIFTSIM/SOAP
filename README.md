@@ -233,6 +233,12 @@ Adding new quantities to already defined SOAP apertures is relatively easy. Ther
   * Add the property to the parameter file.
   * At this point everything should now work. To test the newly added quantities you can run a unit test using `pytest -W error tests/test_{NAME_OF_FILE}.py`. This checks whether the code crashes, and whether there are problems with units and overflows. This should make sure that SOAP never crashes while calculating the new properties.
 
+If your property is expensive to compute, or requires additional dependencies,
+set `opt_in_reason` in its `SOAP/property_table.py` entry to a short (20
+characters or less) reason. It will then only be calculated if it is explicitly
+enabled in the parameter file. Any additional dependencies must be imported
+within the `@lazy_property`, not at the top of the file.
+
 If SOAP does crash while evaluating your new property it will try to
 output the ID of the halo it was processing when it crashed. Then you
 can re-run that halo on a single MPI rank in the python debugger as

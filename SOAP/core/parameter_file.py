@@ -136,6 +136,12 @@ class ParameterFile:
         # Only used when calculate_missing_properties is True.
         self.skipped_properties = set()
 
+        # Properties which are not in the parameter file, and which are not
+        # calculated because they are flagged as opt-in in the property table.
+        # Stored as {property name: reason}. Only used when
+        # calculate_missing_properties is True.
+        self.optin_skipped_properties = {}
+
         # Properties which are enabled in the parameter file, but which cannot
         # be calculated because the input files lack the datasets they need.
         self.uncomputable_properties = {}
@@ -228,6 +234,16 @@ class ParameterFile:
                 missing.append(dataset_name)
         return missing
 
+    def _opt_in_reason(self, property_name: str):
+        """
+        Get the reason a property is only calculated when explicitly enabled
+        in the parameter file, or None if it is not an opt-in property.
+        """
+        prop = _property_by_name(property_name)
+        if prop is None:
+            return None
+        return prop.opt_in_reason
+
     def _filter_property_names(self) -> set:
         """
         Get the names of the properties used by the filters defined in the
@@ -304,6 +320,18 @@ class ParameterFile:
             # Property is not listed in the parameter file for this base_halo_type
             elif not self.calculate_missing_properties():
                 filters[property] = False
+            elif self._opt_in_reason(property) is not None:
+                # Opt-in properties must be explicitly enabled in the parameter file
+                if property in self._filter_property_names():
+                    raise ValueError(
+                        f"{property} is used by a filter, but is an opt-in property "
+                        f'("{self._opt_in_reason(property)}") and so is not calculated '
+                        f"unless it is explicitly enabled. Please enable it in the "
+                        f'"{base_halo_type}" section of the parameter file.'
+                    )
+                filters[property] = False
+                listed[property] = False
+                self.optin_skipped_properties[property] = self._opt_in_reason(property)
             elif missing and property not in self._filter_property_names():
                 # The property was not asked for explicitly and cannot be
                 # computed, so it is skipped. Properties used by a filter are
@@ -408,6 +436,30 @@ class ParameterFile:
             )
             for property in sorted(skipped):
                 print(f"  {property}")
+
+    def print_optin_skipped_properties(
+        self, halo_prop_list=None, dmo: bool = False
+    ) -> None:
+        """
+        Print a list of the properties which are not in the parameter file, and
+        which are not calculated because they are flagged as opt-in in the
+        property table, along with the reason for each one.
+        """
+        skipped = dict(self.optin_skipped_properties)
+
+        # In a DMO run, drop properties that would be skipped anyway
+        # because they are not DMO properties
+        if dmo and halo_prop_list is not None:
+            for name in self._non_dmo_property_names(halo_prop_list):
+                skipped.pop(name, None)
+
+        if len(skipped):
+            print(
+                "Not computing the following properties for the reason given, "
+                "they must be explicitly enabled in the parameter file:"
+            )
+            for property in sorted(skipped):
+                print(f"  {property.ljust(40)}{skipped[property]}")
 
     def print_uncomputable_properties(self) -> None:
         """

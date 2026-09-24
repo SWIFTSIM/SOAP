@@ -247,7 +247,7 @@ defined_constants:
 
 Contains information about how to run SOAP
 
-- **calculate_missing_properties**: Optional, default True. If set to true then SOAP will calculate any properties which are not listed in the parameter file, provided the input files contain the datasets those properties require. Properties which cannot be calculated are skipped, and are listed at the start of the run. If set to false then SOAP will ignore any property which is not listed in the parameter file.
+- **calculate_missing_properties**: Optional, default True. If set to true then SOAP will calculate any properties which are not listed in the parameter file, provided the input files contain the datasets those properties require. Properties which cannot be calculated are skipped, and are listed at the start of the run. If set to false then SOAP will ignore any property which is not listed in the parameter file. Some properties are flagged as opt-in in the property table (e.g. because they are expensive to compute, or require additional dependencies). These are never calculated unless they are explicitly enabled in the parameter file, and are listed at the start of the run along with the reason they were skipped.
 
 - **reduced_snapshots**: Optional. We create reduced snapshots where we keep the particles within the virial radius of certain objects. The values here determine which halos to keep.
   - **min_halo_mass**: The minimumum M200 halo mass to keep
