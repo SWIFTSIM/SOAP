@@ -5,8 +5,6 @@ Contains helper functions for downloading test data
 import os
 import subprocess
 
-import pytest
-
 webstorage_location = "https://ftp.strw.leidenuniv.nl/mcgibbon/SOAP/"
 test_data_dir = "test_data/"
 
@@ -65,6 +63,8 @@ def requires(filepaths, comm=None):
 
             def dont_call_test(func):
                 def empty(*args, **kwargs):
+                    import pytest
+
                     return pytest.skip()
 
                 return empty
@@ -89,6 +89,11 @@ if __name__ == "__main__":
     # Download the data required for run_small_volume.sh
     # Call @requires by passing a dummy function
     dummy = lambda x: x
-    requires("swift_output/fof_output_0018.hdf5")(dummy)()
-    requires("swift_output/snap_0018.hdf5")(dummy)()
-    requires("HBT_output/018/SubSnap_018.0.hdf5")(dummy)()
+    for filepath in [
+        "swift_output/fof_output_0018.hdf5",
+        "swift_output/snap_0018.hdf5",
+        "HBT_output/018/SubSnap_018.0.hdf5",
+    ]:
+        requires(filepath)(dummy)
+        if not os.path.exists(f"{test_data_dir}{os.path.basename(filepath)}"):
+            raise RuntimeError(f"Unable to download {webstorage_location}{filepath}")
