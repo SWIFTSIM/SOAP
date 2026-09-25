@@ -61,7 +61,7 @@ which have been sorted by TrackId into a single file, are supported.
   catalogues and the existing membership files, since both use the TrackId
   as the subhalo index.
 
-HBT catalogues contain every subhalo which has been identified existed in
+HBT catalogues contain every subhalo which has been identified in
 the simulation, so every TrackId is present at each snapshot.
 This includes orphan subhalos,
 which have been disrupted and have no bound particles. SOAP only computes

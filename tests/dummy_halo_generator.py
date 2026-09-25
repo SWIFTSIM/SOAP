@@ -26,6 +26,20 @@ from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFil
 from SOAP.particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
 
 
+def opt_in_properties(property_list: Dict) -> Dict[str, bool]:
+    """
+    Return a properties dictionary for the parameter file which explicitly
+    enables every opt-in property in property_list. Opt-in properties are
+    not computed by calculate_missing_properties, so tests which check all
+    properties must enable them.
+    """
+    return {
+        prop.name: True
+        for prop in property_list.values()
+        if prop.opt_in_reason is not None
+    }
+
+
 class DummySnapshot:
     """
     Dummy SWIFT snapshot. Can be used to replace an actual snapshot in

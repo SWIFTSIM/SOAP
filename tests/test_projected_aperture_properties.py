@@ -8,7 +8,7 @@ from SOAP.particle_selection.projected_aperture_properties import (
     ProjectedApertureProperties,
 )
 
-from dummy_halo_generator import DummyHaloGenerator
+from dummy_halo_generator import DummyHaloGenerator, opt_in_properties
 
 
 def test_projected_aperture_properties():
@@ -31,7 +31,12 @@ def test_projected_aperture_properties():
             "aliases": {
                 "PartType0/ElementMassFractions": "PartType0/SmoothedElementMassFractions",
                 "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
-            }
+            },
+            "ProjectedApertureProperties": {
+                "properties": opt_in_properties(
+                    ProjectedApertureProperties.property_list
+                )
+            },
         }
     )
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
