@@ -137,7 +137,6 @@ import time
 import numpy as np
 from numpy.typing import NDArray
 from typing import Dict, List, Tuple
-import healpy as hp
 import unyt
 
 from .halo_properties import HaloProperty, SearchRadiusTooSmallError
@@ -3652,11 +3651,8 @@ class ApertureParticleData:
 
     @lazy_property
     def shrinking_sphere_centre(
-            self,
-            min_particles=200,
-            shrink_factor=0.83,
-            max_iter = 256
-        ) -> unyt.unyt_array:
+        self, min_particles=200, shrink_factor=0.83, max_iter=256
+    ) -> unyt.unyt_array:
         """
         Estimate the galaxy center (center of mass) with iterative shrinking aperture.
 
@@ -3676,7 +3672,7 @@ class ApertureParticleData:
             Maximum number of iterations
         """
 
-        min_particles = min(min_particles, 0.1*self.Nstar)
+        min_particles = min(min_particles, 0.1 * self.Nstar)
 
         if self.Mstar == 0:
             return None
@@ -3708,7 +3704,6 @@ class ApertureParticleData:
 
         return (self.shrinking_sphere_centre + self.centre) % self.boxsize
 
-
     @lazy_property
     def StellarAsymmetry(self):
         return self.stellar_asymmetry()
@@ -3733,8 +3728,6 @@ class ApertureParticleData:
         """
         Compute stellar asymmetry following https://arxiv.org/abs/1805.03210
 
-        TODO: Is equation (3) incorrect?
-
         Parameters
         ----------
         npix : int, default=12
@@ -3748,12 +3741,14 @@ class ApertureParticleData:
 
         """
 
+        import healpy as hp
+
         if self.Mstar == 0:
             return None
 
         # Check we are using a valid value for npix
         nside = int(round(np.sqrt(npix // 12)))
-        assert npix == 12 * nside ** 2
+        assert npix == 12 * nside**2
         assert nside.bit_count() == 1
 
         if N is None:
@@ -3779,7 +3774,7 @@ class ApertureParticleData:
         r = np.linalg.norm(pos, axis=1)
 
         # Remove particles close to the centre, they are symmetric
-        mask = r.to_value('kpc') < 0.1
+        mask = r.to_value("kpc") < 0.1
         if np.sum(mask):
             pos = pos[np.logical_not(mask)]
             r = r[np.logical_not(mask)]
@@ -3796,7 +3791,7 @@ class ApertureParticleData:
         # np.bincount will not return a unyt array
         region_mass_msun = np.bincount(
             idx,
-            weights=mass_star.to_value('Msun'),
+            weights=mass_star.to_value("Msun"),
             minlength=npix,
         )
 
@@ -3810,7 +3805,7 @@ class ApertureParticleData:
 
         # Calculate asymmetry
         mass_diff = np.abs(region_mass_msun - region_mass_msun[anti_indices])
-        asymmetry = np.sum(mass_diff) / (2.0 * mass_star.sum().to_value('Msun'))
+        asymmetry = np.sum(mass_diff) / (2.0 * mass_star.sum().to_value("Msun"))
 
         return asymmetry
 
