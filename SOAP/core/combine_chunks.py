@@ -773,6 +773,7 @@ def combine_chunks(
                     cellgrid.a_unit,
                     cellgrid.snap_unit_registry,
                     cellgrid.boxsize,
+                    index_by_track_id=args.index_by_track_id,
                 )
                 prev_order, _ = spatial_sort(
                     prev_data["cofp"],

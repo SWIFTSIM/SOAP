@@ -37,21 +37,32 @@ def _property_by_name(name: str):
     return _PROPERTY_BY_NAME.get(name)
 
 
+# Keys in the HaloFinder section (other than type and filename) which each halo
+# finder supports. A warning is printed if a key is set for a halo finder which
+# does not support it. Add a new halo finder here, and document it in
+# parameter_files/halo_finders.md.
+_HALO_FINDER_KEYS = {
+    "HBTplus": {
+        "fof_filename",
+        "fof_radius_filename",
+        "read_potential_energies",
+        "index_by_track_id",
+    },
+    "VR": set(),
+    "Subfind": set(),
+    "SubfindEagle": set(),
+    "Rockstar": set(),
+}
+
 # Known parameter file structure, used by check_schema to flag typos. A value
 # of None means the keys directly under that section are user-named or free-form
 # and are not checked; a set lists the only keys allowed directly under that
 # section. Add a key here when a new option is introduced.
 _ALLOWED_KEYS = {
     "Parameters": None,
-    "Snapshots": {"filename", "fof_filename"},
-    "HaloFinder": {
-        "type",
-        "filename",
-        "fof_filename",
-        "fof_radius_filename",
-        "read_potential_energies",
-    },
-    "GroupMembership": {"filename"},
+    "Snapshots": {"filename"},
+    "HaloFinder": {"type", "filename"}.union(*_HALO_FINDER_KEYS.values()),
+    "GroupMembership": {"filename", "fof_ids_filename"},
     "ExtraInput": None,
     "HaloProperties": {"filename", "chunk_dir"},
     "SubhaloProperties": {"properties"},
@@ -71,6 +82,21 @@ _ALLOWED_KEYS = {
         "separate_chunks",
     },
 }
+
+
+def halo_finder_warnings(halo_finder: Dict) -> List[str]:
+    """
+    Return a warning for each key in the HaloFinder section which is not
+    supported by the chosen halo finder type, and so will be ignored.
+    """
+    supported = _HALO_FINDER_KEYS.get(halo_finder.get("type"), set())
+    optional_keys = _ALLOWED_KEYS["HaloFinder"] - {"type", "filename"}
+    return [
+        f'Warning: "HaloFinder/{key}" is not supported for halo finder '
+        f'"{halo_finder.get("type")}" and will be ignored'
+        for key in halo_finder
+        if key in optional_keys and key not in supported
+    ]
 
 
 class ParameterFile:
@@ -609,12 +635,22 @@ class ParameterFile:
 
     def check_schema(self) -> None:
         """
-        Abort if the parameter file has an unrecognised section, or a mistyped
+        Abort if the parameter file has an unrecognised section, a mistyped
         key directly under a section which has a fixed set of keys (see
-        _ALLOWED_KEYS). This catches typos which would otherwise be silently
-        ignored. It does not check value types, or keys nested more deeply.
+        _ALLOWED_KEYS), or an unknown halo finder type. This catches typos which
+        would otherwise be silently ignored. It does not check value types, or
+        keys nested more deeply. Also warns about HaloFinder keys which the
+        chosen halo finder does not support.
         """
         errors = []
+        halo_finder = self.parameters.get("HaloFinder", {})
+        if "type" in halo_finder and halo_finder["type"] not in _HALO_FINDER_KEYS:
+            errors.append(
+                f'unknown halo finder type "{halo_finder["type"]}", the supported '
+                f"types are {', '.join(_HALO_FINDER_KEYS)}"
+            )
+        for warning in halo_finder_warnings(halo_finder):
+            print(warning)
         for section, block in self.parameters.items():
             if section not in _ALLOWED_KEYS:
                 errors.append(f'unknown section "{section}"')

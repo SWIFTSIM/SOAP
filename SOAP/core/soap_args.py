@@ -220,6 +220,7 @@ def get_soap_args(comm):
     args.read_potential_energies = all_args["HaloFinder"].get(
         "read_potential_energies", False
     )
+    args.index_by_track_id = all_args["HaloFinder"].get("index_by_track_id", False)
     args.fof_group_filename = all_args["HaloFinder"].get("fof_filename", "")
     args.fof_radius_filename = all_args["HaloFinder"].get("fof_radius_filename", "")
     args.output_file = all_args["HaloProperties"]["filename"]

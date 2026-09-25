@@ -28,7 +28,6 @@ Alongside these values you must pass `--sim-name` as an argument when running SO
 This section defines the format and location of the SWIFT simulation snapshots. **If there are chunk files you must pass `{file_nr}` in the filepath template**, SOAP does not currently read virtual hdf5 files.
 
 - **filename**: Template for the snapshot files. Use `{snap_nr:04d}` for the snapshot number and `{file_nr}` for the file number, e.g. `"{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"`
-- **fof_filename**: Optional. Path to snapshots with FOF (Friends-of-Friends) IDs if FOF has been re-run. This is only used by the `group_membership.py` script as the values are then stored in the membership files.
 
 ### Extra input
 
@@ -39,15 +38,12 @@ If a dataset is present in both the snapshot and the extra input files, the valu
 
 ### Halo Finder
 
-Settings for the halo finding algorithm and output file locations.
+Settings for the input halo catalogue.
 
-- **type**: The subhalo finder being used. Possible options are `HBTplus`, `VR`, `Subfind`, and `Rockstar`.
-- **filename**: Template for input halo catalogue files. The format of this depends on the halo finder as they each have a different output structure.
-  - HBTplus: `"{sim_dir}/{sim_name}/HBT/{snap_nr:03d}/SubSnap_{snap_nr:03d}"`
-  - Sorted HBTplus: `"{sim_dir}/{sim_name}/HBT/{snap_nr:03d}/OrderedSubSnap_{snap_nr:03d}.hdf5"`
-- **fof_filename**: Template for FOF catalog files. Used for storing host FOF information for central subhalos. Only supported for HBTplus
-- **fof_radius_filename**: Template for FOF catalog files which contain the "Groups/Radii" dataset. These were produced by a post-processing script, and are missing from the main FOFs
-- **read_potential_energies**: Optional boolean value, defaults to False. Whether to read potential energies and place them in the membership files. Only supported for HBTplus
+- **type**: The subhalo finder being used. Possible options are `HBTplus`, `VR`, `Subfind`, `SubfindEagle`, and `Rockstar`.
+- **filename**: Template for input halo catalogue files. The format of this depends on the halo finder.
+
+Some halo finders support additional keys. See [`halo_finders.md`](halo_finders.md) for how to specify each halo finder, and the additional keys each one supports.
 
 
 ### Group Membership
@@ -55,6 +51,7 @@ Settings for the halo finding algorithm and output file locations.
 Configuration for writing group membership files.
 
 - **filename**: Template for group membership file paths, e.g. `"{output_dir}/{sim_name}/SOAP_uncompressed/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"`
+- **fof_ids_filename**: Optional. Template for snapshots with FOF (Friends-of-Friends) IDs, if FOF has been re-run. The FOF IDs are read from these files instead of the original snapshots, and are stored in the membership files.
 
 ### Halo Properties
 

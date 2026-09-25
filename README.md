@@ -180,7 +180,8 @@ the halo finder to use, which halo definitions to use, and
 which properties to calculate for each halo definition. A description
 of all possible fields can be found in
 [`parameter_files/README.md`](parameter_files/README.md), alongside a number
-of example parameter files.
+of example parameter files. How to specify each of the supported halo finders is
+described in [`parameter_files/halo_finders.md`](parameter_files/halo_finders.md).
 
 ### Compression
 
