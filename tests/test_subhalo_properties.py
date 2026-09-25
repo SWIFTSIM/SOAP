@@ -7,7 +7,7 @@ from SOAP.core.parameter_file import ParameterFile
 from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculator
 from SOAP.particle_selection.subhalo_properties import SubhaloProperties
 
-from dummy_halo_generator import DummyHaloGenerator
+from dummy_halo_generator import DummyHaloGenerator, opt_in_properties
 
 
 def test_subhalo_properties():
@@ -31,7 +31,10 @@ def test_subhalo_properties():
             "aliases": {
                 "PartType0/ElementMassFractions": "PartType0/SmoothedElementMassFractions",
                 "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
-            }
+            },
+            "SubhaloProperties": {
+                "properties": opt_in_properties(SubhaloProperties.property_list)
+            },
         }
     )
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(

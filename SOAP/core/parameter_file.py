@@ -37,21 +37,32 @@ def _property_by_name(name: str):
     return _PROPERTY_BY_NAME.get(name)
 
 
+# Keys in the HaloFinder section (other than type and filename) which each halo
+# finder supports. A warning is printed if a key is set for a halo finder which
+# does not support it. Add a new halo finder here, and document it in
+# parameter_files/halo_finders.md.
+_HALO_FINDER_KEYS = {
+    "HBTplus": {
+        "fof_filename",
+        "fof_radius_filename",
+        "read_potential_energies",
+        "index_by_track_id",
+    },
+    "VR": set(),
+    "Subfind": set(),
+    "SubfindEagle": set(),
+    "Rockstar": set(),
+}
+
 # Known parameter file structure, used by check_schema to flag typos. A value
 # of None means the keys directly under that section are user-named or free-form
 # and are not checked; a set lists the only keys allowed directly under that
 # section. Add a key here when a new option is introduced.
 _ALLOWED_KEYS = {
     "Parameters": None,
-    "Snapshots": {"filename", "fof_filename"},
-    "HaloFinder": {
-        "type",
-        "filename",
-        "fof_filename",
-        "fof_radius_filename",
-        "read_potential_energies",
-    },
-    "GroupMembership": {"filename"},
+    "Snapshots": {"filename"},
+    "HaloFinder": {"type", "filename"}.union(*_HALO_FINDER_KEYS.values()),
+    "GroupMembership": {"filename", "fof_ids_filename"},
     "ExtraInput": None,
     "HaloProperties": {"filename", "chunk_dir"},
     "SubhaloProperties": {"properties"},
@@ -71,6 +82,21 @@ _ALLOWED_KEYS = {
         "separate_chunks",
     },
 }
+
+
+def halo_finder_warnings(halo_finder: Dict) -> List[str]:
+    """
+    Return a warning for each key in the HaloFinder section which is not
+    supported by the chosen halo finder type, and so will be ignored.
+    """
+    supported = _HALO_FINDER_KEYS.get(halo_finder.get("type"), set())
+    optional_keys = _ALLOWED_KEYS["HaloFinder"] - {"type", "filename"}
+    return [
+        f'Warning: "HaloFinder/{key}" is not supported for halo finder '
+        f'"{halo_finder.get("type")}" and will be ignored'
+        for key in halo_finder
+        if key in optional_keys and key not in supported
+    ]
 
 
 class ParameterFile:
@@ -135,6 +161,12 @@ class ParameterFile:
         # calculated because the input files lack the datasets they need.
         # Only used when calculate_missing_properties is True.
         self.skipped_properties = set()
+
+        # Properties which are not in the parameter file, and which are not
+        # calculated because they are flagged as opt-in in the property table.
+        # Stored as {property name: reason}. Only used when
+        # calculate_missing_properties is True.
+        self.optin_skipped_properties = {}
 
         # Properties which are enabled in the parameter file, but which cannot
         # be calculated because the input files lack the datasets they need.
@@ -228,6 +260,16 @@ class ParameterFile:
                 missing.append(dataset_name)
         return missing
 
+    def _opt_in_reason(self, property_name: str):
+        """
+        Get the reason a property is only calculated when explicitly enabled
+        in the parameter file, or None if it is not an opt-in property.
+        """
+        prop = _property_by_name(property_name)
+        if prop is None:
+            return None
+        return prop.opt_in_reason
+
     def _filter_property_names(self) -> set:
         """
         Get the names of the properties used by the filters defined in the
@@ -304,6 +346,18 @@ class ParameterFile:
             # Property is not listed in the parameter file for this base_halo_type
             elif not self.calculate_missing_properties():
                 filters[property] = False
+            elif self._opt_in_reason(property) is not None:
+                # Opt-in properties must be explicitly enabled in the parameter file
+                if property in self._filter_property_names():
+                    raise ValueError(
+                        f"{property} is used by a filter, but is an opt-in property "
+                        f'("{self._opt_in_reason(property)}") and so is not calculated '
+                        f"unless it is explicitly enabled. Please enable it in the "
+                        f'"{base_halo_type}" section of the parameter file.'
+                    )
+                filters[property] = False
+                listed[property] = False
+                self.optin_skipped_properties[property] = self._opt_in_reason(property)
             elif missing and property not in self._filter_property_names():
                 # The property was not asked for explicitly and cannot be
                 # computed, so it is skipped. Properties used by a filter are
@@ -408,6 +462,30 @@ class ParameterFile:
             )
             for property in sorted(skipped):
                 print(f"  {property}")
+
+    def print_optin_skipped_properties(
+        self, halo_prop_list=None, dmo: bool = False
+    ) -> None:
+        """
+        Print a list of the properties which are not in the parameter file, and
+        which are not calculated because they are flagged as opt-in in the
+        property table, along with the reason for each one.
+        """
+        skipped = dict(self.optin_skipped_properties)
+
+        # In a DMO run, drop properties that would be skipped anyway
+        # because they are not DMO properties
+        if dmo and halo_prop_list is not None:
+            for name in self._non_dmo_property_names(halo_prop_list):
+                skipped.pop(name, None)
+
+        if len(skipped):
+            print(
+                "Not computing the following properties for the reason given, "
+                "they must be explicitly enabled in the parameter file:"
+            )
+            for property in sorted(skipped):
+                print(f"  {property.ljust(40)}{skipped[property]}")
 
     def print_uncomputable_properties(self) -> None:
         """
@@ -557,12 +635,22 @@ class ParameterFile:
 
     def check_schema(self) -> None:
         """
-        Abort if the parameter file has an unrecognised section, or a mistyped
+        Abort if the parameter file has an unrecognised section, a mistyped
         key directly under a section which has a fixed set of keys (see
-        _ALLOWED_KEYS). This catches typos which would otherwise be silently
-        ignored. It does not check value types, or keys nested more deeply.
+        _ALLOWED_KEYS), or an unknown halo finder type. This catches typos which
+        would otherwise be silently ignored. It does not check value types, or
+        keys nested more deeply. Also warns about HaloFinder keys which the
+        chosen halo finder does not support.
         """
         errors = []
+        halo_finder = self.parameters.get("HaloFinder", {})
+        if "type" in halo_finder and halo_finder["type"] not in _HALO_FINDER_KEYS:
+            errors.append(
+                f'unknown halo finder type "{halo_finder["type"]}", the supported '
+                f"types are {', '.join(_HALO_FINDER_KEYS)}"
+            )
+        for warning in halo_finder_warnings(halo_finder):
+            print(warning)
         for section, block in self.parameters.items():
             if section not in _ALLOWED_KEYS:
                 errors.append(f'unknown section "{section}"')

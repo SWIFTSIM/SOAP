@@ -10,7 +10,7 @@ from SOAP.particle_selection.SO_properties import (
     RadiusMultipleSOProperties,
 )
 
-from dummy_halo_generator import DummyHaloGenerator
+from dummy_halo_generator import DummyHaloGenerator, opt_in_properties
 
 
 def test_SO_properties_random_halo():
@@ -33,7 +33,10 @@ def test_SO_properties_random_halo():
                 "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
                 "PartType0/XrayLuminositiesRestframe": "PartType0/XrayLuminositiesRestframe",
                 "PartType0/XrayPhotonLuminositiesRestframe": "PartType0/XrayPhotonLuminositiesRestframe",
-            }
+            },
+            "SOProperties": {
+                "properties": opt_in_properties(SOProperties.property_list)
+            },
         }
     )
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
