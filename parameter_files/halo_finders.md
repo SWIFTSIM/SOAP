@@ -52,6 +52,15 @@ which have been sorted by TrackId into a single file, are supported.
   same value must be used when creating the membership files and when running
   SOAP.
 
+  This is useful because creating the membership files requires the IDs of the
+  particles in each subhalo. The unsorted catalogues contain these, and sorted
+  catalogues can too, but storing them in both duplicates a lot of data. The
+  suggested workflow is to create the membership files and run SOAP using the
+  unsorted catalogues with `index_by_track_id: true`, and then generate sorted
+  catalogues without particle IDs. SOAP can later be rerun using the sorted
+  catalogues and the existing membership files, since both use the TrackId
+  as the subhalo index.
+
 HBT catalogues contain every subhalo which has been identified existed in
 the simulation, so every TrackId is present at each snapshot.
 This includes orphan subhalos,
