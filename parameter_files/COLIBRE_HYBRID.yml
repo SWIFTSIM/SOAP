@@ -16,10 +16,6 @@ HaloFinder:
   fof_filename: "{sim_dir}/{sim_name}/fof/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
   fof_radius_filename: "{sim_dir}/{sim_name}/fof_radii/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
   read_potential_energies: true
-  #type: VR
-  #filename: "{sim_dir}/halo_{snap_nr:04d}"
-  #type: Subfind
-  #filename: "{sim_dir}/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
 
 GroupMembership:
   # Where to write the group membership files

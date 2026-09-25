@@ -10,25 +10,19 @@ Parameters:
 Snapshots:
   # Use {snap_nr:04d} for the snapshot number and {file_nr} for the file number.
   filename: "{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
-  # Pass the location of snapshots with FOF IDs if the FOF has been re-run
-  # If fof_filename is not passed the FOF IDs in the snapshot will be used
-  fof_filename: "/cosma8/data/dp004/jlvc76/FLAMINGO/FOF/{sim_name}/fof_snapshot/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
 
 # Which halo finder we're using, and base name for halo finder output files
 HaloFinder:
-  #type: VR
-  #filename: "{sim_dir}/{sim_name}/VR/catalogue_{snap_nr:04d}/vr_catalogue_{snap_nr:04d}"
   type: HBTplus
   filename: "{sim_dir}/{sim_name}/HBT/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
   fof_filename: "/cosma8/data/dp004/jlvc76/FLAMINGO/FOF/{sim_name}/fof_catalog/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
-  #type: Subfind
-  #filename: "{sim_dir}/{sim_name}/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
-  #type: Rockstar
-  #filename: "{sim_dir}/{sim_name}/Rockstar/snapshot_{snap_nr:04d}/halos_{snap_nr:04d}"
 
 GroupMembership:
   # Where to write the group membership files
   filename: "{sim_dir}/{sim_name}/SOAP-HBT/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"
+  # Pass the location of snapshots with FOF IDs if the FOF has been re-run
+  # If fof_ids_filename is not passed the FOF IDs in the snapshot will be used
+  fof_ids_filename: "/cosma8/data/dp004/jlvc76/FLAMINGO/FOF/{sim_name}/fof_snapshot/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
 
 ExtraInput:
   xray_filename: "{output_dir}/{sim_name}/recalculated_xray/xray_{snap_nr:04d}/xray_{snap_nr:04d}.{file_nr}.hdf5"

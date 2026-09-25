@@ -14,19 +14,32 @@ Please cite SOAP using the
 
 ## Installation
 
-The code is written in python and uses mpi4py for parallelism.
-IO is also intended to run in parallel, and so
-[parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is recommended.
-SOAP and its dependencies can be
-installed directly using the command
-`pip install git+https://github.com/SWIFTSIM/SOAP.git`
-but this may install a serial version of h5py. Therefore the following
-steps are recommended for install
+The code is written in python and uses mpi4py for parallelism. Whichever
+install method you use, you will need MPI available so that mpi4py can be
+installed.
+
+### Quick install (serial HDF5)
+
+SOAP and its dependencies can be installed directly using the command
+```
+pip install git+https://github.com/SWIFTSIM/SOAP.git
+```
+This will usually install a serial version of h5py. SOAP will run correctly,
+but for large simulations the I/O will be slower.
+
+### Recommended install (parallel HDF5)
+
+For large runs, [parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is
+recommended so that I/O is carried out in parallel. This requires an HDF5
+library which was itself built with MPI support. h5py must then be built from
+source against that library before installing SOAP:
 ```
 pip install mpi4py
 export HDF5_MPI="ON"; export CC=mpicc; pip install --no-binary=h5py h5py
 pip install git+https://github.com/SWIFTSIM/SOAP.git
 ```
+If SOAP (and therefore serial h5py) is already installed, then add the flags
+`--no-cache-dir` and `--force-reinstall` when reinstalling h5py.
 
 ### Installation on COSMA
 
@@ -38,7 +51,7 @@ you can install an SOAP virtual environment by running
 
 The command `./tests/run_small_volume.sh` will download a small example
 simulation, run the group membership and halo properties scripts on it.
-This uses the parameter file at `./tests/run_small_volume.yml`, and the
+This uses the parameter file at `./tests/small_volume.yml`, and the
 resulting catalogue is placed in the `output` directory. It also generates the
 pdf documentation to describe the output file (which is written to
 `documentation/SOAP.pdf`). 
@@ -56,7 +69,7 @@ the snapshot number, and a parameter file. For example:
 ```
 snapnum=0077
 sim=L1000N0900/DMO_FIDUCIAL
-mpirun python python SOAP/group_membership.py \
+mpirun python SOAP/group_membership.py \
     --sim-name=${sim} --snap-nr=${snapnum} parameter_files/FLAMINGO.yml
 ```
 
@@ -167,7 +180,8 @@ the halo finder to use, which halo definitions to use, and
 which properties to calculate for each halo definition. A description
 of all possible fields can be found in
 [`parameter_files/README.md`](parameter_files/README.md), alongside a number
-of example parameter files.
+of example parameter files. How to specify each of the supported halo finders is
+described in [`parameter_files/halo_finders.md`](parameter_files/halo_finders.md).
 
 ### Compression
 
@@ -197,12 +211,13 @@ the job name with the slurm sbatch -J flag.
 
 ## Modifying the code
 
-You can install an editable version of SOAP by cloning this repository and running:
+You can install an editable version of SOAP by cloning this repository and
+following the [installation](#installation) steps above, but replacing the
+final command with
 ```
-pip install mpi4py
-export HDF5_MPI="ON"; export CC=mpicc; pip install --no-binary=h5py h5py
-pip install -e .
+pip install -e ".[test]"
 ```
+This also installs the optional dependencies required to run the tests.
 
 The property calculations are defined in the following files in the `SOAP/particle_selection` directory:
 
@@ -217,7 +232,13 @@ Adding new quantities to already defined SOAP apertures is relatively easy. Ther
   * Next you have to add the quantity to the type of aperture you want it to be calculated for (`aperture_properties.py`, `SO_properties.py`, `subhalo_properties.py`, or `projected_aperture_properties.py`). In all these files there is a class named `property_list` which defines the subset of all properties that are calculated for this specific aperture.
   * To calculate your quantity you have to define a `@lazy_property` with the same name in the `XXParticleData` class in the same file. There should be a lot of examples of different quantities that are already calculated. An important thing to note is that fields that are used for multiple calculations should have their own `@lazy_property` to avoid loading things multiple times, so check if the things that you need are already there.
   * Add the property to the parameter file.
-  * At this point everything should now work. To test the newly added quantities you can run a unit test using `pytest -W error -m pytest tests/test_{NAME_OF_FILE}`. This checks whether the code crashes, and whether there are problems with units and overflows. This should make sure that SOAP never crashes while calculating the new properties.
+  * At this point everything should now work. To test the newly added quantities you can run a unit test using `pytest -W error tests/test_{NAME_OF_FILE}.py`. This checks whether the code crashes, and whether there are problems with units and overflows. This should make sure that SOAP never crashes while calculating the new properties.
+
+If your property is expensive to compute, or requires additional dependencies,
+set `opt_in_reason` in its `SOAP/property_table.py` entry to a short (20
+characters or less) reason. It will then only be calculated if it is explicitly
+enabled in the parameter file. Any additional dependencies must be imported
+within the `@lazy_property`, not at the top of the file.
 
 If SOAP does crash while evaluating your new property it will try to
 output the ID of the halo it was processing when it crashed. Then you

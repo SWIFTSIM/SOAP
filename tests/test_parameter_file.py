@@ -2,10 +2,12 @@
 
 import glob
 import os
+from types import SimpleNamespace
 
 import pytest
 
 from SOAP.core.parameter_file import ParameterFile
+from SOAP.property_table import PropertyTable
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -378,3 +380,36 @@ def test_absent_particle_type_is_not_treated_as_missing():
     assert filters["DustMass"] == "basic"
     assert pf.skipped_properties == set()
     assert pf.uncomputable_properties == {}
+
+
+def test_opt_in_reasons_are_short():
+    # The reason is printed in a column when the property is skipped
+    for prop in PropertyTable.full_property_list.values():
+        if prop.opt_in_reason is not None:
+            assert len(prop.opt_in_reason) <= 20, (
+                f'The opt_in_reason "{prop.opt_in_reason}" for {prop.name} is '
+                f"longer than 20 characters. Reasons are printed in a column "
+                f"next to the property name when properties are skipped, so "
+                f"they must be short to keep the output readable."
+            )
+
+
+def test_non_dmo_opt_in_properties_are_not_printed_for_dmo_run(monkeypatch, capsys):
+    # GasMass is not a DMO property, TotalMass is. Flag both as opt-in.
+    props = {
+        prop.name: prop
+        for prop in PropertyTable.full_property_list.values()
+        if prop.name in ("GasMass", "TotalMass")
+    }
+    for prop in props.values():
+        monkeypatch.setattr(prop, "opt_in_reason", "expensive")
+
+    pf = make_parameter_file(section={"properties": {}, "variations": VARIATIONS})
+    filters = pf.get_property_filters("ApertureProperties", ["GasMass", "TotalMass"])
+    assert filters == {"GasMass": False, "TotalMass": False}
+
+    halo_prop_list = [SimpleNamespace(property_list=props)]
+    pf.print_optin_skipped_properties(halo_prop_list, dmo=True)
+    out = capsys.readouterr().out
+    assert "TotalMass" in out
+    assert "GasMass" not in out
