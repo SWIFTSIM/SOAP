@@ -39,16 +39,6 @@ def test_SO_properties_random_halo():
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
         parameters.get_aliases()
     )
-    parameters.get_halo_type_variations(
-        "SOProperties",
-        {
-            "50_kpc": {"value": 50.0, "type": "physical"},
-            "2500_mean": {"value": 2500.0, "type": "mean"},
-            "2500_crit": {"value": 2500.0, "type": "crit"},
-            "BN98": {"value": 0.0, "type": "BN98"},
-            "5xR2500_mean": {"value": 2500.0, "type": "mean", "radius_multiple": 5.0},
-        },
-    )
 
     property_calculator_50kpc = SOProperties(
         dummy_halos.get_cell_grid(),
@@ -397,16 +387,6 @@ def calculate_SO_properties_nfw_halo(seed, num_part, c):
     )
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
         parameters.get_aliases()
-    )
-    parameters.get_halo_type_variations(
-        "SOProperties",
-        {
-            "50_kpc": {"value": 50.0, "type": "physical"},
-            "2500_mean": {"value": 2500.0, "type": "mean"},
-            "2500_crit": {"value": 2500.0, "type": "crit"},
-            "BN98": {"value": 0.0, "type": "BN98"},
-            "5xR2500_mean": {"value": 2500.0, "type": "mean", "radius_multiple": 5.0},
-        },
     )
 
     property_calculator_200crit = SOProperties(

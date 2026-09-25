@@ -3,19 +3,23 @@
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252) 
 
 This repository contains programs which can be used to compute
-properties of halos in spherical apertures in [SWIFT](https://swift.strw.leidenuniv.nl/) snapshots.
+properties of halos in spherical apertures in
+[SWIFT](https://swift.strw.leidenuniv.nl/) snapshots.
 The resulting output halo catalogues can be read using the
 [swiftsimio](https://swiftsimio.readthedocs.io/en/latest/)
 python package.
 
-Please cite SOAP using the [JOSS paper](https://ui.adsabs.harvard.edu/abs/2025JOSS...10.8252M)
+Please cite SOAP using the
+[JOSS paper](https://ui.adsabs.harvard.edu/abs/2025JOSS...10.8252M).
 
 ## Installation
 
 The code is written in python and uses mpi4py for parallelism.
-IO is carried out in parallel, and so [parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is required. SOAP and it's dependencies can also be 
+IO is also intended to run in parallel, and so
+[parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is recommended.
+SOAP and its dependencies can be
 installed directly using the command
-`pip install git+https://github.com/SWIFTSIM/SOAP.git@soap_runtime`
+`pip install git+https://github.com/SWIFTSIM/SOAP.git`
 but this may install a serial version of h5py. Therefore the following
 steps are recommended for install
 ```
@@ -98,9 +102,62 @@ mpirun python -u SOAP/compute_halo_properties.py \
 Here, `--chunks` determines how many chunks the simulation box is
 split into. Ideally it should be set such that one chunk fills a compute node.
 
-The optional `--max-ranks-reading` flag determines how many MPI ranks per node
-read the snapshot. This can be used to avoid overloading the file system. The
-default value is 32.
+As each chunk finishes, its halo properties are written to a scratch file in the
+directory given by `chunk_dir`; once all chunks are done these are combined into
+the final catalogue and then deleted. If a run is interrupted, rerunning it with
+the same arguments reuses any scratch files that were completely written rather
+than recomputing those chunks.
+
+### Selecting which subhalos to process
+
+By default SOAP calculates properties for every subhalo in the input catalogue.
+There are a number of flags which can be used to process only a subset of them.
+
+The `--centrals-only` flag discards satellites, so that only central subhalos are
+processed.
+
+Individual subhalos can be selected with the `--halo-indices` flag.
+This specifies the index of the required subhalos in the halo catalogue, which is
+the quantity written to `InputHalos/HaloCatalogueIndex`.
+
+For larger numbers of subhalos the indices can be listed in a text file, which is
+passed with the `--halo-indices-file` flag.
+The file must contain one index per line. Blank lines, and anything following a
+`#`, are ignored. Duplicate indices are discarded.
+
+### Command line arguments
+
+The arguments listed here are passed on the command line, and cannot be set in
+the parameter file.
+
+`SOAP/group_membership.py`:
+
+| Argument | Description |
+| --- | --- |
+| `config_file` | Name of the yaml parameter file. Required |
+| `--sim-name` | Name of the simulation to process |
+| `--snap-nr` | Snapshot number to process |
+
+`SOAP/compute_halo_properties.py`:
+
+| Argument | Default | Description |
+| --- | --- | --- |
+| `config_file` | | Name of the yaml parameter file. Required |
+| `--sim-name` | | Name of the simulation to process |
+| `--snap-nr` | | Snapshot number to process |
+| `--chunks` | 1 | Number of chunks to split the volume into. Should be at least the number of compute nodes |
+| `--dmo` | off | Run in dark matter only mode, skipping any hydro-only properties |
+| `--centrals-only` | off | Only process central halos, discarding satellites. See [Selecting which subhalos to process](#selecting-which-subhalos-to-process) |
+| `--halo-indices` | | Only process the listed halo indices. See [Selecting which subhalos to process](#selecting-which-subhalos-to-process) |
+| `--halo-indices-file` | | Only process the halo indices listed in the given file. See [Selecting which subhalos to process](#selecting-which-subhalos-to-process) |
+| `--max-halos` | 0 (all) | Only process the first N halos in the catalogue. See [Debugging](#debugging) |
+| `--record-halo-timings` | off | Record the time taken to process each halo. See [Timing](#timing) |
+| `--record-property-timings` | off | Record the time taken to calculate each property. This doubles the size of the output catalogue. See [Timing](#timing) |
+| `--reference-snapshot` | | Number of a snapshot which contains all particle types. Used to determine the datasets and units of any particle types which are missing from the snapshot being processed, e.g. stars or black holes at high redshift |
+| `--snipshot` / `--snapshot` | auto | Force snipshot or snapshot mode. By default this is determined from the value of `SelectOutput` in the snapshot header |
+| `--profile` | 0 | Run with profiling. See [Profiling](#profiling) |
+| `--max-ranks-reading` | 32 | Number of MPI ranks per node which read snapshot data. Can be reduced to avoid overloading the file system |
+| `--output-parameters` | | Where to write the parameters used by this run, in yaml format |
 
 ### Parameter files
 
@@ -108,8 +165,9 @@ To run either of the programs a parameters file must be passed. This
 contains information including the input and output directories,
 the halo finder to use, which halo definitions to use, and
 which properties to calculate for each halo definition. A description
-of all possible fields, and a number of example parameter files
-can be found in the `parameters_files` directory.
+of all possible fields can be found in
+[`parameter_files/README.md`](parameter_files/README.md), alongside a number
+of example parameter files.
 
 ### Compression
 
@@ -124,6 +182,8 @@ lossless compression to SOAP catalogues.
 ### Documentation
 
 A pdf describing the SOAP output can be generated. First run `SOAP/property_table.py` passing the parameter file used to run SOAP (to get the properties and halo types to include) and a snapshot (to get the units), e.g. `python SOAP/property_table.py parameter_files/COLIBRE_THERMAL.yml /cosma8/data/dp004/colibre/Runs/L0100N0752/Thermal/snapshots/colibre_0127/colibre_0127.hdf5`. This will generate a table containing all the properties which are enabled in the parameter file. To create the pdf run `cd documentation; pdflatex SOAP.tex; pdflatex SOAP.tex`. If you wish to see all possible properties then first run `python SOAP/property_table.py`, and then generate the pdf.
+
+The `property_table.py` script also generates the file `documentation/property_table.rst`, which is a version of the property table that can be useful for sphnix websites.
 
 ### Slurm scripts for running on COSMA
 
@@ -192,8 +252,9 @@ mpirun.
 The `-Werror` flag is useful for making pdb stop on warnings. E.g. division by
 zero in the halo property calculations will be caught.
 
-It is also possible to select individual halos to process with the `--halo-indices`
-flag. This specifies the index of the required halos in the halo catalogue. E.g.
+If SOAP crashes while processing a particular halo it will try to report the
+index of that halo, which can then be re-run on its own with the
+`--halo-indices` flag, e.g.
 ```
 python3 -Werror -m pdb ./compute_halo_properties.py --halo-indices 1 2 3 ...
 ```

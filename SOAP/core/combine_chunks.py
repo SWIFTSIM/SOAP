@@ -14,7 +14,7 @@ from virgo.util.partial_formatter import PartialFormatter
 from SOAP.catalogue_readers import read_hbtplus
 from SOAP.property_calculation.subhalo_rank import compute_subhalo_rank
 from SOAP.property_table import PropertyTable
-from . import lustre, swift_units
+from . import lustre, parallel_io, swift_units
 from .mpi_timer import MPITimer
 
 
@@ -59,6 +59,68 @@ def spatial_sort(halo_cofp, halo_index, cellgrid, comm):
     cell_counts = comm.reduce(local_cell_counts)
 
     return order, cell_counts
+
+
+def write_named_columns(outfile, args, cellgrid, all_metadata):
+    """
+    Write SubgridScheme/NamedColumns metadata for properties that declare
+    a `columns_from_snapshot` source (see property_table.Property)
+    """
+    # Skip if we want the old behaviour
+    if args.skip_named_columns:
+        return
+
+    # Properties actually present in this output, keyed by basename, with
+    # their output shape excluding the halo axis (e.g. (9,) or ()).
+    present_props = {}
+    for metadata in all_metadata:
+        name, size = metadata[0], metadata[1]
+        present_props[name.split("/")[-1]] = size
+
+    # Of those, which declare a snapshot field to source column names from.
+    wanted = {
+        prop.name: prop.columns_from_snapshot
+        for prop in PropertyTable.full_property_list.values()
+        if prop.columns_from_snapshot is not None and prop.name in present_props
+    }
+    if not wanted:
+        return
+
+    snap_named_columns = {}
+    snap_filename = cellgrid.snap_filename.format(file_nr=0)
+    with h5py.File(snap_filename, "r") as snap_file:
+        try:
+            group = snap_file["SubgridScheme/NamedColumns"]
+            snap_named_columns = {
+                key: [x.decode("utf-8") for x in group[key][:]] for key in group.keys()
+            }
+        except KeyError:
+            pass
+
+    named_columns_group = outfile.require_group("SubgridScheme/NamedColumns")
+    for prop_name, snap_field in wanted.items():
+        columns = snap_named_columns.get(snap_field)
+        expected_shape = present_props[prop_name]
+        expected_len = expected_shape[0] if len(expected_shape) else 1
+        if columns is None:
+            print(
+                f"named columns requested for {prop_name}, but "
+                f"SubgridScheme/NamedColumns/{snap_field} was not found in "
+                f"the input snapshot ({snap_filename}); skipping.",
+                flush=True,
+            )
+            continue
+        if len(columns) != expected_len:
+            print(
+                f"named columns for {prop_name} (from snapshot field "
+                f"{snap_field}) have length {len(columns)}, but the property "
+                f"has shape {expected_len}; skipping.",
+                flush=True,
+            )
+            continue
+        named_columns_group.create_dataset(
+            prop_name, data=[c.encode("utf-8") for c in columns]
+        )
 
 
 def combine_chunks(
@@ -224,11 +286,6 @@ def combine_chunks(
             params.attrs["centrals_only"] = 0 if args.centrals_only == False else 1
             calc_names = sorted([hp.name for hp in halo_prop_list])
             params.attrs["calculations"] = calc_names
-            params.attrs["halo_indices"] = (
-                args.halo_indices
-                if args.halo_indices is not None
-                else np.ndarray(0, dtype=int)
-            )
             if recently_heated_gas_filter.initialised:
                 recently_heated_gas_metadata = recently_heated_gas_filter.get_metadata()
                 recently_heated_gas_params = params.create_group(
@@ -353,6 +410,11 @@ def combine_chunks(
                 for attr_name, attr_value in attrs.items():
                     dataset.attrs[attr_name] = attr_value
 
+            # Write named-column metadata for properties that support it
+            write_named_columns(
+                outfile, args, cellgrid, ref_metadata + soap_metadata + fof_metadata
+            )
+
             # Save the names of the groups containing the data
             subhalo_types = set()
             for metadata in ref_metadata + soap_metadata + fof_metadata:
@@ -369,8 +431,8 @@ def combine_chunks(
             outfile.close()
     comm_world.barrier()
 
-    # Reopen the output file in parallel mode
-    outfile = h5py.File(output_file, "r+", driver="mpio", comm=comm_world)
+    # Reopen the output file for writing by all ranks.
+    outfile = parallel_io.open_collective(output_file, "r+", comm_world)
     props_kept = {}
 
     with MPITimer("Writing output properties", comm_world):
@@ -397,7 +459,7 @@ def combine_chunks(
 
             # Write these properties to the output file
             for name in names:
-                phdf5.collective_write(
+                parallel_io.collective_write(
                     outfile, name, data[name], create_dataset=False, comm=comm_world
                 )
 
@@ -458,7 +520,7 @@ def combine_chunks(
         if not physical:
             soap_com_unit = soap_com_unit * cellgrid.get_unit("a") ** a_exponent
         fof_com = (fof_com * fof_com_unit).to(soap_com_unit)
-        phdf5.collective_write(
+        parallel_io.collective_write(
             outfile,
             "InputHalos/FOF/Centres",
             fof_com,
@@ -477,7 +539,7 @@ def combine_chunks(
         if not physical:
             soap_mass_unit = soap_mass_unit * cellgrid.get_unit("a") ** a_exponent
         fof_mass = (fof_mass * fof_mass_unit).to(soap_mass_unit)
-        phdf5.collective_write(
+        parallel_io.collective_write(
             outfile,
             "InputHalos/FOF/Masses",
             fof_mass,
@@ -489,7 +551,7 @@ def combine_chunks(
         fof_size[keep] = psort.fetch_elements(
             fof_file.read("Groups/Sizes"), indices, comm=comm_world
         )
-        phdf5.collective_write(
+        parallel_io.collective_write(
             outfile,
             "InputHalos/FOF/Sizes",
             fof_size,
@@ -523,7 +585,7 @@ def combine_chunks(
             if not physical:
                 soap_radii_unit = soap_radii_unit * cellgrid.get_unit("a") ** a_exponent
             fof_radii = (fof_radii * fof_com_unit).to(soap_radii_unit)
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 "InputHalos/FOF/Radii",
                 fof_radii,
@@ -563,7 +625,7 @@ def combine_chunks(
                 host_halo_index = -1 * np.ones(sat_mask.shape[0], dtype=np.int64)
                 host_halo_index[has_host_mask] = indices
 
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 "SOAP/HostHaloIndex",
                 host_halo_index,
@@ -592,7 +654,7 @@ def combine_chunks(
             subhalo_rank = compute_subhalo_rank(
                 host_id, props_kept["BoundSubhalo/TotalMass"], comm_world
             )
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 "SOAP/SubhaloRankByBoundMass",
                 subhalo_rank,
@@ -662,7 +724,7 @@ def combine_chunks(
                 assert n_keep[i_bin] <= np.sum(mask)
                 keep_idx = np.random.choice(idx, size=n_keep[i_bin], replace=False)
                 reduced_snapshot[keep_idx] = 1
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 "SOAP/IncludedInReducedSnapshot",
                 reduced_snapshot,
@@ -726,7 +788,7 @@ def combine_chunks(
                     track_id, prev_track_id, comm=comm_world
                 )
 
-            phdf5.collective_write(
+            parallel_io.collective_write(
                 outfile,
                 f"SOAP/{name}Index",
                 prev_index,
@@ -735,4 +797,4 @@ def combine_chunks(
             )
 
     # Done.
-    outfile.close()
+    parallel_io.close_collective(outfile, comm_world)

@@ -132,7 +132,7 @@ if comm_rank == 0:
 mu = 1 / (params["fH"] + 0.25 * params["fHe"])
 neutral_frac = calculate_neutral_frac(
     params["z"],
-    densities * Habundance / (mu * astropy.constants.m_p),
+    densities * Habundance / astropy.constants.m_p,
     temperatures,
     onlyA1=True,
     noCol=False,

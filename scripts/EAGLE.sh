@@ -9,7 +9,9 @@
 #SBATCH --exclusive
 #SBATCH -t 02:00:00
 #
-# For L0025N0752 set ntasks=16
+# For L0025N0752/REFERENCE set ntasks=16
+# For L0025N0752/RECALIBRATED set ntasks=32
+# For L0025N0752/WDM set ntasks=32
 # For L0100N1504 set ntasks=256
 #
 # Install Hdecompose with:
@@ -20,7 +22,18 @@
 #
 # Submit this script from the main SOAP directory ($ sbatch scripts/EAGLE.sh)
 
-sim_name='L0100N1504'
+# sim_name='L0025N0752/PE/REFERENCE'
+# sim_name='L0025N0752/PE/RECALIBRATED'
+sim_name='L0100N1504/PE/REFERENCE'
+# sim_name='L0025N0752/EAGLE_WDM'
+
+sim_dir="/cosma7/data/Eagle/ScienceRuns/Planck1/${sim_name}/data"
+# sim_dir="/snap7/scratch/dp004/dc-mcgi1/EAGLE_WDM/data"
+
+# Note that if you update the output directory, you will
+# also need to update the SOAP parameter file
+output_dir="/snap7/scratch/dp004/dc-mcgi1/SOAP_EAGLE/${sim_name}"
+
 snap_nr="028"
 z_suffix="z000p000"
 
@@ -30,13 +43,19 @@ source openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 ######## Link files to snap (to remove awful z suffix)
 
-sim_dir="/cosma7/data/Eagle/ScienceRuns/Planck1/${sim_name}/PE/REFERENCE/data"
-# Note that if you update the output directory, you will also need to
-# update the SOAP parameter file
-output_dir="/snap7/scratch/dp004/dc-mcgi1/SOAP_EAGLE/${sim_name}"
+sim_snap_dir="${sim_dir}/snapshot_${snap_nr}_${z_suffix}"
+output_snap_dir="${output_dir}/gadget_snapshots/snapshot_${snap_nr}"
+mkdir -p $output_snap_dir
+i=0
+while [[ -e "${sim_snap_dir}/snap_${snap_nr}_${z_suffix}.${i}.hdf5" ]]; do
+    old_name="${sim_snap_dir}/snap_${snap_nr}_${z_suffix}.${i}.hdf5"
+    new_name="${output_snap_dir}/snap_${snap_nr}.${i}.hdf5"
+    ln -s $old_name $new_name
+    ((i++))
+done
 
 sim_snap_dir="${sim_dir}/particledata_${snap_nr}_${z_suffix}"
-output_snap_dir="${output_dir}/gadget_snapshots/snapshot_${snap_nr}"
+output_snap_dir="${output_dir}/gadget_membership/snapshot_${snap_nr}"
 mkdir -p $output_snap_dir
 i=0
 while [[ -e "${sim_snap_dir}/eagle_subfind_particles_${snap_nr}_${z_suffix}.${i}.hdf5" ]]; do
@@ -63,28 +82,41 @@ set -e
 
 mpirun -- python -u misc/convert_eagle.py \
     --snap-basename "${output_dir}/gadget_snapshots/snapshot_${snap_nr}/snap_${snap_nr}" \
+    --particledata-basename "${output_dir}/gadget_membership/snapshot_${snap_nr}/snap_${snap_nr}" \
     --subfind-basename "${output_group_dir}/subfind_tab_${snap_nr}" \
-    --output-basename "${output_dir}/swift_snapshots/swift_${snap_nr}/snap_${snap_nr}" \
+    --output-basename "${output_dir}/snapshots/snap_${snap_nr}/snap_${snap_nr}" \
     --membership-basename "${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}"
 
 ######### Estimate SpeciesFraction of hydrogen
 
 mpirun -- python -u misc/hdecompose_hydrogen_fractions.py \
-    --snap-basename "${output_dir}/swift_snapshots/swift_${snap_nr}/snap_${snap_nr}" \
+    --snap-basename "${output_dir}/snapshots/snap_${snap_nr}/snap_${snap_nr}" \
     --output-basename "${output_dir}/species_fractions/swift_${snap_nr}/snap_${snap_nr}"
 
 ######### Create virtual snapshot
 # Must be run from the snapshot directory itself or there will be issues with paths
 
 soap_dir=$(pwd)
-cd "${output_dir}/swift_snapshots/swift_${snap_nr}"
+cd "${output_dir}/snapshots/snap_${snap_nr}"
 python "${soap_dir}/create_virtual_snapshot.py" "snap_${snap_nr}.0.hdf5"
 cd -
 
+######### Repack memebership files and create virtual snapshot
+
+input_filename="${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}"
+output_filename="${output_dir}/SOAP/membership_${snap_nr}/membership_${snap_nr}"
+mkdir -p "${output_dir}/SOAP/membership_${snap_nr}"
+
+nr_files=`ls -1 ${input_filename}.*.hdf5 | wc -l`
+nr_files_minus_one=$(( ${nr_files} - 1 ))
+
+seq 0 ${nr_files_minus_one} | xargs -I {} -P 16 bash -c \
+  "h5repack -i ${input_filename}.{}.hdf5 -o ${output_filename}.{}.hdf5 -l CHUNK=10000 -f GZIP=4"
+
 python SOAP/compression/make_virtual_snapshot.py \
-    --virtual-snapshot "${output_dir}/swift_snapshots/swift_${snap_nr}/snap_${snap_nr}.hdf5" \
-    --auxiliary-snapshots "${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}.{file_nr}.hdf5" \
-    --output-file "${output_dir}/SOAP_uncompressed/snap_${snap_nr}.hdf5"
+    --virtual-snapshot "${output_dir}/snapshots/snap_${snap_nr}/snap_${snap_nr}.hdf5" \
+    --auxiliary-snapshots "${output_dir}/SOAP/membership_${snap_nr}/membership_${snap_nr}.{file_nr}.hdf5" "${output_dir}/species_fractions/swift_${snap_nr}/snap_${snap_nr}.{file_nr}.hdf5" \
+    --output-file "${output_dir}/SOAP/snap_with_SOAP_membership_${snap_nr}.hdf5"
 
 ######### Run SOAP
 
@@ -93,6 +125,16 @@ chunks=10
 mpirun -- python3 -u -m mpi4py SOAP/compute_halo_properties.py \
        parameter_files/EAGLE.yml \
        --sim-name=${sim_name} --snap-nr=${snap_nr} --chunks=${chunks}
+
+######### Compress SOAP (run on single node)
+
+module purge
+module load python/3.12.4
+
+mpirun -np 28 python -u SOAP/compression/compress_soap_catalogue.py \
+    "${output_dir}/SOAP_uncompressed/halo_properties_${snap_nr}.hdf5" \
+    "${output_dir}/SOAP/halo_properties_${snap_nr}.hdf5" \
+    "${output_dir}/SOAP_compression_tmp"
 
 ##############
 

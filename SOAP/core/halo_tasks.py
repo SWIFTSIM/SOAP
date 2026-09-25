@@ -6,6 +6,7 @@ import numpy as np
 import unyt
 
 from SOAP.core import memory_use, shared_array
+from SOAP.core.shared_particle_data import ParticleDataCache
 from SOAP.core.dataset_names import mass_dataset, ptypes_for_so_masses
 from SOAP.particle_selection.halo_properties import SearchRadiusTooSmallError
 from SOAP.property_table import PropertyTable
@@ -30,6 +31,7 @@ def process_single_halo(
     boxsize,
     input_halo,
     target_density,
+    shared_keys=None,
 ):
     """
     This computes properties for one halo and runs on a single
@@ -116,6 +118,14 @@ def process_single_halo(
                 offset = input_halo["cofp"] - 0.5 * boxsize
                 pos[:, :] = ((pos - offset) % boxsize) + offset
 
+            # Cache for quantities derived from these particles which more than
+            # one property calculation needs.
+            shared_particle_data = ParticleDataCache()
+            # The key each calculation will look up, so that an entry can be
+            # dropped as soon as no calculation which is still to run needs it.
+            if shared_keys is None:
+                shared_keys = [hp.shared_key(particle_data) for hp in halo_prop_list]
+
             # Try to compute properties of this halo which haven't been done yet
             for prop_nr, halo_prop in enumerate(halo_prop_list):
                 if halo_prop_done[prop_nr]:
@@ -124,7 +134,11 @@ def process_single_halo(
                 try:
                     t0_halo_prop = time.time()
                     halo_prop.calculate(
-                        input_halo, current_radius, particle_data, halo_result
+                        input_halo,
+                        current_radius,
+                        particle_data,
+                        halo_result,
+                        shared_particle_data,
                     )
                 except SearchRadiusTooSmallError:
                     # Search radius was too small, so will need to try again with a larger radius.
@@ -141,7 +155,9 @@ def process_single_halo(
                     # Calculation caused an unexpected error.
                     # Output the halo ID so we can debug this.
                     print(
-                        f"Object with HaloCatalogueIndex={input_halo['index']} encountered an error"
+                        f"Object with HaloCatalogueIndex={input_halo['index']} encountered an error "
+                        f"while calculating {halo_prop.name}",
+                        flush=True,
                     )
                     raise
                 else:
@@ -158,6 +174,14 @@ def process_single_halo(
                         input_halo[f"{halo_prop.name}_final_time"] += (
                             time.time() - t0_halo_prop
                         )
+
+                # Drop any shared particle arrays which none of the calculations
+                # still to do for this halo will ask for
+                shared_particle_data.keep_only(
+                    key
+                    for nr, key in enumerate(shared_keys)
+                    if nr > prop_nr and not halo_prop_done[nr]
+                )
 
             # If we computed all of the properties, we're done with this halo
             if np.all(halo_prop_done):
@@ -316,6 +340,9 @@ def process_halos(
             if target_density is None or density < target_density:
                 target_density = density
 
+    # The shared particle data key each calculation uses
+    shared_keys = [hp.shared_key(data) for hp in halo_prop_list]
+
     # Allocate shared storage for a single integer and initialize to zero
     if comm.Get_rank() == 0:
         local_shape = (1,)
@@ -354,7 +381,7 @@ def process_halos(
         next_task.win.Lock(0)
         next_task.win.Fetch_and_op(one, task_to_do, 0)
         next_task.win.Unlock(0)
-        task_to_do = int(task_to_do)
+        task_to_do = int(task_to_do.flat[0])
 
         # Execute the task, if there's one left
         if task_to_do < nr_halos:
@@ -379,6 +406,7 @@ def process_halos(
                     boxsize,
                     input_halo,
                     target_density if input_halo["is_central"] == 1 else None,
+                    shared_keys,
                 )
                 if halo_result is not None:
                     # Store results and flag this halo as done

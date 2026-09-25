@@ -113,15 +113,7 @@ ApertureProperties:
       radius_multiple: 2.0
 ```
 
-If you do not wish to calculate any apertures then pass any empty dict to both the properties and the variations, e.g.
-
-```
-ApertureProperties:
-  properties:
-    {}
-  variations:
-    {}
-```
+There are no default variations. If the ApertureProperties section is missing, or no `variations` are listed, then no apertures are computed. If `variations` are listed but no properties are enabled, apertures are still skipped unless `calculate_missing_properties` is true. The same applies to the `ProjectedApertureProperties` and `SOProperties` sections below.
 
 ### ProjectedApertureProperties
 
@@ -203,6 +195,13 @@ For each alias the key is the name of the property that SOAP expects, and the va
 SOAP uses filters to determine whether to skip the calculation of an aperture or
 property based on the number of bound particles. This section of the parameter file
 defines the particle limits for each filter. New filters can be added if required.
+Filter properties must be `BoundSubhalo` properties, since filters are evaluated
+before other calculations run.
+
+There are no default filters. Every filter referenced by a property or a halo type
+variation must be defined here, with the sole exception of the implicit `basic`
+filter (always computed, never listed). SOAP raises an error at startup if a
+property or variation references a filter that is not defined.
 
 ```
 filters:
@@ -248,8 +247,8 @@ defined_constants:
 
 Contains information about how to run SOAP
 
-- **min_read_radius_cmpc**: Optional. Using the input halo catalogues SOAP makes an initial guess of the radius around each halo to read in. This value can be set so SOAP will read a minimum radius by default, which can be useful if large SOs are being calculated.
-- **calculate_missing_properties**: Optional, default True. If set to true then SOAP will calculate any properties which are not listed in the parameter file. If set to false then SOAP will ignore these properties 
+- **calculate_missing_properties**: Optional, default True. If set to true then SOAP will calculate any properties which are not listed in the parameter file, provided the input files contain the datasets those properties require. Properties which cannot be calculated are skipped, and are listed at the start of the run. If set to false then SOAP will ignore any property which is not listed in the parameter file.
+
 - **reduced_snapshots**: Optional. We create reduced snapshots where we keep the particles within the virial radius of certain objects. The values here determine which halos to keep.
   - **min_halo_mass**: The minimumum M200 halo mass to keep
   - **halo_bin_size_dex**: The size of the halo mass bins
@@ -261,6 +260,7 @@ Contains information about how to run SOAP
   - **maximum_temperature_K**: Value above which gas is not considered to be cold
   - **minimum_hydrogen_number_density_cm3**: Value below which gas gas is not considered to be dense
 - **strict_halo_copy**: Optional, default False. When a halo has multiple ExclusiveSphere/ProjectedAperture halo types which encompass all the bound particles then we just copy across the values rather than recomputing them. There are a small number of properties for which this is not correct. If this flag is set then these properties are set to zero for the larger apertures instead of being copied across.
+- **min_read_radius_cmpc**: Optional. Using the input halo catalogues SOAP makes an initial guess of the radius around each halo to read in. This value can be set so SOAP will read a minimum radius by default, which can be useful if large SOs are being calculated.
 - **separate_chunks**: Optional, default []. SOAP processes subhalos in parallel, but this can cause memory issues if there are subhalos which take up a significant fraction of a node's memory. This parameter allows a list of dictionaries to be passed. Each dictionary must contain two keys: `n_bound_threshold` (which specifies the number of bound particles above which a subhalo should be treated differently) and `n_halo_per_chunk` (which gives the maximum number of subhalos of this size which can be placed on a single chunk). An example is
 ```
   separate_chunks:

@@ -1,11 +1,11 @@
 #!/bin/env python
 
 import numpy as np
-import h5py
 import pytest
 from mpi4py import MPI
 import virgo.mpi.parallel_hdf5 as phdf5
 
+from SOAP.core import parallel_io
 from SOAP.property_calculation.subhalo_rank import compute_subhalo_rank
 
 import helpers
@@ -19,7 +19,7 @@ comm_rank = comm.Get_rank()
 def test_subhalo_rank(filename):
 
     # Read HBT halos from a small DMO run
-    with h5py.File(filename, "r", driver="mpio", comm=comm) as file:
+    with parallel_io.open_collective(filename, "r", comm) as file:
         sub = phdf5.collective_read(file["Subhalos"], comm=comm)
     if comm_rank == 0:
         print("Read subhalos")

@@ -12,6 +12,7 @@ comm_world_size = comm_world.Get_size()
 
 import os
 import os.path
+import sys
 import time
 import traceback
 import numpy as np
@@ -126,7 +127,7 @@ def compute_halo_properties():
                 swift_filename, extra_input, swift_filename_ref, extra_input_ref
             )
         except Exception as err_msg:
-            print(err_msg)
+            print(err_msg, flush=True)
             # Thrown if there are issues with the input files
             comm_world.Abort(1)
         parsec_cgs = cellgrid.constants["parsec"]
@@ -151,6 +152,11 @@ def compute_halo_properties():
         parameter_file = ParameterFile(
             file_name=args.config_filename, snipshot=args.snipshot
         )
+        try:
+            parameter_file.check_schema()
+        except ValueError as e:
+            print(e, flush=True)
+            comm_world.Abort(1)
     else:
         parameter_file = None
     parameter_file = comm_world.bcast(parameter_file)
@@ -158,6 +164,9 @@ def compute_halo_properties():
     cellgrid.snapshot_datasets.setup_defined_constants(
         parameter_file.get_defined_constants()
     )
+    # Tell the parameter file which datasets are in the input files, so that
+    # properties which cannot be computed can be skipped or reported
+    parameter_file.set_available_datasets(cellgrid.snapshot_datasets.datasets_in_file)
     parameter_file.record_property_timings = args.record_property_timings
 
     # Try to load parameters for RecentlyHeatedGasFilter. If a property that uses the
@@ -195,48 +204,31 @@ def compute_halo_properties():
         cold_dense_params["initialised"],
     )
 
-    default_filters = {
-        "general": {
-            "limit": 100,
-            "properties": [
-                "BoundSubhalo/NumberOfDarkMatterParticles",
-                "BoundSubhalo/NumberOfGasParticles",
-                "BoundSubhalo/NumberOfStarParticles",
-                "BoundSubhalo/NumberOfBlackHoleParticles",
-            ],
-            "combine_properties": "sum",
-        },
-        "dm": {
-            "limit": 100,
-            "properties": ["BoundSubhalo/NumberOfDarkMatterParticles"],
-        },
-        "gas": {"limit": 100, "properties": ["BoundSubhalo/NumberOfGasParticles"]},
-        "star": {"limit": 100, "properties": ["BoundSubhalo/NumberOfStarParticles"]},
-        "baryon": {
-            "limit": 100,
-            "properties": [
-                "BoundSubhalo/NumberOfGasParticles",
-                "BoundSubhalo/NumberOfStarParticles",
-            ],
-            "combine_properties": "sum",
-        },
-    }
-    filters = parameter_file.get_filters(default_filters)
+    filters = parameter_file.get_filters()
+    for filter_name, filter_info in filters.items():
+        for prop in filter_info.get("properties", []):
+            assert prop.split("/")[0] == "BoundSubhalo", (
+                f'Filter "{filter_name}" uses "{prop}", but filters can only '
+                "use BoundSubhalo properties."
+            )
     category_filter = CategoryFilter(filters, dmo=args.dmo)
 
     # Get the full list of property calculations we can do
-    # Note that the order matters: we need to do the BoundSubhalo first,
-    # since quantities are filtered based on the particle numbers in there
-    # Similarly, things like SO 5xR500_crit can only be done after
-    # SO 500_crit for obvious reasons
-    halo_prop_list = []
+    # Each kind of calculation is collected separately so that the final list
+    # can be built in a deliberate order (see where it is assembled below),
+    # rather than relying on the order things happen to be created in.
+    subhalo_props = []
+    so_props = []
+    exclusive_apertures = []
+    inclusive_apertures = []
+    projected_apertures = []
 
     # We require BoundSubhalo since it's used for filters
     if comm_world_rank == 0:
         if "SubhaloProperties" not in parameter_file.parameters:
-            print("SubhaloProperties must be in the parameter file")
+            print("SubhaloProperties must be in the parameter file", flush=True)
             comm_world.Abort(1)
-    halo_prop_list.append(
+    subhalo_props.append(
         subhalo_properties.SubhaloProperties(
             cellgrid,
             parameter_file,
@@ -246,20 +238,7 @@ def compute_halo_properties():
         )
     )
 
-    SO_variations = parameter_file.get_halo_type_variations(
-        "SOProperties",
-        {
-            "200_mean": {"value": 200.0, "type": "mean"},
-            "50_crit": {"value": 50.0, "type": "crit"},
-            "100_crit": {"value": 100.0, "type": "crit"},
-            "200_crit": {"value": 200.0, "type": "crit"},
-            "500_crit": {"value": 500.0, "type": "crit"},
-            "1000_crit": {"value": 1000.0, "type": "crit"},
-            "2500_crit": {"value": 2500.0, "type": "crit"},
-            "BN98": {"value": 0.0, "type": "BN98"},
-            "5xR500_crit": {"value": 500.0, "type": "crit", "radius_multiple": 5.0},
-        },
-    )
+    SO_variations = parameter_file.get_halo_type_variations("SOProperties")
     # first add non radius multiples to make sure the radius multiples can be
     # computed
     for variation in SO_variations:
@@ -269,7 +248,7 @@ def compute_halo_properties():
         ):
             continue
         if "core_excision_fraction" in SO_variations[variation]:
-            halo_prop_list.append(
+            so_props.append(
                 SO_properties.CoreExcisedSOProperties(
                     cellgrid,
                     parameter_file,
@@ -284,7 +263,7 @@ def compute_halo_properties():
                 )
             )
         else:
-            halo_prop_list.append(
+            so_props.append(
                 SO_properties.SOProperties(
                     cellgrid,
                     parameter_file,
@@ -301,7 +280,7 @@ def compute_halo_properties():
             "radius_multiple" in SO_variations[variation]
             and SO_variations[variation]["radius_multiple"] > 0.0
         ):
-            halo_prop_list.append(
+            so_props.append(
                 SO_properties.RadiusMultipleSOProperties(
                     cellgrid,
                     parameter_file,
@@ -314,27 +293,7 @@ def compute_halo_properties():
                 )
             )
 
-    aperture_variations = parameter_file.get_halo_type_variations(
-        "ApertureProperties",
-        {
-            "inclusive_10_kpc": {"radius_in_kpc": 10.0, "inclusive": True},
-            "inclusive_30_kpc": {"radius_in_kpc": 30.0, "inclusive": True},
-            "inclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": True},
-            "inclusive_100_kpc": {"radius_in_kpc": 100.0, "inclusive": True},
-            "inclusive_300_kpc": {"radius_in_kpc": 300.0, "inclusive": True},
-            "inclusive_500_kpc": {"radius_in_kpc": 500.0, "inclusive": True},
-            "inclusive_1000_kpc": {"radius_in_kpc": 1000.0, "inclusive": True},
-            "inclusive_3000_kpc": {"radius_in_kpc": 3000.0, "inclusive": True},
-            "exclusive_10_kpc": {"radius_in_kpc": 10.0, "inclusive": False},
-            "exclusive_30_kpc": {"radius_in_kpc": 30.0, "inclusive": False},
-            "exclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": False},
-            "exclusive_100_kpc": {"radius_in_kpc": 100.0, "inclusive": False},
-            "exclusive_300_kpc": {"radius_in_kpc": 300.0, "inclusive": False},
-            "exclusive_500_kpc": {"radius_in_kpc": 500.0, "inclusive": False},
-            "exclusive_1000_kpc": {"radius_in_kpc": 1000.0, "inclusive": False},
-            "exclusive_3000_kpc": {"radius_in_kpc": 3000.0, "inclusive": False},
-        },
-    )
+    aperture_variations = parameter_file.get_halo_type_variations("ApertureProperties")
 
     # Sort the aperture variations based on their radii, and create a list
     # of all apertures. This is required since we can skip some of the larger
@@ -355,7 +314,11 @@ def compute_halo_properties():
     assert inclusive_radii_kpc == sorted(inclusive_radii_kpc)
     assert exclusive_radii_kpc == sorted(exclusive_radii_kpc)
 
-    # Add the apertures defined with fixed physical radii
+    # Add the apertures defined with fixed physical radii, followed by those
+    # whose radius is defined by a SOAP property. Exclusive and inclusive
+    # apertures go into separate lists; within each, aperture_variations is
+    # sorted by radius so they stay in ascending order, which is what the
+    # skip_gt_enclose_radius logic requires.
     for variation in aperture_variations:
         if "radius_in_kpc" not in aperture_variations[variation]:
             continue
@@ -369,7 +332,7 @@ def compute_halo_properties():
             if aperture_variations[variation].get("skip_gt_enclose_radius", False):
                 radii_kpc = inclusive_radii_kpc
 
-            halo_prop_list.append(
+            inclusive_apertures.append(
                 aperture_properties.InclusiveSphereProperties(
                     cellgrid,
                     parameter_file,
@@ -384,7 +347,7 @@ def compute_halo_properties():
                 )
             )
         else:
-            halo_prop_list.append(
+            exclusive_apertures.append(
                 aperture_properties.ExclusiveSphereProperties(
                     cellgrid,
                     parameter_file,
@@ -399,7 +362,7 @@ def compute_halo_properties():
                 )
             )
 
-    # Add the apertures based on SOAP properties
+    # Apertures based on SOAP properties
     for variation in aperture_variations:
         if "radius_in_kpc" in aperture_variations[variation]:
             continue
@@ -409,7 +372,7 @@ def compute_halo_properties():
         # struggle to handle the group names
         assert int(radius_multiple) == radius_multiple
         if aperture_variations[variation]["inclusive"]:
-            halo_prop_list.append(
+            inclusive_apertures.append(
                 aperture_properties.InclusiveSphereProperties(
                     cellgrid,
                     parameter_file,
@@ -424,7 +387,7 @@ def compute_halo_properties():
                 )
             )
         else:
-            halo_prop_list.append(
+            exclusive_apertures.append(
                 aperture_properties.ExclusiveSphereProperties(
                     cellgrid,
                     parameter_file,
@@ -440,13 +403,7 @@ def compute_halo_properties():
             )
 
     projected_aperture_variations = parameter_file.get_halo_type_variations(
-        "ProjectedApertureProperties",
-        {
-            "10_kpc": {"radius_in_kpc": 10.0},
-            "30_kpc": {"radius_in_kpc": 30.0},
-            "50_kpc": {"radius_in_kpc": 50.0},
-            "100_kpc": {"radius_in_kpc": 100.0},
-        },
+        "ProjectedApertureProperties"
     )
     # Sort the aperture variations based on their radii, and create a list
     # of all apertures. This is required since we can skip some of the larger
@@ -472,7 +429,7 @@ def compute_halo_properties():
             continue
         assert "property" not in projected_aperture_variations[variation]
         assert "radius_multiple" not in projected_aperture_variations[variation]
-        halo_prop_list.append(
+        projected_apertures.append(
             projected_aperture_properties.ProjectedApertureProperties(
                 cellgrid,
                 parameter_file,
@@ -488,11 +445,15 @@ def compute_halo_properties():
         if "radius_in_kpc" in projected_aperture_variations[variation]:
             continue
         assert "property" in projected_aperture_variations[variation]
+        assert (
+            projected_aperture_variations[variation]["property"].split("/")[0]
+            == "BoundSubhalo"
+        ), "Projected apertures can only be defined by a BoundSubhalo property"
         radius_multiple = projected_aperture_variations[variation].get(
             "radius_multiple", 1
         )
         assert int(radius_multiple) == radius_multiple
-        halo_prop_list.append(
+        projected_apertures.append(
             projected_aperture_properties.ProjectedApertureProperties(
                 cellgrid,
                 parameter_file,
@@ -513,6 +474,35 @@ def compute_halo_properties():
     if comm_world_rank == 0 and args.output_parameters:
         parameter_file.write_parameters(args.output_parameters)
 
+    # Assemble the calculations in the order they will be run for each halo.
+    # This order matters, for four separate reasons:
+    #
+    #  - BoundSubhalo must come first: its results are used by the category
+    #    filters and by the enclose radius check of every aperture.
+    #  - Within each group of apertures the radii must ascend, because an
+    #    aperture may copy its results from the previous (smaller) aperture of
+    #    the same type. aperture_variations is sorted by radius, so appending in
+    #    order gives this.
+    #  - Calculations which see the same particles are kept together, so that
+    #    the shared particle arrays can be dropped as soon as the last
+    #    calculation needing them has run. Everything using only the bound
+    #    particles comes first, then everything using every particle in the
+    #    search radius.
+    #  - The SO calculations come last, after the inclusive apertures they share
+    #    their particle arrays with. SO adds quantities to that shared object
+    #    which no aperture uses (the sorted mass profile, the masks flagging
+    #    particles bound to another halo), and for the largest halos those are
+    #    several GB. Running SO last means they only exist while the
+    #    calculations which need them are running.
+    #
+    halo_prop_list = (
+        subhalo_props
+        + exclusive_apertures
+        + projected_apertures
+        + inclusive_apertures
+        + so_props
+    )
+
     if len(halo_prop_list) < 1:
         raise Exception("Must select at least one halo property calculation!")
 
@@ -531,20 +521,28 @@ def compute_halo_properties():
             print("Storing processing time for each halo")
         if args.record_property_timings:
             print("Storing processing time for each property")
-        parameter_file.print_unregistered_properties()
+        parameter_file.print_unregistered_properties(halo_prop_list, dmo=args.dmo)
+        parameter_file.print_skipped_properties(halo_prop_list, dmo=args.dmo)
         parameter_file.print_invalid_properties(halo_prop_list)
+        parameter_file.print_variation_warnings()
         if not parameter_file.renclose_enabled():
             print(
                 "BoundSubhalo/EncloseRadius is not enabled. This means apertures with r > r_enclose will be calculated explicitly, rather than copying over values from smaller apertures"
             )
         category_filter.print_filters()
 
+        # Properties enabled in the parameter file must be computed, so abort
+        # if the input files do not contain the datasets they require
+        parameter_file.print_uncomputable_properties()
+        if len(parameter_file.uncomputable_properties):
+            comm_world.Abort(1)
+
     # Ensure output dir exists
     if comm_world_rank == 0:
         try:
             os.makedirs(os.path.dirname(args.output_file), exist_ok=True)
         except OSError as e:
-            print(f"Error creating output directory: {e}")
+            print(f"Error creating output directory: {e}", flush=True)
             comm_world.Abort(1)
     comm_world.barrier()
 
@@ -586,7 +584,7 @@ def compute_halo_properties():
             try:
                 os.makedirs(scratch_file_dir, exist_ok=True)
             except OSError as e:
-                print(f"Error creating scratch directory: {e}")
+                print(f"Error creating scratch directory: {e}", flush=True)
                 comm_world.Abort(1)
     comm_world.barrier()
 
@@ -623,6 +621,8 @@ def compute_halo_properties():
         )
     except Exception as e:
         traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
         comm_world.Abort(1)
 
     # Can stop the halo request thread now that all chunk tasks have executed
@@ -648,11 +648,14 @@ def compute_halo_properties():
         cold_dense_gas_filter,
     )
 
-    # Delete scratch files
+    # Delete scratch files, unless we've been asked to keep them
     if comm_world_rank == 0:
-        for file_nr in range(nr_chunks):
-            os.remove(scratch_file_format % {"file_nr": file_nr})
-        print("Deleted scratch files.")
+        if args.keep_scratch_files:
+            print("Keeping scratch files.")
+        else:
+            for file_nr in range(nr_chunks):
+                os.remove(scratch_file_format % {"file_nr": file_nr})
+            print("Deleted scratch files.")
     comm_world.barrier()
 
     # Stop the clock

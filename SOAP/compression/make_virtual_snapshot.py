@@ -360,3 +360,5 @@ if __name__ == "__main__":
         absolute_paths=args.absolute_paths,
         discard_duplicate_datasets=args.discard_duplicate_datasets,
     )
+
+    print(f"Done!")

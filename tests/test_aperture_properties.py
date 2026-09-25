@@ -47,13 +47,6 @@ def test_aperture_properties():
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
         parameters.get_aliases()
     )
-    parameters.get_halo_type_variations(
-        "ApertureProperties",
-        {
-            "exclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": False},
-            "inclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": True},
-        },
-    )
 
     pc_exclusive = ExclusiveSphereProperties(
         dummy_halos.get_cell_grid(),

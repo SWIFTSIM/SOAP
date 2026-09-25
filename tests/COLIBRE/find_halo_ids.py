@@ -17,9 +17,11 @@ def find_halo_indices(sim, snap_nr, boxsize):
         index = f["InputHalos/HaloCatalogueIndex"][()]
         is_central = f["InputHalos/IsCentral"][()]
         nstar = f['BoundSubhalo/NumberOfStarParticles'][:]
+        # Diagnostics are written to stderr, so that stdout can be redirected
+        # to a file containing only the halo indices
         if np.sum(is_central[mask]) == 0:
-            print('No centrals loaded')
-        print(f'Max number of stars: {np.max(nstar[mask])}')
+            print('No centrals loaded', file=sys.stderr)
+        print(f'Max number of stars: {np.max(nstar[mask])}', file=sys.stderr)
         return index[mask]
 
 
@@ -29,5 +31,7 @@ if __name__ == "__main__":
     boxsize = float(sys.argv[3])
 
     indices = find_halo_indices(sim, snap_nr, boxsize)
-    indices_list = " ".join([str(i) for i in indices])
-    print(indices_list)
+    # Print one index per line, so that the output can be redirected to a
+    # file which can be passed to SOAP with --halo-indices-file
+    for i in indices:
+        print(i)
