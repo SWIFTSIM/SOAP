@@ -8,4 +8,5 @@ matplotlib
 psutil
 virgodc>=1.0.5
 numba
+healpy
 pytest-mpi
