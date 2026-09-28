@@ -81,6 +81,9 @@ def load_particle_data(snap_basename, membership_basename, ptypes, match_fof, co
 
     # Remove any particles which are not bound to a subhalo
     mask = halo_catalogue_idx != -1
+    if match_fof:
+        # SWIFT sets FOFGroupIDs to this value for particles not in a group
+        mask &= halo_catalogue_idx != 2147483647
     particle_ids = particle_ids[mask]
     halo_catalogue_idx = halo_catalogue_idx[mask]
     rank_bound = rank_bound[mask]
