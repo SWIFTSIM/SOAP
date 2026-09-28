@@ -62,6 +62,7 @@ SubhaloProperties:
     NumberOfStarParticles: true
     NumberOfBlackHoleParticles: true
     MaximumCircularVelocity: true
+    MaximumCircularVelocityRadius: true
     MaximumCircularVelocityUnsoftened: true
     MaximumCircularVelocityRadiusUnsoftened: true
     SpinParameter: true

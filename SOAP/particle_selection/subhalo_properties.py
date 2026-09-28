@@ -2403,6 +2403,7 @@ class SubhaloProperties(HaloProperty):
             "starmetalfrac",
             "Vmax_unsoft",
             "Vmax_soft",
+            "R_vmax_soft",
             "R_vmax_unsoft",
             "DM_Vmax_soft",
             "DM_R_vmax_soft",
