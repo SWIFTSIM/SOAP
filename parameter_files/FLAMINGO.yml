@@ -364,6 +364,7 @@ SubhaloProperties:
     LuminosityWeightedMeanStellarAge: star
     MassWeightedMeanStellarAge: star
     MaximumCircularVelocity: basic
+    MaximumCircularVelocityRadius: basic
     MaximumCircularVelocityRadiusUnsoftened: basic
     MaximumCircularVelocityUnsoftened: basic
     MaximumDarkMatterCircularVelocity: dm

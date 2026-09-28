@@ -285,6 +285,7 @@ SubhaloProperties:
     KappaCorotStars: general
     MassWeightedMeanStellarAge: true
     MaximumCircularVelocity: true
+    MaximumCircularVelocityRadius: true
     MaximumCircularVelocityRadiusUnsoftened: true
     MaximumCircularVelocityUnsoftened: true
     MaximumDarkMatterCircularVelocity: true

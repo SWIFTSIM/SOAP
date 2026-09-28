@@ -188,7 +188,12 @@ class PropertyTable:
             "Tgas_no_cool_no_agn",
         ],
         "footnote_lum.tex": ["StellarLuminosity"],
-        "footnote_circvel.tex": ["R_vmax_unsoft", "Vmax_unsoft", "Vmax_soft"],
+        "footnote_circvel.tex": [
+            "R_vmax_unsoft",
+            "Vmax_unsoft",
+            "R_vmax_soft",
+            "Vmax_soft",
+        ],
         "footnote_spin.tex": ["spin_parameter"],
         "footnote_veldisp_matrix.tex": [
             "veldisp_matrix_gas",
