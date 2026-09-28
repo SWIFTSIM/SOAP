@@ -81,6 +81,9 @@ def load_particle_data(snap_basename, membership_basename, ptypes, match_fof, co
 
     # Remove any particles which are not bound to a subhalo
     mask = halo_catalogue_idx != -1
+    if match_fof:
+        # SWIFT sets FOFGroupIDs to this value for particles not in a group
+        mask &= halo_catalogue_idx != 2147483647
     particle_ids = particle_ids[mask]
     halo_catalogue_idx = halo_catalogue_idx[mask]
     rank_bound = rank_bound[mask]
@@ -158,6 +161,8 @@ def match_sim(
         host_halo_catalogue_idx = psort.fetch_elements(
             catalogue_to_match["halo_catalogue_idx"], host_halo_idx, comm=comm
         )
+        # Copy so we don't modify the caller's array
+        particle_halo_ids_to_match = particle_halo_ids_to_match.copy()
         particle_halo_ids_to_match[is_sat] = host_halo_catalogue_idx
 
     # Sort particles
@@ -267,7 +272,7 @@ def match_sim(
     match_count = np.zeros_like(catalogue["halo_catalogue_idx"])
 
     # Retrieve the values we require, skipping halos which don't have a match
-    idx = psort.parallel_match(catalogue["halo_catalogue_idx"], halo_ids)
+    idx = psort.parallel_match(catalogue["halo_catalogue_idx"], halo_ids, comm=comm)
     match_index[idx != -1] = psort.fetch_elements(
         matched_catalogue_idx, idx[idx != -1], comm=comm
     )
