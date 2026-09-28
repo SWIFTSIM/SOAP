@@ -3760,9 +3760,9 @@ class ApertureParticleData:
             if self.Nstar <= N:
                 indices = slice(None)
             else:
-                indices = np.random.choice(
-                    self.Nstar, size=self.Nstar // N, replace=False
-                )
+                # Seed with the halo index so results are reproducible
+                rng = np.random.default_rng(int(self.index))
+                indices = rng.choice(self.Nstar, size=self.Nstar // N, replace=False)
 
         mass_star = self.mass_star[indices]
 
