@@ -18,11 +18,20 @@ The code is written in python and uses mpi4py for parallelism. Whichever
 install method you use, you will need MPI available so that mpi4py can be
 installed.
 
+We recommend cloning the repository, rather than installing SOAP directly from
+GitHub with pip. The example parameter files, test scripts, and the scripts used
+to generate the documentation are only available in the repository, and the
+commands in [Running SOAP](#running-soap) are run from the root of the
+repository. If you only want to import SOAP as a library, then it can be
+installed with `pip install git+https://github.com/SWIFTSIM/SOAP.git`.
+
 ### Quick install (serial HDF5)
 
-SOAP and its dependencies can be installed directly using the command
+SOAP and its dependencies can be installed using the commands
 ```
-pip install git+https://github.com/SWIFTSIM/SOAP.git
+git clone https://github.com/SWIFTSIM/SOAP.git
+cd SOAP
+pip install .
 ```
 This will usually install a serial version of h5py. SOAP will run correctly,
 but for large simulations the I/O will be slower.
@@ -36,10 +45,21 @@ source against that library before installing SOAP:
 ```
 pip install mpi4py
 export HDF5_MPI="ON"; export CC=mpicc; pip install --no-binary=h5py h5py
-pip install git+https://github.com/SWIFTSIM/SOAP.git
+git clone https://github.com/SWIFTSIM/SOAP.git
+cd SOAP
+pip install .
 ```
 If SOAP (and therefore serial h5py) is already installed, then add the flags
 `--no-cache-dir` and `--force-reinstall` when reinstalling h5py.
+
+### Optional dependencies
+
+Some properties require additional python packages. These properties are
+not computed unless they are explicitly enabled in the parameter file. To
+install the packages needed for all of these properties, run
+```
+pip install ".[extra_properties]"
+```
 
 ### Installation on COSMA
 
@@ -48,6 +68,9 @@ you can install an SOAP virtual environment by running
 `./scripts/cosma_python_env.sh`
 
 ## Running SOAP
+
+The commands in this section should be run from the root of the SOAP
+repository.
 
 The command `./tests/run_small_volume.sh` will download a small example
 simulation, run the group membership and halo properties scripts on it.
@@ -238,7 +261,8 @@ If your property is expensive to compute, or requires additional dependencies,
 set `opt_in_reason` in its `SOAP/property_table.py` entry to a short (20
 characters or less) reason. It will then only be calculated if it is explicitly
 enabled in the parameter file. Any additional dependencies must be imported
-within the `@lazy_property`, not at the top of the file.
+within the `@lazy_property`, not at the top of the file, and added to the
+`extra_properties` section of `pyproject.toml`.
 
 If SOAP does crash while evaluating your new property it will try to
 output the ID of the halo it was processing when it crashed. Then you
