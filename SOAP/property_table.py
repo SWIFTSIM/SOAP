@@ -1294,7 +1294,7 @@ class PropertyTable:
             unit="snap_mass*snap_length**2/snap_time**2",
             description="Total kinetic energy of the particles, relative to the centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
-            dmo_property=False,
+            dmo_property=True,
             particle_properties=[
                 "PartType0/Masses",
                 "PartType0/Velocities",
@@ -1319,7 +1319,7 @@ class PropertyTable:
             unit="snap_mass*snap_length**2/snap_time**2",
             description="Total potential energy of the subhalo.",
             lossy_compression_filter="FMantissa9",
-            dmo_property=False,
+            dmo_property=True,
             particle_properties=[
                 "PartType0/SpecificPotentialEnergies",
                 "PartType0/Masses",

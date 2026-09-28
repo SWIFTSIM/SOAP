@@ -294,6 +294,10 @@ def compute_halo_properties():
             )
 
     aperture_variations = parameter_file.get_halo_type_variations("ApertureProperties")
+    if args.dmo:
+        aperture_variations = parameter_file.remove_non_dmo_apertures(
+            "ApertureProperties", aperture_variations
+        )
 
     # Sort the aperture variations based on their radii, and create a list
     # of all apertures. This is required since we can skip some of the larger
@@ -405,6 +409,10 @@ def compute_halo_properties():
     projected_aperture_variations = parameter_file.get_halo_type_variations(
         "ProjectedApertureProperties"
     )
+    if args.dmo:
+        projected_aperture_variations = parameter_file.remove_non_dmo_apertures(
+            "ProjectedApertureProperties", projected_aperture_variations
+        )
     # Sort the aperture variations based on their radii, and create a list
     # of all apertures. This is required since we can skip some of the larger
     # apertures if all the particles were already included in the previous aperture
@@ -524,6 +532,7 @@ def compute_halo_properties():
         parameter_file.print_unregistered_properties(halo_prop_list, dmo=args.dmo)
         parameter_file.print_skipped_properties(halo_prop_list, dmo=args.dmo)
         parameter_file.print_optin_skipped_properties(halo_prop_list, dmo=args.dmo)
+        parameter_file.print_dmo_skipped_apertures()
         parameter_file.print_invalid_properties(halo_prop_list)
         parameter_file.print_variation_warnings()
         if not parameter_file.renclose_enabled():

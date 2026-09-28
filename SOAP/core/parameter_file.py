@@ -172,6 +172,10 @@ class ParameterFile:
         # be calculated because the input files lack the datasets they need.
         self.uncomputable_properties = {}
 
+        # Apertures which are not calculated in a DMO run because their radius
+        # is defined by a non-DMO property. Stored as {variation: property}
+        self.dmo_skipped_apertures = {}
+
         # Names of the properties used by the filters defined in the parameter
         # file, generated on demand by _filter_property_names()
         self.filter_property_names = None
@@ -486,6 +490,47 @@ class ParameterFile:
             )
             for property in sorted(skipped):
                 print(f"  {property.ljust(40)}{skipped[property]}")
+
+    def remove_non_dmo_apertures(self, base_halo_type: str, variations: Dict) -> Dict:
+        """
+        Remove the variations whose aperture radius is defined by a property
+        which is not calculated in a DMO run. The removed variations are
+        recorded, and can be printed with print_dmo_skipped_apertures().
+
+        Parameters:
+         - base_halo_type: str
+           Halo type identifier in the parameter file, can be one of
+           ApertureProperties or ProjectedApertureProperties.
+         - variations: Dict
+           Dictionary of variations, as returned by get_halo_type_variations.
+
+        Returns the dictionary of variations which can be calculated.
+        """
+        kept = {}
+        for name, variation in variations.items():
+            property_name = variation.get("property")
+            if property_name is not None:
+                prop = _property_by_name(property_name.split("/")[-1])
+                if (prop is not None) and (not prop.dmo_property):
+                    self.dmo_skipped_apertures[f"{base_halo_type}/{name}"] = (
+                        property_name
+                    )
+                    continue
+            kept[name] = variation
+        return kept
+
+    def print_dmo_skipped_apertures(self) -> None:
+        """
+        Print a list of the apertures which are not calculated in a DMO run
+        because their radius is defined by a non-DMO property.
+        """
+        if not len(self.dmo_skipped_apertures):
+            return
+        print(
+            "Not computing the following apertures as they are defined by non-DMO properties:"
+        )
+        for name in sorted(self.dmo_skipped_apertures):
+            print(f"  {name.ljust(60)}{self.dmo_skipped_apertures[name]}")
 
     def print_uncomputable_properties(self) -> None:
         """
