@@ -55,7 +55,7 @@ sim="${SLURM_JOB_NAME}"
 inbase="${scratch_dir}/${sim}/SOAP_uncompressed/"
 
 # Location of the compressed output
-outbase="${output_dir}/${sim}/SOAP/"
+outbase="${output_dir}/${sim}/SOAP-HBT/"
 
 # Create the output folder if it does not exist
 outdir="${outbase}/membership_${snapnum}"
@@ -67,28 +67,39 @@ input_filename="${inbase}/membership_${snapnum}/membership_${snapnum}"
 # Compressed membership file basename
 output_filename="${outbase}/membership_${snapnum}/membership_${snapnum}"
 
-# Determine how many files we have
-nr_files=`ls -1 ${input_filename}.*.hdf5 | wc -l`
-nr_files_minus_one=$(( ${nr_files} - 1 ))
+# Determine how many chunk files we have
+if [[ -f ${input_filename}.0.hdf5 ]] ; then
+  nr_files=`ls -1 ${input_filename}.*.hdf5 | wc -l`
+else
+  nr_files=0
+fi
 
 # run h5repack in parallel using 32 processes on files 0 to 63
 # we could use more processes, but that causes a larger strain for the file
 # system and is therefore not really more efficient
 # make sure to update the 'seq' arguments when there are more/less membership
 # files
-echo Compressing ${nr_files} group membership files
-echo Source     : ${input_filename}
-echo Destination: ${output_filename}
+echo "Source     : ${input_filename}"
+echo "Destination: ${output_filename}"
 
-seq 0 ${nr_files_minus_one} | xargs -I {} -P 32 bash -c \
-  "h5repack -i ${input_filename}.{}.hdf5 -o ${output_filename}.{}.hdf5 -l CHUNK=10000 -f GZIP=4"
+if [[ ${nr_files} -eq 0 ]] ; then
+  # Serial output, so there is a single membership file
+  echo "Compressing single group membership file"
+  h5repack -i ${input_filename}.hdf5 -o ${output_filename}.hdf5 -l CHUNK=10000 -f GZIP=4
+  membership="${output_filename}.hdf5"
+else
+  echo "Compressing ${nr_files} group membership files"
+  nr_files_minus_one=$(( ${nr_files} - 1 ))
+  seq 0 ${nr_files_minus_one} | xargs -I {} -P 32 bash -c \
+    "h5repack -i ${input_filename}.{}.hdf5 -o ${output_filename}.{}.hdf5 -l CHUNK=10000 -f GZIP=4"
+  membership="${output_filename}.{file_nr}.hdf5"
+fi
 
 echo "Setting files to be read-only"
 chmod a=r "${output_filename}"*
 
 echo "Creating virtual snapshot"
 snapshot="${output_dir}/${sim}/snapshots/colibre_${snapnum}/colibre_${snapnum}.hdf5"
-membership="${output_filename}.{file_nr}.hdf5"
 virtual="${outbase}/colibre_with_SOAP_membership_${snapnum}.hdf5"
 python SOAP/compression/make_virtual_snapshot.py \
   --virtual-snapshot $snapshot \
