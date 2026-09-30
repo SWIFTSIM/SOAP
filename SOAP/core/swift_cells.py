@@ -142,6 +142,51 @@ def identify_datasets(filename, nr_files, ptypes, registry):
     return metadata
 
 
+def compute_virBN98(cosmology, a):
+    """
+    Compute the Bryan & Norman (1998) critical density multiple at the
+    given scale factor.
+
+    Parameters:
+     - cosmology: dict
+       Cosmology attributes read from the snapshot.
+     - a: float
+       Scale factor.
+
+    Returns the critical density multiple.
+    """
+    Omega_k = cosmology["Omega_k"]
+    Omega_Lambda = cosmology["Omega_lambda"]
+    Omega_m = cosmology["Omega_m"]
+    bnx = -(Omega_k / a**2 + Omega_Lambda) / (
+        Omega_k / a**2 + Omega_m / a**3 + Omega_Lambda
+    )
+    return 18.0 * np.pi**2 + 82.0 * bnx - 39.0 * bnx**2
+
+
+def compute_dlog_virBN98_dloga(cosmology, a, eps=1e-5):
+    """
+    Compute the logarithmic derivative of the Bryan & Norman (1998) critical
+    density multiple with respect to the scale factor. We difference the
+    expression used to set the multiple itself, so that the two cannot
+    become inconsistent.
+
+    Parameters:
+     - cosmology: dict
+       Cosmology attributes read from the snapshot.
+     - a: float
+       Scale factor.
+     - eps: float
+       Step size in log(a) used for the central difference.
+
+    Returns dlog(virBN98)/dlog(a).
+    """
+    return (
+        np.log(compute_virBN98(cosmology, a * np.exp(eps)))
+        - np.log(compute_virBN98(cosmology, a * np.exp(-eps)))
+    ) / (2 * eps)
+
+
 class SWIFTCellGrid:
     def get_unit(self, name):
         return unyt.Unit(name, registry=self.snap_unit_registry)
@@ -270,15 +315,13 @@ class SWIFTCellGrid:
             )
 
             # Compute the BN98 critical density multiple
-            Omega_k = self.cosmology["Omega_k"]
-            Omega_Lambda = self.cosmology["Omega_lambda"]
-            Omega_m = self.cosmology["Omega_m"]
-            bnx = -(Omega_k / self.a**2 + Omega_Lambda) / (
-                Omega_k / self.a**2 + Omega_m / self.a**3 + Omega_Lambda
-            )
-            self.virBN98 = 18.0 * np.pi**2 + 82.0 * bnx - 39.0 * bnx**2
+            self.virBN98 = compute_virBN98(self.cosmology, self.a)
             if self.virBN98 < 50.0 or self.virBN98 > 1000.0:
                 raise RuntimeError("Invalid value for virBN98!")
+
+            # The BN98 density multiple is time dependent, so its logarithmic
+            # derivative is required to calculate the pseudo-evolution of R_BN98.
+            self.dlog_virBN98_dloga = compute_dlog_virBN98_dloga(self.cosmology, self.a)
 
             # Get the box size. Assume it's comoving with no h factors.
             comoving_length_unit = self.get_unit("snap_length") * self.a_unit

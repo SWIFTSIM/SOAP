@@ -2871,17 +2871,12 @@ class SOParticleData:
             # Adding Hubble flow term
             if hubble:
                 v_r += radii[r_mask] * self.cosmology["H"]
-            # Account for expansion of R_SO
+            # Account for expansion of R_SO. The coefficient depends on the
+            # SO definition, and is set when this calculation is constructed.
             if pseudo_evolve:
-                G = unyt.Unit("newton_G", registry=masses.units.registry)
-                R_dot = (2 / 3) * (G * self.SO_mass * self.cosmology["H"] / 100) ** (
-                    1 / 3
+                v_r -= (
+                    R * self.cosmology["H"] * self.cosmology["pseudo_evolution_coeff"]
                 )
-                R_dot *= (
-                    2 * self.cosmology["Omega_g"] + (3 / 2) * self.cosmology["Omega_m"]
-                )
-                R_dot *= R_frac
-                v_r -= R_dot
 
             # Calculate different flow types
             # We want both the inflow and outflow rates to be positive values
@@ -3447,8 +3442,6 @@ class SOProperties(HaloProperty):
         self.cosmology["H"] = cellgrid.cosmology[
             "H [internal units]"
         ] / cellgrid.get_unit("code_time")
-        self.cosmology["Omega_g"] = cellgrid.cosmology["Omega_g"]
-        self.cosmology["Omega_m"] = cellgrid.cosmology["Omega_m"]
 
         # This specifies how large a sphere is read in:
         # we use default values that are sufficiently small/large to avoid reading in too many particles
@@ -3469,6 +3462,35 @@ class SOProperties(HaloProperty):
             self.virial_definition = True
         elif type == "physical":
             self.physical_radius_mpc = 0.001 * SOval
+
+        # Coefficient used to correct the flow rates for the pseudo-evolution
+        # of the SO radius: Rdot = coeff * R * H, where
+        # coeff = -(1/3) dln(rho_ref)/dln(a) at fixed SO mass, and rho_ref is
+        # the reference density used to define the SO radius.
+        # Derivation is in documentation/pseudo_evolution.pdf
+        # The Omega values in the snapshot are z=0 values, so we scale them.
+        H0_over_H_sq = (
+            cellgrid.cosmology["H0 [internal units]"]
+            / cellgrid.cosmology["H [internal units]"]
+        ) ** 2
+        Omega_m = (
+            (cellgrid.cosmology["Omega_m"] + cellgrid.cosmology.get("Omega_nu_0", 0))
+            * H0_over_H_sq
+            / cellgrid.a**3
+        )
+        Omega_r = cellgrid.cosmology["Omega_r"] * H0_over_H_sq / cellgrid.a**4
+        one_plus_q = 2 * Omega_r + 1.5 * Omega_m
+        if type == "mean":
+            self.cosmology["pseudo_evolution_coeff"] = 1.0
+        elif type == "crit":
+            self.cosmology["pseudo_evolution_coeff"] = (2 / 3) * one_plus_q
+        elif type == "BN98":
+            self.cosmology["pseudo_evolution_coeff"] = (
+                2 * one_plus_q - cellgrid.dlog_virBN98_dloga
+            ) / 3
+        elif type == "physical":
+            # A fixed physical radius does not pseudo-evolve
+            self.cosmology["pseudo_evolution_coeff"] = 0.0
 
         # Give this calculation a name so we can select it on the command line
         if type in ["mean", "crit"]:
