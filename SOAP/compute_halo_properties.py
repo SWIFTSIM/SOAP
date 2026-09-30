@@ -538,6 +538,12 @@ def compute_halo_properties():
                 "BoundSubhalo/EncloseRadius is not enabled. This means apertures with r > r_enclose will be calculated explicitly, rather than copying over values from smaller apertures"
             )
         category_filter.print_filters()
+        cosmology_errors = parameter_file.check_cosmology(cellgrid.cosmology)
+        if len(cosmology_errors):
+            print("The snapshot cosmology is incompatible with some properties:")
+            for error in cosmology_errors:
+                print(f"  {error}", flush=True)
+            comm_world.Abort(1)
 
     # Ensure output dir exists
     if comm_world_rank == 0:

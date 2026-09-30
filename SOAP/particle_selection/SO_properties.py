@@ -249,6 +249,7 @@ class SOParticleData:
         core_excision_fraction: float,
         softening_of_parttype: unyt.unyt_array,
         virial_definition: bool,
+        compute_flow_rates: bool,
         search_radius: unyt.unyt_quantity,
         cosmology: dict,
         boxsize: unyt.unyt_quantity,
@@ -281,6 +282,9 @@ class SOParticleData:
          - virial_definition: bool
            Whether to calculate the properties that are only valid for virial SO
            definitions
+         - compute_flow_rates: bool
+           Whether to calculate the flow rates. These are not valid for SO
+           definitions with a fixed physical radius.
          - search_radius: unyt.unyt_quantity
            Current search radius. Particles are guaranteed to be included up to
            this radius.
@@ -299,6 +303,7 @@ class SOParticleData:
         self.core_excision_fraction = core_excision_fraction
         self.softening_of_parttype = softening_of_parttype
         self.virial_definition = virial_definition
+        self.compute_flow_rates = compute_flow_rates
         self.search_radius = search_radius
         self.cosmology = cosmology
         self.boxsize = boxsize
@@ -2915,7 +2920,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of dark matter through 3 spherical shells
         """
-        if (self.Ndm == 0) or (not self.virial_definition):
+        if (self.Ndm == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -2931,7 +2936,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of stars through 3 spherical shells
         """
-        if (self.Nstar == 0) or (not self.virial_definition):
+        if (self.Nstar == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -2947,7 +2952,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of HI through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -2973,7 +2978,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of H2 through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -3001,7 +3006,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of metals through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -3053,7 +3058,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of cold gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmax = 1.0e3 * unyt.K
@@ -3064,7 +3069,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of cool gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e3 * unyt.K
@@ -3078,7 +3083,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of warm gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e5 * unyt.K
@@ -3092,7 +3097,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of hot gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e7 * unyt.K
@@ -3103,7 +3108,7 @@ class SOParticleData:
         """
         Calculate the energy flow rate of cold gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmax = 1.0e3 * unyt.K
@@ -3116,7 +3121,7 @@ class SOParticleData:
         """
         Calculate the energy flow rate of cool gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e3 * unyt.K
@@ -3130,7 +3135,7 @@ class SOParticleData:
         """
         Calculate the energy flow rate of warm gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e5 * unyt.K
@@ -3144,7 +3149,7 @@ class SOParticleData:
         """
         Calculate the energy flow rate of hot gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e7 * unyt.K
@@ -3157,7 +3162,7 @@ class SOParticleData:
         """
         Calculate the momentum flow rate of cold gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmax = 1.0e3 * unyt.K
@@ -3170,7 +3175,7 @@ class SOParticleData:
         """
         Calculate the momentum flow rate of cool gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e3 * unyt.K
@@ -3184,7 +3189,7 @@ class SOParticleData:
         """
         Calculate the momentum flow rate of warm gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e5 * unyt.K
@@ -3198,7 +3203,7 @@ class SOParticleData:
         """
         Calculate the momentum flow rate of hot gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e7 * unyt.K
@@ -3462,6 +3467,9 @@ class SOProperties(HaloProperty):
             self.virial_definition = True
         elif type == "physical":
             self.physical_radius_mpc = 0.001 * SOval
+        # Flow rates are not computed for a fixed physical radius, since it
+        # does not pseudo-evolve
+        self.compute_flow_rates = type != "physical"
 
         # Coefficient used to correct the flow rates for the pseudo-evolution
         # of the SO radius: Rdot = coeff * R * H, where
@@ -3473,11 +3481,7 @@ class SOProperties(HaloProperty):
             cellgrid.cosmology["H0 [internal units]"]
             / cellgrid.cosmology["H [internal units]"]
         ) ** 2
-        Omega_m = (
-            (cellgrid.cosmology["Omega_m"] + cellgrid.cosmology.get("Omega_nu_0", 0))
-            * H0_over_H_sq
-            / cellgrid.a**3
-        )
+        Omega_m = float(cellgrid.mean_density / cellgrid.critical_density)
         Omega_r = cellgrid.cosmology["Omega_r"] * H0_over_H_sq / cellgrid.a**4
         one_plus_q = 2 * Omega_r + 1.5 * Omega_m
         if type == "mean":
@@ -3488,9 +3492,6 @@ class SOProperties(HaloProperty):
             self.cosmology["pseudo_evolution_coeff"] = (
                 2 * one_plus_q - cellgrid.dlog_virBN98_dloga
             ) / 3
-        elif type == "physical":
-            # A fixed physical radius does not pseudo-evolve
-            self.cosmology["pseudo_evolution_coeff"] = 0.0
 
         # Give this calculation a name so we can select it on the command line
         if type in ["mean", "crit"]:
@@ -3659,6 +3660,7 @@ class SOProperties(HaloProperty):
                 self.core_excision_fraction,
                 self.softening_of_parttype,
                 self.virial_definition,
+                self.compute_flow_rates,
                 search_radius,
                 self.cosmology,
                 self.boxsize,
