@@ -10,4 +10,8 @@ rm test_SO_radius_*.png
 
 mpirun -np 8 pytest -m mpi --with-mpi -W error
 
+# Integration tests (full SOAP runs on the small volume)
+bash tests/run_restart_test.sh
+bash tests/run_chunk_count_test.sh
+
 

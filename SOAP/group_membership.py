@@ -12,6 +12,7 @@ import virgo.mpi.parallel_sort as psort
 from virgo.util.partial_formatter import PartialFormatter
 
 from SOAP.core import combine_args, swift_units
+from SOAP.core.parameter_file import halo_finder_warnings
 from SOAP.catalogue_readers import read_vr
 from SOAP.catalogue_readers import read_hbtplus
 from SOAP.catalogue_readers import read_subfind
@@ -178,17 +179,20 @@ def main():
 
     # Extract parameters we need
     snap_nr = args["Parameters"]["snap_nr"]
-    fof_filename = args["Snapshots"].get("fof_filename", "")
+    fof_filename = args["GroupMembership"].get("fof_ids_filename", "")
     swift_filename = args["Snapshots"]["filename"]
     halo_format = args["HaloFinder"]["type"]
     halo_basename = args["HaloFinder"]["filename"]
     read_potential_energies = args["HaloFinder"].get("read_potential_energies", False)
+    index_by_track_id = args["HaloFinder"].get("index_by_track_id", False)
     output_filename = args["GroupMembership"]["filename"]
 
     if comm_rank == 0:
         print(f"Input snapshot is {swift_filename}")
         print(f"Halo basename is {halo_basename}")
         print(f"Snapshot number is {snap_nr}")
+        for warning in halo_finder_warnings(args["HaloFinder"]):
+            print(warning)
 
     # Substitute in the snapshot number where necessary
     pf = PartialFormatter()
@@ -238,6 +242,7 @@ def main():
                     halo_basename,
                     read_potential_energies=True,
                     registry=registry,
+                    index_by_track_id=index_by_track_id,
                 )
             )
         else:
@@ -246,6 +251,7 @@ def main():
             total_nr_halos, ids_bound, grnr_bound, rank_bound = (
                 read_hbtplus.read_hbtplus_groupnr(
                     halo_basename,
+                    index_by_track_id=index_by_track_id,
                 )
             )
             potential_energies = None

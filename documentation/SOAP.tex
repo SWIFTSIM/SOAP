@@ -11,7 +11,6 @@
 \usepackage{adjustbox}
 \usepackage{hyperref}
 
-\input{filters}
 \input{units}
 
 \title{SOAP -- Spherical Overdensity and Aperture Processor}
@@ -155,15 +154,7 @@ bound to the subhalo.
 \paragraph{}Note that there are no quantities that use a BH or neutrino particle number filter.
 The different categories are summarised in the table below.
 
-\begin{longtable}{ll}
-Name & criterion \\
-\hline{}basic & (all halos) \\
-general & $N_{\rm{}gas}+N_{\rm{}dm}+N_{\rm{}star}+N_{\rm{}BH} \geq{} \generalfilter$ \\
-gas & $N_{\rm{}gas} \geq{} \gasfilter$ \\
-dm & $N_{\rm{}dm} \geq{} \dmfilter$ \\
-star & $N_{\rm{}star} \geq{} \starfilter$ \\
-baryon & $N_{\rm{}gas}+N_{\rm{}star} \geq{} \baryonfilter$ \\
-\end{longtable}
+\input{filters}
 
 \section{Property table}
 

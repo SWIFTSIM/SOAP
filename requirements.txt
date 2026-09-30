@@ -6,6 +6,6 @@ astropy>=6
 scipy
 matplotlib
 psutil
-virgodc>=1.0.3
+virgodc>=1.0.5
 numba
 pytest-mpi

@@ -28,7 +28,6 @@ Alongside these values you must pass `--sim-name` as an argument when running SO
 This section defines the format and location of the SWIFT simulation snapshots. **If there are chunk files you must pass `{file_nr}` in the filepath template**, SOAP does not currently read virtual hdf5 files.
 
 - **filename**: Template for the snapshot files. Use `{snap_nr:04d}` for the snapshot number and `{file_nr}` for the file number, e.g. `"{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"`
-- **fof_filename**: Optional. Path to snapshots with FOF (Friends-of-Friends) IDs if FOF has been re-run. This is only used by the `group_membership.py` script as the values are then stored in the membership files.
 
 ### Extra input
 
@@ -39,15 +38,12 @@ If a dataset is present in both the snapshot and the extra input files, the valu
 
 ### Halo Finder
 
-Settings for the halo finding algorithm and output file locations.
+Settings for the input halo catalogue.
 
-- **type**: The subhalo finder being used. Possible options are `HBTplus`, `VR`, `Subfind`, and `Rockstar`.
-- **filename**: Template for input halo catalogue files. The format of this depends on the halo finder as they each have a different output structure.
-  - HBTplus: `"{sim_dir}/{sim_name}/HBT/{snap_nr:03d}/SubSnap_{snap_nr:03d}"`
-  - Sorted HBTplus: `"{sim_dir}/{sim_name}/HBT/{snap_nr:03d}/OrderedSubSnap_{snap_nr:03d}.hdf5"`
-- **fof_filename**: Template for FOF catalog files. Used for storing host FOF information for central subhalos. Only supported for HBTplus
-- **fof_radius_filename**: Template for FOF catalog files which contain the "Groups/Radii" dataset. These were produced by a post-processing script, and are missing from the main FOFs
-- **read_potential_energies**: Optional boolean value, defaults to False. Whether to read potential energies and place them in the membership files. Only supported for HBTplus
+- **type**: The subhalo finder being used. Possible options are `HBTplus`, `VR`, `Subfind`, `SubfindEagle`, and `Rockstar`.
+- **filename**: Template for input halo catalogue files. The format of this depends on the halo finder.
+
+Some halo finders support additional keys. See [`halo_finders.md`](halo_finders.md) for how to specify each halo finder, and the additional keys each one supports.
 
 
 ### Group Membership
@@ -55,6 +51,7 @@ Settings for the halo finding algorithm and output file locations.
 Configuration for writing group membership files.
 
 - **filename**: Template for group membership file paths, e.g. `"{output_dir}/{sim_name}/SOAP_uncompressed/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"`
+- **fof_ids_filename**: Optional. Template for snapshots with FOF (Friends-of-Friends) IDs, if FOF has been re-run. The FOF IDs are read from these files instead of the original snapshots, and are stored in the membership files.
 
 ### Halo Properties
 
@@ -113,15 +110,7 @@ ApertureProperties:
       radius_multiple: 2.0
 ```
 
-If you do not wish to calculate any apertures then pass any empty dict to both the properties and the variations, e.g.
-
-```
-ApertureProperties:
-  properties:
-    {}
-  variations:
-    {}
-```
+There are no default variations. If the ApertureProperties section is missing, or no `variations` are listed, then no apertures are computed. If `variations` are listed but no properties are enabled, apertures are still skipped unless `calculate_missing_properties` is true. The same applies to the `ProjectedApertureProperties` and `SOProperties` sections below.
 
 ### ProjectedApertureProperties
 
@@ -203,6 +192,13 @@ For each alias the key is the name of the property that SOAP expects, and the va
 SOAP uses filters to determine whether to skip the calculation of an aperture or
 property based on the number of bound particles. This section of the parameter file
 defines the particle limits for each filter. New filters can be added if required.
+Filter properties must be `BoundSubhalo` properties, since filters are evaluated
+before other calculations run.
+
+There are no default filters. Every filter referenced by a property or a halo type
+variation must be defined here, with the sole exception of the implicit `basic`
+filter (always computed, never listed). SOAP raises an error at startup if a
+property or variation references a filter that is not defined.
 
 ```
 filters:
@@ -248,8 +244,8 @@ defined_constants:
 
 Contains information about how to run SOAP
 
-- **min_read_radius_cmpc**: Optional. Using the input halo catalogues SOAP makes an initial guess of the radius around each halo to read in. This value can be set so SOAP will read a minimum radius by default, which can be useful if large SOs are being calculated.
-- **calculate_missing_properties**: Optional, default True. If set to true then SOAP will calculate any properties which are not listed in the parameter file. If set to false then SOAP will ignore these properties 
+- **calculate_missing_properties**: Optional, default True. If set to true then SOAP will calculate any properties which are not listed in the parameter file, provided the input files contain the datasets those properties require. Properties which cannot be calculated are skipped, and are listed at the start of the run. If set to false then SOAP will ignore any property which is not listed in the parameter file. Some properties are flagged as opt-in in the property table (e.g. because they are expensive to compute, or require additional dependencies). These are never calculated unless they are explicitly enabled in the parameter file, and are listed at the start of the run along with the reason they were skipped.
+
 - **reduced_snapshots**: Optional. We create reduced snapshots where we keep the particles within the virial radius of certain objects. The values here determine which halos to keep.
   - **min_halo_mass**: The minimumum M200 halo mass to keep
   - **halo_bin_size_dex**: The size of the halo mass bins
@@ -261,6 +257,7 @@ Contains information about how to run SOAP
   - **maximum_temperature_K**: Value above which gas is not considered to be cold
   - **minimum_hydrogen_number_density_cm3**: Value below which gas gas is not considered to be dense
 - **strict_halo_copy**: Optional, default False. When a halo has multiple ExclusiveSphere/ProjectedAperture halo types which encompass all the bound particles then we just copy across the values rather than recomputing them. There are a small number of properties for which this is not correct. If this flag is set then these properties are set to zero for the larger apertures instead of being copied across.
+- **min_read_radius_cmpc**: Optional. Using the input halo catalogues SOAP makes an initial guess of the radius around each halo to read in. This value can be set so SOAP will read a minimum radius by default, which can be useful if large SOs are being calculated.
 - **separate_chunks**: Optional, default []. SOAP processes subhalos in parallel, but this can cause memory issues if there are subhalos which take up a significant fraction of a node's memory. This parameter allows a list of dictionaries to be passed. Each dictionary must contain two keys: `n_bound_threshold` (which specifies the number of bound particles above which a subhalo should be treated differently) and `n_halo_per_chunk` (which gives the maximum number of subhalos of this size which can be placed on a single chunk). An example is
 ```
   separate_chunks:

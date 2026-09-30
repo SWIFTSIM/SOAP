@@ -79,11 +79,43 @@ def make_virtual_snapshot(
     absolute_paths: If True, use absolute paths; if False, use relative paths
     """
 
-    # Copy the input virtual snapshot to the output
-    shutil.copyfile(snapshot, output_file)
+    # Check whether the input snapshot is a virtual file (distributed output)
+    # or a single file containing all the particle data (serial output)
+    with h5py.File(snapshot, "r") as infile:
+        is_virtual = infile["Header"].attrs.get("Virtual", [1])[0] == 1
 
-    # Open the output file
-    outfile = h5py.File(output_file, "r+")
+    if is_virtual:
+        # Copy the input virtual snapshot to the output
+        shutil.copyfile(snapshot, output_file)
+
+        # Open the output file
+        outfile = h5py.File(output_file, "r+")
+    else:
+        # Avoid copying the particle data by creating virtual datasets
+        # which link to the input snapshot
+        outfile = h5py.File(output_file, "w")
+        with h5py.File(snapshot, "r") as infile:
+            for k, v in infile.attrs.items():
+                outfile.attrs[k] = v
+            for name in infile:
+                # Keep soft links (e.g. GasParticles -> PartType0) as links
+                link = infile.get(name, getlink=True)
+                if isinstance(link, h5py.SoftLink):
+                    outfile[name] = h5py.SoftLink(link.path)
+                    continue
+                # Copy groups with metadata
+                if not name.startswith("PartType"):
+                    infile.copy(infile[name], outfile, name=name)
+                    continue
+                group = outfile.create_group(name)
+                for k, v in infile[name].attrs.items():
+                    group.attrs[k] = v
+                for dset_name, dset in infile[name].items():
+                    layout = h5py.VirtualLayout(shape=dset.shape, dtype=dset.dtype)
+                    layout[...] = h5py.VirtualSource(dset)
+                    vdset = group.create_virtual_dataset(dset_name, layout)
+                    for k, v in dset.attrs.items():
+                        vdset.attrs[k] = v
 
     # Calculate directories for path updates
     abs_snapshot_dir = os.path.abspath(os.path.dirname(snapshot))
@@ -198,6 +230,9 @@ def make_virtual_snapshot(
             else:
                 break
             file_nr += 1
+            # Serial output, so there is only a single auxiliary file
+            if "{file_nr}" not in auxiliary:
+                break
         if file_nr == 0:
             raise IOError(f"Failed to find files matching: {auxiliary}")
 

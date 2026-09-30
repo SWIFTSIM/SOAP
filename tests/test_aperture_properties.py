@@ -13,7 +13,7 @@ from SOAP.particle_selection.aperture_properties import (
     InclusiveSphereProperties,
 )
 
-from dummy_halo_generator import DummyHaloGenerator
+from dummy_halo_generator import DummyHaloGenerator, opt_in_properties
 
 
 def test_aperture_properties():
@@ -41,18 +41,14 @@ def test_aperture_properties():
             "aliases": {
                 "PartType0/ElementMassFractions": "PartType0/SmoothedElementMassFractions",
                 "PartType4/ElementMassFractions": "PartType4/SmoothedElementMassFractions",
-            }
+            },
+            "ApertureProperties": {
+                "properties": opt_in_properties(ExclusiveSphereProperties.property_list)
+            },
         }
     )
     dummy_halos.get_cell_grid().snapshot_datasets.setup_aliases(
         parameters.get_aliases()
-    )
-    parameters.get_halo_type_variations(
-        "ApertureProperties",
-        {
-            "exclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": False},
-            "inclusive_50_kpc": {"radius_in_kpc": 50.0, "inclusive": True},
-        },
     )
 
     pc_exclusive = ExclusiveSphereProperties(

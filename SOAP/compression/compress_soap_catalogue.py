@@ -19,7 +19,8 @@ with open(f"{script_folder}/wrong_compression.yml", "r") as cfile:
     # Load empty dictionary if wrong_compression.yml is empty
     compression_fixes = yaml.safe_load(cfile) or {}
 
-chunksize = 1000
+# 4096 gives a good balance between full and masked reads
+chunksize = 4096
 compression_opts = {"compression": "gzip", "compression_opts": 4}
 
 
@@ -85,14 +86,29 @@ class H5printer(H5visiter):
                 print(name)
 
 
-def create_lossy_dataset(file, name, shape, filter):
+def get_chunk_shape(shape, named_columns):
+    """
+    Work out the chunk shape for a dataset of the given (uncompressed) shape.
+
+    For an ordinary multi-column dataset we chunk as (chunksize, Ncol) so the
+    whole row lives in one chunk, since these are read/used as a whole.
+
+    For a named columns datasets we instead chunk as (chunksize * Ncol, 1) so
+    there is one column per chunk. This lets a reader read a single column.
+    """
+    if len(shape) == 1:
+        return (min(shape[0], chunksize),)
+    elif named_columns:
+        return (min(shape[0], chunksize * shape[1]), 1)
+    else:
+        return (min(shape[0], chunksize), shape[1])
+
+
+def create_lossy_dataset(file, name, shape, filter, named_columns=False):
     fprops = filterdict[filter]
     type = h5py.h5t.decode(fprops["type"])
     new_plist = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
-    if len(shape) == 1:
-        chunk = (min(shape[0], chunksize),)
-    else:
-        chunk = (min(shape[0], chunksize), shape[1])
+    chunk = get_chunk_shape(shape, named_columns)
     new_plist.set_chunk(chunk)
     for f in fprops["filters"]:
         new_plist.set_filter(f[0], f[1], tuple(f[2]))
@@ -112,25 +128,26 @@ def compress_dataset(input_name, output_name, dset):
 
     with h5py.File(input_name, "r") as ifile, h5py.File(output_name, "r+") as ofile:
         group_name = dset.split("/")[0]
-        if group_name == "Cells":
+        if group_name in ("Cells", "SubgridScheme"):
             filter = "None"
         else:
             filter = ifile[dset].attrs["Lossy compression filter"]
         dset_name = dset.split("/")[-1]
         if dset_name in compression_fixes:
             filter = compression_fixes[dset_name]
+        named_columns = (
+            "SubgridScheme/NamedColumns" in ifile
+            and dset_name in ifile["SubgridScheme/NamedColumns"]
+        )
         data = ifile[dset][:]
         if filter == "None":
             if len(data.shape) == 1:
                 compression_opts["chunks"] = min(chunksize, data.shape[0])
             else:
-                compression_opts["chunks"] = (
-                    min(chunksize, data.shape[0]),
-                    data.shape[1],
-                )
+                compression_opts["chunks"] = get_chunk_shape(data.shape, named_columns)
             ofile.create_dataset("data", data=data, **compression_opts)
         else:
-            create_lossy_dataset(ofile, "data", data.shape, filter)
+            create_lossy_dataset(ofile, "data", data.shape, filter, named_columns)
             ofile["data"][:] = data
         for attr in ifile[dset].attrs:
             if attr == "Is Compressed":

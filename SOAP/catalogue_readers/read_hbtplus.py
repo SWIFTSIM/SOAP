@@ -14,12 +14,19 @@ def hbt_filename(hbt_basename, file_nr):
     return f"{hbt_basename}.{file_nr}.hdf5"
 
 
-def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None):
+def read_hbtplus_groupnr(
+    basename, read_potential_energies=False, registry=None, index_by_track_id=False
+):
     """
     Read HBTplus output and return group number for each particle ID
 
     Potential energies will not be returned by default. To return the potential
     energies a unit registry must be passed.
+
+    If index_by_track_id is True then the group number of each particle is the
+    TrackId of its subhalo, rather than the position of the subhalo in the
+    catalogue. This only has an effect for unsorted catalogues, since for
+    sorted catalogues the position is already equal to the TrackId.
 
     """
 
@@ -106,6 +113,7 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
 
         # Number of particles in each subhalo
         halo_size = halos["Nbound"]
+        halo_track_id = halos["TrackId"]
         del halos
 
         # Apply same combination process to potential energies
@@ -152,6 +160,8 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
     total_nr_halos = comm.allreduce(nr_local_halos)
     halo_offset = comm.scan(len(halo_size), op=MPI.SUM) - len(halo_size)
     halo_index = np.arange(nr_local_halos, dtype=int) + halo_offset
+    if index_by_track_id and not sorted_file:
+        halo_index = halo_track_id
     grnr_bound = np.repeat(halo_index, halo_size)
 
     # Assign ranking by binding energy to the particles
@@ -182,7 +192,13 @@ def read_hbtplus_groupnr(basename, read_potential_energies=False, registry=None)
 
 
 def read_hbtplus_catalogue(
-    comm, basename, a_unit, registry, boxsize, keep_orphans=False
+    comm,
+    basename,
+    a_unit,
+    registry,
+    boxsize,
+    keep_orphans=False,
+    index_by_track_id=False,
 ):
     """
     Read in the HBTplus halo catalogue, distributed over communicator comm.
@@ -192,6 +208,9 @@ def read_hbtplus_catalogue(
     a_unit   - unyt a factor
     registry - unyt unit registry
     boxsize  - box size as a unyt quantity
+    index_by_track_id - use the TrackId as the index of each halo. This only
+                        has an effect for unsorted catalogues, since for sorted
+                        catalogues the index is already equal to the TrackId
 
     Returns a dict of unyt arrays with the halo properies.
     Arrays which must always be returned:
@@ -304,6 +323,8 @@ def read_hbtplus_catalogue(
     nr_local_halos = len(keep)
     local_offset = comm.scan(nr_local_halos) - nr_local_halos
     index = np.arange(nr_local_halos, dtype=int) + local_offset
+    if index_by_track_id and not sorted_file:
+        index = subhalo["TrackId"]
     index = index[keep]
     index = unyt.unyt_array(
         index, units=unyt.dimensionless, dtype=int, registry=registry

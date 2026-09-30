@@ -78,7 +78,12 @@ class SOCatalogue:
             )
         elif args.halo_format == "HBTplus":
             halo_data = read_hbtplus.read_hbtplus_catalogue(
-                comm, halo_basename, a_unit, registry, boxsize
+                comm,
+                halo_basename,
+                a_unit,
+                registry,
+                boxsize,
+                index_by_track_id=args.index_by_track_id,
             )
         elif args.halo_format == "Subfind":
             halo_data = read_subfind.read_gadget4_catalogue(

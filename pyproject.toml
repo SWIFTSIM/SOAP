@@ -28,13 +28,18 @@ dependencies = [
     "scipy",
     "matplotlib",
     "psutil",
-    "virgodc",
+    "virgodc>=1.0.5",
 ]
 
 [project.optional-dependencies]
+# Dependencies which are only required by some opt-in properties
+extra_properties = [
+    "healpy",
+]
 test = [
     "pytest-mpi",
     "numba",
+    "SOAP[extra_properties]",
 ]
 
 [project.urls]

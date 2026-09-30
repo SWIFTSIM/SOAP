@@ -74,6 +74,56 @@ def word_wrap_name(name):
     return "".join(output)
 
 
+# LaTeX symbols for the particle number properties that filters are defined
+# on. Any other property falls back to its name typeset as-is.
+FILTER_PROPERTY_SYMBOLS = {
+    "NumberOfGasParticles": r"N_{\rm{}gas}",
+    "NumberOfDarkMatterParticles": r"N_{\rm{}dm}",
+    "NumberOfStarParticles": r"N_{\rm{}star}",
+    "NumberOfBlackHoleParticles": r"N_{\rm{}BH}",
+    "NumberOfNeutrinoParticles": r"N_{\rm{}nu}",
+}
+
+
+def filter_property_symbol(full_name):
+    """
+    Get the LaTeX symbol (for use in maths mode) of a property a filter is
+    defined on, e.g. "BoundSubhalo/NumberOfGasParticles" becomes N_gas.
+
+    Properties of a halo type other than BoundSubhalo get the halo type added
+    as a superscript, since the symbols would otherwise be ambiguous.
+    """
+    halo_type, _, name = full_name.rpartition("/")
+    symbol = FILTER_PROPERTY_SYMBOLS.get(name)
+    if symbol is None:
+        symbol = r"\mathrm{" + name.replace("_", r"\_") + "}"
+    if halo_type and halo_type != "BoundSubhalo":
+        symbol += r"^{\mathrm{" + halo_type.replace("_", r"\_") + "}}"
+    return symbol
+
+
+def filter_criterion(name, filter_info):
+    """
+    Get the LaTeX criterion (for use in maths mode) that a filter applies,
+    e.g. "N_gas + N_star >= 100".
+
+    Parameters:
+     - name: str
+       Name of the filter, only used for error messages.
+     - filter_info: Dict
+       Filter description from the parameter file, see CategoryFilter.
+    """
+    properties = filter_info["properties"]
+    # combine_properties is only required when there are several properties
+    combine = filter_info.get("combine_properties", "sum")
+    if (len(properties) > 1) and (combine != "sum"):
+        raise NotImplementedError(
+            f"Invalid combine_properties function for filter {name}"
+        )
+    symbols = "+".join(filter_property_symbol(prop) for prop in properties)
+    return f"{symbols} \\geq{{}} {filter_info['limit']}"
+
+
 @dataclass
 class Property:
     """
@@ -90,6 +140,13 @@ class Property:
     particle_properties: list
     output_physical: bool
     a_scale_exponent: int
+    # Name of the snapshot particle dataset (e.g. "Luminosities")
+    # whose NamedColumns entry should be copied for this property
+    columns_from_snapshot: str = None
+    # If set, the property is only calculated when it is explicitly enabled in the
+    # parameter file, even if calculate_missing_properties is True. The value is a
+    # short reason (<= 20 chars), which is printed when the property is skipped.
+    opt_in_reason: str = None
 
 
 class PropertyTable:
@@ -131,7 +188,12 @@ class PropertyTable:
             "Tgas_no_cool_no_agn",
         ],
         "footnote_lum.tex": ["StellarLuminosity"],
-        "footnote_circvel.tex": ["R_vmax_unsoft", "Vmax_unsoft", "Vmax_soft"],
+        "footnote_circvel.tex": [
+            "R_vmax_unsoft",
+            "Vmax_unsoft",
+            "R_vmax_soft",
+            "Vmax_soft",
+        ],
         "footnote_spin.tex": ["spin_parameter"],
         "footnote_veldisp_matrix.tex": [
             "veldisp_matrix_gas",
@@ -165,6 +227,13 @@ class PropertyTable:
         ],
         "footnote_compY.tex": ["compY", "compY_no_agn"],
         "footnote_dopplerB.tex": ["DopplerB"],
+        "footnote_asymmetry.tex": [
+            "StellarAsymmetry",
+            "StellarAsymmetryShrink",
+            "StellarAsymmetrySubsample",
+            "StellarAsymmetry48",
+            "StellarAsymmetry192",
+        ],
         "footnote_coreexcision.tex": [
             "Tgas_cy_weighted_core_excision",
             "Tgas_cy_weighted_core_excision_no_agn",
@@ -686,6 +755,7 @@ class PropertyTable:
             particle_properties=["PartType1/Coordinates", "PartType1/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "DarkMatterInertiaTensorReduced": Property(
             name="DarkMatterInertiaTensorReduced",
@@ -698,6 +768,7 @@ class PropertyTable:
             particle_properties=["PartType1/Coordinates", "PartType1/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "DarkMatterInertiaTensorNoniterative": Property(
             name="DarkMatterInertiaTensorNoniterative",
@@ -1223,7 +1294,7 @@ class PropertyTable:
             unit="snap_mass*snap_length**2/snap_time**2",
             description="Total kinetic energy of the particles, relative to the centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
-            dmo_property=False,
+            dmo_property=True,
             particle_properties=[
                 "PartType0/Masses",
                 "PartType0/Velocities",
@@ -1248,7 +1319,7 @@ class PropertyTable:
             unit="snap_mass*snap_length**2/snap_time**2",
             description="Total potential energy of the subhalo.",
             lossy_compression_filter="FMantissa9",
-            dmo_property=False,
+            dmo_property=True,
             particle_properties=[
                 "PartType0/SpecificPotentialEnergies",
                 "PartType0/Masses",
@@ -1289,6 +1360,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "GasInertiaTensorReduced": Property(
             name="GasInertiaTensorReduced",
@@ -1301,6 +1373,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "GasInertiaTensorNoniterative": Property(
             name="GasInertiaTensorNoniterative",
@@ -2165,6 +2238,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedTotalInertiaTensorReduced": Property(
             name="ProjectedTotalInertiaTensorReduced",
@@ -2186,6 +2260,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedTotalInertiaTensorNoniterative": Property(
             name="ProjectedTotalInertiaTensorNoniterative",
@@ -2240,6 +2315,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedGasInertiaTensorReduced": Property(
             name="ProjectedGasInertiaTensorReduced",
@@ -2252,6 +2328,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedGasInertiaTensorNoniterative": Property(
             name="ProjectedGasInertiaTensorNoniterative",
@@ -2288,6 +2365,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorReduced": Property(
             name="ProjectedStellarInertiaTensorReduced",
@@ -2300,6 +2378,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorNoniterative": Property(
             name="ProjectedStellarInertiaTensorNoniterative",
@@ -2340,6 +2419,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorReducedLuminosityWeighted": Property(
             name="ProjectedStellarInertiaTensorReducedLuminosityWeighted",
@@ -2356,6 +2436,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted": Property(
             name="ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted",
@@ -2424,6 +2505,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorReduced": Property(
             name="StellarInertiaTensorReduced",
@@ -2436,6 +2518,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorNoniterative": Property(
             name="StellarInertiaTensorNoniterative",
@@ -2476,6 +2559,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorReducedLuminosityWeighted": Property(
             name="StellarInertiaTensorReducedLuminosityWeighted",
@@ -2492,6 +2576,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorNoniterativeLuminosityWeighted": Property(
             name="StellarInertiaTensorNoniterativeLuminosityWeighted",
@@ -2536,6 +2621,7 @@ class PropertyTable:
             particle_properties=["PartType4/Luminosities"],
             output_physical=True,
             a_scale_exponent=None,
+            columns_from_snapshot="Luminosities",
         ),
         "Tgas": Property(
             name="GasTemperature",
@@ -2741,6 +2827,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "TotalInertiaTensorReduced": Property(
             name="TotalInertiaTensorReduced",
@@ -2762,6 +2849,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "TotalInertiaTensorNoniterative": Property(
             name="TotalInertiaTensorNoniterative",
@@ -3677,6 +3765,84 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=False,
             a_scale_exponent=1,
+        ),
+        "ShrinkingSphereCentre": Property(
+            name="ShrinkingSphereCentre",
+            shape=3,
+            dtype=np.float64,
+            unit="snap_length",
+            description="Shrinking sphere centre computed using stars.",
+            lossy_compression_filter="DScale6",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=False,
+            a_scale_exponent=1,
+            opt_in_reason="Expensive to compute",
+        ),
+        "StellarAsymmetry": Property(
+            name="StellarAsymmetry",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Asymmetry of the stellar mass distribution around the halo centre, computed using 12 HEALPix pixels.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
+        ),
+        "StellarAsymmetryShrink": Property(
+            name="StellarAsymmetryShrink",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="As StellarAsymmetry, but centred on ShrinkingSphereCentre rather than the halo centre.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
+        ),
+        "StellarAsymmetrySubsample": Property(
+            name="StellarAsymmetrySubsample",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="As StellarAsymmetry, but computed using a random subsample of 1/8 of the star particles. All star particles are used if there are 8 or fewer.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
+        ),
+        "StellarAsymmetry48": Property(
+            name="StellarAsymmetry48",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="As StellarAsymmetry, but using 48 HEALPix pixels.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
+        ),
+        "StellarAsymmetry192": Property(
+            name="StellarAsymmetry192",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="As StellarAsymmetry, but using 192 HEALPix pixels.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
         ),
         "compY": Property(
             name="ComptonY",
@@ -5009,7 +5175,8 @@ class PropertyTable:
           - a footnotes.tex file which will contain the contents of
             the various hand-written footnote*.tex files
           - a version and time stamp file, called timestamp.tex
-          - a filters.tex which contains the threshold value of each filter
+          - a filters.tex which contains a table of the filters defined in
+            the parameter file, and the criterion each one applies
           - a variations.tex file which contains a table of all the halo type
             variations present in the parameter file, and the filter for each
 
@@ -5173,11 +5340,22 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                     fnstr = fnstr.replace("$LOG_COLD_GAS_DENSITY$", rho)
                 ofile.write(f"{fnstr}\n\n")
 
-        # Particle limits for each filter
+        # Table of the filters defined in the parameter file. The rows are
+        # generated rather than hard-coded in SOAP.tex because the "filters"
+        # section is optional, and parameter files define different subsets of
+        # filters (or none at all).
         with open(f"{output_dir}/filters.tex", "w") as ofile:
-            for name, filter_info in self.parameters.parameters["filters"].items():
-                value = filter_info["limit"]
-                ofile.write(f"\\newcommand{{\\{name.lower()}filter}}{{{value}}}\n")
+            ofile.write("\\begin{longtable}{ll}\n")
+            ofile.write("Name & criterion \\\\\n")
+            # "basic" is not listed in the parameter file: it is always
+            # satisfied, so every halo has its basic properties calculated
+            ofile.write("\\hline{}basic & (all halos) \\\\\n")
+            for name, filter_info in self.parameters.parameters.get(
+                "filters", {}
+            ).items():
+                criterion = filter_criterion(name, filter_info)
+                ofile.write(f"{name} & ${criterion}$ \\\\\n")
+            ofile.write("\\end{longtable}\n")
 
         # Create table of variations of each halo type, always add BoundSubhalo
         tablestr = """\\pagebreak
