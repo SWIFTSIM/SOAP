@@ -21,6 +21,7 @@ import unyt
 
 from SOAP.core.swift_units import unit_registry_from_snapshot
 from SOAP.core.snapshot_datasets import SnapshotDatasets
+from SOAP.core.swift_cells import compute_virBN98, compute_dlog_virBN98_dloga
 from SOAP.property_table import PropertyTable
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 from SOAP.particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
@@ -475,15 +476,13 @@ class DummyCellGrid:
         )
         self.mean_density = self.critical_density * self.cosmology["Omega_m"]
         # Compute the BN98 critical density multiple
-        Omega_k = self.cosmology["Omega_k"]
-        Omega_Lambda = self.cosmology["Omega_lambda"]
-        Omega_m = self.cosmology["Omega_m"]
-        bnx = -(Omega_k / self.a**2 + Omega_Lambda) / (
-            Omega_k / self.a**2 + Omega_m / self.a**3 + Omega_Lambda
-        )
-        self.virBN98 = 18.0 * np.pi**2 + 82.0 * bnx - 39.0 * bnx**2
+        self.virBN98 = compute_virBN98(self.cosmology, self.a)
         if self.virBN98 < 50.0 or self.virBN98 > 1000.0:
             raise RuntimeError("Invalid value for virBN98!")
+
+        # The BN98 density multiple is time dependent, so its logarithmic
+        # derivative is required to calculate the pseudo-evolution of R_BN98
+        self.dlog_virBN98_dloga = compute_dlog_virBN98_dloga(self.cosmology, self.a)
 
         # Get the box size. Assume it's comoving with no h factors.
         comoving_length_unit = self.get_unit("snap_length") * self.a_unit

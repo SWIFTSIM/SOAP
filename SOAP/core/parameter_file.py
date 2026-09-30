@@ -588,6 +588,30 @@ class ParameterFile:
             for base_halo_type, prop in invalid_properties:
                 print(f"  {base_halo_type}  {prop}")
 
+    def check_cosmology(self, cosmology: Dict) -> List[str]:
+        """
+        Check that the cosmology is compatible with the properties that will
+        be calculated. This must be called after all the halo types have been
+        created, since that is when the property filters are set.
+
+        Parameters:
+         - cosmology: Dict
+           Cosmology attributes read from the snapshot.
+
+        Returns a list of error messages, which is empty if there are no problems.
+        """
+        errors = []
+
+        # The pseudo-evolution correction for the flow rates assumes flat LCDM
+        SO_filters = self.property_filters.get("SOProperties", {})
+        if any(f for name, f in SO_filters.items() if name.endswith("FlowRate")):
+            if abs(cosmology["Omega_k"]) > 1e-6:
+                errors.append("SO flow rates can only be computed if Omega_k=0")
+            if (cosmology["w_0"] != -1) or (cosmology["w_a"] != 0):
+                errors.append("SO flow rates can only be computed if w_0=-1, w_a=0")
+
+        return errors
+
     def has_enabled_properties(self, base_halo_type: str) -> bool:
         """
         Return True if the parameter file enables at least one property for the

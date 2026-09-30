@@ -3417,7 +3417,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of dark matter particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of dark matter particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[
@@ -3433,7 +3433,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3450,7 +3450,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3467,7 +3467,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3484,7 +3484,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3501,7 +3501,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of gas particles through spherical shells weighted by HI fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of gas particles through spherical shells weighted by HI fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3519,7 +3519,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of gas particles through spherical shells weighted by H2 fraction. Does not include Helium. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of gas particles through spherical shells weighted by H2 fraction. Does not include Helium. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3537,7 +3537,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of gas particles through spherical shells weighted by metal fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of gas particles through spherical shells weighted by metal fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3554,7 +3554,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of star particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of star particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3570,7 +3570,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**3",
-            description="Energy flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Energy flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3588,7 +3588,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**3",
-            description="Energy flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Energy flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3606,7 +3606,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**3",
-            description="Energy flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Energy flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3624,7 +3624,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**3",
-            description="Energy flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Energy flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3642,7 +3642,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length/snap_time**2",
-            description="Momentum flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Momentum flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3660,7 +3660,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length/snap_time**2",
-            description="Momentum flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Momentum flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3678,7 +3678,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length/snap_time**2",
-            description="Momentum flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Momentum flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3696,7 +3696,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length/snap_time**2",
-            description="Momentum flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Momentum flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
