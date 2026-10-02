@@ -15,7 +15,7 @@
 #
 #SBATCH --ntasks=128
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/compress_membership.%a.%A.out
+#SBATCH -o ./logs/%x/compress_membership.%a.%A.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
@@ -60,6 +60,7 @@ outbase="${output_dir}/${sim}/SOAP-HBT/"
 # Create the output folder if it does not exist
 outdir="${outbase}/membership_${snapnum}"
 mkdir -p "${outdir}"
+lfs setstripe --stripe-count=-1 --stripe-size=32M "${outdir}"
 
 # Uncompressed membership file basename
 input_filename="${inbase}/membership_${snapnum}/membership_${snapnum}"

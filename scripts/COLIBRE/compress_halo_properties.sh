@@ -11,7 +11,7 @@
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH -o ./logs/compress_properties.%a.%A.out
+#SBATCH -o ./logs/%x/compress_properties.%a.%A.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
@@ -41,7 +41,7 @@ sim="${SLURM_JOB_NAME}"
 input_filename="${input_dir}/${sim}/SOAP_uncompressed/halo_properties_${snapnum}.hdf5"
 
 # Location and name of the output SOAP catalogue
-outbase="${output_dir}/${sim}/SOAP-ExSitu"
+outbase="${output_dir}/${sim}/SOAP-HBT"
 mkdir -p $outbase
 output_filename="${outbase}/halo_properties_${snapnum}.hdf5"
 
