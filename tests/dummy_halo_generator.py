@@ -223,6 +223,7 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Luminosities",
                 "MetalMassFractions",
                 "BirthScaleFactors",
+                "AveragedStarFormationRates",
                 "SNIaRates",
                 "BirthDensities",
                 "BirthTemperatures",
@@ -1233,6 +1234,12 @@ class DummyHaloGenerator:
                 registry=reg,
             )
             data["PartType4"]["Velocities"] = vs[star_mask]
+            data["PartType4"]["AveragedStarFormationRates"] = unyt.unyt_array(
+                300.0 * np.random.random((Nstar, 2)),
+                dtype=np.float32,
+                units="snap_mass/snap_time",
+                registry=reg,
+            )
 
         # BH properties
         bh_mask = types == "PartType5"

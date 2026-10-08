@@ -2,3 +2,11 @@
 the 10Myr/100Myr that precedes the writing of a snapshot, and then normalising. For example for SFR we start a clock precisely 10Myr before a snapshot
 dump, accumulate SFR * dt at each step during that window, and then divide by 10Myr at the point of writing.
 
+For \verb+AveragedStarFormationRate+ we sum the averaged SFRs of both the gas and
+the star particles. When a gas particle is converted into a star particle the value
+it has accumulated so far is copied to the star particle, and accumulation then
+stops. Star particles that formed before the start of the averaging window have a
+value of zero. The value of each star particle is normalised by the length of
+the averaging window (not the time since the star formed), so summing the contribution of the gas and star particles
+gives the total star formation rate averaged over the window.
+

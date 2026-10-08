@@ -1693,15 +1693,24 @@ class ApertureParticleData:
     @lazy_property
     def AveragedStarFormationRate(self) -> unyt.unyt_array:
         """
-        Averaged star formation rates of gas particles. Averaging times are
-        set by the value of 'recording_triggers' in the SWIFT parameter file.
+        Averaged star formation rates of gas particles, plus the averaged
+        star formation rates star particles accumulated before they were
+        converted from gas. Averaging times are set by the value of
+        'recording_triggers' in the SWIFT parameter file.
         """
-        if self.Ngas == 0:
-            return None
-        avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[
-            self.gas_mask_all
-        ][self.gas_mask_ap]
-        return np.sum(avg_SFR, axis=0)
+        avg_SFR = None
+        if self.Ngas > 0:
+            gas_avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[
+                self.gas_mask_all
+            ][self.gas_mask_ap]
+            avg_SFR = np.sum(gas_avg_SFR, axis=0)
+        if self.Nstar > 0:
+            star_avg_SFR = self.get_dataset("PartType4/AveragedStarFormationRates")[
+                self.star_mask_all
+            ][self.star_mask_ap]
+            star_avg_SFR = np.sum(star_avg_SFR, axis=0)
+            avg_SFR = star_avg_SFR if avg_SFR is None else avg_SFR + star_avg_SFR
+        return avg_SFR
 
     @lazy_property
     def is_SFR(self) -> NDArray[bool]:
