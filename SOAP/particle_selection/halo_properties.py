@@ -25,6 +25,7 @@ class HaloProperty:
         self.softening_of_parttype = {
             "PartType0": cellgrid.baryon_softening,
             "PartType1": cellgrid.dark_matter_softening,
+            "PartType3": cellgrid.baryon_softening,
             "PartType4": cellgrid.baryon_softening,
             "PartType5": cellgrid.baryon_softening,
             "PartType6": cellgrid.nu_softening,
