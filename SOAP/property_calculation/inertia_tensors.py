@@ -335,6 +335,9 @@ def get_weighted_projected_inertia_tensor(
         tensor = tensor.sum(axis=0)
         eig_val, eig_vec = np.linalg.eigh(tensor.value)
 
+        # Handle overflows into negative values of very small eigenvalues
+        eig_val = np.abs(eig_val)
+
         # Handle cases where there is only one particle after iterating.
         if q == 0:
             tensor.fill(0)

@@ -1,7 +1,7 @@
 Parameters:
   sim_dir:     /cosma8/data/dp004/flamingo/Runs/
-  output_dir:  output/
-  scratch_dir: output/
+  output_dir:  test_output/
+  scratch_dir: test_output/
 
 Snapshots:
   filename: "{sim_dir}/{sim_name}/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"

@@ -1,25 +1,64 @@
 # SOAP: Spherical Overdensity and Aperture Processor
 
-[![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.08252/status.svg)](https://doi.org/10.21105/joss.08252) 
 
 This repository contains programs which can be used to compute
-properties of halos in spherical apertures in [SWIFT](https://swift.strw.leidenuniv.nl/) snapshots.
+properties of halos in spherical apertures in
+[SWIFT](https://swift.strw.leidenuniv.nl/) snapshots.
 The resulting output halo catalogues can be read using the
 [swiftsimio](https://swiftsimio.readthedocs.io/en/latest/)
 python package.
 
+Please cite SOAP using the
+[JOSS paper](https://ui.adsabs.harvard.edu/abs/2025JOSS...10.8252M).
+
 ## Installation
 
-The code is written in python and uses mpi4py for parallelism.
-IO is carried out in parallel, and so [parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is required. SOAP and it's dependencies can also be 
-installed directly using the command
-`pip install git+https://github.com/SWIFTSIM/SOAP.git@soap_runtime`
-but this may install a serial version of h5py. Therefore the following
-steps are recommended for install
+The code is written in python and uses mpi4py for parallelism. Whichever
+install method you use, you will need MPI available so that mpi4py can be
+installed.
+
+We recommend cloning the repository, rather than installing SOAP directly from
+GitHub with pip. The example parameter files, test scripts, and the scripts used
+to generate the documentation are only available in the repository, and the
+commands in [Running SOAP](#running-soap) are run from the root of the
+repository. If you only want to import SOAP as a library, then it can be
+installed with `pip install git+https://github.com/SWIFTSIM/SOAP.git`.
+
+### Quick install (serial HDF5)
+
+SOAP and its dependencies can be installed using the commands
+```
+git clone https://github.com/SWIFTSIM/SOAP.git
+cd SOAP
+pip install .
+```
+This will usually install a serial version of h5py. SOAP will run correctly,
+but for large simulations the I/O will be slower.
+
+### Recommended install (parallel HDF5)
+
+For large runs, [parallel h5py](https://docs.h5py.org/en/stable/mpi.html) is
+recommended so that I/O is carried out in parallel. This requires an HDF5
+library which was itself built with MPI support. h5py must then be built from
+source against that library before installing SOAP:
 ```
 pip install mpi4py
 export HDF5_MPI="ON"; export CC=mpicc; pip install --no-binary=h5py h5py
-pip install git+https://github.com/SWIFTSIM/SOAP.git
+git clone https://github.com/SWIFTSIM/SOAP.git
+cd SOAP
+pip install .
+```
+If SOAP (and therefore serial h5py) is already installed, then add the flags
+`--no-cache-dir` and `--force-reinstall` when reinstalling h5py.
+
+### Optional dependencies
+
+Some properties require additional python packages. These properties are
+not computed unless they are explicitly enabled in the parameter file. To
+install the packages needed for all of these properties, run
+```
+pip install ".[extra_properties]"
 ```
 
 ### Installation on COSMA
@@ -30,9 +69,12 @@ you can install an SOAP virtual environment by running
 
 ## Running SOAP
 
+The commands in this section should be run from the root of the SOAP
+repository.
+
 The command `./tests/run_small_volume.sh` will download a small example
 simulation, run the group membership and halo properties scripts on it.
-This uses the parameter file at `./tests/run_small_volume.yml`, and the
+This uses the parameter file at `./tests/small_volume.yml`, and the
 resulting catalogue is placed in the `output` directory. It also generates the
 pdf documentation to describe the output file (which is written to
 `documentation/SOAP.pdf`). 
@@ -50,7 +92,7 @@ the snapshot number, and a parameter file. For example:
 ```
 snapnum=0077
 sim=L1000N0900/DMO_FIDUCIAL
-mpirun python python SOAP/group_membership.py \
+mpirun python SOAP/group_membership.py \
     --sim-name=${sim} --snap-nr=${snapnum} parameter_files/FLAMINGO.yml
 ```
 
@@ -96,9 +138,62 @@ mpirun python -u SOAP/compute_halo_properties.py \
 Here, `--chunks` determines how many chunks the simulation box is
 split into. Ideally it should be set such that one chunk fills a compute node.
 
-The optional `--max-ranks-reading` flag determines how many MPI ranks per node
-read the snapshot. This can be used to avoid overloading the file system. The
-default value is 32.
+As each chunk finishes, its halo properties are written to a scratch file in the
+directory given by `chunk_dir`; once all chunks are done these are combined into
+the final catalogue and then deleted. If a run is interrupted, rerunning it with
+the same arguments reuses any scratch files that were completely written rather
+than recomputing those chunks.
+
+### Selecting which subhalos to process
+
+By default SOAP calculates properties for every subhalo in the input catalogue.
+There are a number of flags which can be used to process only a subset of them.
+
+The `--centrals-only` flag discards satellites, so that only central subhalos are
+processed.
+
+Individual subhalos can be selected with the `--halo-indices` flag.
+This specifies the index of the required subhalos in the halo catalogue, which is
+the quantity written to `InputHalos/HaloCatalogueIndex`.
+
+For larger numbers of subhalos the indices can be listed in a text file, which is
+passed with the `--halo-indices-file` flag.
+The file must contain one index per line. Blank lines, and anything following a
+`#`, are ignored. Duplicate indices are discarded.
+
+### Command line arguments
+
+The arguments listed here are passed on the command line, and cannot be set in
+the parameter file.
+
+`SOAP/group_membership.py`:
+
+| Argument | Description |
+| --- | --- |
+| `config_file` | Name of the yaml parameter file. Required |
+| `--sim-name` | Name of the simulation to process |
+| `--snap-nr` | Snapshot number to process |
+
+`SOAP/compute_halo_properties.py`:
+
+| Argument | Default | Description |
+| --- | --- | --- |
+| `config_file` | | Name of the yaml parameter file. Required |
+| `--sim-name` | | Name of the simulation to process |
+| `--snap-nr` | | Snapshot number to process |
+| `--chunks` | 1 | Number of chunks to split the volume into. Should be at least the number of compute nodes |
+| `--dmo` | off | Run in dark matter only mode, skipping any hydro-only properties |
+| `--centrals-only` | off | Only process central halos, discarding satellites. See [Selecting which subhalos to process](#selecting-which-subhalos-to-process) |
+| `--halo-indices` | | Only process the listed halo indices. See [Selecting which subhalos to process](#selecting-which-subhalos-to-process) |
+| `--halo-indices-file` | | Only process the halo indices listed in the given file. See [Selecting which subhalos to process](#selecting-which-subhalos-to-process) |
+| `--max-halos` | 0 (all) | Only process the first N halos in the catalogue. See [Debugging](#debugging) |
+| `--record-halo-timings` | off | Record the time taken to process each halo. See [Timing](#timing) |
+| `--record-property-timings` | off | Record the time taken to calculate each property. This doubles the size of the output catalogue. See [Timing](#timing) |
+| `--reference-snapshot` | | Number of a snapshot which contains all particle types. Used to determine the datasets and units of any particle types which are missing from the snapshot being processed, e.g. stars or black holes at high redshift |
+| `--snipshot` / `--snapshot` | auto | Force snipshot or snapshot mode. By default this is determined from the value of `SelectOutput` in the snapshot header |
+| `--profile` | 0 | Run with profiling. See [Profiling](#profiling) |
+| `--max-ranks-reading` | 32 | Number of MPI ranks per node which read snapshot data. Can be reduced to avoid overloading the file system |
+| `--output-parameters` | | Where to write the parameters used by this run, in yaml format |
 
 ### Parameter files
 
@@ -106,8 +201,10 @@ To run either of the programs a parameters file must be passed. This
 contains information including the input and output directories,
 the halo finder to use, which halo definitions to use, and
 which properties to calculate for each halo definition. A description
-of all possible fields, and a number of example parameter files
-can be found in the `parameters_files` directory.
+of all possible fields can be found in
+[`parameter_files/README.md`](parameter_files/README.md), alongside a number
+of example parameter files. How to specify each of the supported halo finders is
+described in [`parameter_files/halo_finders.md`](parameter_files/halo_finders.md).
 
 ### Compression
 
@@ -116,12 +213,14 @@ The first is lossless compression via GZIP, the second is lossy compression.
 For the group membership files we only apply lossless compression. However,
 each property in the final SOAP catalogue has a lossy compression filter
 associated with it, which are set in `SOAP/property_table.py`. The script 
-`compression/compress_soap_catalogue.py` will apply both lossy and
+`SOAP/compression/compress_soap_catalogue.py` will apply both lossy and
 lossless compression to SOAP catalogues.
 
 ### Documentation
 
 A pdf describing the SOAP output can be generated. First run `SOAP/property_table.py` passing the parameter file used to run SOAP (to get the properties and halo types to include) and a snapshot (to get the units), e.g. `python SOAP/property_table.py parameter_files/COLIBRE_THERMAL.yml /cosma8/data/dp004/colibre/Runs/L0100N0752/Thermal/snapshots/colibre_0127/colibre_0127.hdf5`. This will generate a table containing all the properties which are enabled in the parameter file. To create the pdf run `cd documentation; pdflatex SOAP.tex; pdflatex SOAP.tex`. If you wish to see all possible properties then first run `python SOAP/property_table.py`, and then generate the pdf.
+
+The `property_table.py` script also generates the file `documentation/property_table.rst`, which is a version of the property table that can be useful for sphnix websites.
 
 ### Slurm scripts for running on COSMA
 
@@ -135,12 +234,13 @@ the job name with the slurm sbatch -J flag.
 
 ## Modifying the code
 
-You can install an editable version of SOAP by cloning this repository and running:
+You can install an editable version of SOAP by cloning this repository and
+following the [installation](#installation) steps above, but replacing the
+final command with
 ```
-pip install mpi4py
-export HDF5_MPI="ON"; export CC=mpicc; pip install --no-binary=h5py h5py
-pip install -e .
+pip install -e ".[test]"
 ```
+This also installs the optional dependencies required to run the tests.
 
 The property calculations are defined in the following files in the `SOAP/particle_selection` directory:
 
@@ -155,7 +255,14 @@ Adding new quantities to already defined SOAP apertures is relatively easy. Ther
   * Next you have to add the quantity to the type of aperture you want it to be calculated for (`aperture_properties.py`, `SO_properties.py`, `subhalo_properties.py`, or `projected_aperture_properties.py`). In all these files there is a class named `property_list` which defines the subset of all properties that are calculated for this specific aperture.
   * To calculate your quantity you have to define a `@lazy_property` with the same name in the `XXParticleData` class in the same file. There should be a lot of examples of different quantities that are already calculated. An important thing to note is that fields that are used for multiple calculations should have their own `@lazy_property` to avoid loading things multiple times, so check if the things that you need are already there.
   * Add the property to the parameter file.
-  * At this point everything should now work. To test the newly added quantities you can run a unit test using `pytest -W error -m pytest tests/test_{NAME_OF_FILE}`. This checks whether the code crashes, and whether there are problems with units and overflows. This should make sure that SOAP never crashes while calculating the new properties.
+  * At this point everything should now work. To test the newly added quantities you can run a unit test using `pytest -W error tests/test_{NAME_OF_FILE}.py`. This checks whether the code crashes, and whether there are problems with units and overflows. This should make sure that SOAP never crashes while calculating the new properties.
+
+If your property is expensive to compute, or requires additional dependencies,
+set `opt_in_reason` in its `SOAP/property_table.py` entry to a short (20
+characters or less) reason. It will then only be calculated if it is explicitly
+enabled in the parameter file. Any additional dependencies must be imported
+within the `@lazy_property`, not at the top of the file, and added to the
+`extra_properties` section of `pyproject.toml`.
 
 If SOAP does crash while evaluating your new property it will try to
 output the ID of the halo it was processing when it crashed. Then you
@@ -190,8 +297,9 @@ mpirun.
 The `-Werror` flag is useful for making pdb stop on warnings. E.g. division by
 zero in the halo property calculations will be caught.
 
-It is also possible to select individual halos to process with the `--halo-indices`
-flag. This specifies the index of the required halos in the halo catalogue. E.g.
+If SOAP crashes while processing a particular halo it will try to report the
+index of that halo, which can then be re-run on its own with the
+`--halo-indices` flag, e.g.
 ```
 python3 -Werror -m pdb ./compute_halo_properties.py --halo-indices 1 2 3 ...
 ```

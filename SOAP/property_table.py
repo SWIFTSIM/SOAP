@@ -74,6 +74,56 @@ def word_wrap_name(name):
     return "".join(output)
 
 
+# LaTeX symbols for the particle number properties that filters are defined
+# on. Any other property falls back to its name typeset as-is.
+FILTER_PROPERTY_SYMBOLS = {
+    "NumberOfGasParticles": r"N_{\rm{}gas}",
+    "NumberOfDarkMatterParticles": r"N_{\rm{}dm}",
+    "NumberOfStarParticles": r"N_{\rm{}star}",
+    "NumberOfBlackHoleParticles": r"N_{\rm{}BH}",
+    "NumberOfNeutrinoParticles": r"N_{\rm{}nu}",
+}
+
+
+def filter_property_symbol(full_name):
+    """
+    Get the LaTeX symbol (for use in maths mode) of a property a filter is
+    defined on, e.g. "BoundSubhalo/NumberOfGasParticles" becomes N_gas.
+
+    Properties of a halo type other than BoundSubhalo get the halo type added
+    as a superscript, since the symbols would otherwise be ambiguous.
+    """
+    halo_type, _, name = full_name.rpartition("/")
+    symbol = FILTER_PROPERTY_SYMBOLS.get(name)
+    if symbol is None:
+        symbol = r"\mathrm{" + name.replace("_", r"\_") + "}"
+    if halo_type and halo_type != "BoundSubhalo":
+        symbol += r"^{\mathrm{" + halo_type.replace("_", r"\_") + "}}"
+    return symbol
+
+
+def filter_criterion(name, filter_info):
+    """
+    Get the LaTeX criterion (for use in maths mode) that a filter applies,
+    e.g. "N_gas + N_star >= 100".
+
+    Parameters:
+     - name: str
+       Name of the filter, only used for error messages.
+     - filter_info: Dict
+       Filter description from the parameter file, see CategoryFilter.
+    """
+    properties = filter_info["properties"]
+    # combine_properties is only required when there are several properties
+    combine = filter_info.get("combine_properties", "sum")
+    if (len(properties) > 1) and (combine != "sum"):
+        raise NotImplementedError(
+            f"Invalid combine_properties function for filter {name}"
+        )
+    symbols = "+".join(filter_property_symbol(prop) for prop in properties)
+    return f"{symbols} \\geq{{}} {filter_info['limit']}"
+
+
 @dataclass
 class Property:
     """
@@ -90,6 +140,13 @@ class Property:
     particle_properties: list
     output_physical: bool
     a_scale_exponent: int
+    # Name of the snapshot particle dataset (e.g. "Luminosities")
+    # whose NamedColumns entry should be copied for this property
+    columns_from_snapshot: str = None
+    # If set, the property is only calculated when it is explicitly enabled in the
+    # parameter file, even if calculate_missing_properties is True. The value is a
+    # short reason (<= 20 chars), which is printed when the property is skipped.
+    opt_in_reason: str = None
 
 
 class PropertyTable:
@@ -131,7 +188,12 @@ class PropertyTable:
             "Tgas_no_cool_no_agn",
         ],
         "footnote_lum.tex": ["StellarLuminosity"],
-        "footnote_circvel.tex": ["R_vmax_unsoft", "Vmax_unsoft", "Vmax_soft"],
+        "footnote_circvel.tex": [
+            "R_vmax_unsoft",
+            "Vmax_unsoft",
+            "R_vmax_soft",
+            "Vmax_soft",
+        ],
         "footnote_spin.tex": ["spin_parameter"],
         "footnote_veldisp_matrix.tex": [
             "veldisp_matrix_gas",
@@ -142,14 +204,6 @@ class PropertyTable:
             "proj_veldisp_gas",
             "proj_veldisp_dm",
             "proj_veldisp_star",
-        ],
-        "footnote_elements.tex": [
-            "gasOfrac",
-            "gasOfrac_SF",
-            "gasFefrac",
-            "gasFefrac_SF",
-            "gasmetalfrac",
-            "gasmetalfrac_SF",
         ],
         "footnote_halfmass.tex": [
             "HalfMassRadiusTot",
@@ -173,6 +227,13 @@ class PropertyTable:
         ],
         "footnote_compY.tex": ["compY", "compY_no_agn"],
         "footnote_dopplerB.tex": ["DopplerB"],
+        "footnote_asymmetry.tex": [
+            "StellarAsymmetry",
+            "StellarAsymmetryShrink",
+            "StellarAsymmetrySubsample",
+            "StellarAsymmetry48",
+            "StellarAsymmetry192",
+        ],
         "footnote_coreexcision.tex": [
             "Tgas_cy_weighted_core_excision",
             "Tgas_cy_weighted_core_excision_no_agn",
@@ -694,6 +755,7 @@ class PropertyTable:
             particle_properties=["PartType1/Coordinates", "PartType1/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "DarkMatterInertiaTensorReduced": Property(
             name="DarkMatterInertiaTensorReduced",
@@ -706,6 +768,7 @@ class PropertyTable:
             particle_properties=["PartType1/Coordinates", "PartType1/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "DarkMatterInertiaTensorNoniterative": Property(
             name="DarkMatterInertiaTensorNoniterative",
@@ -1231,7 +1294,7 @@ class PropertyTable:
             unit="snap_mass*snap_length**2/snap_time**2",
             description="Total kinetic energy of the particles, relative to the centre of mass velocity.",
             lossy_compression_filter="FMantissa9",
-            dmo_property=False,
+            dmo_property=True,
             particle_properties=[
                 "PartType0/Masses",
                 "PartType0/Velocities",
@@ -1256,7 +1319,7 @@ class PropertyTable:
             unit="snap_mass*snap_length**2/snap_time**2",
             description="Total potential energy of the subhalo.",
             lossy_compression_filter="FMantissa9",
-            dmo_property=False,
+            dmo_property=True,
             particle_properties=[
                 "PartType0/SpecificPotentialEnergies",
                 "PartType0/Masses",
@@ -1297,6 +1360,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "GasInertiaTensorReduced": Property(
             name="GasInertiaTensorReduced",
@@ -1309,6 +1373,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "GasInertiaTensorNoniterative": Property(
             name="GasInertiaTensorNoniterative",
@@ -1860,7 +1925,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Fraction of mass that is bound to a satellite in the same FOF group.",
+            description="Fraction of mass that is bound to a satellite in the same FoF group.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[
@@ -1885,7 +1950,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Fraction of mass that is bound to a satellite outside this FOF group.",
+            description="Fraction of mass that is bound to a satellite outside this FoF group.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[
@@ -1901,6 +1966,22 @@ class PropertyTable:
                 "PartType1/GroupNr_bound",
                 "PartType4/GroupNr_bound",
                 "PartType5/GroupNr_bound",
+            ],
+            output_physical=True,
+            a_scale_exponent=0,
+        ),
+        "ExSituFraction": Property(
+            name="ExSituFraction",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Mass fraction of bound stars that formed in a different subhalo",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=True,
+            particle_properties=[
+                "PartType4/Masses",
+                "PartType4/BirthHaloCatalogueIndex",
+                "PartType4/GroupNr_bound",
             ],
             output_physical=True,
             a_scale_exponent=0,
@@ -2157,6 +2238,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedTotalInertiaTensorReduced": Property(
             name="ProjectedTotalInertiaTensorReduced",
@@ -2178,6 +2260,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedTotalInertiaTensorNoniterative": Property(
             name="ProjectedTotalInertiaTensorNoniterative",
@@ -2232,6 +2315,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedGasInertiaTensorReduced": Property(
             name="ProjectedGasInertiaTensorReduced",
@@ -2244,6 +2328,7 @@ class PropertyTable:
             particle_properties=["PartType0/Coordinates", "PartType0/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedGasInertiaTensorNoniterative": Property(
             name="ProjectedGasInertiaTensorNoniterative",
@@ -2280,6 +2365,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorReduced": Property(
             name="ProjectedStellarInertiaTensorReduced",
@@ -2292,6 +2378,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorNoniterative": Property(
             name="ProjectedStellarInertiaTensorNoniterative",
@@ -2332,6 +2419,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorReducedLuminosityWeighted": Property(
             name="ProjectedStellarInertiaTensorReducedLuminosityWeighted",
@@ -2348,6 +2436,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted": Property(
             name="ProjectedStellarInertiaTensorNoniterativeLuminosityWeighted",
@@ -2398,10 +2487,13 @@ class PropertyTable:
             shape=2,
             dtype=np.float32,
             unit="snap_mass/snap_time",
-            description="Total star formation rate, averaged over past 100Myr and past 10Myr. If the time between this snapshot and the previous one was less than the averaging time, then the value is averaged over the time between the snapshots.",
+            description="Total star formation rate, averaged over past 100Myr and past 10Myr. If the time between this snapshot and the previous one was less than the averaging time, then the value is averaged over the time between the snapshots. Includes the contribution of gas particles that were converted to stars during the averaging window.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
-            particle_properties=["PartType0/AveragedStarFormationRates"],
+            particle_properties=[
+                "PartType0/AveragedStarFormationRates",
+                "PartType4/AveragedStarFormationRates",
+            ],
             output_physical=True,
             a_scale_exponent=None,
         ),
@@ -2416,6 +2508,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorReduced": Property(
             name="StellarInertiaTensorReduced",
@@ -2428,6 +2521,7 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorNoniterative": Property(
             name="StellarInertiaTensorNoniterative",
@@ -2468,6 +2562,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorReducedLuminosityWeighted": Property(
             name="StellarInertiaTensorReducedLuminosityWeighted",
@@ -2484,6 +2579,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "StellarInertiaTensorNoniterativeLuminosityWeighted": Property(
             name="StellarInertiaTensorNoniterativeLuminosityWeighted",
@@ -2528,6 +2624,7 @@ class PropertyTable:
             particle_properties=["PartType4/Luminosities"],
             output_physical=True,
             a_scale_exponent=None,
+            columns_from_snapshot="Luminosities",
         ),
         "Tgas": Property(
             name="GasTemperature",
@@ -2733,6 +2830,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=2,
+            opt_in_reason="Expensive to compute",
         ),
         "TotalInertiaTensorReduced": Property(
             name="TotalInertiaTensorReduced",
@@ -2754,6 +2852,7 @@ class PropertyTable:
             ],
             output_physical=True,
             a_scale_exponent=0,
+            opt_in_reason="Expensive to compute",
         ),
         "TotalInertiaTensorNoniterative": Property(
             name="TotalInertiaTensorNoniterative",
@@ -3321,7 +3420,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of dark matter particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of dark matter particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[
@@ -3337,7 +3436,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3354,7 +3453,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3371,7 +3470,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3388,7 +3487,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3405,7 +3504,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of gas particles through spherical shells weighted by HI fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of gas particles through spherical shells weighted by HI fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3423,7 +3522,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of gas particles through spherical shells weighted by H2 fraction. Does not include Helium. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of gas particles through spherical shells weighted by H2 fraction. Does not include Helium. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3441,7 +3540,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of gas particles through spherical shells weighted by metal fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of gas particles through spherical shells weighted by metal fraction. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3458,7 +3557,7 @@ class PropertyTable:
             shape=6,
             dtype=np.float32,
             unit="snap_mass / snap_time",
-            description="Mass flow rate of star particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R.",
+            description="Mass flow rate of star particles through spherical shells. Contains 6 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3474,7 +3573,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**3",
-            description="Energy flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Energy flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3492,7 +3591,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**3",
-            description="Energy flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Energy flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3510,7 +3609,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**3",
-            description="Energy flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Energy flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3528,7 +3627,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length**2/snap_time**3",
-            description="Energy flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Energy flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3546,7 +3645,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length/snap_time**2",
-            description="Momentum flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Momentum flow rate of cold gas particles ($\\log T < 3$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3564,7 +3663,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length/snap_time**2",
-            description="Momentum flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Momentum flow rate of cool gas particles ($3 < \\log T < 5$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3582,7 +3681,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length/snap_time**2",
-            description="Momentum flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Momentum flow rate of warm gas particles ($5 < \\log T < 7$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3600,7 +3699,7 @@ class PropertyTable:
             shape=9,
             dtype=np.float32,
             unit="snap_mass*snap_length/snap_time**2",
-            description="Momentum flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R.",
+            description="Momentum flow rate of hot gas particles ($7 < \\log T$) through spherical shells. Contains 9 entries: inflow rate at 0.1R, 0.3R, R, outflow rate at 0.1R, 0.3R, R, fast outflow rate at 0.1R, 0.3R, R. Pseudo-evolution correction applied to every SO radius.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -3669,6 +3768,84 @@ class PropertyTable:
             particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
             output_physical=False,
             a_scale_exponent=1,
+        ),
+        "ShrinkingSphereCentre": Property(
+            name="ShrinkingSphereCentre",
+            shape=3,
+            dtype=np.float64,
+            unit="snap_length",
+            description="Shrinking sphere centre computed using stars.",
+            lossy_compression_filter="DScale6",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=False,
+            a_scale_exponent=1,
+            opt_in_reason="Expensive to compute",
+        ),
+        "StellarAsymmetry": Property(
+            name="StellarAsymmetry",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="Asymmetry of the stellar mass distribution around the halo centre, computed using 12 HEALPix pixels.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
+        ),
+        "StellarAsymmetryShrink": Property(
+            name="StellarAsymmetryShrink",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="As StellarAsymmetry, but centred on ShrinkingSphereCentre rather than the halo centre.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
+        ),
+        "StellarAsymmetrySubsample": Property(
+            name="StellarAsymmetrySubsample",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="As StellarAsymmetry, but computed using a random subsample of 1/8 of the star particles. All star particles are used if there are 8 or fewer.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
+        ),
+        "StellarAsymmetry48": Property(
+            name="StellarAsymmetry48",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="As StellarAsymmetry, but using 48 HEALPix pixels.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
+        ),
+        "StellarAsymmetry192": Property(
+            name="StellarAsymmetry192",
+            shape=1,
+            dtype=np.float32,
+            unit="dimensionless",
+            description="As StellarAsymmetry, but using 192 HEALPix pixels.",
+            lossy_compression_filter="FMantissa9",
+            dmo_property=False,
+            particle_properties=["PartType4/Coordinates", "PartType4/Masses"],
+            output_physical=True,
+            a_scale_exponent=0,
+            opt_in_reason="Requires healpy",
         ),
         "compY": Property(
             name="ComptonY",
@@ -4079,7 +4256,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the oxygen over hydrogen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the oxygen over hydrogen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4096,7 +4273,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the total nitrogen over oxygen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the total nitrogen over oxygen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4113,7 +4290,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the total carbon over oxygen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the total carbon over oxygen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4130,7 +4307,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the diffuse nitrogen over oxygen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the diffuse nitrogen over oxygen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4147,7 +4324,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the diffuse carbon over oxygen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the diffuse carbon over oxygen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4164,7 +4341,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the diffuse oxygen over hydrogen ratio of gas, multiplied with the gas mass.",
+            description="Linear sum of the diffuse oxygen over hydrogen ratio of gas, weighted by with the cold dense gas mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4181,7 +4358,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse nitrogen over oxygen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar N/O.",
+            description="Logarithmic sum of the diffuse nitrogen over oxygen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-4 times solar N/O.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4198,7 +4375,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse nitrogen over oxygen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar N/O.",
+            description="Logarithmic sum of the diffuse nitrogen over oxygen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-3 times solar N/O.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4215,7 +4392,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse carbon over oxygen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar C/O.",
+            description="Logarithmic sum of the diffuse carbon over oxygen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-4 times solar C/O.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4232,7 +4409,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse carbon over oxygen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar C/O.",
+            description="Logarithmic sum of the diffuse carbon over oxygen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-3 times solar C/O.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4249,7 +4426,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4266,7 +4443,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of gas, weighted by with the cold dense gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4283,7 +4460,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of atomic gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of atomic gas, weighted by the atomic gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4302,7 +4479,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of atomic gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of atomic gas, weighted by the atomic gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4321,7 +4498,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of molecular gas, multiplied with the gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of molecular gas, weighted by the molecular gas mass. Imposes a lower limit of 1.e-4 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4340,7 +4517,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of molecular gas, multiplied with the gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
+            description="Logarithmic sum of the diffuse oxygen over hydrogen ratio of molecular gas, weighted by the molecular gas mass. Imposes a lower limit of 1.e-3 times solar O/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4359,7 +4536,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass.",
+            description="Linear sum of the iron over hydrogen ratio of stars, weighted by the stellar mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4371,7 +4548,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-4 times solar Fe/H.",
+            description="Logarithmic sum of the iron over hydrogen ratio of stars, weighted by the stellar mass. Imposes a lower limit of 1.e-4 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4383,7 +4560,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-3 times solar Fe/H.",
+            description="Logarithmic sum of the iron over hydrogen ratio of stars, weighted by the stellar mass. Imposes a lower limit of 1.e-3 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4395,7 +4572,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Linear sum of the magnesium over hydrogen ratio of stars, multiplied with the stellar mass.",
+            description="Linear sum of the magnesium over hydrogen ratio of stars, weighted by the stellar mass.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4407,7 +4584,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the magnesium over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-4 times solar Fe/H.",
+            description="Logarithmic sum of the magnesium over hydrogen ratio of stars, weighted by the stellar mass. Imposes a lower limit of 1.e-4 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4419,7 +4596,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the magnesium over hydrogen ratio of stars, multiplied with the stellar mass. Imposes a lower limit of 1.e-3 times solar Fe/H.",
+            description="Logarithmic sum of the magnesium over hydrogen ratio of stars, weighted by the stellar mass. Imposes a lower limit of 1.e-3 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=["PartType4/Masses", "PartType4/ElementMassFractions"],
@@ -4449,7 +4626,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Logarithmic sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass, where only iron from SNIa is included. Imposes a lower limit of 1.e-4 times solar Fe/H.",
+            description="Logarithmic sum of the iron over hydrogen ratio of stars, weighted by the stellar mass, where only iron from SNIa is included. Imposes a lower limit of 1.e-4 times solar Fe/H.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4465,7 +4642,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="dimensionless",
-            description="Sum of the iron over hydrogen ratio of stars, multiplied with the stellar mass, where only iron from SNIa is included.",
+            description="Sum of the iron over hydrogen ratio of stars, weighted by the stellar mass, where only iron from SNIa is included.",
             lossy_compression_filter="FMantissa9",
             dmo_property=False,
             particle_properties=[
@@ -4629,7 +4806,7 @@ class PropertyTable:
             shape=1,
             dtype=np.int64,
             unit="dimensionless",
-            description="ID of the host FOF halo of this subhalo. Hostless halos have HostFOFId == -1",
+            description="ID of the host FoF halo of this subhalo. Hostless halos have HostFOFId == -1",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
@@ -4750,7 +4927,7 @@ class PropertyTable:
             shape=3,
             dtype=np.float64,
             unit="snap_length",
-            description="Centre of mass of the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            description="Centre of mass of the host FoF halo of this subhalo. Zero for satellite and hostless subhalos.",
             lossy_compression_filter="DScale6",
             dmo_property=True,
             particle_properties=[],
@@ -4762,7 +4939,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_mass",
-            description="Mass of the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            description="Mass of the host FoF halo of this subhalo. Zero for satellite and hostless subhalos.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[],
@@ -4774,7 +4951,7 @@ class PropertyTable:
             shape=1,
             dtype=np.uint64,
             unit="dimensionless",
-            description="Number of particles in the host FOF halo of this subhalo. Zero for satellite and hostless subhalos.",
+            description="Number of particles in the host FoF halo of this subhalo. Zero for satellite and hostless subhalos.",
             lossy_compression_filter="None",
             dmo_property=True,
             particle_properties=[],
@@ -4786,7 +4963,7 @@ class PropertyTable:
             shape=1,
             dtype=np.float32,
             unit="snap_length",
-            description="Radius of the particle furthest from the FOF centre of mass. Zero for satellite and hostless subhalos. Missing for older runs.",
+            description="Radius of the particle furthest from the FoF centre of mass. Zero for satellite and hostless subhalos. Missing for older runs.",
             lossy_compression_filter="FMantissa9",
             dmo_property=True,
             particle_properties=[],
@@ -4930,9 +5107,15 @@ class PropertyTable:
             units = unyt.unyt_quantity(1, units=prop.unit)
             if not prop.output_physical:
                 units = units * unyt.Unit("a") ** prop.a_scale_exponent
-            prop_unit = units.units.latex_repr.replace(
-                "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
-            ).replace("\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}")
+            prop_unit = (
+                units.units.latex_repr.replace(
+                    "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
+                )
+                .replace(
+                    "\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}"
+                )
+                .rstrip()
+            )
 
             prop_dtype = prop.dtype.__name__
 
@@ -4995,7 +5178,8 @@ class PropertyTable:
           - a footnotes.tex file which will contain the contents of
             the various hand-written footnote*.tex files
           - a version and time stamp file, called timestamp.tex
-          - a filters.tex which contains the threshold value of each filter
+          - a filters.tex which contains a table of the filters defined in
+            the parameter file, and the criterion each one applies
           - a variations.tex file which contains a table of all the halo type
             variations present in the parameter file, and the filter for each
 
@@ -5134,7 +5318,7 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
         # standalone table file footer
         tailstr = "\\end{document}"
 
-        # generate the auxilary documentation files
+        # generate the auxiliary documentation files
         with open(f"{output_dir}/timestamp.tex", "w") as ofile:
             ofile.write(get_version_string())
         with open(f"{output_dir}/table.tex", "w") as ofile:
@@ -5159,11 +5343,22 @@ Name & Shape & Type & Units & SH & ES & IS & EP & SO & Category & Compression\\\
                     fnstr = fnstr.replace("$LOG_COLD_GAS_DENSITY$", rho)
                 ofile.write(f"{fnstr}\n\n")
 
-        # Particle limits for each filter
+        # Table of the filters defined in the parameter file. The rows are
+        # generated rather than hard-coded in SOAP.tex because the "filters"
+        # section is optional, and parameter files define different subsets of
+        # filters (or none at all).
         with open(f"{output_dir}/filters.tex", "w") as ofile:
-            for name, filter_info in self.parameters.parameters["filters"].items():
-                value = filter_info["limit"]
-                ofile.write(f"\\newcommand{{\\{name.lower()}filter}}{{{value}}}\n")
+            ofile.write("\\begin{longtable}{ll}\n")
+            ofile.write("Name & criterion \\\\\n")
+            # "basic" is not listed in the parameter file: it is always
+            # satisfied, so every halo has its basic properties calculated
+            ofile.write("\\hline{}basic & (all halos) \\\\\n")
+            for name, filter_info in self.parameters.parameters.get(
+                "filters", {}
+            ).items():
+                criterion = filter_criterion(name, filter_info)
+                ofile.write(f"{name} & ${criterion}$ \\\\\n")
+            ofile.write("\\end{longtable}\n")
 
         # Create table of variations of each halo type, always add BoundSubhalo
         tablestr = """\\pagebreak
@@ -5274,6 +5469,501 @@ Group name (HDF5) & Group name (swiftsimio) & Inclusive? & Filter \\\\
             vel_kms = (1 * unyt.snap_length / unyt.snap_time).to("km/s").value
             ofile.write(f"\\newcommand{{\\velbaseunit}}{{{vel_kms:.4g}}}\n")
 
+    ######### RST generation
+
+    @staticmethod
+    def _camel_to_snake(name: str) -> str:
+        """
+        Convert a CamelCase property name to snake_case, matching the
+        convention used by swiftsimio.
+        """
+
+        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
+
+    @staticmethod
+    def _latex_units_to_rst(latex_units: str) -> str:
+        """
+        Convert a LaTeX units string (as produced by unyt) into RST math format
+        suitable for use in Sphinx documentation.
+
+        Wraps the unit expression in :math:`...` and keeps the LaTeX content
+        as-is, since unyt already produces valid LaTeX math.
+        """
+        if not latex_units or latex_units == "dimensionless":
+            return "dimensionless"
+        return f":math:`{latex_units}`"
+
+    @staticmethod
+    def _compression_to_rst(compression_description: str) -> str:
+        """
+        Convert a compression description string (which may contain LaTeX math)
+        into RST format. Dollar-sign-delimited math is replaced with :math:`...`.
+        """
+
+        def replace_math(match):
+            return f":math:`{match.group(1)}`"
+
+        return re.sub(r"\$(.+?)\$", replace_math, compression_description)
+
+    @staticmethod
+    def _latex_to_rst_math(text: str) -> str:
+        """
+        Convert inline LaTeX math delimited by ``$...$`` in *text* to RST
+        ``:math:`...``` roles.  Dollar signs that are not part of a math
+        expression are left unchanged.
+        """
+
+        def replace_math(match):
+            return f":math:`{match.group(1)}`"
+
+        return re.sub(r"\$(.+?)\$", replace_math, text)
+
+    # Map from internal snap_* unit names to human-readable physical equivalents.
+    # Values are validated against the live unyt registry by _validate_snap_unit_map.
+    _snap_unit_map = {
+        "snap_mass": "(1e10*Msun)",
+        "snap_length": "Mpc",
+        "snap_time": "(s*Mpc/km)",
+        "snap_temperature": "K",
+    }
+
+    def _resolve_snap_units(self, prop_name: str, prop: dict) -> str:
+        """
+        Return an RST-formatted unit string for *prop_name*, replacing the
+        internal ``snap_*`` base units with their physical equivalents.
+
+        The substitution map is validated once against the live unyt registry
+        in :meth:`_validate_snap_unit_map` (called from ``generate_rst_files``).
+        """
+        # Retrieve the raw unit expression from the canonical property definition
+        prop_obj = self.full_property_list[prop_name]
+        prop_unit = prop_obj.unit
+
+        for snap_name, replacement in self._snap_unit_map.items():
+            prop_unit = prop_unit.replace(snap_name, replacement)
+
+        units = unyt.unyt_quantity(1, units=prop_unit)
+        latex = (
+            units.units.latex_repr.replace(
+                "\\rm{km} \\cdot \\rm{kpc}", "\\rm{kpc} \\cdot \\rm{km}"
+            )
+            .replace("\\frac{\\rm{km}^{2}}{\\rm{s}^{2}}", "\\rm{km}^{2} / \\rm{s}^{2}")
+            .replace(r"1.0 \times ", "")
+            .rstrip()
+        )
+
+        if (not prop_obj.output_physical) and prop_obj.a_scale_exponent:
+            a = prop_obj.a_scale_exponent
+            a_str = "a" if a == 1 else f"a^{{{a}}}"
+            latex = f"{a_str} \\cdot {latex}" if latex else a_str
+
+        return self._latex_units_to_rst(latex)
+
+    def _validate_snap_unit_map(self) -> None:
+        """
+        Assert that every entry in ``_snap_unit_map`` matches the live unyt
+        registry.  Called once at the start of ``generate_rst_files`` so the
+        assertions run exactly once rather than once per property.
+        """
+        for snap_name, replacement in self._snap_unit_map.items():
+            assert np.isclose(
+                unyt.unyt_quantity(1, snap_name),
+                unyt.unyt_quantity(1, replacement),
+            ), f"Unit mismatch: {snap_name} != {replacement}"
+
+    def _get_output_types_rst(self, prop: dict) -> str:
+        """
+        Return a highlighted string showing all halo type abbreviations.
+
+        All five types are always shown, colour-coded by availability:
+          - ``:avail:``    (green) -- computed for all snapshots
+          - ``:snaponly:`` (blue)  -- computed for snapshots only, not snipshots
+          - ``:unavail:``  (red)   -- not computed
+
+        All three roles must be registered in ``conf.py``
+
+        The abbreviations correspond to:
+          BS  - BoundSubhalo (SubhaloProperties)
+          ES  - ExclusiveSphere (ExclusiveSphereProperties)
+          IS  - InclusiveSphere (InclusiveSphereProperties)
+          P   - ProjectedAperture (ProjectedApertureProperties)
+          SO  - SphericalOverdensity (SOProperties)
+        """
+        type_map = [
+            ("SubhaloProperties", "BS"),
+            ("ExclusiveSphereProperties", "ES"),
+            ("InclusiveSphereProperties", "IS"),
+            ("ProjectedApertureProperties", "EP"),
+            ("SOProperties", "SO"),
+        ]
+        tokens = []
+        for halo_type, abbrev in type_map:
+            # A type is either absent, present for all outputs, or snapshot-only.
+            # The types list contains the exact string "SubhaloProperties" for
+            # full availability, or "SnapshotOnlySubhaloProperties" for
+            # snapshot-only — never both for the same halo type.
+            full_present = halo_type in prop["types"]
+            snap_only = f"SnapshotOnly{halo_type}" in prop["types"]
+            if full_present:
+                role = "avail"
+            elif snap_only:
+                role = "snaponly"
+            else:
+                role = "unavail"
+            tokens.append(f":{role}:`{abbrev}`")
+        return " ".join(tokens)
+
+    def get_footnotes_rst(self, name: str) -> tuple[list[int], str]:
+        """
+        Return RST footnote references for property *name*.
+
+        Returns a tuple of:
+          - list of footnote numbers (ints) associated with this property
+          - string of RST hyperlinks, e.g. `` `¹ <footnote-1_>`_ ``, or ``""``
+
+        We use unicode superscript digits as link text, pointed at named RST
+        targets (``.. _footnote-N:``) in the Footnotes section.  This is a
+        plain inline hyperlink with no role nesting, so it works correctly
+        inside ``list-table`` cells.
+        """
+        footnote_nums = []
+        for fnote in self.explanation.keys():
+            if name in self.explanation[fnote]:
+                try:
+                    i = self.footnotes.index(fnote)
+                except ValueError:
+                    i = len(self.footnotes)
+                    self.footnotes.append(fnote)
+                footnote_nums.append(i + 1)
+        if footnote_nums:
+            refs = " ".join(f"`[{n}] <footnote-{n}_>`_" for n in sorted(footnote_nums))
+            return footnote_nums, refs
+        return [], ""
+
+    def _read_footnote_rst(self, fnote_filename: str, footnote_number: int) -> str:
+        r"""
+        Read a LaTeX footnote file from the ``documentation/`` directory and
+        return an RST version suitable for embedding in the output RST file.
+        """
+        import re
+
+        filepath = f"documentation/{fnote_filename}"
+        try:
+            with open(filepath, "r") as fh:
+                text = fh.read()
+        except FileNotFoundError:
+            return f"*(Footnote file ``{fnote_filename}`` not found.)*"
+
+        # Step 1: substitute the plain-text footnote number placeholder FIRST,
+        # before any dollar-sign processing, so that the literal string
+        # "$FOOTNOTE_NUMBER$" is replaced with e.g. "5" and can no longer be
+        # mistaken for a LaTeX math delimiter.
+        text = text.replace("$FOOTNOTE_NUMBER$", str(footnote_number))
+
+        # Step 2: substitute parameter-file-derived values (also plain text).
+        if "$LOG_COLD_GAS_TEMP$" in text:
+            params = self.parameters.get_cold_dense_params()
+            if params.get("initialised"):
+                T = f'{np.log10(params["maximum_temperature_K"]):.2g}'
+                text = text.replace("$LOG_COLD_GAS_TEMP$", T)
+        if "$LOG_COLD_GAS_DENSITY$" in text:
+            params = self.parameters.get_cold_dense_params()
+            if params.get("initialised"):
+                rho = f'{np.log10(params["minimum_hydrogen_number_density_cm3"]):.2g}'
+                text = text.replace("$LOG_COLD_GAS_DENSITY$", rho)
+
+        # Step 3: convert \begin{equation}...\end{equation} blocks to
+        # RST ``.. math::`` directives.
+        #
+        # We stash each converted block behind a NUL-delimited placeholder so
+        # that subsequent LaTeX-stripping steps cannot corrupt the math content.
+        math_blocks: list[str] = []
+
+        def equation_to_rst(match):
+            math_content = match.group(1).strip()
+            # Indent each line of the math block by 3 spaces (directive body)
+            indented = "\n".join(f"   {line}" for line in math_content.splitlines())
+            block = f"\n\n.. math::\n\n{indented}\n\n"
+            placeholder = f"\x00MATHBLOCK{len(math_blocks)}\x00"
+            math_blocks.append(block)
+            return placeholder
+
+        text = re.sub(
+            r"\\begin\{equation\}(.*?)\\end\{equation\}",
+            equation_to_rst,
+            text,
+            flags=re.DOTALL,
+        )
+
+        # Step 3b: convert \begin{enumerate}...\end{enumerate} blocks to
+        # RST auto-numbered lists.  Each \item becomes a ``#.`` list entry.
+        # The converted block is stashed behind a placeholder so later
+        # stripping steps leave its content alone.
+        def enumerate_to_rst(match):
+            body = match.group(1)
+            # Split on \item, discard the empty string before the first \item
+            items = re.split(r"\\item\s*", body)
+            rst_items = []
+            for item in items:
+                item = item.strip()
+                if item:
+                    # Collapse internal newlines to spaces within each item
+                    item = " ".join(item.split())
+                    # Convert inline math and non-breaking spaces within the
+                    # item text now, before the block is stashed as a
+                    # placeholder (the main conversion steps run before restore)
+                    item = re.sub(
+                        r"\$([^\n\$]+?)\$", lambda m: f":math:`{m.group(1)}`", item
+                    )
+                    item = item.replace("~", " ")
+                    rst_items.append(f"#. {item}")
+            block = "\n\n" + "\n".join(rst_items) + "\n\n"
+            placeholder = f"\x00MATHBLOCK{len(math_blocks)}\x00"
+            math_blocks.append(block)
+            return placeholder
+
+        text = re.sub(
+            r"\\begin\{enumerate\}(.*?)\\end\{enumerate\}",
+            enumerate_to_rst,
+            text,
+            flags=re.DOTALL,
+        )
+
+        # Step 4: process \paragraph{$^{N}$Title}\label{footnote:N}
+        #
+        # The paragraph command has the form:
+        #   \paragraph{$^{N}$Title text}\label{footnote:N} rest of sentence...
+        #
+        # We want to:
+        #   - Drop the superscript prefix "$^{N}$" (the number is already
+        #     shown by the caller as **[N]**).
+        #   - Render the title in bold.
+        #   - Keep the rest of the sentence on the same line.
+        #   - Strip the \label{...} command entirely.
+        #
+        # We use a lazy ``.*?`` match for the paragraph argument because the
+        # content may contain braces (e.g. the ``$^{5}$`` superscript prefix),
+        # which would trip up a ``[^}]*`` character class.
+        def paragraph_to_rst(match):
+            # match.group(1): everything inside \paragraph{...}
+            # match.group(2): the \label{...} target (discarded)
+            # match.group(3): the remainder of the line after \label{...}
+            inner = match.group(1)
+            rest = match.group(3).strip()
+            # Strip leading superscript: $^{N}$ or $^N$
+            inner = re.sub(r"^\$\^{?[^}$]*}?\$\s*", "", inner, flags=re.DOTALL)
+            # Collapse any internal newlines in the title to a single space
+            inner = " ".join(inner.split())
+            return f"**{inner}** {rest}"
+
+        # re.DOTALL lets .*? in group 1 match newlines (title may wrap across
+        # lines).  The final group uses [^\n]* to stay single-line so it only
+        # captures the rest of the \label{...} line, not the whole document.
+        text = re.sub(
+            r"\\paragraph\{(.*?)\}\\label\{[^}]*\}([ \t]*)([^\n]*)",
+            paragraph_to_rst,
+            text,
+            flags=re.DOTALL,
+        )
+
+        # Step 5: convert $...$ inline math → :math:`...`
+        # Use a non-greedy match that does not cross newlines, to avoid
+        # accidentally swallowing large sections of text.
+        text = re.sub(r"\$([^\n$]+?)\$", lambda m: f":math:`{m.group(1)}`", text)
+
+        # Step 6: common LaTeX text commands → RST equivalents.
+        text = re.sub(r"\\verb\+([^+]+)\+", lambda m: f"``{m.group(1)}``", text)
+        text = re.sub(
+            r"\\(?:textit|emph)\{([^}]+)\}", lambda m: f"*{m.group(1)}*", text
+        )
+        text = re.sub(r"\\textbf\{([^}]+)\}", lambda m: f"**{m.group(1)}**", text)
+
+        # Step 7: strip remaining unrecognised LaTeX commands.
+        # \href{url}{text} is handled explicitly before the generic stripper,
+        # which would otherwise keep only the first argument (the URL) and
+        # discard the link text
+        # Commands with a brace argument: keep the argument text.
+        # Bare commands (no argument): remove entirely.
+        text = re.sub(
+            r"\\href\{([^}]+)\}\{([^}]+)\}",
+            lambda m: f"`{m.group(2)} <{m.group(1)}>`_",
+            text,
+        )
+        text = re.sub(r"\\[a-zA-Z]+\{([^}]*)\}", r"\1", text)
+        text = re.sub(r"\\[a-zA-Z]+", "", text)
+        text = text.replace("~", " ")  # LaTeX non-breaking space
+
+        # Step 8: restore the protected .. math:: blocks now that all LaTeX
+        # stripping is complete.
+        for i, block in enumerate(math_blocks):
+            text = text.replace(f"\x00MATHBLOCK{i}\x00", block)
+
+        # Step 9: tidy up whitespace.
+        text = re.sub(r"\n{3,}", "\n\n", text).strip()
+
+        return text
+
+    def _build_rst_table(self, prop_names: list, lines: list):
+        """
+        Append RST list-table rows for the given properties to *lines*.
+
+        Note: ``self.footnotes`` is populated as a side-effect (via
+        ``get_footnotes_rst``), so this must be called before the footnote
+        section is rendered.
+        """
+        lines.append(".. list-table::")
+        lines.append("   :widths: 25 10 15 50")
+        lines.append("   :header-rows: 1")
+        lines.append("")
+        lines.append("   * - Name")
+        lines.append("     - Filter")
+        lines.append("     - Variations")
+        lines.append("     - Description")
+
+        for prop_name in prop_names:
+            prop = self.properties[prop_name]
+
+            # swiftsimio name
+            snake_name = ".".join(
+                self._camel_to_snake(part) for part in prop["name"].split("/")
+            )
+
+            # HDF5 output name (prepend InputHalos/ where applicable)
+            output_name = prop["name"]
+            if output_name.split("/")[0] in ("HBTplus", "VR", "FOF"):
+                output_name = "InputHalos/" + output_name
+                snake_name = "input_halos_" + snake_name
+
+            prop_units_rst = self._resolve_snap_units(prop_name, prop)
+            prop_comp_rst = self._compression_to_rst(
+                self.compression_description[prop["compression"]]
+            )
+            prop_filter = prop["category"]
+            output_types = self._get_output_types_rst(prop)
+            if "DummyProperties" in prop["types"]:
+                prop_filter = "basic"
+                output_types = r"\-"
+            description = prop["description"].format(
+                label="satisfying a spherical overdensity criterion.",
+                core_excision="excised core",
+            )
+
+            _, footnote_rst = self.get_footnotes_rst(prop_name)
+            display_name = f"``{snake_name}``"
+            if footnote_rst:
+                description = f"{description} {footnote_rst}"
+
+            lines.append(f"   * - .. dropdown:: {display_name}")
+            lines.append("")
+            lines.append(f"          * **HDF5 name:** ``{output_name}``")
+            lines.append(f"          * **Shape:** {prop['shape']}")
+            lines.append(f"          * **Type:** {prop['dtype']}")
+            lines.append(f"          * **Units:** {prop_units_rst}")
+            lines.append(f"          * **Compression:** {prop_comp_rst}")
+            lines.append(f"     - {prop_filter}")
+            lines.append(f"     - {output_types}")
+            lines.append(f"     - {description}")
+
+        lines.append("")
+
+    def generate_rst_files(self, output_dir: str):
+        """
+        Generate a single RST documentation file (``property_table.rst``) for the
+        SPHYNIX documentation system.
+
+        A preface to the tables is loaded from (``documentation/property_table_intro.rst``).
+
+        The file contains four ``list-table`` directives separated by titles.
+
+        RST footnotes referenced in the tables are appended at the bottom of
+        the file so that the superscript links in the Name column resolve
+        correctly.
+        """
+
+        self._validate_snap_unit_map()
+
+        category_order = [
+            "basic",
+            "general",
+            "gas",
+            "dm",
+            "star",
+            "baryon",
+            "InputHalos",
+            "VR",
+            "HBTplus",
+            "FOF",
+            "SOAP",
+        ]
+        prop_names_sorted = sorted(
+            self.properties.keys(),
+            key=lambda key: (
+                (
+                    category_order.index(self.properties[key]["category"])
+                    if self.properties[key]["category"] in category_order
+                    else len(category_order)
+                ),
+                self.properties[key]["name"].lower(),
+            ),
+        )
+
+        # Sort properties into the different tables
+        input_basic_props = []
+        input_copied_props = []
+        dmo_props = []
+        hydro_props = []
+        for n in prop_names_sorted:
+            if self.properties[n]["category"] == "InputHalos":
+                input_basic_props.append(n)
+            elif "DummyProperties" in self.properties[n]["types"]:
+                input_copied_props.append(n)
+            elif self.properties[n]["dmo"]:
+                dmo_props.append(n)
+            else:
+                hydro_props.append(n)
+
+        # Reset footnote list; it is populated as a side-effect of
+        # _build_rst_table calling get_footnotes_rst for each property.
+        self.footnotes = []
+
+        # Introduction
+        with open(f"documentation/property_table_intro.rst") as file:
+            lines = [line.rstrip() for line in file.readlines()]
+
+        # Tables
+        for props, table_title in [
+            (input_basic_props, "Input halo properties"),
+            (dmo_props, "Dark matter only properties"),
+            (hydro_props, "Hydrodynamical properties"),
+            (input_copied_props, "Copied properties"),
+        ]:
+
+            lines.append(table_title)
+            lines.append("-" * len(table_title))
+            lines.append("")
+            self._build_rst_table(props, lines)
+
+        # Footnotes
+        if self.footnotes:
+            fn_title = "Footnotes"
+            lines.append(fn_title)
+            lines.append("-" * len(fn_title))
+            lines.append("")
+            # Each footnote is preceded by a named RST target ``.. _footnote-N:``
+            # which is what the ``footnote-N_`` internal references in the table
+            # Name cells resolve to.
+            for i, fnote_filename in enumerate(self.footnotes):
+                fn_number = i + 1
+                fn_text = self._read_footnote_rst(fnote_filename, fn_number)
+                lines.append(f".. _footnote-{fn_number}:")
+                lines.append("")
+                lines.append(f"**[{fn_number}]** {fn_text}")
+                lines.append("")
+
+        os.makedirs(output_dir, exist_ok=True)
+        with open(f"{output_dir}/property_table.rst", "w") as ofile:
+            ofile.write("\n".join(lines))
+
 
 class DummyProperties:
     """
@@ -5372,6 +6062,7 @@ if __name__ == "__main__":
     You must pass a parameter file and a snapshot to run this script
     """
 
+    import re
     import sys
     import h5py
     import yaml
@@ -5451,3 +6142,4 @@ if __name__ == "__main__":
     )
 
     table.generate_tex_files("documentation")
+    table.generate_rst_files("documentation")

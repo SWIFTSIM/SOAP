@@ -75,7 +75,7 @@ def test_read_gadget4_groupnr():
     if comm_rank == 0:
         print(f"Number of groups from fof_subhalo_tab = {nr_groups_from_subtab}")
         if nr_groups_from_subtab != nr_groups_from_grnr:
-            print("Number of groups does not agree!")
+            print("Number of groups does not agree!", flush=True)
             comm.Abort(1)
 
     # Ensure nbound arrays are partitioned the same way

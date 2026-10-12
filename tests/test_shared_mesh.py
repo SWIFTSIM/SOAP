@@ -134,7 +134,10 @@ def _test_periodic_box(
         if nr_failures == 0:
             print(f"    OK")
         else:
-            print(f"    {nr_failures} of {nr_queries*comm_size} queries FAILED")
+            print(
+                f"    {nr_failures} of {nr_queries*comm_size} queries FAILED",
+                flush=True,
+            )
             comm.Abort(1)
 
 

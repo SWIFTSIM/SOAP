@@ -93,11 +93,15 @@ class ReadTask:
         file_start = self.file_offset
         file_end = self.file_offset + self.count
 
-        dataset.read_direct(
-            data[self.ptype][self.dataset].full,
-            np.s_[file_start:file_end, ...],
-            np.s_[mem_start:mem_end, ...],
-        )
+        try:
+            dataset.read_direct(
+                data[self.ptype][self.dataset].full,
+                np.s_[file_start:file_end, ...],
+                np.s_[mem_start:mem_end, ...],
+            )
+        except OSError as e:
+            print(f"Error reading {dataset_name}")
+            raise e
 
 
 def identify_datasets(filename, nr_files, ptypes, registry):
@@ -136,6 +140,51 @@ def identify_datasets(filename, nr_files, ptypes, registry):
             break
 
     return metadata
+
+
+def compute_virBN98(cosmology, a):
+    """
+    Compute the Bryan & Norman (1998) critical density multiple at the
+    given scale factor.
+
+    Parameters:
+     - cosmology: dict
+       Cosmology attributes read from the snapshot.
+     - a: float
+       Scale factor.
+
+    Returns the critical density multiple.
+    """
+    Omega_k = cosmology["Omega_k"]
+    Omega_Lambda = cosmology["Omega_lambda"]
+    Omega_m = cosmology["Omega_m"]
+    bnx = -(Omega_k / a**2 + Omega_Lambda) / (
+        Omega_k / a**2 + Omega_m / a**3 + Omega_Lambda
+    )
+    return 18.0 * np.pi**2 + 82.0 * bnx - 39.0 * bnx**2
+
+
+def compute_dlog_virBN98_dloga(cosmology, a, eps=1e-5):
+    """
+    Compute the logarithmic derivative of the Bryan & Norman (1998) critical
+    density multiple with respect to the scale factor. We difference the
+    expression used to set the multiple itself, so that the two cannot
+    become inconsistent.
+
+    Parameters:
+     - cosmology: dict
+       Cosmology attributes read from the snapshot.
+     - a: float
+       Scale factor.
+     - eps: float
+       Step size in log(a) used for the central difference.
+
+    Returns dlog(virBN98)/dlog(a).
+    """
+    return (
+        np.log(compute_virBN98(cosmology, a * np.exp(eps)))
+        - np.log(compute_virBN98(cosmology, a * np.exp(-eps)))
+    ) / (2 * eps)
 
 
 class SWIFTCellGrid:
@@ -266,15 +315,13 @@ class SWIFTCellGrid:
             )
 
             # Compute the BN98 critical density multiple
-            Omega_k = self.cosmology["Omega_k"]
-            Omega_Lambda = self.cosmology["Omega_lambda"]
-            Omega_m = self.cosmology["Omega_m"]
-            bnx = -(Omega_k / self.a**2 + Omega_Lambda) / (
-                Omega_k / self.a**2 + Omega_m / self.a**3 + Omega_Lambda
-            )
-            self.virBN98 = 18.0 * np.pi**2 + 82.0 * bnx - 39.0 * bnx**2
+            self.virBN98 = compute_virBN98(self.cosmology, self.a)
             if self.virBN98 < 50.0 or self.virBN98 > 1000.0:
                 raise RuntimeError("Invalid value for virBN98!")
+
+            # The BN98 density multiple is time dependent, so its logarithmic
+            # derivative is required to calculate the pseudo-evolution of R_BN98.
+            self.dlog_virBN98_dloga = compute_dlog_virBN98_dloga(self.cosmology, self.a)
 
             # Get the box size. Assume it's comoving with no h factors.
             comoving_length_unit = self.get_unit("snap_length") * self.a_unit
@@ -438,15 +485,24 @@ class SWIFTCellGrid:
                         dset = list(extra_metadata[parttype].keys())[0]
                         npart_extra = extra_file[f"{parttype}/{dset}"].shape[0]
                         if npart_snapshot[parttype] != npart_extra:
-                            print(f"Incorrect number of {parttype} in {extra_filename}")
+                            print(
+                                f"Incorrect number of {parttype} in {extra_filename}",
+                                flush=True,
+                            )
                             comm.Abort(1)
 
     def check_datasets_exist(self, required_datasets, halo_prop_list):
         # Check we have all the fields needed for each property
         # Doing it at this point rather than in masked cells since we want
-        # to output a list of properties that require the missing fields
-        for ptype in set(self.ptypes).intersection(set(required_datasets.keys())):
-            for name in required_datasets[ptype]:
+        # to output a list of properties that require the missing fields.
+        # Properties which cannot be computed are normally skipped or reported
+        # when the parameter file is resolved, so reaching this point indicates
+        # a problem with an alias or with a declared dependency.
+        missing_datasets = []
+        for ptype in sorted(
+            set(self.ptypes).intersection(set(required_datasets.keys()))
+        ):
+            for name in sorted(required_datasets[ptype]):
                 # Note that the field names in required_datasets have already had
                 # any aliases applied, so we can check the raw files themselves
                 in_extra = (self.extra_filenames is not None) and (
@@ -454,21 +510,34 @@ class SWIFTCellGrid:
                 )
                 in_snap = name in self.snap_metadata[ptype]
                 if not (in_extra or in_snap):
-                    dataset = f"{ptype}/{name}"
-                    print(f"The following properties require {dataset}:")
-                    full_property_list = property_table.PropertyTable.full_property_list
-                    for k, v in full_property_list.items():
-                        # Skip property if it doesn't require this dataset
-                        if dataset not in v.particle_properties:
-                            continue
-                        # Only print if the property is being calculated for some halo type
-                        for halo_prop in halo_prop_list:
-                            if halo_prop.property_filters.get(v.name, False):
-                                print(f"  {v.name}")
-                                break
-                    raise KeyError(
-                        f"Can't find required dataset {dataset} in input file(s)!"
-                    )
+                    missing_datasets.append(f"{ptype}/{name}")
+
+        if not missing_datasets:
+            return
+
+        # Report the missing datasets
+        full_property_list = property_table.PropertyTable.full_property_list
+        for dataset in missing_datasets:
+            print(f"The following properties require {dataset}:")
+            n_properties = 0
+            for k, v in full_property_list.items():
+                # Skip property if it doesn't require this dataset
+                if dataset not in v.particle_properties:
+                    continue
+                # Only print if the property is being calculated for some halo type
+                for halo_prop in halo_prop_list:
+                    if halo_prop.property_filters.get(v.name, False):
+                        print(f"  {v.name}")
+                        n_properties += 1
+                        break
+            if n_properties == 0:
+                # No enabled property lists this dataset, so it is one that SOAP
+                # always reads. Disabling properties will not help here.
+                print(f"  (none, {dataset} is required for every calculation)")
+        raise KeyError(
+            "Can't find required dataset(s) "
+            f"{', '.join(missing_datasets)} in input file(s)!"
+        )
 
     def prepare_read(self, ptype, mask):
         """

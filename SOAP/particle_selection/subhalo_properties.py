@@ -54,6 +54,9 @@ from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.swift_cells import SWIFTCellGrid
+from SOAP.particle_selection.shared_halo_particle_data import (
+    SharedHaloParticleData,
+)
 
 
 class SubhaloParticleData:
@@ -73,13 +76,9 @@ class SubhaloParticleData:
 
     def __init__(
         self,
-        input_halo: Dict,
-        data: Dict,
-        types_present: List[str],
+        shared: SharedHaloParticleData,
         stellar_age_calculator: StellarAgeCalculator,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
-        snapshot_datasets: SnapshotDatasets,
-        softening_of_parttype: unyt.unyt_array,
         boxsize: unyt.unyt_quantity,
         cosmology: dict,
     ):
@@ -87,34 +86,28 @@ class SubhaloParticleData:
         Constructor.
 
         Parameters:
-         - input_halo: Dict
-           Dictionary containing properties of the halo read from the VR catalogue.
-         - data: Dict
-           Dictionary containing particle data.
-         - types_present: List
-           List of all particle types (e.g. 'PartType0') that are present in the data
-           dictionary.
+         - shared: SharedHaloParticleData
+           Object holding the concatenated particle arrays for the bound
+           particles of this halo, shared with the aperture calculations.
          - stellar_age_calculator: StellarAgeCalculator
            Object used to compute stellar ages from the current cosmological scale factor
            and the birth scale factors of star particles.
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
-         - snapshot_datasets: SnapshotDatasets
-           Object containing metadata about the datasets in the snapshot, like
-           appropriate aliases and column names.
          - boxsize: unyt.unyt_quantity
            Boxsize for correcting periodic boundary conditions
          - cosmology: dict
            Cosmological parameters required for SO calculation
         """
-        self.input_halo = input_halo
-        self.data = data
-        self.types_present = types_present
+        self.shared = shared
+        self.input_halo = shared.input_halo
+        self.data = shared.data
+        self.types_present = shared.types_present
+        self.snapshot_datasets = shared.snapshot_datasets
+        self.softening_of_parttype = shared.softening_of_parttype
         self.stellar_age_calculator = stellar_age_calculator
         self.recently_heated_gas_filter = recently_heated_gas_filter
-        self.snapshot_datasets = snapshot_datasets
-        self.softening_of_parttype = softening_of_parttype
         self.boxsize = boxsize
         self.cosmology = cosmology
         self.compute_basics()
@@ -127,41 +120,20 @@ class SubhaloParticleData:
 
     def compute_basics(self):
         """
-        Compute some properties that are always needed, regardless of which
-        properties we actually want to compute.
+        Take the particle arrays that are always needed from the shared object.
+
+        The bound subhalo uses every bound particle, so unlike the aperture
+        calculations it applies no further mask and can use these arrays as
+        they are.
         """
-        self.centre = self.input_halo["cofp"]
-        self.index = self.input_halo["index"]
-
-        mass = []
-        position = []
-        radius = []
-        velocity = []
-        types = []
-        softening = []
-        for ptype in self.types_present:
-            grnr = self.get_dataset(f"{ptype}/GroupNr_bound")
-            in_halo = grnr == self.index
-            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}")[in_halo])
-            pos = (
-                self.get_dataset(f"{ptype}/Coordinates")[in_halo, :]
-                - self.centre[None, :]
-            )
-            position.append(pos)
-            r = np.sqrt(pos[:, 0] ** 2 + pos[:, 1] ** 2 + pos[:, 2] ** 2)
-            radius.append(r)
-            velocity.append(self.get_dataset(f"{ptype}/Velocities")[in_halo, :])
-            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
-            types.append(typearr)
-            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
-            softening.append(s)
-
-        self.mass = np.concatenate(mass)
-        self.position = np.concatenate(position)
-        self.radius = np.concatenate(radius)
-        self.velocity = np.concatenate(velocity)
-        self.types = np.concatenate(types)
-        self.softening = np.concatenate(softening)
+        self.centre = self.shared.centre
+        self.index = self.shared.index
+        self.mass = self.shared.mass
+        self.position = self.shared.position
+        self.radius = self.shared.radius
+        self.velocity = self.shared.velocity
+        self.types = self.shared.types
+        self.softening = self.shared.softening
 
     @lazy_property
     def gas_mask_sh(self) -> NDArray[bool]:
@@ -402,7 +374,7 @@ class SubhaloParticleData:
         """
         if self.Nstar == 0:
             return None
-        return self.get_dataset(f"PartType4/GroupNr_bound") == self.index
+        return self.shared.in_halo_mask("PartType4")
 
     @lazy_property
     def mass_star_init(self) -> unyt.unyt_array:
@@ -497,6 +469,22 @@ class SubhaloParticleData:
         return ((Lr / Lrtot) * self.stellar_ages).sum()
 
     @lazy_property
+    def ExSituFraction(self) -> unyt.unyt_quantity:
+        """
+        Mass fraction of bound stars that formed in a different subhalo.
+        """
+        if self.Nstar == 0:
+            return None
+
+        group_nr = self.get_dataset("PartType4/GroupNr_bound")[self.star_mask_all]
+        birth_group_nr = self.get_dataset("PartType4/BirthHaloCatalogueIndex")[
+            self.star_mask_all
+        ]
+        ex_situ = group_nr != birth_group_nr
+
+        return self.star_mass_fraction[ex_situ].sum()
+
+    @lazy_property
     def bh_mask_all(self) -> NDArray[bool]:
         """
         Mask that can be used to filter out black hole particles belonging to this
@@ -504,7 +492,7 @@ class SubhaloParticleData:
         """
         if self.Nbh == 0:
             return None
-        return self.get_dataset(f"PartType5/GroupNr_bound") == self.index
+        return self.shared.in_halo_mask("PartType5")
 
     @lazy_property
     def Mbh_subgrid(self) -> unyt.unyt_quantity:
@@ -908,7 +896,7 @@ class SubhaloParticleData:
         Mask that can be used to filter out DM particles that belong to this
         subhalo in raw particle arrays, like PartType0/Masses.
         """
-        return self.get_dataset(f"PartType1/GroupNr_bound") == self.index
+        return self.shared.in_halo_mask("PartType1")
 
     @lazy_property
     def potential_energy_dm(self) -> unyt.unyt_array:
@@ -1931,7 +1919,7 @@ class SubhaloParticleData:
         Mask that can be used to filter out gas particles that belong to this
         subhalo in raw particle arrays, like PartType0/Masses.
         """
-        return self.get_dataset(f"PartType0/GroupNr_bound") == self.index
+        return self.shared.in_halo_mask("PartType0")
 
     @lazy_property
     def gas_SFR(self) -> unyt.unyt_array:
@@ -1960,15 +1948,24 @@ class SubhaloParticleData:
     @lazy_property
     def AveragedStarFormationRate(self) -> unyt.unyt_array:
         """
-        Averaged star formation rates of gas particles. Averaging times are
-        set by the value of 'recording_triggers' in the SWIFT parameter file.
+        Averaged star formation rates of gas particles, plus the averaged
+        star formation rates star particles accumulated before they were
+        converted from gas. Averaging times are set by the value of
+        'recording_triggers' in the SWIFT parameter file.
         """
-        if self.Ngas == 0:
-            return None
-        avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[
-            self.gas_mask_all
-        ]
-        return np.sum(avg_SFR, axis=0)
+        avg_SFR = None
+        if self.Ngas > 0:
+            gas_avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[
+                self.gas_mask_all
+            ]
+            avg_SFR = np.sum(gas_avg_SFR, axis=0)
+        if self.Nstar > 0:
+            star_avg_SFR = self.get_dataset("PartType4/AveragedStarFormationRates")[
+                self.star_mask_all
+            ]
+            star_avg_SFR = np.sum(star_avg_SFR, axis=0)
+            avg_SFR = star_avg_SFR if avg_SFR is None else avg_SFR + star_avg_SFR
+        return avg_SFR
 
     @lazy_property
     def gas_metal_mass(self) -> unyt.unyt_array:
@@ -2351,6 +2348,9 @@ class SubhaloProperties(HaloProperty):
     gravitationally bound particles.
     """
 
+    # the bound subhalo uses the particles bound to the halo
+    inclusive = False
+
     """
     List of properties from the table that we want to compute.
     Each property should have a corresponding method/property/lazy_property in
@@ -2427,6 +2427,7 @@ class SubhaloProperties(HaloProperty):
             "starmetalfrac",
             "Vmax_unsoft",
             "Vmax_soft",
+            "R_vmax_soft",
             "R_vmax_unsoft",
             "DM_Vmax_soft",
             "DM_R_vmax_soft",
@@ -2470,6 +2471,7 @@ class SubhaloProperties(HaloProperty):
             "Lstar_luminosity_weighted",
             "stellar_age_mw",
             "stellar_age_lw",
+            "ExSituFraction",
             "Mgas_SF",
             "gasmetalfrac_SF",
             "MedianStellarBirthDensity",
@@ -2583,7 +2585,9 @@ class SubhaloProperties(HaloProperty):
                 if not dset in self.particle_properties[pgroup]:
                     self.particle_properties[pgroup].append(dset)
 
-    def calculate(self, input_halo, search_radius, data, halo_result):
+    def calculate(
+        self, input_halo, search_radius, data, halo_result, shared_particle_data=None
+    ):
         """
         Compute centre of mass etc of bound particles
 
@@ -2594,20 +2598,23 @@ class SubhaloProperties(HaloProperty):
                            has the particle coordinates for type 1
         halo_result      - dict with halo properties computed so far. Properties
                            computed here should be added to halo_result.
+        shared_particle_data - cache of particle quantities shared with the other
+                           property calculations for this halo. If None, the
+                           quantities this calculation needs are computed for
+                           its own use only.
 
         Input particle data arrays are unyt_arrays.
         """
 
-        types_present = [type for type in self.particle_properties if type in data]
+        # The concatenated arrays for the bound particles of this halo are also
+        # used by the exclusive and projected aperture calculations, so they are
+        # computed once and shared.
+        shared = self.get_shared_particle_data(input_halo, data, shared_particle_data)
 
         part_props = SubhaloParticleData(
-            input_halo,
-            data,
-            types_present,
+            shared,
             self.stellar_ages,
             self.filter,
-            self.snapshot_datasets,
-            self.softening_of_parttype,
             self.boxsize,
             self.cosmology,
         )
@@ -2678,7 +2685,14 @@ class SubhaloProperties(HaloProperty):
             )
             if do_calculation[filter_name]:
                 t0_calc = time.time()
-                val = getattr(part_props, name)
+                try:
+                    val = getattr(part_props, name)
+                except Exception as e:
+                    e.add_note(
+                        f"Error calculating {prop.name} for subhalo "
+                        f"{input_halo['index']}"
+                    )
+                    raise
                 if val is not None:
                     assert (
                         subhalo[name].shape == val.shape

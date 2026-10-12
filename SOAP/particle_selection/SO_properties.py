@@ -45,6 +45,10 @@ from SOAP.core.category_filter import CategoryFilter
 from SOAP.core.parameter_file import ParameterFile
 from SOAP.core.snapshot_datasets import SnapshotDatasets
 from SOAP.core.swift_cells import SWIFTCellGrid
+from SOAP.core.shared_particle_data import ParticleDataCache
+from SOAP.particle_selection.shared_halo_particle_data import (
+    SharedHaloParticleData,
+)
 
 
 def cumulative_mass_intersection(r: float, rho_dim: float, slope_dim: float) -> float:
@@ -240,15 +244,12 @@ class SOParticleData:
 
     def __init__(
         self,
-        input_halo: Dict,
-        data: Dict,
-        types_present: List[str],
+        shared: SharedHaloParticleData,
         recently_heated_gas_filter: RecentlyHeatedGasFilter,
         observer_position: unyt.unyt_array,
-        snapshot_datasets: SnapshotDatasets,
         core_excision_fraction: float,
-        softening_of_parttype: unyt.unyt_array,
         virial_definition: bool,
+        compute_flow_rates: bool,
         search_radius: unyt.unyt_quantity,
         cosmology: dict,
         boxsize: unyt.unyt_quantity,
@@ -257,30 +258,25 @@ class SOParticleData:
         Constructor.
 
         Parameters:
-         - input_halo: Dict
-           Dictionary containing properties of the halo read from the VR catalogue.
-         - data: Dict
-           Dictionary containing particle data.
-         - types_present: List
-           List of all particle types (e.g. 'PartType0') that are present in the data
-           dictionary.
+         - shared: SharedHaloParticleData
+           Object holding the concatenated particle arrays for this halo,
+           shared with the other SO variations and with the inclusive
+           apertures.
          - recently_heated_gas_filter: RecentlyHeatedGasFilter
            Filter used to mask out gas particles that were recently heated by
            AGN feedback.
          - observer_position: unyt.unyt_array
            Position of an observer, used to determine the observer direction for
            Doppler B calculations.
-         - snapshot_datasets: SnapshotDatasets
-           Object containing metadata about the datasets in the snapshot, like
-           appropriate aliases and column names.
          - core_excision_fraction: float
            Ignore particles within a sphere of core_excision_fraction * SORadius
            when calculating CoreExcision properties
-         - softening_of_parttype: unyt.unyt_array
-           Softening length of each particle types
          - virial_definition: bool
            Whether to calculate the properties that are only valid for virial SO
            definitions
+         - compute_flow_rates: bool
+           Whether to calculate the flow rates. These are not valid for SO
+           definitions with a fixed physical radius.
          - search_radius: unyt.unyt_quantity
            Current search radius. Particles are guaranteed to be included up to
            this radius.
@@ -289,20 +285,38 @@ class SOParticleData:
          - boxsize: unyt.unyt_quantity
            Boxsize for correcting periodic boundary conditions
         """
-        self.input_halo = input_halo
-        self.data = data
-        self.has_neutrinos = "PartType6" in data
-        self.types_present = types_present
-        self.recently_heated_gas_filter = recently_heated_gas_filter
-        self.observer_position = observer_position
-        self.snapshot_datasets = snapshot_datasets
-        self.core_excision_fraction = core_excision_fraction
-        self.softening_of_parttype = softening_of_parttype
-        self.virial_definition = virial_definition
-        self.search_radius = search_radius
+        self.shared = shared
+        shared.compute_mass_profile(cosmology)
+
+        # Quantities that are the same for every SO variation of this halo.
+        self.input_halo = shared.input_halo
+        self.data = shared.data
+        self.has_neutrinos = shared.has_neutrinos
+        self.types_present = shared.types_present
+        self.snapshot_datasets = shared.snapshot_datasets
+        self.softening_of_parttype = shared.softening_of_parttype
         self.cosmology = cosmology
         self.boxsize = boxsize
-        self.compute_basics()
+        self.centre = shared.centre
+        self.index = shared.index
+        self.mass = shared.mass
+        self.radius = shared.radius
+        self.position = shared.position
+        self.velocity = shared.velocity
+        self.types = shared.types
+        self.softening = shared.softening
+        if shared.has_neutrinos:
+            self.nu_mass = shared.nu_mass
+            self.nu_radius = shared.nu_radius
+            self.nu_softening = shared.nu_softening
+
+        # Quantities that differ between the SO variations of this halo
+        self.recently_heated_gas_filter = recently_heated_gas_filter
+        self.observer_position = observer_position
+        self.core_excision_fraction = core_excision_fraction
+        self.virial_definition = virial_definition
+        self.compute_flow_rates = compute_flow_rates
+        self.search_radius = search_radius
 
     def get_dataset(self, name: str) -> unyt.unyt_array:
         """
@@ -310,59 +324,16 @@ class SOParticleData:
         """
         return self.snapshot_datasets.get_dataset(name, self.data)
 
-    def compute_basics(self):
-        """
-        Compute some properties that are always needed, regardless of which
-        properties we actually want to compute.
-        """
-        self.centre = self.input_halo["cofp"]
-        self.index = self.input_halo["index"]
-
-        # Make an array of particle masses, radii and positions
-        mass = []
-        radius = []
-        position = []
-        velocity = []
-        types = []
-        groupnr = []
-        fofid = []
-        softening = []
-        for ptype in self.types_present:
-            if ptype == "PartType6":
-                # add neutrinos separately, since we need to treat them
-                # differently
-                continue
-            mass.append(self.get_dataset(f"{ptype}/{mass_dataset(ptype)}"))
-            pos = self.get_dataset(f"{ptype}/Coordinates") - self.centre[None, :]
-            position.append(pos)
-            r = np.sqrt(np.sum(pos**2, axis=1))
-            radius.append(r)
-            velocity.append(self.get_dataset(f"{ptype}/Velocities"))
-            typearr = int(ptype[-1]) * np.ones(r.shape, dtype=np.int32)
-            types.append(typearr)
-            groupnr.append(self.get_dataset(f"{ptype}/GroupNr_bound"))
-            fofid.append(self.get_dataset(f"{ptype}/FOFGroupIDs"))
-            s = np.ones(r.shape, dtype=np.float64) * self.softening_of_parttype[ptype]
-            softening.append(s)
-        self.mass = np.concatenate(mass)
-        self.radius = np.concatenate(radius)
-        self.position = np.concatenate(position)
-        self.velocity = np.concatenate(velocity)
-        self.types = np.concatenate(types)
-        self.groupnr = np.concatenate(groupnr)
-        self.fofid = np.concatenate(fofid)
-        self.softening = np.concatenate(softening)
-
     def compute_SO_radius_and_mass(
         self, reference_density: unyt.unyt_quantity, physical_radius: unyt.unyt_quantity
     ) -> bool:
         """
         Compute the SO radius from the density profile of the particles.
 
-        Adds the contribution from neutrinos (if present) to the masses and
-        radii. Sorts the particles by radius and computes the cumulative mass
-        profile. Calls find_SO_radius_and_mass(), unless a radius multiple is
-        used as aperture radius.
+        Uses the cumulative mass profile computed once for this halo by
+        SharedHaloParticleData, and calls find_SO_radius_and_mass(), unless a
+        radius multiple is used as aperture radius. Particles outside the SO
+        radius are then removed.
 
         Parameters:
          - reference_density: unyt.unyt_quantity
@@ -376,48 +347,11 @@ class SOParticleData:
 
         Rethrows any SearchRadiusTooSmallError thrown by find_SO_radius_and_mass().
         """
-        # add neutrinos
-        if self.has_neutrinos:
-            numass = self.get_dataset("PartType6/Masses") * self.get_dataset(
-                "PartType6/Weights"
-            )
-            pos = self.get_dataset("PartType6/Coordinates") - self.centre[None, :]
-            nur = np.sqrt(np.sum(pos**2, axis=1))
-            self.nu_mass = numass
-            self.nu_radius = nur
-            self.nu_softening = (
-                np.ones_like(nur) * self.softening_of_parttype["PartType6"]
-            )
-            all_mass = np.concatenate([self.mass, numass / unyt.dimensionless])
-            all_r = np.concatenate([self.radius, nur])
-        else:
-            all_mass = self.mass
-            all_r = self.radius
-
-        # Sort by radius
-        order = np.argsort(all_r)
-        ordered_radius = all_r[order]
-        cumulative_mass = np.cumsum(all_mass[order], dtype=np.float64).astype(
-            self.mass.dtype
-        )
-        # add mean neutrino mass
-        cumulative_mass += (
-            self.cosmology["nu_density"] * 4.0 / 3.0 * np.pi * ordered_radius**3
-        )
-        # Determine FOF ID of object using the central non-neutrino particle
-        non_neutrino_order = order[order < self.radius.shape[0]]
-        fofid = self.fofid[non_neutrino_order[0]]
-
-        # Compute density within radius of each particle.
-        # Will need to skip any at zero radius.
-        # Note that because of the definition of the centre of potential, the first
-        # particle *should* be at r=0. We need to manually exclude it, in case round
-        # off error places it at a very small non-zero radius.
-        nskip = max(1, np.argmax(ordered_radius > 0.0 * ordered_radius.units))
-        ordered_radius = ordered_radius[nskip:]
-        cumulative_mass = cumulative_mass[nskip:]
-        nr_parts = len(ordered_radius)
-        density = cumulative_mass / (4.0 / 3.0 * np.pi * ordered_radius**3)
+        # The radial profile is the same for every SO variation of this halo
+        ordered_radius = self.shared.ordered_radius
+        cumulative_mass = self.shared.cumulative_mass
+        density = self.shared.density
+        nr_parts = self.shared.nr_parts
 
         # Check if we ever reach the density threshold
         if reference_density > 0:
@@ -457,13 +391,9 @@ class SOParticleData:
         SO_exists = self.SO_r > 0 and self.SO_mass > 0
 
         # figure out which particles in the list are bound to a halo that is not the
-        # central halo
-        self.is_bound_to_satellite = (
-            (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid == fofid)
-        )
-        self.is_bound_to_external = (
-            (self.groupnr >= 0) & (self.groupnr != self.index) & (self.fofid != fofid)
-        )
+        # central halo (also the same for every SO variation of this halo)
+        self.is_bound_to_satellite = self.shared.is_bound_to_satellite
+        self.is_bound_to_external = self.shared.is_bound_to_external
 
         if SO_exists:
             # Estimate DMO mass fraction found at SO_r
@@ -1654,15 +1584,24 @@ class SOParticleData:
     @lazy_property
     def AveragedStarFormationRate(self) -> unyt.unyt_array:
         """
-        Averaged star formation rates of gas particles. Averaging times are
-        set by the value of 'recording_triggers' in the SWIFT parameter file.
+        Averaged star formation rates of gas particles, plus the averaged
+        star formation rates star particles accumulated before they were
+        converted from gas. Averaging times are set by the value of
+        'recording_triggers' in the SWIFT parameter file.
         """
-        if self.Ngas == 0:
-            return None
-        avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[
-            self.gas_selection
-        ]
-        return np.sum(avg_SFR, axis=0)
+        avg_SFR = None
+        if self.Ngas > 0:
+            gas_avg_SFR = self.get_dataset("PartType0/AveragedStarFormationRates")[
+                self.gas_selection
+            ]
+            avg_SFR = np.sum(gas_avg_SFR, axis=0)
+        if self.Nstar > 0:
+            star_avg_SFR = self.get_dataset("PartType4/AveragedStarFormationRates")[
+                self.star_selection
+            ]
+            star_avg_SFR = np.sum(star_avg_SFR, axis=0)
+            avg_SFR = star_avg_SFR if avg_SFR is None else avg_SFR + star_avg_SFR
+        return avg_SFR
 
     @lazy_property
     def Mgas_SF(self) -> unyt.unyt_quantity:
@@ -2871,17 +2810,12 @@ class SOParticleData:
             # Adding Hubble flow term
             if hubble:
                 v_r += radii[r_mask] * self.cosmology["H"]
-            # Account for expansion of R_SO
+            # Account for expansion of R_SO. The coefficient depends on the
+            # SO definition, and is set when this calculation is constructed.
             if pseudo_evolve:
-                G = unyt.Unit("newton_G", registry=masses.units.registry)
-                R_dot = (2 / 3) * (G * self.SO_mass * self.cosmology["H"] / 100) ** (
-                    1 / 3
+                v_r -= (
+                    R * self.cosmology["H"] * self.cosmology["pseudo_evolution_coeff"]
                 )
-                R_dot *= (
-                    2 * self.cosmology["Omega_g"] + (3 / 2) * self.cosmology["Omega_m"]
-                )
-                R_dot *= R_frac
-                v_r -= R_dot
 
             # Calculate different flow types
             # We want both the inflow and outflow rates to be positive values
@@ -2920,7 +2854,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of dark matter through 3 spherical shells
         """
-        if (self.Ndm == 0) or (not self.virial_definition):
+        if (self.Ndm == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -2936,7 +2870,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of stars through 3 spherical shells
         """
-        if (self.Nstar == 0) or (not self.virial_definition):
+        if (self.Nstar == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -2952,7 +2886,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of HI through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -2978,7 +2912,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of H2 through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -3006,7 +2940,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of metals through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         # Particles outside the SO radius are required to calculate the
@@ -3058,7 +2992,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of cold gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmax = 1.0e3 * unyt.K
@@ -3069,7 +3003,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of cool gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e3 * unyt.K
@@ -3083,7 +3017,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of warm gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e5 * unyt.K
@@ -3097,7 +3031,7 @@ class SOParticleData:
         """
         Calculate the mass flow rate of hot gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e7 * unyt.K
@@ -3108,7 +3042,7 @@ class SOParticleData:
         """
         Calculate the energy flow rate of cold gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmax = 1.0e3 * unyt.K
@@ -3121,7 +3055,7 @@ class SOParticleData:
         """
         Calculate the energy flow rate of cool gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e3 * unyt.K
@@ -3135,7 +3069,7 @@ class SOParticleData:
         """
         Calculate the energy flow rate of warm gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e5 * unyt.K
@@ -3149,7 +3083,7 @@ class SOParticleData:
         """
         Calculate the energy flow rate of hot gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e7 * unyt.K
@@ -3162,7 +3096,7 @@ class SOParticleData:
         """
         Calculate the momentum flow rate of cold gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmax = 1.0e3 * unyt.K
@@ -3175,7 +3109,7 @@ class SOParticleData:
         """
         Calculate the momentum flow rate of cool gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e3 * unyt.K
@@ -3189,7 +3123,7 @@ class SOParticleData:
         """
         Calculate the momentum flow rate of warm gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e5 * unyt.K
@@ -3203,7 +3137,7 @@ class SOParticleData:
         """
         Calculate the momentum flow rate of hot gas through 3 spherical shells
         """
-        if (self.Ngas == 0) or (not self.virial_definition):
+        if (self.Ngas == 0) or (not self.compute_flow_rates):
             return None
 
         Tmin = 1.0e7 * unyt.K
@@ -3223,6 +3157,9 @@ class SOProperties(HaloProperty):
     Spherical overdensities are only calculated for central halos, not for
     sattelites.
     """
+
+    # SOs always use every particle in the search radius
+    inclusive = True
 
     """
     List of properties from the table that we want to compute.
@@ -3447,8 +3384,6 @@ class SOProperties(HaloProperty):
         self.cosmology["H"] = cellgrid.cosmology[
             "H [internal units]"
         ] / cellgrid.get_unit("code_time")
-        self.cosmology["Omega_g"] = cellgrid.cosmology["Omega_g"]
-        self.cosmology["Omega_m"] = cellgrid.cosmology["Omega_m"]
 
         # This specifies how large a sphere is read in:
         # we use default values that are sufficiently small/large to avoid reading in too many particles
@@ -3469,6 +3404,31 @@ class SOProperties(HaloProperty):
             self.virial_definition = True
         elif type == "physical":
             self.physical_radius_mpc = 0.001 * SOval
+        # Flow rates are not computed for a fixed physical radius, since it
+        # does not pseudo-evolve
+        self.compute_flow_rates = type != "physical"
+
+        # Coefficient used to correct the flow rates for the pseudo-evolution
+        # of the SO radius: Rdot = coeff * R * H, where
+        # coeff = -(1/3) dln(rho_ref)/dln(a) at fixed SO mass, and rho_ref is
+        # the reference density used to define the SO radius.
+        # Derivation is in documentation/pseudo_evolution.pdf
+        # The Omega values in the snapshot are z=0 values, so we scale them.
+        H0_over_H_sq = (
+            cellgrid.cosmology["H0 [internal units]"]
+            / cellgrid.cosmology["H [internal units]"]
+        ) ** 2
+        Omega_m = float(cellgrid.mean_density / cellgrid.critical_density)
+        Omega_r = cellgrid.cosmology["Omega_r"] * H0_over_H_sq / cellgrid.a**4
+        one_plus_q = 2 * Omega_r + 1.5 * Omega_m
+        if type == "mean":
+            self.cosmology["pseudo_evolution_coeff"] = 1.0
+        elif type == "crit":
+            self.cosmology["pseudo_evolution_coeff"] = (2 / 3) * one_plus_q
+        elif type == "BN98":
+            self.cosmology["pseudo_evolution_coeff"] = (
+                2 * one_plus_q - cellgrid.dlog_virBN98_dloga
+            ) / 3
 
         # Give this calculation a name so we can select it on the command line
         if type in ["mean", "crit"]:
@@ -3572,6 +3532,7 @@ class SOProperties(HaloProperty):
         search_radius: unyt.unyt_quantity,
         data: Dict,
         halo_result: Dict,
+        shared_particle_data: ParticleDataCache = None,
     ):
         """
         Compute spherical masses and overdensities for a halo
@@ -3583,6 +3544,10 @@ class SOProperties(HaloProperty):
                            has the particle coordinates for type 1
         halo_result      - dict with halo properties computed so far. Properties
                            computed here should be added to halo_result.
+        shared_particle_data - cache of particle quantities shared with the other
+                           property calculations for this halo. If None, the
+                           quantities this calculation needs are computed for
+                           its own use only.
 
         Input particle data arrays are unyt_arrays.
         """
@@ -3625,18 +3590,22 @@ class SOProperties(HaloProperty):
         # SOs only exist for central galaxies
         # Determine whether to skip this halo because of filter
         if input_halo["is_central"] and do_calculation[self.halo_filter]:
-            types_present = [type for type in self.particle_properties if type in data]
+
+            # Quantities which are the same for every SO variation of this halo
+            # are computed once and reused by the other variations. The particle
+            # types are part of the cache key because they determine the order
+            # in which the particle arrays are concatenated.
+            shared = self.get_shared_particle_data(
+                input_halo, data, shared_particle_data
+            )
 
             part_props = SOParticleData(
-                input_halo,
-                data,
-                types_present,
+                shared,
                 self.filter,
                 self.observer_position,
-                self.snapshot_datasets,
                 self.core_excision_fraction,
-                self.softening_of_parttype,
                 self.virial_definition,
+                self.compute_flow_rates,
                 search_radius,
                 self.cosmology,
                 self.boxsize,
@@ -3674,7 +3643,14 @@ class SOProperties(HaloProperty):
                         unit = unit * unyt.Unit("a", registry=registry) ** a_exponent
                     if do_calculation[filter_name]:
                         t0_calc = time.time()
-                        val = getattr(part_props, name)
+                        try:
+                            val = getattr(part_props, name)
+                        except Exception as e:
+                            e.add_note(
+                                f"Error calculating {prop.name} for subhalo "
+                                f"{input_halo['index']}"
+                            )
+                            raise
                         if val is not None:
                             assert (
                                 SO[name].shape == val.shape
@@ -3883,6 +3859,7 @@ class RadiusMultipleSOProperties(SOProperties):
         search_radius: unyt.unyt_quantity,
         data: Dict,
         halo_result: Dict,
+        shared_particle_data: ParticleDataCache = None,
     ):
         """
         Calculate the properties of an SO of which the radius is the multiple of
@@ -3900,6 +3877,10 @@ class RadiusMultipleSOProperties(SOProperties):
            Dictionary in which halo properties for this halo are stored. Should
            contain a valid result for the "parent" SO, i.e. the SO that determines
            the radius of this SO.
+         - shared_particle_data: ParticleDataCache
+           Cache of particle quantities shared with the other property
+           calculations for this halo. If None, the quantities this calculation
+           needs are computed for its own use only.
 
         Throws a RuntimeError if the "parent" SO radius cannot be obtained from
         halo_result.
@@ -3922,5 +3903,7 @@ class RadiusMultipleSOProperties(SOProperties):
                 "SO radius multiple estimate was too small!"
             )
 
-        super().calculate(input_halo, search_radius, data, halo_result)
+        super().calculate(
+            input_halo, search_radius, data, halo_result, shared_particle_data
+        )
         return

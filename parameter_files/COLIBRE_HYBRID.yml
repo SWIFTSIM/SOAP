@@ -1,8 +1,8 @@
 # Values in this section are substituted into the other sections
 Parameters:
   sim_dir: /cosma8/data/dp004/jlvc76/COLIBRE/ScienceRuns
-  output_dir: /snap8/scratch/dp004/dc-mcgi1/COLIBRE/soap_aug_04
-  scratch_dir: /snap8/scratch/dp004/dc-mcgi1/COLIBRE/soap_aug_04
+  output_dir: /snap8/scratch/dp004/dc-mcgi1/COLIBRE/soap
+  scratch_dir: /snap8/scratch/dp004/dc-mcgi1/COLIBRE/soap
 
 # Location of the Swift snapshots:
 Snapshots:
@@ -12,14 +12,10 @@ Snapshots:
 # Which halo finder we're using, and base name for halo finder output files
 HaloFinder:
   type: HBTplus
-  filename: "/snap8/scratch/dp004/dc-mcgi1/COLIBRE/sort_hbt/{sim_name}/HBT-HERONS/OrderedSubSnap_{snap_nr:03d}.hdf5"
-  fof_filename: "{sim_dir}/{sim_name}/fof/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
-  fof_radius_filename: "{sim_dir}/{sim_name}/fof_radii/fof_output_{snap_nr:04d}/fof_output_{snap_nr:04d}.{file_nr}.hdf5"
+  filename: "{sim_dir}/{sim_name}/HBT-HERONS/{snap_nr:03d}/SubSnap_{snap_nr:03d}"
+  fof_filename: "{sim_dir}/{sim_name}/fof/fof_output_{snap_nr:04d}.hdf5"
   read_potential_energies: true
-  #type: VR
-  #filename: "{sim_dir}/halo_{snap_nr:04d}"
-  #type: Subfind
-  #filename: "{sim_dir}/snapdir_{snap_nr:03d}/snapshot_{snap_nr:03d}"
+  index_by_track_id: true
 
 GroupMembership:
   # Where to write the group membership files
@@ -244,6 +240,7 @@ ApertureProperties:
     StellarCylindricalVelocityDispersionLuminosityWeighted: false
     StellarCylindricalVelocityDispersionVerticalLuminosityWeighted: false
     StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted: false
+    ExSituFraction: false
     TotalMass: true
     TotalSNIaRate: true
     GasMassInColdDenseDiffuseMetals:
@@ -260,6 +257,12 @@ ApertureProperties:
     StellarInertiaTensorReducedLuminosityWeighted: false
     StellarInertiaTensorReducedNoniterative: false
     StellarInertiaTensorReducedNoniterativeLuminosityWeighted: false
+    ShrinkingSphereCentre: false
+    StellarAsymmetry: false
+    StellarAsymmetry48: false
+    StellarAsymmetry192: false
+    StellarAsymmetryShrink: false
+    StellarAsymmetrySubsample: false
   variations:
     exclusive_100_pc:
       inclusive: false
@@ -662,6 +665,7 @@ SubhaloProperties:
     LuminosityWeightedMeanStellarAge: true
     MassWeightedMeanStellarAge: true
     MaximumCircularVelocity: true
+    MaximumCircularVelocityRadius: true
     MaximumCircularVelocityRadiusUnsoftened: true
     MaximumCircularVelocityUnsoftened: true
     MaximumDarkMatterCircularVelocity: true
@@ -742,6 +746,7 @@ SubhaloProperties:
     StellarCylindricalVelocityDispersionLuminosityWeighted: false
     StellarCylindricalVelocityDispersionVerticalLuminosityWeighted: false
     StellarCylindricalVelocityDispersionDiscPlaneLuminosityWeighted: false
+    ExSituFraction: false
 aliases:
   PartType0/LastSNIIKineticFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
   PartType0/LastSNIIThermalFeedbackDensities: PartType0/DensitiesAtLastSupernovaEvent
@@ -759,24 +764,6 @@ filters:
       - BoundSubhalo/NumberOfStarParticles
       - BoundSubhalo/NumberOfBlackHoleParticles
     combine_properties: sum
-  baryon:
-    limit: 0
-    properties:
-      - BoundSubhalo/NumberOfGasParticles
-      - BoundSubhalo/NumberOfStarParticles
-    combine_properties: sum
-  dm:
-    limit: 0
-    properties:
-      - BoundSubhalo/NumberOfDarkMatterParticles
-  gas:
-    limit: 0
-    properties:
-      - BoundSubhalo/NumberOfGasParticles
-  star:
-    limit: 0
-    properties:
-      - BoundSubhalo/NumberOfStarParticles
 defined_constants:
   O_H_sun: 4.9e-4
   Fe_H_sun: 3.16e-5
@@ -792,3 +779,10 @@ calculations:
   cold_dense_gas_filter:
     maximum_temperature_K: 3.16e4
     minimum_hydrogen_number_density_cm3: 0.1
+  separate_chunks:
+    - n_bound_threshold: 300000000
+      n_halo_per_chunk: 1
+    - n_bound_threshold: 100000000
+      n_halo_per_chunk: 2
+    - n_bound_threshold: 50000000
+      n_halo_per_chunk: 5

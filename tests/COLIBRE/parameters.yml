@@ -1,8 +1,8 @@
 # Values in this section are substituted into the other sections
 Parameters:
   sim_dir: /cosma8/data/dp004/colibre/Runs
-  output_dir: output
-  scratch_dir: output
+  output_dir: test_output
+  scratch_dir: test_output
 
 # Location of the Swift snapshots:
 Snapshots:

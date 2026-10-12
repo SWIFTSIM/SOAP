@@ -16,7 +16,6 @@ the time interval between the current time and the last feedback time
 requires knowledge of the cosmology.
 """
 
-
 from astropy.cosmology import w0waCDM, z_at_value
 import astropy.constants as const
 import astropy.units as astropy_units

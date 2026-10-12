@@ -21,9 +21,24 @@ import unyt
 
 from SOAP.core.swift_units import unit_registry_from_snapshot
 from SOAP.core.snapshot_datasets import SnapshotDatasets
+from SOAP.core.swift_cells import compute_virBN98, compute_dlog_virBN98_dloga
 from SOAP.property_table import PropertyTable
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 from SOAP.particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
+
+
+def opt_in_properties(property_list: Dict) -> Dict[str, bool]:
+    """
+    Return a properties dictionary for the parameter file which explicitly
+    enables every opt-in property in property_list. Opt-in properties are
+    not computed by calculate_missing_properties, so tests which check all
+    properties must enable them.
+    """
+    return {
+        prop.name: True
+        for prop in property_list.values()
+        if prop.opt_in_reason is not None
+    }
 
 
 class DummySnapshot:
@@ -208,11 +223,13 @@ class DummySnapshotDatasets(SnapshotDatasets):
                 "Luminosities",
                 "MetalMassFractions",
                 "BirthScaleFactors",
+                "AveragedStarFormationRates",
                 "SNIaRates",
                 "BirthDensities",
                 "BirthTemperatures",
                 "SmoothedElementMassFractions",
                 "IronMassFractionsFromSNIa",
+                "BirthHaloCatalogueIndex",
             ],
             "PartType5": [
                 "Coordinates",
@@ -460,15 +477,13 @@ class DummyCellGrid:
         )
         self.mean_density = self.critical_density * self.cosmology["Omega_m"]
         # Compute the BN98 critical density multiple
-        Omega_k = self.cosmology["Omega_k"]
-        Omega_Lambda = self.cosmology["Omega_lambda"]
-        Omega_m = self.cosmology["Omega_m"]
-        bnx = -(Omega_k / self.a**2 + Omega_Lambda) / (
-            Omega_k / self.a**2 + Omega_m / self.a**3 + Omega_Lambda
-        )
-        self.virBN98 = 18.0 * np.pi**2 + 82.0 * bnx - 39.0 * bnx**2
+        self.virBN98 = compute_virBN98(self.cosmology, self.a)
         if self.virBN98 < 50.0 or self.virBN98 > 1000.0:
             raise RuntimeError("Invalid value for virBN98!")
+
+        # The BN98 density multiple is time dependent, so its logarithmic
+        # derivative is required to calculate the pseudo-evolution of R_BN98
+        self.dlog_virBN98_dloga = compute_dlog_virBN98_dloga(self.cosmology, self.a)
 
         # Get the box size. Assume it's comoving with no h factors.
         comoving_length_unit = self.get_unit("snap_length") * self.a_unit
@@ -577,14 +592,6 @@ class DummyHaloGenerator:
                     units="dimensionless",
                 ),
                 "Dummy Nbh for filter",
-            ),
-            f"SO/200_crit/{PropertyTable.full_property_list['Ngas'].name}": (
-                unyt.unyt_array(
-                    particle_numbers["PartType0"],
-                    dtype=PropertyTable.full_property_list["Ngas"].dtype,
-                    units="dimensionless",
-                ),
-                "Dummy SO Ngas for filter",
             ),
             f"BoundSubhalo/EncloseRadius": (
                 unyt.unyt_array(
@@ -1170,6 +1177,10 @@ class DummyHaloGenerator:
             data["PartType4"]["GroupNr_all"] = groupnr_all[star_mask]
             data["PartType4"]["GroupNr_bound"] = groupnr_bound[star_mask]
             data["PartType4"]["FOFGroupIDs"] = fof_group_ids[star_mask]
+            # Some in-situ stars, some ex-situ
+            data["PartType4"]["BirthHaloCatalogueIndex"] = groupnr_bound[star_mask]
+            mask = np.random.random(Nstar) < 0.1
+            data["PartType4"]["BirthHaloCatalogueIndex"][mask] = -1
             # initial masses are always larger than the actual mass
             data["PartType4"]["InitialMasses"] = unyt.unyt_array(
                 mass[star_mask].value * (1.0 + np.random.random(Nstar)),
@@ -1223,6 +1234,12 @@ class DummyHaloGenerator:
                 registry=reg,
             )
             data["PartType4"]["Velocities"] = vs[star_mask]
+            data["PartType4"]["AveragedStarFormationRates"] = unyt.unyt_array(
+                300.0 * np.random.random((Nstar, 2)),
+                dtype=np.float32,
+                units="snap_mass/snap_time",
+                registry=reg,
+            )
 
         # BH properties
         bh_mask = types == "PartType5"
