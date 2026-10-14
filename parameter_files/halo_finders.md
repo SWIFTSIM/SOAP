@@ -69,7 +69,8 @@ properties for resolved subhalos (those with bound particles), so in general
 the SOAP catalogue has fewer entries than the input HBT catalogue.
 
 If the catalogues for the previous and next snapshots exist then
-SOAP also computes `SOAP/ProgenitorIndex` and `SOAP/DescendantIndex`.
+SOAP also computes `SOAP/ProgenitorIndex`, `SOAP/DescendantIndex`, and
+`SOAP/DescendantType`.
 
 ```
 HaloFinder:

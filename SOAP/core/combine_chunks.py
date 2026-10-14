@@ -30,6 +30,85 @@ def sub_snapnum(filename, snapnum):
     return filename
 
 
+def compute_descendant_index(track_id, next_data, next_track_id, comm):
+    """
+    Find the descendant of each subhalo at the next snapshot using the
+    HBTplus catalogue for the next snapshot.
+
+    track_id      - TrackId of each subhalo at this snapshot
+    next_data     - HBTplus catalogue for the next snapshot, including orphans
+                    and descendant information
+    next_track_id - TrackId of each resolved subhalo at the next snapshot,
+                    in the order of the next SOAP catalogue
+    comm          - communicator
+
+    Returns the index of the descendant within the next SOAP catalogue (-1 if
+    there is no descendant), and the type of descendant (0=survived,
+    1=disrupted, 2=sunk, 3=disrupted with no descendant)
+    """
+    comm_rank = comm.Get_rank()
+    track_id = np.asarray(track_id)
+
+    # Locate each subhalo in the next HBTplus catalogue (including orphans)
+    idx = psort.parallel_match(track_id, next_data["TrackId"], comm=comm)
+    n_missing = comm.allreduce(np.sum(idx == -1))
+    if n_missing > 0:
+        if comm_rank == 0:
+            print(
+                f"{n_missing} TrackIds are missing from the next HBTplus catalogue",
+                flush=True,
+            )
+        comm.Abort()
+    nbound = psort.fetch_elements(next_data["nr_bound_part"], idx, comm=comm)
+    sink_track_id = psort.fetch_elements(next_data["SinkTrackId"], idx, comm=comm)
+    desc_track_id = psort.fetch_elements(
+        next_data["DescendantTrackId"], idx, comm=comm
+    )
+    nbound = np.asarray(nbound)
+    sink_track_id = np.asarray(sink_track_id)
+    desc_track_id = np.asarray(desc_track_id)
+
+    # Subhalos which sink become orphans, unless HBTplus was
+    # run with MergeTrappedSubhalos=0
+    survived = nbound > 0
+    n_sunk_resolved = comm.allreduce(np.sum(survived & (sink_track_id != -1)))
+    if (n_sunk_resolved > 0) and (comm_rank == 0):
+        print(
+            f"Warning: {n_sunk_resolved} subhalos have sunk but are still "
+            "resolved at the next snapshot, treating them as survived"
+        )
+
+    # Classify what happened to each subhalo
+    descendant_type = np.ones(track_id.shape[0], dtype=np.int32)
+    descendant_type[sink_track_id != -1] = 2
+    descendant_type[desc_track_id == -1] = 3
+    descendant_type[survived] = 0
+
+    # If the subhalo survived then its descendant has the same TrackId. Otherwise
+    # we use the subhalo that received the majority of its tracer particles. We
+    # don't use SinkTrackId as it can point to a subhalo which itself sinks at
+    # the same snapshot. DescendantTrackId is computed after all sinking, and so
+    # always points to a resolved subhalo.
+    desc_track_id = np.where(survived, track_id, desc_track_id)
+
+    # Find where each descendant appears in the next SOAP catalogue
+    descendant_index = -1 * np.ones(track_id.shape[0], dtype=np.int32)
+    has_desc = desc_track_id != -1
+    descendant_index[has_desc] = psort.parallel_match(
+        desc_track_id[has_desc], next_track_id, comm=comm
+    )
+    n_missing = comm.allreduce(np.sum(descendant_index[has_desc] == -1))
+    if n_missing > 0:
+        if comm_rank == 0:
+            print(
+                f"{n_missing} descendants are not resolved in the next catalogue",
+                flush=True,
+            )
+        comm.Abort()
+
+    return descendant_index, descendant_type
+
+
 def spatial_sort(halo_cofp, halo_index, cellgrid, comm):
     """
     Sort the halos based on what cell they are in, then based
@@ -195,7 +274,9 @@ def combine_chunks(
         soap_props.add("SOAP/HostHaloIndex")
         props_to_keep.update(("InputHalos/HBTplus/HostFOFId", "InputHalos/IsCentral"))
         # Progenitor/Descendant SOAP index
-        soap_props.update(("SOAP/ProgenitorIndex", "SOAP/DescendantIndex"))
+        soap_props.update(
+            ("SOAP/ProgenitorIndex", "SOAP/DescendantIndex", "SOAP/DescendantType")
+        )
         props_to_keep.add("InputHalos/HBTplus/TrackId")
 
     # Also keep M200c for calculating reduced_snapshot flag
@@ -737,6 +818,7 @@ def combine_chunks(
 
     if "SOAP/ProgenitorIndex" in soap_props:
         assert "SOAP/DescendantIndex" in soap_props
+        assert "SOAP/DescendantType" in soap_props
         assert args.halo_format in ["HBTplus"]
 
         for name, snap_nr in [
@@ -746,6 +828,7 @@ def combine_chunks(
 
             # Set the default value
             prev_index = -1 * np.ones(order.shape[0], dtype=np.int32)
+            descendant_type = -1 * np.ones(order.shape[0], dtype=np.int32)
 
             # Check if the previous/next HBT catalogue is available
             prev_basename = args.halo_basename.format(snap_nr=snap_nr)
@@ -767,27 +850,38 @@ def combine_chunks(
                 # Load data from previous/next halo catalogue and sort it
                 # This assumes the metadata in the previous/next snapshot
                 # is the same as in the current snapshot
+                # For descendants we also need orphans and merger information
+                is_descendant = name == "Descendant"
                 prev_data = read_hbtplus.read_hbtplus_catalogue(
                     comm_world,
                     prev_basename,
                     cellgrid.a_unit,
                     cellgrid.snap_unit_registry,
                     cellgrid.boxsize,
+                    keep_orphans=is_descendant,
                     index_by_track_id=args.index_by_track_id,
+                    read_descendant_info=is_descendant,
                 )
+                # Only resolved subhalos are present in the SOAP catalogues
+                resolved = prev_data["nr_bound_part"] > 0
                 prev_order, _ = spatial_sort(
-                    prev_data["cofp"],
-                    prev_data["index"],
+                    prev_data["cofp"][resolved],
+                    prev_data["index"][resolved],
                     cellgrid,
                     comm_world,
                 )
                 prev_track_id = psort.fetch_elements(
-                    prev_data["TrackId"], prev_order, comm=comm_world
+                    prev_data["TrackId"][resolved], prev_order, comm=comm_world
                 )
-                # Find where each TrackId appears in the previous/next snapshot
-                prev_index = psort.parallel_match(
-                    track_id, prev_track_id, comm=comm_world
-                )
+                if name == "Progenitor":
+                    # Find where each TrackId appears in the previous snapshot
+                    prev_index = psort.parallel_match(
+                        track_id, prev_track_id, comm=comm_world
+                    )
+                else:
+                    prev_index, descendant_type = compute_descendant_index(
+                        track_id, prev_data, prev_track_id, comm_world
+                    )
 
             parallel_io.collective_write(
                 outfile,
@@ -796,6 +890,14 @@ def combine_chunks(
                 create_dataset=False,
                 comm=comm_world,
             )
+            if name == "Descendant":
+                parallel_io.collective_write(
+                    outfile,
+                    "SOAP/DescendantType",
+                    descendant_type,
+                    create_dataset=False,
+                    comm=comm_world,
+                )
 
     # Done.
     parallel_io.close_collective(outfile, comm_world)
