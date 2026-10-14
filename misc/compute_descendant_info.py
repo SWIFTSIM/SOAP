@@ -308,9 +308,7 @@ def write_metadata(outfile, cellgrid, cell_counts, n_total, snap_nr, args):
     header.attrs["NumPart_Total"] = np.zeros(n_part_type, dtype="uint32")
     header.attrs["NumPart_Total_HighWord"] = np.zeros(n_part_type, dtype="uint32")
     header.attrs["OutputType"] = "SOAP"
-    header.attrs["SnapshotDate"] = time.strftime(
-        "%H:%M:%S %Y-%m-%d GMT", time.gmtime()
-    )
+    header.attrs["SnapshotDate"] = time.strftime("%H:%M:%S %Y-%m-%d GMT", time.gmtime())
     header.attrs["System"] = socket.gethostname()
     header.attrs["ThisFile"] = np.array([0], dtype="int32")
     header.attrs["SubhaloTypes"] = ["InputHalos", "InputHalos/HBTplus", "SOAP"]

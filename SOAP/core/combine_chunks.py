@@ -58,12 +58,10 @@ def compute_descendant_index(track_id, next_data, next_track_id, comm):
                 f"{n_missing} TrackIds are missing from the next HBTplus catalogue",
                 flush=True,
             )
-        comm.Abort()
+        comm.Abort(1)
     nbound = psort.fetch_elements(next_data["nr_bound_part"], idx, comm=comm)
     sink_track_id = psort.fetch_elements(next_data["SinkTrackId"], idx, comm=comm)
-    desc_track_id = psort.fetch_elements(
-        next_data["DescendantTrackId"], idx, comm=comm
-    )
+    desc_track_id = psort.fetch_elements(next_data["DescendantTrackId"], idx, comm=comm)
     nbound = np.asarray(nbound)
     sink_track_id = np.asarray(sink_track_id)
     desc_track_id = np.asarray(desc_track_id)
@@ -104,7 +102,7 @@ def compute_descendant_index(track_id, next_data, next_track_id, comm):
                 f"{n_missing} descendants are not resolved in the next catalogue",
                 flush=True,
             )
-        comm.Abort()
+        comm.Abort(1)
 
     return descendant_index, descendant_type
 

@@ -49,7 +49,7 @@ def read_hbtplus_groupnr(
             sorted_file = True
         else:
             print(f"No HBT files found for basename {basename}", flush=True)
-            comm.Abort()
+            comm.Abort(1)
     else:
         nr_files = None
         sorted_file = None
@@ -429,4 +429,3 @@ def read_hbtplus_catalogue(
     )
 
     return local_halo
-
