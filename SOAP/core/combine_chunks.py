@@ -114,7 +114,13 @@ def spatial_sort(halo_cofp, halo_index, cellgrid, comm):
     Sort the halos based on what cell they are in, then based
     on their catalogue index
     """
-    cell_indices = (halo_cofp // cellgrid.cell_size).value.astype("int64")
+    # Convert to the same units as the cell size before dividing. The halo
+    # centres can be in slightly different units (e.g. swift_mpc instead
+    # of snap_length), and floor division with mixed units can put halos
+    # which lie on a cell boundary in the wrong cell.
+    cell_size = cellgrid.cell_size
+    cell_indices = halo_cofp.to(cell_size.units).value // cell_size.value
+    cell_indices = cell_indices.astype("int64")
     assert cellgrid.dimension[0] >= cellgrid.dimension[1] >= cellgrid.dimension[2]
     # Assert that all halos are within the box
     if cell_indices.shape[0] > 0:
