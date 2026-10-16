@@ -170,7 +170,8 @@ def combine_chunks(
     props_to_keep = set()  # Properties required from the chunk files
     if args.halo_format == "VR":
         # Subhalo rank
-        soap_props.add("SOAP/SubhaloRankByBoundMass")
+        if "BoundSubhalo/TotalMass" in [metadata[0] for metadata in ref_metadata]:
+            soap_props.add("SOAP/SubhaloRankByBoundMass")
         props_to_keep.update(
             (
                 "InputHalos/VR/ID",
@@ -183,7 +184,8 @@ def combine_chunks(
         props_to_keep.update(("InputHalos/VR/ID", "InputHalos/VR/HostHaloID"))
     elif args.halo_format == "HBTplus":
         # Subhalo rank
-        soap_props.add("SOAP/SubhaloRankByBoundMass")
+        if "BoundSubhalo/TotalMass" in [metadata[0] for metadata in ref_metadata]:
+            soap_props.add("SOAP/SubhaloRankByBoundMass")
         props_to_keep.update(
             (
                 "InputHalos/HBTplus/HostFOFId",
