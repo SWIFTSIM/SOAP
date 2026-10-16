@@ -127,6 +127,8 @@ if __name__ == "__main__":
     input_filenames = [f"{input_basename}.{i}.hdf5" for i in range(n_file)]
     file = phdf5.MultiFile(input_filenames, comm=comm)
     input_data = file.read(datasets, group="PartType4", read_attributes=True)
+    for name in ["BirthHaloCatalogueIndex", "FirstSnapshot"]:
+        assert input_data.get(name) is not None, f"{name} missing from input files"
     # PreBirthHaloCatalogueIndex is only present if it was requested when
     # running compute_BirthHaloCatalogueIndex.py
     resort_datasets = [name for name in datasets if input_data.get(name) is not None]
