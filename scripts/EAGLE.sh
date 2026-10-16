@@ -128,10 +128,13 @@ mpirun -- python3 -u -m mpi4py SOAP/compute_halo_properties.py \
 
 ######### Compress SOAP (run on single node)
 
+# Use the system python (newer HDF5), but keep a matching MPI loaded for mpi4py
+deactivate
 module purge
-module load python/3.12.4
+module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3
 
-mpirun -np 28 python -u SOAP/compression/compress_soap_catalogue.py \
+nr_compress=$(( SLURM_NTASKS < 28 ? SLURM_NTASKS : 28 ))
+mpirun -np ${nr_compress} python -u SOAP/compression/compress_soap_catalogue.py \
     "${output_dir}/SOAP_uncompressed/halo_properties_${snap_nr}.hdf5" \
     "${output_dir}/SOAP/halo_properties_${snap_nr}.hdf5" \
     "${output_dir}/SOAP_compression_tmp"
