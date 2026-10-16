@@ -98,7 +98,7 @@ def compute_halo_properties():
         )
         print(
             "Number of MPI ranks per node reading snapshots: %d"
-            % args.max_ranks_reading
+            % min(args.max_ranks_reading, intra_node_size)
         )
         print("Halo format is %s" % args.halo_format)
         print("Halo basename is %s" % args.halo_basename)
