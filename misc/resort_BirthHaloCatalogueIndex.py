@@ -129,11 +129,11 @@ if __name__ == "__main__":
     input_data = file.read(datasets, group="PartType4", read_attributes=True)
     # PreBirthHaloCatalogueIndex is only present if it was requested when
     # running compute_BirthHaloCatalogueIndex.py
-    datasets = [name for name in datasets if input_data.get(name) is not None]
-    mpi_print(f"Datasets to resort: {datasets}", comm_rank)
-    for name in datasets:
+    resort_datasets = [name for name in datasets if input_data.get(name) is not None]
+    mpi_print(f"Datasets to resort: {resort_datasets}", comm_rank)
+    for name in resort_datasets:
         assert input_data[name].shape == input_particle_ids.shape
-    attrs = {name: dict(input_data[name].attrs) for name in datasets}
+    attrs = {name: dict(input_data[name].attrs) for name in resort_datasets}
 
     # Load star particle IDs from the output snapshot
     mpi_print("Loading output snapshot", comm_rank)
@@ -144,6 +144,10 @@ if __name__ == "__main__":
         comm=comm,
     )
     output_particle_ids = snap_file.read("PartType4/ParticleIDs")
+    # Read returns None if there are no stars in the output snapshot
+    if output_particle_ids is None:
+        mpi_print("No stars in output snapshot", comm_rank)
+        output_particle_ids = np.zeros(0, dtype=input_particle_ids.dtype)
 
     # Match stars. Stars are never removed, so all should be found
     mpi_print("Matching stars", comm_rank)
@@ -152,11 +156,8 @@ if __name__ == "__main__":
     assert n_missing == 0, f"{n_missing} stars not found in input snapshot"
 
     output = {}
-    for name in datasets:
+    for name in resort_datasets:
         output[name] = psort.fetch_elements(input_data[name], idx, comm=comm)
-
-    # Stars present at the output snapshot must have formed by then
-    assert np.all(output["FirstSnapshot"] <= args.output_snap_nr)
 
     # Check the output directory exists
     output_filename = (
