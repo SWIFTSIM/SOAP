@@ -73,8 +73,12 @@ def make_virtual_snapshot(
     Given a snapshot and auxiliary files, create
     a new virtual snapshot with all datasets combine.
 
-    snapshot: Path to the snapshot file
-    auxiliary_snapshots: List of auxiliary file patterns
+    snapshot: Path to the snapshot file. This can either be a SWIFT virtual
+        file (distributed output) or a single file containing all the
+        particle data (serial output)
+    auxiliary_snapshots: List of auxiliary file patterns. For chunked
+        auxiliary files the pattern must contain {file_nr}. For a single
+        auxiliary file pass the filename without {file_nr}
     output_file: Path to the output virtual snapshot
     absolute_paths: If True, use absolute paths; if False, use relative paths
     """
@@ -325,23 +329,34 @@ if __name__ == "__main__":
     # For description of parameters run the following: $ python make_virtual_snapshot.py --help
     parser = argparse.ArgumentParser(
         description=(
-            "Link SWIFT snapshots with SWIFT auxiliary snapshots (snapshot-like"
-            "files with the same number of particles in the same order as the"
-            "snapshot, but with less metadata), such as the SOAP memberships."
+            "Link SWIFT snapshots with SWIFT auxiliary snapshots (snapshot-like "
+            "files with the same number of particles in the same order as the "
+            "snapshot, but with less metadata), such as the SOAP memberships. "
+            "Works with both distributed snapshots (a virtual file linking to "
+            "chunk files) and single file snapshots."
         )
     )
     parser.add_argument(
         "--virtual-snapshot",
         type=str,
         required=True,
-        help="Name of the SWIFT virtual snapshot file, e.g. snapshot_{snap_nr:04}.hdf5",
+        help=(
+            "Name of the SWIFT snapshot file, e.g. snapshot_{snap_nr:04}.hdf5. "
+            "This can be a virtual file (distributed output) or a single file "
+            "containing all the particle data (serial output)"
+        ),
     )
     parser.add_argument(
         "--auxiliary-snapshots",
         type=str,
         nargs="+",
         required=True,
-        help="One of more format strings for auxiliary files, e.g. membership_{snap_nr:04}.{file_nr}.hdf5",
+        help=(
+            "One or more format strings for auxiliary files. For chunked files "
+            "include {file_nr}, e.g. membership_{snap_nr:04}.{file_nr}.hdf5. "
+            "For a single file omit {file_nr}, e.g. membership_{snap_nr:04}.hdf5. "
+            "Multiple sets of auxiliary files can be passed (e.g. membership and xray)"
+        ),
     )
     parser.add_argument(
         "--output-file",
@@ -365,9 +380,9 @@ if __name__ == "__main__":
         "--discard-duplicate-datasets",
         action="store_true",
         help=(
-            "This flag determines the behaviour when a dataset exists in both the original snapshot"
-            "and the auxilary file. By default the virtual file will rename the original snapshot"
-            "dataset as {dataset_name}_snap. If this flag is passed then the dataset from the original"
+            "This flag determines the behaviour when a dataset exists in both the original snapshot "
+            "and the auxiliary file. By default the virtual file will rename the original snapshot "
+            "dataset as {dataset_name}_snap. If this flag is passed then the dataset from the original "
             "snapshot will not be linked to"
         ),
     )

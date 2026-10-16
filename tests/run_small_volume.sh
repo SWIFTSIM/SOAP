@@ -24,6 +24,12 @@ mpirun -np 8 python -u SOAP/group_membership.py \
     --snap-nr=18 \
     tests/small_volume.yml
 
+# Create a virtual snapshot linking the particle data and membership files
+python SOAP/compression/make_virtual_snapshot.py \
+    --virtual-snapshot test_data/snap_0018.hdf5 \
+    --auxiliary-snapshots test_output/membership_0018/membership_0018.hdf5 \
+    --output-file test_output/snap_with_membership_0018.hdf5
+
 # Calculate halo properties
 mpirun -np 8 python -u SOAP/compute_halo_properties.py \
     --sim-name=DM_test \
