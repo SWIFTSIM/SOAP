@@ -49,7 +49,7 @@ def read_hbtplus_groupnr(
             sorted_file = True
         else:
             print(f"No HBT files found for basename {basename}", flush=True)
-            comm.Abort()
+            comm.Abort(1)
     else:
         nr_files = None
         sorted_file = None
@@ -199,6 +199,7 @@ def read_hbtplus_catalogue(
     boxsize,
     keep_orphans=False,
     index_by_track_id=False,
+    read_descendant_info=False,
 ):
     """
     Read in the HBTplus halo catalogue, distributed over communicator comm.
@@ -211,6 +212,10 @@ def read_hbtplus_catalogue(
     index_by_track_id - use the TrackId as the index of each halo. This only
                         has an effect for unsorted catalogues, since for sorted
                         catalogues the index is already equal to the TrackId
+    read_descendant_info - also return DescendantTrackId and SinkTrackId. These
+                           are only used for computing SOAP/DescendantIndex, and
+                           so are not returned by default since that would mean
+                           they are written to the SOAP catalogues
 
     Returns a dict of unyt arrays with the halo properies.
     Arrays which must always be returned:
@@ -366,12 +371,6 @@ def read_hbtplus_catalogue(
         dtype=int,
         registry=registry,
     )
-    descendant_id = unyt.unyt_array(
-        subhalo["DescendantTrackId"][keep],
-        units=unyt.dimensionless,
-        dtype=int,
-        registry=registry,
-    )
 
     # Peak mass
     max_mass = (subhalo["LastMaxMass"][keep] * MassInMsunh / h) * swift_msun
@@ -392,10 +391,18 @@ def read_hbtplus_catalogue(
         "Depth": depth,
         "TrackId": track_id,
         "NestedParentTrackId": parent_id,
-        "DescendantTrackId": descendant_id,
         "LastMaxMass": max_mass,
         "LastMaxVmaxPhysical": max_vmax,
     }
+
+    if read_descendant_info:
+        for prop in ("DescendantTrackId", "SinkTrackId"):
+            local_halo[prop] = unyt.unyt_array(
+                subhalo[prop][keep],
+                units=unyt.dimensionless,
+                dtype=int,
+                registry=registry,
+            )
 
     if "SnapshotIndexOfBirth" in subhalo_props:
         snapshot_birth = subhalo["SnapshotIndexOfBirth"][keep]
