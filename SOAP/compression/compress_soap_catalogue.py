@@ -110,6 +110,9 @@ def create_lossy_dataset(file, name, shape, filter, named_columns=False):
     new_plist = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
     chunk = get_chunk_shape(shape, named_columns)
     new_plist.set_chunk(chunk)
+    # Keep attributes in compact storage. Copying dense
+    # variable-length string attributes segfaults in HDF5 1.12.3
+    new_plist.set_attr_phase_change(65535, 65535)
     for f in fprops["filters"]:
         new_plist.set_filter(f[0], f[1], tuple(f[2]))
     new_plist.set_deflate(compression_opts["compression_opts"])
@@ -145,7 +148,10 @@ def compress_dataset(input_name, output_name, dset):
                 compression_opts["chunks"] = min(chunksize, data.shape[0])
             else:
                 compression_opts["chunks"] = get_chunk_shape(data.shape, named_columns)
-            ofile.create_dataset("data", data=data, **compression_opts)
+            # Keep attributes compact, see create_lossy_dataset
+            dcpl = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
+            dcpl.set_attr_phase_change(65535, 65535)
+            ofile.create_dataset("data", data=data, dcpl=dcpl, **compression_opts)
         else:
             create_lossy_dataset(ofile, "data", data.shape, filter, named_columns)
             ofile["data"][:] = data
