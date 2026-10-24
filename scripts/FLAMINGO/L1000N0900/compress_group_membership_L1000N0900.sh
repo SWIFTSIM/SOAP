@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Compress the membership files using h5repack, applying GZIP compression
+# Compress the membership files, applying GZIP compression
 #
 # Output locations are specified by enviroment variables. E.g.
 #
@@ -76,23 +76,13 @@ input_filename="${inbase}/membership_${snapnum}/membership_${snapnum}"
 # Compressed membership file basename
 output_filename="${outbase}/membership_${snapnum}/membership_${snapnum}"
 
-# Determine how many files we have
-nr_files=`ls -1 ${input_filename}.*.hdf5 | wc -l`
-nr_files_minus_one=$(( ${nr_files} - 1 ))
+# Run the compression, using 32 processes. We could use more processes,
+# but that causes a larger strain for the file system and is therefore not
+# really more efficient
+mpirun -np 32 python -u SOAP/compression/compress_membership.py \
+  "${input_filename}.{file_nr}.hdf5" "${output_filename}.{file_nr}.hdf5"
 
-# run h5repack in parallel using 32 processes
-# we could use more processes, but that causes a larger strain for the file
-# system and is therefore not really more efficient
-# make sure to update the 'seq' arguments when there are more/less membership
-# files
-echo Compressing ${nr_files} group membership files
-echo Source     : ${input_filename}
-echo Destination: ${output_filename}
-
-seq 0 ${nr_files_minus_one} | xargs -I {} -P 32 bash -c \
-  "h5repack -i ${input_filename}.{}.hdf5 -o ${output_filename}.{}.hdf5 -l CHUNK=10000 -f GZIP=4"
-
-chmod a=r "${output_filename}*"
+chmod a=r "${output_filename}"*
 
 echo "Job complete!"
 

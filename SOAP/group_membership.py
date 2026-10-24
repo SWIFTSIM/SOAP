@@ -22,6 +22,79 @@ comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
 comm_size = comm.Get_size()
 
+# Attributes which are copied from the snapshot header to the membership
+# file header
+SNAPSHOT_HEADER_ATTRS = (
+    "BoxSize",
+    "Dimension",
+    "NumFilesPerSnapshot",
+    "NumPartTypes",
+    "NumPart_ThisFile",
+    "NumPart_Total",
+    "NumPart_Total_HighWord",
+    "Redshift",
+    "RunName",
+    "Scale-factor",
+)
+
+
+def membership_header_metadata(
+    halo_basename, halo_format, snap_nr, swift_filename, fof_filename
+):
+    """
+    Return the SOAP specific attributes for the membership file header
+    """
+    return {
+        "Code": "SOAP",
+        "OutputType": "Membership",
+        "SnapshotDate": time.strftime("%H:%M:%S %Y-%m-%d GMT", time.gmtime()),
+        "System": socket.gethostname(),
+        "halo_basename": halo_basename,
+        "halo_format": halo_format,
+        "snapshot_nr": snap_nr,
+        "swift_filename": swift_filename,
+        "fof_filename": fof_filename,
+    }
+
+
+def membership_dataset_attrs():
+    """
+    Return the attributes for each dataset in the membership files. The unit
+    attributes for SpecificPotentialEnergies depend on the snapshot units, so
+    they must be added separately
+    """
+    unit_attrs = {
+        "Conversion factor to CGS (not including cosmological corrections)": [1.0],
+        "Conversion factor to physical CGS (including cosmological corrections)": [1.0],
+        "U_I exponent": [0.0],
+        "U_L exponent": [0.0],
+        "U_M exponent": [0.0],
+        "U_t exponent": [0.0],
+        "U_T exponent": [0.0],
+        "a-scale exponent": [0.0],
+        "h-scale exponent": [0.0],
+        "Property can be converted to comoving": [0],
+        "Value stored as physical": [1],
+    }
+    attrs = {
+        "GroupNr_bound": {
+            "Description": "Index of halo in which this particle is a bound member, or -1 if none"
+        },
+        "Rank_bound": {
+            "Description": "Ranking by binding energy of the bound particles (first in halo=0), or -1 if not bound"
+        },
+        "SpecificPotentialEnergies": {
+            "Description": "Specific potential energy of the bound particles"
+        },
+        "FOFGroupIDs": {
+            "Description": "Friends-Of-Friends ID of the group in which this particle is a member, of -1 if none"
+        },
+    }
+    attrs["GroupNr_bound"].update(unit_attrs)
+    attrs["Rank_bound"].update(unit_attrs)
+    attrs["FOFGroupIDs"].update(unit_attrs)
+    return attrs
+
 
 def process_particle_type(
     ptype,
@@ -104,36 +177,7 @@ def process_particle_type(
         mode = "r+"
 
     # Set up dataset attributes
-    unit_attrs = {
-        "Conversion factor to CGS (not including cosmological corrections)": [1.0],
-        "Conversion factor to physical CGS (including cosmological corrections)": [1.0],
-        "U_I exponent": [0.0],
-        "U_L exponent": [0.0],
-        "U_M exponent": [0.0],
-        "U_t exponent": [0.0],
-        "U_T exponent": [0.0],
-        "a-scale exponent": [0.0],
-        "h-scale exponent": [0.0],
-        "Property can be converted to comoving": [0],
-        "Value stored as physical": [1],
-    }
-    attrs = {
-        "GroupNr_bound": {
-            "Description": "Index of halo in which this particle is a bound member, or -1 if none"
-        },
-        "Rank_bound": {
-            "Description": "Ranking by binding energy of the bound particles (first in halo=0), or -1 if not bound"
-        },
-        "SpecificPotentialEnergies": {
-            "Description": "Specific potential energy of the bound particles"
-        },
-        "FOFGroupIDs": {
-            "Description": "Friends-Of-Friends ID of the group in which this particle is a member, of -1 if none"
-        },
-    }
-    attrs["GroupNr_bound"].update(unit_attrs)
-    attrs["Rank_bound"].update(unit_attrs)
-    attrs["FOFGroupIDs"].update(unit_attrs)
+    attrs = membership_dataset_attrs()
 
     # Write these particles out with the same layout as the input snapshot
     if comm_rank == 0:
@@ -160,22 +204,11 @@ def process_particle_type(
     )
 
 
-def main():
-    # Read parameters from command line and config file
-    from virgo.mpi.util import MPIArgumentParser
-
-    parser = MPIArgumentParser(
-        comm=comm, description="Compute particle group membership in SWIFT snapshots."
-    )
-    parser.add_argument(
-        "config_file", type=str, help="Name of the yaml configuration file"
-    )
-    parser.add_argument(
-        "--sim-name", type=str, help="Name of the simulation to process"
-    )
-    parser.add_argument("--snap-nr", type=int, help="Snapshot number to process")
-    args = parser.parse_args()
-    args = combine_args.combine_arguments(args, args.config_file)
+def compute_membership(args):
+    """
+    Compute group membership. args is the dict of combined command line and
+    config file parameters returned by combine_args.combine_arguments
+    """
 
     # Extract parameters we need
     snap_nr = args["Parameters"]["snap_nr"]
@@ -292,30 +325,14 @@ def main():
                 if f"PartType{i}" in infile:
                     ptypes.append(f"PartType{i}")
 
-            for attr in [
-                "BoxSize",
-                "Dimension",
-                "NumFilesPerSnapshot",
-                "NumPartTypes",
-                "NumPart_ThisFile",
-                "NumPart_Total",
-                "NumPart_Total_HighWord",
-                "Redshift",
-                "RunName",
-                "Scale-factor",
-            ]:
+            for attr in SNAPSHOT_HEADER_ATTRS:
                 header[attr] = infile["Header"].attrs[attr]
 
-        header["Code"] = "SOAP"
-        header["OutputType"] = "Membership"
-        snapshot_date = time.strftime("%H:%M:%S %Y-%m-%d GMT", time.gmtime())
-        header["SnapshotDate"] = snapshot_date
-        header["System"] = socket.gethostname()
-        header["halo_basename"] = halo_basename
-        header["halo_format"] = halo_format
-        header["snapshot_nr"] = snap_nr
-        header["swift_filename"] = swift_filename
-        header["fof_filename"] = fof_filename
+        header.update(
+            membership_header_metadata(
+                halo_basename, halo_format, snap_nr, swift_filename, fof_filename
+            )
+        )
     else:
         ptypes = None
         header = None
@@ -381,4 +398,19 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Read parameters from command line and config file
+    from virgo.mpi.util import MPIArgumentParser
+
+    parser = MPIArgumentParser(
+        comm=comm, description="Compute particle group membership in SWIFT snapshots."
+    )
+    parser.add_argument(
+        "config_file", type=str, help="Name of the yaml configuration file"
+    )
+    parser.add_argument(
+        "--sim-name", type=str, help="Name of the simulation to process"
+    )
+    parser.add_argument("--snap-nr", type=int, help="Snapshot number to process")
+    args = parser.parse_args()
+    args = combine_args.combine_arguments(args, args.config_file)
+    compute_membership(args)

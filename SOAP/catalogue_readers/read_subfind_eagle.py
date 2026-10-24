@@ -35,9 +35,6 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
     comm_rank = comm.Get_rank()
 
     sub_format_string = basename + ".{file_nr}.hdf5"
-    sub_file = phdf5.MultiFile(
-        sub_format_string, file_nr_attr=("Header", "NumFilesPerSnapshot")
-    )
 
     # Get SWIFT's definition of physical and comoving Mpc units
     swift_pmpc = unyt.Unit("swift_mpc", registry=registry)
@@ -60,9 +57,8 @@ def read_subfind_catalogue(comm, basename, a_unit, registry, boxsize):
         h = None
     h = comm.bcast(h)
 
-    sub_format_string = basename + ".{file_nr}.hdf5"
     sub_file = phdf5.MultiFile(
-        sub_format_string, file_nr_attr=("Header", "NumFilesPerSnapshot")
+        sub_format_string, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm
     )
 
     # Read halo properties we need
