@@ -18,20 +18,9 @@ python tests/helpers.py
 export OMPI_MCA_rmaps_base_oversubscribe=1
 export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
 
-# Run the group membership script
-mpirun -np 8 python -u SOAP/group_membership.py \
-    --sim-name=DM_test \
-    --snap-nr=18 \
-    tests/small_volume.yml
-
-# Create a virtual snapshot linking the particle data and membership files
-python SOAP/compression/make_virtual_snapshot.py \
-    --virtual-snapshot test_data/snap_0018.hdf5 \
-    --auxiliary-snapshots test_output/membership_0018/membership_0018.hdf5 \
-    --output-file test_output/snap_with_membership_0018.hdf5
-
-# Calculate halo properties
-mpirun -np 8 python -u SOAP/compute_halo_properties.py \
+# Run SOAP. This computes the group membership and halo properties, and then
+# creates a virtual snapshot linking the particle data and membership files
+mpirun -np 8 python -u SOAP/run_soap.py \
     --sim-name=DM_test \
     --snap-nr=18 \
     --chunks=1 \

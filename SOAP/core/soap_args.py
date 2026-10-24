@@ -76,11 +76,19 @@ def get_soap_args(comm):
 
     Returns a dict with the argument values, or None on failure.
     """
+    parser = get_soap_parser(comm)
+    all_args = combine_soap_args(comm, parser)
+    return process_soap_args(comm, all_args)
+
+
+def get_soap_parser(comm, description="Compute halo properties in SWIFT snapshots."):
+    """
+    Return the parser for the command line arguments of the halo properties
+    program. Extra arguments can be added before parsing.
+    """
 
     # Define command line arguments
-    parser = MPIArgumentParser(
-        comm=comm, description="Compute halo properties in SWIFT snapshots."
-    )
+    parser = MPIArgumentParser(comm=comm, description=description)
     parser.add_argument(
         "config_file", type=str, help="Name of the yaml configuration file"
     )
@@ -191,6 +199,16 @@ def get_soap_args(comm):
         help="Don't delete the per-chunk scratch files after the combined output "
         "has been written. Mainly useful for testing the restart logic",
     )
+    return parser
+
+
+def combine_soap_args(comm, parser):
+    """
+    Parse the command line arguments and combine them with the parameters
+    from the configuration file.
+
+    Returns a dict with the combined parameters, which is the same on all ranks.
+    """
     all_args = parser.parse_args()
 
     # Combine with parameters from configuration file
@@ -209,6 +227,14 @@ def get_soap_args(comm):
     else:
         all_args = None
     all_args = comm.bcast(all_args)
+    return all_args
+
+
+def process_soap_args(comm, all_args):
+    """
+    Extract the parameters needed by the halo properties program from the
+    dict returned by combine_soap_args, and check they are valid.
+    """
 
     # Extract parameters we need for SOAP
     args = argparse.Namespace()

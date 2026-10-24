@@ -62,7 +62,7 @@ _ALLOWED_KEYS = {
     "Parameters": None,
     "Snapshots": {"filename"},
     "HaloFinder": {"type", "filename"}.union(*_HALO_FINDER_KEYS.values()),
-    "GroupMembership": {"filename", "fof_ids_filename"},
+    "GroupMembership": {"filename", "fof_ids_filename", "virtual_snapshot_filename"},
     "ExtraInput": None,
     "HaloProperties": {"filename", "chunk_dir"},
     "SubhaloProperties": {"properties"},

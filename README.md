@@ -73,13 +73,39 @@ The commands in this section should be run from the root of the SOAP
 repository.
 
 The command `./tests/run_small_volume.sh` will download a small example
-simulation, run the group membership and halo properties scripts on it.
+simulation and run SOAP on it.
 This uses the parameter file at `./tests/small_volume.yml`, and the
-resulting catalogue is placed in the `output` directory. It also generates the
+resulting catalogue is placed in the `test_output` directory. It also generates the
 pdf documentation to describe the output file (which is written to
-`documentation/SOAP.pdf`). 
+`documentation/SOAP.pdf`).
 
-### Computing halo membership for particles in the snapshot
+### Running SOAP with a single command
+
+Running SOAP involves several steps: computing which halo each particle belongs
+to (group membership), computing the halo properties, and then compressing the
+output. The script `SOAP/run_soap.py` runs all of these steps within a single
+MPI job. You must pass the name of the simulation, the snapshot number, the
+number of chunks to split the volume into (see
+[How halo properties are computed](#how-halo-properties-are-computed)),
+and a parameter file. If the run is dark matter only the flag `--dmo` should be
+passed. For example:
+
+```
+mpirun python -u SOAP/run_soap.py \
+       --sim-name=DM_test --snap-nr=18 --chunks=1 --dmo \
+       tests/small_volume.yml
+```
+
+<details>
+<summary><b>Running each step separately</b></summary>
+
+For large simulations it can be more efficient to run each step as a separate
+job, since they require different amounts of resources (e.g. computing the
+halo properties may need more compute nodes than computing the group
+membership). The slurm scripts in the `scripts` directory run the steps
+separately.
+
+#### Computing halo membership for particles in the snapshot
 
 The first step is to extract the subhalo index for all particles in a
 snapshot using an input halo-finder catalogue. The output of this step
@@ -96,16 +122,57 @@ mpirun python SOAP/group_membership.py \
     --sim-name=${sim} --snap-nr=${snapnum} parameter_files/FLAMINGO.yml
 ```
 
-### Computing halo properties
+#### Computing halo properties
 
 The second program, `SOAP/compute_halo_properties.py`, reads the simulation
 snapshot and the output from `SOAP/group_membership.py` and uses it to
-calculate halo properties. It works as follows:
+calculate halo properties. You must pass the same information as for
+group membership, and also specify the number of chunks.
+If the run is dark matter only the flag `--dmo` should
+be passed. For example:
+
+```
+snapnum=0077
+sim=L1000N0900/DMO_FIDUCIAL
+mpirun python -u SOAP/compute_halo_properties.py \
+       --sim-name=${sim} --snap-nr=${snapnum} --chunks=1 --dmo \
+       parameter_files/FLAMINGO.yml
+```
+
+#### Compressing the output
+
+The halo properties catalogue is compressed with
+`SOAP/compression/compress_soap_catalogue.py`, and the membership files are
+compressed with `SOAP/compression/compress_membership.py`. The script
+`SOAP/compression/make_virtual_snapshot.py` can be used to create a virtual
+snapshot linking the snapshot and the membership files. For example:
+
+```
+mpirun python -u SOAP/compression/compress_soap_catalogue.py \
+    ${uncompressed_dir}/halo_properties_${snapnum}.hdf5 \
+    ${output_dir}/halo_properties_${snapnum}.hdf5 \
+    ${scratch_dir}
+mpirun python -u SOAP/compression/compress_membership.py \
+    "${uncompressed_dir}/membership_${snapnum}/membership_${snapnum}.{file_nr}.hdf5" \
+    "${output_dir}/membership_${snapnum}/membership_${snapnum}.{file_nr}.hdf5"
+python SOAP/compression/make_virtual_snapshot.py \
+    --virtual-snapshot ${snapshot_dir}/snapshot_${snapnum}.hdf5 \
+    --auxiliary-snapshots "${output_dir}/membership_${snapnum}/membership_${snapnum}.{file_nr}.hdf5" \
+    --output-file ${output_dir}/snapshot_with_membership_${snapnum}.hdf5
+```
+
+See [`SOAP/compression/README.md`](SOAP/compression/README.md) for more details.
+
+</details>
+
+### How halo properties are computed
 
 The simulation volume is split into chunks. Each compute node reads
 in the particles in one chunk at a time and calculates the properties
 of all halos in that chunk. Therefore when running SOAP the number of
 chunks should always be greater than or equal to the number of nodes.
+The number of chunks is set with the `--chunks` flag. Ideally it should be
+set such that one chunk fills a compute node.
 
 Within a compute node there is one MPI process per core. The particle
 data and halo catalogue for the chunk are stored in shared memory.
@@ -121,22 +188,6 @@ attributes in the snapshot. These units are propagated through the halo
 property calculations and used to write the unit attributes in the output.
 Comoving quantities are handled by defining a dimensionless unit corresponding
 to the expansion factor a.
-
-To calculate halo properties you must pass the same information as for
-group membership, and also specify the number of chunks.
-If the run is dark matter only the flag `--dmo` should
-be passed. For example:
-
-```
-snapnum=0077
-sim=L1000N0900/DMO_FIDUCIAL
-mpirun python -u SOAP/compute_halo_properties.py \
-       --sim-name=${sim} --snap-nr=${snapnum} --chunks=1 --dmo \
-       parameter_files/FLAMINGO.yml
-```
-
-Here, `--chunks` determines how many chunks the simulation box is
-split into. Ideally it should be set such that one chunk fills a compute node.
 
 As each chunk finishes, its halo properties are written to a scratch file in the
 directory given by `chunk_dir`; once all chunks are done these are combined into
@@ -165,6 +216,8 @@ The file must contain one index per line. Blank lines, and anything following a
 
 The arguments listed here are passed on the command line, and cannot be set in
 the parameter file.
+
+`SOAP/run_soap.py` accepts the same arguments as `SOAP/compute_halo_properties.py`.
 
 `SOAP/group_membership.py`:
 
@@ -214,7 +267,9 @@ For the group membership files we only apply lossless compression. However,
 each property in the final SOAP catalogue has a lossy compression filter
 associated with it, which are set in `SOAP/property_table.py`. The script 
 `SOAP/compression/compress_soap_catalogue.py` will apply both lossy and
-lossless compression to SOAP catalogues.
+lossless compression to SOAP catalogues, and the script
+`SOAP/compression/compress_membership.py` will apply lossless compression to
+the membership files. Both of these are run automatically by `SOAP/run_soap.py`.
 
 ### Documentation
 

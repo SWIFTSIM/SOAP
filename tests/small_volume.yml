@@ -13,21 +13,12 @@ HaloFinder:
 
 GroupMembership:
   filename: "{output_dir}/membership_{snap_nr:04d}/membership_{snap_nr:04d}.hdf5"
+  virtual_snapshot_filename: "{output_dir}/snap_with_membership_{snap_nr:04d}.hdf5"
 
 HaloProperties:
   filename: "{output_dir}/halo_properties_{snap_nr:04d}.hdf5"
   chunk_dir: "{scratch_dir}/SOAP-tmp/{halo_finder}/"
 
-ApertureProperties:
-  properties:
-    {}
-  variations:
-    {}
-ProjectedApertureProperties:
-  properties:
-    {}
-  variations:
-    {}
 SOProperties:
   properties:
     CentreOfMass: true
@@ -69,4 +60,3 @@ SubhaloProperties:
     TotalMass: true
 calculations:
   calculate_missing_properties: false
-  min_read_radius_cmpc: 5
