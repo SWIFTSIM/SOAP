@@ -387,6 +387,9 @@ def compute_membership(args):
     for file_nr in range(
         first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
     ):
+        # The number of particles is different for each file
+        with h5py.File(swift_filename.format(file_nr=file_nr), "r") as infile:
+            header["NumPart_ThisFile"] = infile["Header"].attrs["NumPart_ThisFile"]
         with h5py.File(output_filename.format(file_nr=file_nr), "r+") as infile:
             group = infile.create_group("Header")
             for k, v in header.items():

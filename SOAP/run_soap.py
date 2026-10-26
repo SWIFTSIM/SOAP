@@ -15,7 +15,13 @@ Run all the steps of SOAP for a single snapshot within one MPI job:
 The membership files and halo properties catalogue are written to the
 locations given in the parameter file, as for the individual scripts. Each
 file is then compressed to a temporary file with the suffix ".compressed",
-which replaces the original once it has been written.
+which replaces the original once it has been written. The compression steps
+are skipped if --no-compression is passed.
+
+If all the membership files already exist they are reused, and steps 1 and 4
+are skipped. If only some of them exist then we abort, since they are likely
+from a run which didn't complete. Similarly step 5 is skipped if the virtual
+snapshot already exists.
 
 This is intended for small runs. For large runs it can be more efficient to
 run each step separately, since they require different amounts of resources.
@@ -33,6 +39,7 @@ comm_rank = comm.Get_rank()
 import os
 import time
 
+import h5py
 from virgo.util.partial_formatter import PartialFormatter
 
 from SOAP.core import soap_args
@@ -61,6 +68,20 @@ def get_filenames(all_args):
     filenames["halo_properties"] = sub_snapnum(all_args["HaloProperties"]["filename"])
     filenames["compression_scratch_dir"] = all_args["HaloProperties"]["chunk_dir"]
 
+    # There is one membership file for each snapshot file
+    snapshot = sub_snapnum(all_args["Snapshots"]["filename"])
+    if "{file_nr}" in snapshot:
+        try:
+            with h5py.File(snapshot.format(file_nr=0), "r") as infile:
+                n_files = infile["Header"].attrs["NumFilesPerSnapshot"][0]
+        except OSError as e:
+            raise ValueError(f"Unable to read snapshot {snapshot}: {e}")
+        filenames["membership_files"] = [
+            filenames["membership"].format(file_nr=i) for i in range(n_files)
+        ]
+    else:
+        filenames["membership_files"] = [filenames["membership"]]
+
     # The virtual snapshot is optional. For distributed snapshots it is
     # created from the SWIFT virtual file, which has no file number
     filenames["virtual_snapshot"] = None
@@ -77,6 +98,45 @@ def get_filenames(all_args):
             )
 
     return filenames
+
+
+def membership_files_exist(membership_files, comm):
+    """
+    Return True if all the membership files exist, and False if none of them
+    do. Raises a ValueError if only some of them exist, or if any of them are
+    incomplete. The header is written after all the particle data, so a file
+    without one is from a run which didn't complete.
+    """
+
+    comm_rank = comm.Get_rank()
+    comm_size = comm.Get_size()
+
+    # We open the files directly rather than checking whether they exist first,
+    # since the stat call is often the slowest part
+    n_missing = 0
+    errors = []
+    for filename in membership_files[comm_rank::comm_size]:
+        try:
+            with h5py.File(filename, "r") as infile:
+                if "Header" not in infile:
+                    errors.append(f"Membership file {filename} has no Header")
+        except FileNotFoundError:
+            n_missing += 1
+        except OSError as e:
+            errors.append(f"Unable to read membership file {filename}: {e}")
+    n_missing = comm.allreduce(n_missing)
+    errors = [error for rank_errors in comm.allgather(errors) for error in rank_errors]
+
+    n_files = len(membership_files)
+    if n_missing == n_files:
+        return False
+    if n_missing > 0:
+        errors.insert(0, f"Found {n_files - n_missing} of {n_files} membership files")
+    if len(errors) > 0:
+        raise ValueError(
+            "\n".join(errors) + "\nDelete the membership files to recompute them"
+        )
+    return True
 
 
 def replace_with_compressed(filenames):
@@ -104,9 +164,16 @@ def run_soap():
         description="Run all the steps of SOAP (group membership, halo properties, "
         "and compression) for a single snapshot",
     )
+    parser.add_argument(
+        "--no-compression",
+        action="store_true",
+        help="Don't compress the halo properties catalogue and membership files",
+    )
     all_args = soap_args.combine_soap_args(comm, parser)
+    compress = not all_args["Parameters"]["no_compression"]
 
-    # Check the filenames before starting
+    # Check the filenames before starting, and whether the membership
+    # files and virtual snapshot already exist
     if comm_rank == 0:
         try:
             filenames = get_filenames(all_args)
@@ -119,48 +186,71 @@ def run_soap():
                 "so no virtual snapshot will be created",
                 flush=True,
             )
+        elif os.path.exists(filenames["virtual_snapshot"]):
+            print(
+                f"Virtual snapshot {filenames['virtual_snapshot']} already "
+                "exists, so it will not be recreated",
+                flush=True,
+            )
+            filenames["virtual_snapshot"] = None
     else:
         filenames = None
     filenames = comm.bcast(filenames)
+
+    try:
+        reuse_membership = membership_files_exist(filenames["membership_files"], comm)
+    except ValueError as e:
+        if comm_rank == 0:
+            print(e, flush=True)
+        comm.Abort(1)
+    if reuse_membership and comm_rank == 0:
+        print(
+            f"Membership files {filenames['membership']} already exist, "
+            "so they will be reused",
+            flush=True,
+        )
 
     # Extract the arguments for compute_halo_properties. This also checks the
     # input/output paths, so we do it before starting
     args = soap_args.process_soap_args(comm, all_args)
 
-    print_stage("Computing group membership")
-    compute_membership(all_args)
-    comm.barrier()
+    if not reuse_membership:
+        print_stage("Computing group membership")
+        compute_membership(all_args)
+        comm.barrier()
 
     print_stage("Computing halo properties")
     compute_halo_properties(args)
     comm.barrier()
 
-    print_stage("Compressing halo properties")
-    compress_catalogue(
-        filenames["halo_properties"],
-        filenames["halo_properties"] + ".compressed",
-        filenames["compression_scratch_dir"],
-        comm,
-    )
-    if comm_rank == 0:
-        try:
-            replace_with_compressed([filenames["halo_properties"]])
-        except OSError as e:
-            print(f"Error replacing halo properties catalogue: {e}", flush=True)
-            comm.Abort(1)
-    comm.barrier()
+    if compress:
+        print_stage("Compressing halo properties")
+        compress_catalogue(
+            filenames["halo_properties"],
+            filenames["halo_properties"] + ".compressed",
+            filenames["compression_scratch_dir"],
+            comm,
+        )
+        if comm_rank == 0:
+            try:
+                replace_with_compressed([filenames["halo_properties"]])
+            except OSError as e:
+                print(f"Error replacing halo properties catalogue: {e}", flush=True)
+                comm.Abort(1)
+        comm.barrier()
 
-    print_stage("Compressing group membership")
-    membership_files = compress_membership(
-        filenames["membership"], filenames["membership"] + ".compressed", comm
-    )
-    if comm_rank == 0:
-        try:
-            replace_with_compressed(membership_files)
-        except OSError as e:
-            print(f"Error replacing membership files: {e}", flush=True)
-            comm.Abort(1)
-    comm.barrier()
+    if compress and not reuse_membership:
+        print_stage("Compressing group membership")
+        membership_files = compress_membership(
+            filenames["membership"], filenames["membership"] + ".compressed", comm
+        )
+        if comm_rank == 0:
+            try:
+                replace_with_compressed(membership_files)
+            except OSError as e:
+                print(f"Error replacing membership files: {e}", flush=True)
+                comm.Abort(1)
+        comm.barrier()
 
     if filenames["virtual_snapshot"] is not None:
         print_stage("Creating virtual snapshot")
