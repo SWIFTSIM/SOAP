@@ -2456,24 +2456,6 @@ class ApertureParticleData:
         return self.mass_gas[self.gas_is_cold_dense].sum()
 
     @lazy_property
-    def gas_mass_HI_in_cold_dense_gas(self) -> unyt.unyt_quantity:
-        """
-        Atomic hydrogen mass in cold, dense gas.
-        """
-        if self.Ngas == 0:
-            return None
-        return self.gas_mass_HI[self.gas_is_cold_dense].sum()
-
-    @lazy_property
-    def gas_mass_H2_in_cold_dense_gas(self) -> unyt.unyt_quantity:
-        """
-        Molecular hydrogen mass in cold, dense gas.
-        """
-        if self.Ngas == 0:
-            return None
-        return self.gas_mass_H2[self.gas_is_cold_dense].sum()
-
-    @lazy_property
     def gas_diffuse_element_fractions(self) -> unyt.unyt_array:
         """
         Diffuse element fractions of gas particles.
@@ -3127,18 +3109,15 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Atomic hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of cold dense gas
+        Atomic hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
         particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-4 times the solar ratio, set in the parameter file.
         """
-        if (self.Ngas == 0) or (self.gas_mass_HI_in_cold_dense_gas == 0):
+        if (self.Ngas == 0) or (self.AtomicHydrogenMass == 0):
             return None
         return 10 ** (
-            (
-                self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
-                * self.gas_mass_HI[self.gas_is_cold_dense]
-            ).sum()
-            / self.gas_mass_HI_in_cold_dense_gas
+            (self.gas_log10_O_over_H_diffuse_low_limit * self.gas_mass_HI).sum()
+            / self.AtomicHydrogenMass
         )
 
     @lazy_property
@@ -3146,18 +3125,15 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Atomic hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of cold dense gas
+        Atomic hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
         particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-3 times the solar ratio, set in the parameter file.
         """
-        if (self.Ngas == 0) or (self.gas_mass_HI_in_cold_dense_gas == 0):
+        if (self.Ngas == 0) or (self.AtomicHydrogenMass == 0):
             return None
         return 10 ** (
-            (
-                self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
-                * self.gas_mass_HI[self.gas_is_cold_dense]
-            ).sum()
-            / self.gas_mass_HI_in_cold_dense_gas
+            (self.gas_log10_O_over_H_diffuse_high_limit * self.gas_mass_HI).sum()
+            / self.AtomicHydrogenMass
         )
 
     @lazy_property
@@ -3165,18 +3141,15 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Molecular hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of cold dense gas
+        Molecular hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
         particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-4 times the solar ratio, set in the parameter file.
         """
-        if (self.Ngas == 0) or (self.gas_mass_H2_in_cold_dense_gas == 0):
+        if (self.Ngas == 0) or (self.MolecularHydrogenMass == 0):
             return None
         return 10 ** (
-            (
-                self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
-                * self.gas_mass_H2[self.gas_is_cold_dense]
-            ).sum()
-            / self.gas_mass_H2_in_cold_dense_gas
+            (self.gas_log10_O_over_H_diffuse_low_limit * self.gas_mass_H2).sum()
+            / self.MolecularHydrogenMass
         )
 
     @lazy_property
@@ -3184,18 +3157,15 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Molecular hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of cold dense gas
+        Molecular hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
         particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-3 times the solar ratio, set in the parameter file.
         """
-        if (self.Ngas == 0) or (self.gas_mass_H2_in_cold_dense_gas == 0):
+        if (self.Ngas == 0) or (self.MolecularHydrogenMass == 0):
             return None
         return 10 ** (
-            (
-                self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
-                * self.gas_mass_H2[self.gas_is_cold_dense]
-            ).sum()
-            / self.gas_mass_H2_in_cold_dense_gas
+            (self.gas_log10_O_over_H_diffuse_high_limit * self.gas_mass_H2).sum()
+            / self.MolecularHydrogenMass
         )
 
     @lazy_property
