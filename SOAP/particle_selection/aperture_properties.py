@@ -3109,17 +3109,14 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Atomic mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        Atomic hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
         particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-4 times the solar ratio, set in the parameter file.
         """
         if (self.Ngas == 0) or (self.AtomicHydrogenMass == 0):
             return None
         return 10 ** (
-            (
-                self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
-                * self.gas_mass_HI[self.gas_is_cold_dense]
-            ).sum()
+            (self.gas_log10_O_over_H_diffuse_low_limit * self.gas_mass_HI).sum()
             / self.AtomicHydrogenMass
         )
 
@@ -3128,17 +3125,14 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Atomic mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        Atomic hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
         particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-3 times the solar ratio, set in the parameter file.
         """
         if (self.Ngas == 0) or (self.AtomicHydrogenMass == 0):
             return None
         return 10 ** (
-            (
-                self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
-                * self.gas_mass_HI[self.gas_is_cold_dense]
-            ).sum()
+            (self.gas_log10_O_over_H_diffuse_high_limit * self.gas_mass_HI).sum()
             / self.AtomicHydrogenMass
         )
 
@@ -3147,17 +3141,14 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Molecular mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        Molecular hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
         particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-4 times the solar ratio, set in the parameter file.
         """
         if (self.Ngas == 0) or (self.MolecularHydrogenMass == 0):
             return None
         return 10 ** (
-            (
-                self.gas_log10_O_over_H_diffuse_low_limit[self.gas_is_cold_dense]
-                * self.gas_mass_H2[self.gas_is_cold_dense]
-            ).sum()
+            (self.gas_log10_O_over_H_diffuse_low_limit * self.gas_mass_H2).sum()
             / self.MolecularHydrogenMass
         )
 
@@ -3166,17 +3157,14 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Molecular mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
+        Molecular hydrogen mass-weighted sum of the logarithm of the diffuse oxygen over hydrogen ratio of gas
         particles, excluding the contribution from dust and using a lower limit on the ratio
         of 1.e-3 times the solar ratio, set in the parameter file.
         """
         if (self.Ngas == 0) or (self.MolecularHydrogenMass == 0):
             return None
         return 10 ** (
-            (
-                self.gas_log10_O_over_H_diffuse_high_limit[self.gas_is_cold_dense]
-                * self.gas_mass_H2[self.gas_is_cold_dense]
-            ).sum()
+            (self.gas_log10_O_over_H_diffuse_high_limit * self.gas_mass_H2).sum()
             / self.MolecularHydrogenMass
         )
 
@@ -3327,9 +3315,8 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Mass-weighted sum of the iron over hydrogen ratio for star particles,
-        times the solar ratio, set in the parameter file, and
-        only taking into account iron produced by SNIa.
+        Mass-weighted sum of the iron over hydrogen ratio for star particles, only
+        taking into account iron produced by SNIa.
         """
         if self.Nstar == 0:
             return None
@@ -3402,7 +3389,7 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Mass-weighted sum of the logarithm of the iron over hydrogen ratio for star particles,
+        Mass-weighted sum of the logarithm of the magnesium over hydrogen ratio for star particles,
         using a lower limit of 1.e-4 times the solar ratio, set in the parameter file.
         """
         if self.Nstar == 0:
@@ -3416,7 +3403,7 @@ class ApertureParticleData:
         self,
     ) -> unyt.unyt_quantity:
         """
-        Mass-weighted sum of the logarithm of the iron over hydrogen ratio for star particles,
+        Mass-weighted sum of the logarithm of the magnesium over hydrogen ratio for star particles,
         using a lower limit of 1.e-3 times the solar ratio, set in the parameter file.
         """
         if self.Nstar == 0:
