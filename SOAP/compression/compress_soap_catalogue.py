@@ -183,7 +183,9 @@ def assign_datasets(nr_files, nr_ranks, comm_rank):
     return first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
 
 
-def compress_catalogue(input_filename, output_filename, scratch_dir, comm):
+def compress_catalogue(
+    input_filename, output_filename, scratch_dir, comm, verbose=True
+):
     """
     Apply lossy and lossless compression to the SOAP catalogue input_filename,
     writing the result to output_filename. Temporary files are written to
@@ -244,7 +246,8 @@ def compress_catalogue(input_filename, output_filename, scratch_dir, comm):
     for i_dset, dset in enumerate(sorted(datasets)[i_start:i_end]):
         tmp_output = f"{tmp_dir}/{dset.replace('/','_')}.hdf5"
         compress_dataset(input_filename, tmp_output, dset)
-        print(f"{comm_rank}: [{i_dset+1:04d}/{i_end-i_start:04d}] {dset}")
+        if verbose:
+            print(f"{comm_rank}: [{i_dset+1:04d}/{i_end-i_start:04d}] {dset}")
 
     comm.barrier()
     toc = time.time()
@@ -260,7 +263,8 @@ def compress_catalogue(input_filename, output_filename, scratch_dir, comm):
                 tmp_output = f"{tmp_dir}/{dset.replace('/','_')}.hdf5"
                 with h5py.File(tmp_output, "r") as ifile:
                     ifile.copy(ifile["data"], ofile, name=dset)
-                print(f"{comm_rank}: [{i_dset+1:04d}/{len(datasets):04d}] {dset}")
+                if verbose:
+                    print(f"{comm_rank}: [{i_dset+1:04d}/{len(datasets):04d}] {dset}")
 
     comm.barrier()
     toc = time.time()
@@ -291,6 +295,17 @@ if __name__ == "__main__":
     )
     argparser.add_argument("output", help="Filename of output catalogue")
     argparser.add_argument("scratch", help="Directory to store temporary files")
+    argparser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Don't print the name of each dataset as it is processed",
+    )
     args = argparser.parse_args()
 
-    compress_catalogue(args.input, args.output, args.scratch, MPI.COMM_WORLD)
+    compress_catalogue(
+        args.input,
+        args.output,
+        args.scratch,
+        MPI.COMM_WORLD,
+        verbose=not args.quiet,
+    )

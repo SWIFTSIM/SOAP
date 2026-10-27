@@ -1,0 +1,9 @@
+**Luminosities are given in the GAMA bands** and always using the same order
+as in the snapshots: u, g, r, i, z, Y, J, H, K. These are rest-frame dust-free
+AB-luminosities of the star particles. These were computed using the `Bruzual & Charlot 2003 <https://ui.adsabs.harvard.edu/abs/2003MNRAS.344.1000B>`__
+(GALAXEV) models convolved with different filter bands and interpolated in
+log-log (f(log(Z), log(age)) = log(flux)) as used in the dust-free modelling
+of Trayford et al. (2015). The luminosities are given in dimensionless
+units. They have been divided by 3631 Jy already, i.e. they can be turned
+into absolute AB-magnitudes (rest-frame absolute maggies) directly by
+applying -2.5 log10(L) without additional corrections.

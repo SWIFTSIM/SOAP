@@ -28,10 +28,17 @@ mpirun -np 8 python -u SOAP/run_soap.py \
     tests/small_volume.yml
 
 # Generate documentation
+echo
+echo "######## Generating documentation"
 python SOAP/property_table.py \
     tests/small_volume.yml \
-    test_data/snap_0018.hdf5
-cd documentation
-pdflatex -halt-on-error SOAP.tex
-pdflatex -halt-on-error SOAP.tex
-cd ..
+    test_data/snap_0018.hdf5 \
+    --dmo
+# Build the html documentation if sphinx is installed
+if command -v sphinx-build > /dev/null ; then
+  sphinx-build -q -W -b html documentation documentation/build
+  echo "Done"
+else
+  echo "sphinx-build not found, skipping the documentation build."
+  echo "Install it with pip install \".[docs]\""
+fi

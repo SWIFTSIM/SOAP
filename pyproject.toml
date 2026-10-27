@@ -18,6 +18,10 @@ classifiers = [
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "mpi4py",
@@ -36,10 +40,18 @@ dependencies = [
 extra_properties = [
     "healpy",
 ]
+# Dependencies which are only required for running the tests
 test = [
     "pytest-mpi",
     "numba",
     "SOAP[extra_properties]",
+]
+# Dependencies which are only required to build the documentation
+docs = [
+    "sphinx",
+    "piccolo_theme",
+    "sphinx_design",
+    "sphinxcontrib-katex",
 ]
 
 [project.urls]

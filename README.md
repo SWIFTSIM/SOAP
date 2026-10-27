@@ -76,8 +76,8 @@ The command `./tests/run_small_volume.sh` will download a small example
 simulation and run SOAP on it.
 This uses the parameter file at `./tests/small_volume.yml`, and the
 resulting catalogue is placed in the `test_output` directory. It also generates the
-pdf documentation to describe the output file (which is written to
-`documentation/SOAP.pdf`).
+documentation describing the output file (see [Documentation](#documentation)),
+which is written to `documentation/build`.
 
 ### Running SOAP with a single command
 
@@ -217,7 +217,10 @@ The file must contain one index per line. Blank lines, and anything following a
 The arguments listed here are passed on the command line, and cannot be set in
 the parameter file.
 
-`SOAP/run_soap.py` accepts the same arguments as `SOAP/compute_halo_properties.py`.
+`SOAP/run_soap.py` accepts the same arguments as `SOAP/compute_halo_properties.py`,
+plus `--no-compression` to skip the compression steps, and `--docs DIR` which will
+output html documentation describing the catalogue to `DIR` (see
+[Documentation](#documentation)).
 
 `SOAP/group_membership.py`:
 
@@ -273,9 +276,28 @@ the membership files. Both of these are run automatically by `SOAP/run_soap.py`.
 
 ### Documentation
 
-A pdf describing the SOAP output can be generated. First run `SOAP/property_table.py` passing the parameter file used to run SOAP (to get the properties and halo types to include) and a snapshot (to get the units), e.g. `python SOAP/property_table.py parameter_files/COLIBRE_THERMAL.yml /cosma8/data/dp004/colibre/Runs/L0100N0752/Thermal/snapshots/colibre_0127/colibre_0127.hdf5`. This will generate a table containing all the properties which are enabled in the parameter file. To create the pdf run `cd documentation; pdflatex SOAP.tex; pdflatex SOAP.tex`. If you wish to see all possible properties then first run `python SOAP/property_table.py`, and then generate the pdf.
-
-The `property_table.py` script also generates the file `documentation/property_table.rst`, which is a version of the property table that can be useful for sphnix websites.
+A website describing the SOAP output can be generated using sphinx. The
+packages required to build it can be installed with
+```
+pip install ".[docs]"
+```
+First run `SOAP/property_table.py` passing the parameter file used to run SOAP
+(to get the properties and halo types to include) and a snapshot (to get the
+units), e.g.
+```
+python SOAP/property_table.py parameter_files/COLIBRE_THERMAL.yml \
+    /cosma8/data/dp004/colibre/Runs/L0100N0752/Thermal/snapshots/colibre_0127/colibre_0127.hdf5
+```
+This generates the pages describing the halo types, filters, and properties
+which are enabled in the parameter file. If you wish to see all possible
+properties then run `python SOAP/property_table.py` without any arguments.
+For dark matter only runs pass `--dmo`, so that only the properties and
+apertures which are calculated for DMO runs are included.
+Then build the website with
+```
+sphinx-build -b html documentation documentation/build
+```
+and open `documentation/build/index.html` in a browser.
 
 ### Slurm scripts for running on COSMA
 

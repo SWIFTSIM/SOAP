@@ -11,6 +11,8 @@ Run all the steps of SOAP for a single snapshot within one MPI job:
 4. Compress the group membership files
 5. Create a virtual snapshot linking the snapshot and membership files
    (only if GroupMembership/virtual_snapshot_filename is set)
+6. Generate the html documentation describing the catalogue
+   (only if --docs is passed)
 
 The membership files and halo properties catalogue are written to the
 locations given in the parameter file, as for the individual scripts. Each
@@ -22,6 +24,9 @@ If all the membership files already exist they are reused, and steps 1 and 4
 are skipped. If only some of them exist then we abort, since they are likely
 from a run which didn't complete. Similarly step 5 is skipped if the virtual
 snapshot already exists.
+
+If --docs is passed, the documentation pages to describe the current parameter
+file output to the directory passed to --docs.
 
 This is intended for small runs. For large runs it can be more efficient to
 run each step separately, since they require different amounts of resources.
@@ -48,6 +53,7 @@ from SOAP.compute_halo_properties import compute_halo_properties
 from SOAP.compression.compress_soap_catalogue import compress_catalogue
 from SOAP.compression.compress_membership import compress_membership
 from SOAP.compression.make_virtual_snapshot import make_virtual_snapshot
+from SOAP.property_table import generate_documentation, build_html_documentation
 
 
 def get_filenames(all_args):
@@ -68,8 +74,10 @@ def get_filenames(all_args):
     filenames["halo_properties"] = sub_snapnum(all_args["HaloProperties"]["filename"])
     filenames["compression_scratch_dir"] = all_args["HaloProperties"]["chunk_dir"]
 
-    # There is one membership file for each snapshot file
+    # There is one membership file for each snapshot file. The units used
+    # for the documentation are read from the first snapshot file
     snapshot = sub_snapnum(all_args["Snapshots"]["filename"])
+    filenames["units_snapshot"] = snapshot.format(file_nr=0)
     if "{file_nr}" in snapshot:
         try:
             with h5py.File(snapshot.format(file_nr=0), "r") as infile:
@@ -169,8 +177,16 @@ def run_soap():
         action="store_true",
         help="Don't compress the halo properties catalogue and membership files",
     )
+    parser.add_argument(
+        "--docs",
+        metavar="DIR",
+        type=str,
+        help="Generate the html documentation describing the catalogue, and "
+        "write it to DIR. Requires the docs extra to be installed",
+    )
     all_args = soap_args.combine_soap_args(comm, parser)
     compress = not all_args["Parameters"]["no_compression"]
+    docs_dir = all_args["Parameters"]["docs"]
 
     # Check the filenames before starting, and whether the membership
     # files and virtual snapshot already exist
@@ -193,6 +209,26 @@ def run_soap():
                 flush=True,
             )
             filenames["virtual_snapshot"] = None
+        # Check we will be able to build the documentation, so that we don't
+        # fail at the end of the run
+        if docs_dir is not None:
+            try:
+                import sphinx
+            except ImportError:
+                print(
+                    "Sphinx is required for --docs. Install it with "
+                    'pip install ".[docs]"',
+                    flush=True,
+                )
+                comm.Abort(1)
+            try:
+                os.makedirs(docs_dir, exist_ok=True)
+            except OSError as e:
+                print(f"Unable to create docs directory {docs_dir}: {e}", flush=True)
+                comm.Abort(1)
+            if not os.access(docs_dir, os.W_OK):
+                print(f"Unable to write to docs directory {docs_dir}", flush=True)
+                comm.Abort(1)
     else:
         filenames = None
     filenames = comm.bcast(filenames)
@@ -230,6 +266,7 @@ def run_soap():
             filenames["halo_properties"] + ".compressed",
             filenames["compression_scratch_dir"],
             comm,
+            verbose=False,
         )
         if comm_rank == 0:
             try:
@@ -271,12 +308,33 @@ def run_soap():
             print(f"Created {filenames['virtual_snapshot']}")
         comm.barrier()
 
+    if docs_dir is not None:
+        print_stage("Generating documentation")
+        if comm_rank == 0:
+            try:
+                generate_documentation(
+                    all_args["Parameters"]["config_file"],
+                    filenames["units_snapshot"],
+                    dmo=all_args["Parameters"]["dmo"],
+                )
+                status = build_html_documentation(docs_dir)
+            except Exception as e:
+                print(f"Error generating documentation: {e}", flush=True)
+                comm.Abort(1)
+            if status != 0:
+                print("Error building html documentation", flush=True)
+                comm.Abort(1)
+            print(f"Created documentation in {docs_dir}")
+        comm.barrier()
+
     if comm_rank == 0:
         print(f"\nSOAP finished in {time.time() - t0:.1f} seconds")
         print(f"Halo properties: {filenames['halo_properties']}")
         print(f"Membership: {filenames['membership']}")
         if filenames["virtual_snapshot"] is not None:
             print(f"Virtual snapshot: {filenames['virtual_snapshot']}")
+        if docs_dir is not None:
+            print(f"Documentation: {os.path.join(docs_dir, 'index.html')}")
 
 
 if __name__ == "__main__":
