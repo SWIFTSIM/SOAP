@@ -1,0 +1,12 @@
+**DiscToTotal fractions** are computed as
+
+.. math::
+
+   D/T = 1 - \frac{2 M_{\rm{}corot}}{M_{\rm{}Tot}},
+
+where :math:`M_{\rm{}corot}` is the sum of the mass of the counter-rotating particles,
+and :math:`M_{\rm{}Tot}` is the total mass of particles. This can lead to negative values,
+e.g. if there are a small number of particles moving quickly in one direction, and
+a larger number of particles moving slowly in the opposite direction. In this case
+the larger number of particles could be marked as counter-rotating since the net
+angular momentum is dominated by the small number of rapidly rotating particles.

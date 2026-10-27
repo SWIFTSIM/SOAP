@@ -41,9 +41,6 @@ from SOAP.property_calculation.stellar_age_calculator import StellarAgeCalculato
 from SOAP.particle_filter.cold_dense_gas_filter import ColdDenseGasFilter
 from SOAP.particle_filter.recently_heated_gas_filter import RecentlyHeatedGasFilter
 
-# Set numpy to raise divide by zero, overflow and invalid operation errors as exceptions
-np.seterr(divide="raise", over="raise", invalid="raise")
-
 
 def split_comm_world():
 
@@ -66,13 +63,21 @@ def get_rank_and_size(comm):
         return (comm.Get_rank(), comm.Get_size())
 
 
-def compute_halo_properties():
+# Set numpy to raise divide by zero, overflow and invalid operation errors as
+# exceptions while calculating halo properties
+@np.errstate(divide="raise", over="raise", invalid="raise")
+def compute_halo_properties(args=None):
+    """
+    Compute halo properties. args is the namespace returned by
+    soap_args.get_soap_args. If it is None then the command line is parsed.
+    """
 
     # Start the clock
     t0 = time.time()
 
     # Read command line parameters
-    args = soap_args.get_soap_args(comm_world)
+    if args is None:
+        args = soap_args.get_soap_args(comm_world)
     comm_world.barrier()
 
     # Enable profiling, if requested

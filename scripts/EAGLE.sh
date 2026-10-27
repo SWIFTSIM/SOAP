@@ -85,7 +85,8 @@ mpirun -- python -u misc/convert_eagle.py \
     --particledata-basename "${output_dir}/gadget_membership/snapshot_${snap_nr}/snap_${snap_nr}" \
     --subfind-basename "${output_group_dir}/subfind_tab_${snap_nr}" \
     --output-basename "${output_dir}/snapshots/snap_${snap_nr}/snap_${snap_nr}" \
-    --membership-basename "${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}"
+    --membership-basename "${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}" \
+    --snap-nr "${snap_nr}"
 
 ######### Estimate SpeciesFraction of hydrogen
 
@@ -101,17 +102,15 @@ cd "${output_dir}/snapshots/snap_${snap_nr}"
 python "${soap_dir}/create_virtual_snapshot.py" "snap_${snap_nr}.0.hdf5"
 cd -
 
-######### Repack memebership files and create virtual snapshot
+######### Compress membership files and create virtual snapshot
 
 input_filename="${output_dir}/SOAP_uncompressed/membership_${snap_nr}/membership_${snap_nr}"
 output_filename="${output_dir}/SOAP/membership_${snap_nr}/membership_${snap_nr}"
 mkdir -p "${output_dir}/SOAP/membership_${snap_nr}"
 
-nr_files=`ls -1 ${input_filename}.*.hdf5 | wc -l`
-nr_files_minus_one=$(( ${nr_files} - 1 ))
-
-seq 0 ${nr_files_minus_one} | xargs -I {} -P 16 bash -c \
-  "h5repack -i ${input_filename}.{}.hdf5 -o ${output_filename}.{}.hdf5 -l CHUNK=10000 -f GZIP=4"
+nr_compress=$(( SLURM_NTASKS < 16 ? SLURM_NTASKS : 16 ))
+mpirun -np ${nr_compress} python -u SOAP/compression/compress_membership.py \
+    "${input_filename}.{file_nr}.hdf5" "${output_filename}.{file_nr}.hdf5"
 
 python SOAP/compression/make_virtual_snapshot.py \
     --virtual-snapshot "${output_dir}/snapshots/snap_${snap_nr}/snap_${snap_nr}.hdf5" \

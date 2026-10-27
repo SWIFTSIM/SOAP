@@ -11,14 +11,16 @@ Usage:
           --particledata-basename=PARTICLE_DATA \
           --subfind-basename=SUBFIND \
           --output-basename=OUTPUT \
-          --membership-basename=MEMBERSHIP
+          --membership-basename=MEMBERSHIP \
+          --snap-nr=SNAP_NR
 
 where SNAPSHOT is the EAGLE snapshot (the snapshots_*** files),
 PARTICLE_DATA are the EAGLE membership files (the particledata_*** files,
 since the normal snapshots don't store SubGroupNumber), SUBFIND are
 the SubFind catalogues (the subfind_tab_*** files), and OUTPUT &
-MEMBERSHIP are the names of the output files. You must run with
-the same number of ranks as input files.
+MEMBERSHIP are the names of the output files, and SNAP_NR is
+the snapshot number.
+You must run with the same number of ranks as input files.
 
 This script has three mains parts:
   We first have to determine the units system of the input snapshots,
@@ -69,6 +71,11 @@ import virgo.mpi.parallel_sort as psort
 import virgo.mpi.parallel_hdf5 as phdf5
 
 from SOAP.core import swift_units
+from SOAP.group_membership import (
+    SNAPSHOT_HEADER_ATTRS,
+    membership_dataset_attrs,
+    membership_header_metadata,
+)
 
 # Parse arguments
 parser = argparse.ArgumentParser(
@@ -113,6 +120,12 @@ parser.add_argument(
     type=str,
     required=True,
     help="The basename for the membership files",
+)
+parser.add_argument(
+    "--snap-nr",
+    type=int,
+    required=True,
+    help="The snapshot number",
 )
 args = parser.parse_args()
 snap_filename = args.snap_basename + ".{file_nr}.hdf5"
@@ -816,19 +829,16 @@ for ptype in ptypes:
     # Sort values spatially (same as for other properties)
     subhalo = psort.fetch_elements(subhalo, order, comm=comm)
     group_nr = psort.fetch_elements(group_nr, order, comm=comm)
-    # Add units, and write to file
-    units = unyt.Unit("dimensionless", registry=reg)
-    unit_attrs = swift_units.attributes_from_units(units, False, 0)
-    subhalo_attrs = {
-        "Description": (
-            "Unique identifier of the subhalo this particle is "
-            "bound to. This is a combination of the GroupNumber and"
-            "the SubGroupNumber. -1 if the particle is not bound"
-        )
-    }
-    subhalo_attrs.update(unit_attrs)
-    fof_attrs = {"Description": "FoF group number particle is in"}
-    fof_attrs.update(unit_attrs)
+    # Use the same attributes as the membership files created by
+    # group_membership.py. Particles which aren't in a FoF group have a
+    # placeholder value, which is 2^30 for EAGLE
+    membership_attrs = membership_dataset_attrs()
+    subhalo_attrs = membership_attrs["GroupNr_bound"]
+    fof_attrs = membership_attrs["FOFGroupIDs"]
+    fof_attrs["Description"] = (
+        "Friends-Of-Friends ID of the group in which this particle is a "
+        "member, or 1073741824 if none"
+    )
     subhalo = psort.repartition(subhalo, elements_per_rank, comm=comm)
     group_nr = psort.repartition(group_nr, elements_per_rank, comm=comm)
     if create_membership_file:
@@ -908,6 +918,28 @@ if comm_rank == 0:
                     "ElementMassFractions",
                     data=encoded_elements,
                 )
+
+# Add headers to the membership files. These are the same as for the
+# membership files created by group_membership.py
+if comm_rank == 0:
+    print("Writing membership headers")
+    membership_header = membership_header_metadata(
+        args.subfind_basename,
+        "SubfindEagle",
+        args.snap_nr,
+        output_filename,
+        particledata_filename,
+    )
+    for i_file in range(n_file):
+        with (
+            h5py.File(output_filename.format(file_nr=i_file), "r") as snapfile,
+            h5py.File(membership_filename.format(file_nr=i_file), "r+") as outfile,
+        ):
+            header = outfile.create_group("Header")
+            for name in SNAPSHOT_HEADER_ATTRS:
+                header.attrs[name] = snapfile["Header"].attrs[name]
+            for name, value in membership_header.items():
+                header.attrs[name] = value
 
 if comm_rank == 0:
     print("Done!")

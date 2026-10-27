@@ -1,0 +1,68 @@
+/*
+  Main content layout for the Piccolo theme.
+
+  Piccolo reserves 15rem on both sides of the main document area: the left
+  margin makes room for the fixed navigation sidebar, and the right margin
+  makes room for the page-contents sidebar. Since the right sidebar is hidden
+  below, we remove the right margin here so the document can use that space.
+  The body and documentwrapper rules then set a fixed reading width for the
+  main text column within the remaining document area.
+*/
+div.document {
+    margin-right: 0;
+}
+
+/*
+  Fixed-width reading column inside the main document area.
+
+  The body rule prevents the text column from becoming too narrow, and the
+  max-width limits line length on large screens. The documentwrapper width
+  matches that cap and keeps a small left offset inside the document area.
+*/
+div.body {
+    min-width: 360px;
+    max-width: 1000px;
+}
+
+div.document div.documentwrapper {
+    max-width: 1000px;
+    margin-left: 3em;
+    margin-right: 3em;
+}
+
+/*
+  Sidebar behavior for the Piccolo theme.
+*/
+
+/* Hide the right-hand page contents sidebar and its toggle */
+#right_sidebar,
+#show_right_sidebar {
+    display: none;
+}
+
+/* The top-left hamburger should only be visible when the left-hand sidebar disappears */
+@media (min-width: 50rem) {
+  #toggle_sidebar {
+      display: none;
+  }
+}
+
+/*
+  Styling for tables
+
+  Table colours use semi-transparent overlays and theme variables rather than
+  fixed colours, so they work in both the light and dark Piccolo modes.
+*/
+
+/* Header Styling: Tinted background with a strong border */
+table.docutils thead th {
+    background-color: rgba(128, 128, 128, 0.08);
+    color: var(--fontColor);
+    border-bottom: 2px solid var(--dividerColor);
+    text-align: center;
+}
+
+/* Zebra Striping: Makes long lists easier to read */
+table.docutils tbody tr:nth-child(even) {
+    background-color: rgba(128, 128, 128, 0.04);
+}

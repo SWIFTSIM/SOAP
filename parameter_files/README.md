@@ -52,13 +52,14 @@ Configuration for writing group membership files.
 
 - **filename**: Template for group membership file paths, e.g. `"{output_dir}/{sim_name}/SOAP_uncompressed/membership_{snap_nr:04d}/membership_{snap_nr:04d}.{file_nr}.hdf5"`
 - **fof_ids_filename**: Optional. Template for snapshots with FOF (Friends-of-Friends) IDs, if FOF has been re-run. The FOF IDs are read from these files instead of the original snapshots, and are stored in the membership files.
+- **virtual_snapshot_filename**: Optional. Template for a virtual snapshot linking the snapshot particle data and the membership files, e.g. `"{output_dir}/{sim_name}/SOAP/snap_with_membership_{snap_nr:04d}.hdf5"`. Only used by `SOAP/run_soap.py`, which creates the virtual snapshot if this is set.
 
 ### Halo Properties
 
 Settings for writing the output SOAP catalogues properties, and for handling temporary files.
 
 - **filename**: Template for the halo properties file paths, e.g. `"{output_dir}/{sim_name}/SOAP_uncompressed/{halo_finder}/halo_properties_{snap_nr:04d}.hdf5"`
-- **chunk_dir**: Directory for temporary chunk output files. e.g. `"{scratch_dir}/{sim_name}/SOAP-tmp/{halo_finder}/"`
+- **chunk_dir**: Directory for temporary chunk output files. e.g. `"{scratch_dir}/{sim_name}/SOAP-tmp/{halo_finder}/"`. `SOAP/run_soap.py` also uses this directory for the temporary files written when compressing the catalogue.
 
 ### SubhaloProperties
 

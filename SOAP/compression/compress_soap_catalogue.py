@@ -110,6 +110,9 @@ def create_lossy_dataset(file, name, shape, filter, named_columns=False):
     new_plist = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
     chunk = get_chunk_shape(shape, named_columns)
     new_plist.set_chunk(chunk)
+    # Keep attributes in compact storage. Copying dense
+    # variable-length string attributes segfaults in HDF5 1.12.3
+    new_plist.set_attr_phase_change(65535, 65535)
     for f in fprops["filters"]:
         new_plist.set_filter(f[0], f[1], tuple(f[2]))
     new_plist.set_deflate(compression_opts["compression_opts"])
@@ -145,7 +148,10 @@ def compress_dataset(input_name, output_name, dset):
                 compression_opts["chunks"] = min(chunksize, data.shape[0])
             else:
                 compression_opts["chunks"] = get_chunk_shape(data.shape, named_columns)
-            ofile.create_dataset("data", data=data, **compression_opts)
+            # Keep attributes compact, see create_lossy_dataset
+            dcpl = h5py.h5p.create(h5py.h5p.DATASET_CREATE)
+            dcpl.set_attr_phase_change(65535, 65535)
+            ofile.create_dataset("data", data=data, dcpl=dcpl, **compression_opts)
         else:
             create_lossy_dataset(ofile, "data", data.shape, filter, named_columns)
             ofile["data"][:] = data
@@ -177,37 +183,37 @@ def assign_datasets(nr_files, nr_ranks, comm_rank):
     return first_file[comm_rank], first_file[comm_rank] + files_on_rank[comm_rank]
 
 
-if __name__ == "__main__":
+def compress_catalogue(
+    input_filename, output_filename, scratch_dir, comm, verbose=True
+):
+    """
+    Apply lossy and lossless compression to the SOAP catalogue input_filename,
+    writing the result to output_filename. Temporary files are written to
+    scratch_dir and deleted once the output has been written.
+    """
 
-    comm = MPI.COMM_WORLD
     comm_rank = comm.Get_rank()
     comm_size = comm.Get_size()
-
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument(
-        "input", help="Filename of uncompressed input SOAP catalogue"
-    )
-    argparser.add_argument("output", help="Filename of output catalogue")
-    argparser.add_argument("scratch", help="Directory to store temporary files")
-    args = argparser.parse_args()
 
     mastertic = time.time()
 
     if comm_rank == 0:
         try:
-            print(f"Creating output file at {args.output}")
+            print(f"Creating output file at {output_filename}")
+            output_dir = os.path.dirname(os.path.abspath(output_filename))
+            os.makedirs(output_dir, exist_ok=True)
             # Setting hdf5 version of file
             fapl = h5py.h5p.create(h5py.h5p.FILE_ACCESS)
             fapl.set_libver_bounds(h5py.h5f.LIBVER_V18, h5py.h5f.LIBVER_LATEST)
             fid = h5py.h5f.create(
-                args.output.encode("utf-8"), flags=h5py.h5f.ACC_TRUNC, fapl=fapl
+                output_filename.encode("utf-8"), flags=h5py.h5f.ACC_TRUNC, fapl=fapl
             )
 
             print(f"Creating groups and datasets in output file")
             tic = time.time()
             with (
-                h5py.File(args.input, "r") as ifile,
-                h5py.File(args.output, "r+") as ofile,
+                h5py.File(input_filename, "r") as ifile,
+                h5py.File(output_filename, "r+") as ofile,
             ):
                 h5copy = H5copier(ifile, ofile)
                 ifile.visititems(h5copy)
@@ -217,7 +223,7 @@ if __name__ == "__main__":
             toc = time.time()
             print(f"File structure copy took {toc-tic:.2f} s.")
 
-            tmp_dir = f"{args.scratch}/{os.path.basename(args.output).removesuffix('.hdf5')}_temp"
+            tmp_dir = f"{scratch_dir}/{os.path.basename(output_filename).removesuffix('.hdf5')}_temp"
             os.makedirs(tmp_dir, exist_ok=True)
 
             datasets = h5copy.dsets.copy()
@@ -239,24 +245,26 @@ if __name__ == "__main__":
     i_start, i_end = assign_datasets(len(datasets), comm_size, comm_rank)
     for i_dset, dset in enumerate(sorted(datasets)[i_start:i_end]):
         tmp_output = f"{tmp_dir}/{dset.replace('/','_')}.hdf5"
-        compress_dataset(args.input, tmp_output, dset)
-        print(f"{comm_rank}: [{i_dset+1:04d}/{i_end-i_start:04d}] {dset}")
+        compress_dataset(input_filename, tmp_output, dset)
+        if verbose:
+            print(f"{comm_rank}: [{i_dset+1:04d}/{i_end-i_start:04d}] {dset}")
 
     comm.barrier()
     toc = time.time()
     if comm_rank == 0:
         print(f"Temporary file writing took {toc-tic:.2f} s.")
-        print(f"Copying datasets into {args.output}")
+        print(f"Copying datasets into {output_filename}")
 
     # Only the first rank writes the final output file
     tic = time.time()
     if comm_rank == 0:
-        with h5py.File(args.output, "r+") as ofile:
+        with h5py.File(output_filename, "r+") as ofile:
             for i_dset, dset in enumerate(datasets):
                 tmp_output = f"{tmp_dir}/{dset.replace('/','_')}.hdf5"
                 with h5py.File(tmp_output, "r") as ifile:
                     ifile.copy(ifile["data"], ofile, name=dset)
-                print(f"{comm_rank}: [{i_dset+1:04d}/{len(datasets):04d}] {dset}")
+                if verbose:
+                    print(f"{comm_rank}: [{i_dset+1:04d}/{len(datasets):04d}] {dset}")
 
     comm.barrier()
     toc = time.time()
@@ -266,7 +274,7 @@ if __name__ == "__main__":
         print("Removing temporary files")
         shutil.rmtree(tmp_dir)
 
-        with h5py.File(args.output, "r") as ofile:
+        with h5py.File(output_filename, "r") as ofile:
             h5print = H5printer(False)
             ofile.visititems(h5print)
             new_size = h5print.get_total_size()
@@ -276,3 +284,28 @@ if __name__ == "__main__":
         print(f"{original_size} -> {new_size} ({100.*frac:.2f}%)")
         print(f"Total writing time: {mastertoc-mastertic:.2f} s.")
         print("Done")
+    comm.barrier()
+
+
+if __name__ == "__main__":
+
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument(
+        "input", help="Filename of uncompressed input SOAP catalogue"
+    )
+    argparser.add_argument("output", help="Filename of output catalogue")
+    argparser.add_argument("scratch", help="Directory to store temporary files")
+    argparser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Don't print the name of each dataset as it is processed",
+    )
+    args = argparser.parse_args()
+
+    compress_catalogue(
+        args.input,
+        args.output,
+        args.scratch,
+        MPI.COMM_WORLD,
+        verbose=not args.quiet,
+    )

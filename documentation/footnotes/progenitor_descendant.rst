@@ -1,0 +1,1 @@
+**The progenitor/descendant index** of a subhalo points to the subhalo in the previous/next snapshot that has the same HBT TrackId. This index can therefore only be used to move up/down the main progenitor branch for a subhalo, it provides no information about subhalo mergers.

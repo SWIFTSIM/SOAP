@@ -1,8 +1,13 @@
 # Compression scripts
 
 ### Membership files
-Compression of the membership files should be done
-using the [h5repack](https://support.hdfgroup.org/documentation/hdf5/latest/_h5_t_o_o_l__r_p__u_g.html) command.
+The script `compress_membership.py` applies GZIP compression to the membership files.
+The files are split between the MPI ranks, e.g.
+
+`mpirun -- python compress_membership.py ${input_filename} ${output_filename}`
+
+If there are multiple membership files per snapshot then the filenames should contain
+`{file_nr}`, e.g. `membership_0018.{file_nr}.hdf5`.
 
 The script `make_virtual_snapshot.py` can be used to create a virtual hdf5 files that
 links the membership files to the snapshot files, such that properties from both can be accesed from a single file.
