@@ -60,8 +60,9 @@ def get_halo_indices(parameters):
 
 def get_git_hash() -> str:
     try:
+        script_dir = os.path.dirname(__file__)
         return (
-            subprocess.check_output(["git", "rev-parse", "HEAD"])
+            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=script_dir)
             .decode("ascii")
             .strip()
         )
