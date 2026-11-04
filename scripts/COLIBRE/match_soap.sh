@@ -6,12 +6,18 @@
 #
 # cd SOAP
 # mkdir logs
-# sbatch -array=92,127%1 ./scripts/COLIBRE/match_colibre.sh
+# sbatch --array=92,127%1 ./scripts/COLIBRE/match_soap.sh
+#
+# Approximate runtimes per sim pair (snapshot 127, nr_particles=-1,
+# including satellites):
+#   N0752:  5m (1 node)
+#   N1504: 15m (4 nodes)
+#   N3008: 30m (32 nodes)
 #
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH -J match_colibre
-#SBATCH -o ./logs/%x_%a.out
+#SBATCH -o ./logs/%x_%a.%A.out
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH -t 1:00:00
@@ -31,7 +37,7 @@ outdir="/snap8/scratch/dp004/${USER}/COLIBRE/matching/"
 
 # Sims to match
 sims=(
-  "L0025N0188/Thermal L0025N0188/DMO"
+  "L0025N0188/DMO L0025N0188/Thermal"
 )
 for sim in "${sims[@]}"; do
     set -- $sim
@@ -48,13 +54,23 @@ for sim in "${sims[@]}"; do
   soap_filename2="${basedir}/${sim2}/SOAP-HBT/halo_properties_${snapnum}.hdf5"
 
   # Matching parameters
-  nr_particles=50
+  nr_particles=-1
+  match_satellites=0  # Set to 1 to also match satellites
+
+  # Satellite/Central flags
+  if [ "${match_satellites}" -eq 1 ]; then
+    match_prefix="match_withSat"
+    satellite_flag="--match-satellites"
+  else
+    match_prefix="match"
+    satellite_flag=""
+  fi
 
   # Name of output file
   mkdir -p ${outdir}
   sim1=$(echo $sim1 | tr '/' '_')
   sim2=$(echo $sim2 | tr '/' '_')
-  output_filename="${outdir}/match_${sim1}_${sim2}_${snapnum}.${nr_particles}.hdf5"
+  output_filename="${outdir}/${match_prefix}_${sim1}_${sim2}_${snapnum}.${nr_particles}.hdf5"
 
   echo
   echo Matching $sim1 to $sim2, snapshot ${snapnum}
@@ -67,6 +83,7 @@ for sim in "${sims[@]}"; do
       --catalogue-filename2 ${soap_filename2} \
       --output-filename ${output_filename}\
       --nr-particles ${nr_particles} \
+      ${satellite_flag}
 
 done
 
