@@ -506,9 +506,7 @@ if __name__ == "__main__":
 
     # Determine which groups we will process for each property type
     if comm_rank == 0:
-        final_soap_filename = (
-            args.soap_basename.format(snap_nr=final_snap_nr) + ".hdf5"
-        )
+        final_soap_filename = args.soap_basename.format(snap_nr=final_snap_nr) + ".hdf5"
         groups = {}
         unmatched = []
         for name, types in halo_types.items():
