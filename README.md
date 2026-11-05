@@ -96,6 +96,11 @@ mpirun python -u SOAP/run_soap.py \
        tests/small_volume.yml
 ```
 
+All of the parallelism in SOAP comes from MPI, and there is no multithreading
+within a rank, so you should run one MPI rank per core. Assigning multiple
+cores to each rank (e.g. setting `--cpus-per-task` greater than 1 in slurm)
+will not speed up the code, and will leave cores idle.
+
 <details>
 <summary><b>Running each step separately</b></summary>
 
@@ -310,6 +315,11 @@ The scripts are intended to be run as array jobs where the job array indexes det
 which snapshots to process. In order to reduce duplication only one script is provided per simulation
 box size and resolution. The simulation to process is specified by setting
 the job name with the slurm sbatch -J flag.
+
+Many of the scripts only set `--nodes`, `--cpus-per-task=1`, and `--exclusive`,
+which works on cosma8 because slurm then automatically sets
+`--ntasks-per-node=128`. On other systems you may need to set
+`--ntasks-per-node` to the number of cores per node explicitly.
 
 ## Modifying the code
 
