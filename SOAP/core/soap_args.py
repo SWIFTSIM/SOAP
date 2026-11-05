@@ -119,7 +119,9 @@ def get_soap_parser(comm, description="Compute halo properties in SWIFT snapshot
         "--skip-named-columns",
         action="store_true",
         help="Skip writing SubgridScheme/NamedColumns metadata for properties that "
-        "support it (e.g. StellarLuminosity)",
+        "support it (e.g. StellarLuminosity). Only intended for consistency with "
+        "existing catalogues that lack it. Deprecated, and will be removed in a "
+        "future version",
     )
     parser.add_argument(
         "--record-halo-timings",

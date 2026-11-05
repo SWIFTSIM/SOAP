@@ -240,6 +240,7 @@ output html documentation describing the catalogue to `DIR` (see
 | `--chunks` | 1 | Number of chunks to split the volume into. Should be at least the number of compute nodes |
 | `--dmo` | off | Run in dark matter only mode, skipping any hydro-only properties |
 | `--centrals-only` | off | Only process central halos, discarding satellites. See [Selecting which subhalos to process](#selecting-which-subhalos-to-process) |
+| `--skip-named-columns` | off | Don't write `SubgridScheme/NamedColumns` metadata. Only intended for consistency with existing catalogues that lack it. Deprecated, and will be removed in a future version |
 | `--halo-indices` | | Only process the listed halo indices. See [Selecting which subhalos to process](#selecting-which-subhalos-to-process) |
 | `--halo-indices-file` | | Only process the halo indices listed in the given file. See [Selecting which subhalos to process](#selecting-which-subhalos-to-process) |
 | `--max-halos` | 0 (all) | Only process the first N halos in the catalogue. See [Debugging](#debugging) |
@@ -250,6 +251,7 @@ output html documentation describing the catalogue to `DIR` (see
 | `--profile` | 0 | Run with profiling. See [Profiling](#profiling) |
 | `--max-ranks-reading` | 32 | Number of MPI ranks per node which read snapshot data. Can be reduced to avoid overloading the file system |
 | `--output-parameters` | | Where to write the parameters used by this run, in yaml format |
+| `--keep-scratch-files` | off | Don't delete the per-chunk scratch files after the combined output has been written. Mainly useful for testing the restart logic |
 
 ### Parameter files
 
