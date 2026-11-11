@@ -308,8 +308,8 @@ def compute_membership(args):
         # Read FOFGroupIDs from the snapshot, or from the separate FOF
         # files if they have been passed
         fof_ids_source = fof_filename if fof_filename != "" else swift_filename
-        total_nr_halos, ids_bound, grnr_bound = (
-            read_swift_fof.read_swift_fof_groupnr(fof_ids_source)
+        total_nr_halos, ids_bound, grnr_bound = read_swift_fof.read_swift_fof_groupnr(
+            fof_ids_source
         )
         rank_bound = None
         potential_energies = None

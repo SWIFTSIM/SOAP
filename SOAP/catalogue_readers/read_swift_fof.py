@@ -135,8 +135,7 @@ def read_swift_fof_catalogue(comm, basename, a_unit, registry, boxsize):
         attrs = None
     attrs = comm.bcast(attrs)
     units = {
-        name: swift_units.units_from_attributes(attrs[name], registry)
-        for name in attrs
+        name: swift_units.units_from_attributes(attrs[name], registry) for name in attrs
     }
 
     # Read the catalogue
