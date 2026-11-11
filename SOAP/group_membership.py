@@ -17,6 +17,7 @@ from SOAP.catalogue_readers import read_vr
 from SOAP.catalogue_readers import read_hbtplus
 from SOAP.catalogue_readers import read_subfind
 from SOAP.catalogue_readers import read_rockstar
+from SOAP.catalogue_readers import read_swift_fof
 
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
@@ -300,6 +301,15 @@ def compute_membership(args):
         # Read Rockstar output
         total_nr_halos, ids_bound, grnr_bound = read_rockstar.read_rockstar_groupnr(
             halo_basename
+        )
+        rank_bound = None
+        potential_energies = None
+    elif halo_format == "FOF":
+        # Read FOFGroupIDs from the snapshot, or from the separate FOF
+        # files if they have been passed
+        fof_ids_source = fof_filename if fof_filename != "" else swift_filename
+        total_nr_halos, ids_bound, grnr_bound = (
+            read_swift_fof.read_swift_fof_groupnr(fof_ids_source)
         )
         rank_bound = None
         potential_energies = None
