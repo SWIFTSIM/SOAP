@@ -58,7 +58,8 @@ def read_swift_fof_groupnr(snap_filename):
                 if (name in infile) and ("FOFGroupIDs" in infile[name]):
                     ptypes.append(name)
         if len(ptypes) == 0:
-            raise RuntimeError(f"No FOFGroupIDs datasets found in {filename}")
+            print(f"No FOFGroupIDs datasets found in {filename}", flush=True)
+            comm.Abort(1)
     else:
         null_fof_id = None
         ptypes = None
@@ -123,10 +124,12 @@ def read_swift_fof_catalogue(comm, basename, a_unit, registry, boxsize):
         filename = phdf5.substitute_file_nr(basename, 0)
         with h5py.File(filename, "r") as infile:
             if "Groups/Radii" not in infile:
-                raise RuntimeError(
+                print(
                     f"FOF catalogue {filename} has no Groups/Radii dataset. "
-                    "This can be created with misc/calculate_fof_radii.py"
+                    "This can be created with misc/calculate_fof_radii.py",
+                    flush=True,
                 )
+                comm.Abort(1)
             attrs = {
                 name: dict(infile[f"Groups/{name}"].attrs)
                 for name in ("Centres", "Masses", "Radii")
@@ -175,8 +178,11 @@ def read_swift_fof_catalogue(comm, basename, a_unit, registry, boxsize):
         registry=registry,
     )
 
-    # Quantities passed through to the output as InputHalos/FOF/*
-    local_halo["Centres"] = local_halo["cofp"].copy()
+    # Quantities passed through to the output as InputHalos/FOF/*. These are
+    # the unmodified values from the catalogue.
+    local_halo["Centres"] = unyt.unyt_array(
+        data["Centres"], units=units["Centres"], registry=registry
+    )
     local_halo["Radii"] = unyt.unyt_array(
         data["Radii"], units=units["Radii"], registry=registry
     )

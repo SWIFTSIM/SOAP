@@ -4,6 +4,7 @@ Contains helper functions for downloading test data
 
 import os
 import subprocess
+import traceback
 
 webstorage_location = "https://ftp.strw.leidenuniv.nl/mcgibbon/SOAP/"
 test_data_dir = "test_data/"
@@ -83,6 +84,28 @@ def requires(filepaths, comm=None):
         return final_test
 
     return do_call_test
+
+
+def check_on_rank_zero(check, comm):
+    """
+    Run the function check() on rank 0 only, then fail the test on every
+    rank if it raised an exception.
+
+    In MPI tests, an assertion which fails on rank 0 alone leaves the other
+    ranks to carry on to the next collective operation, which hangs the
+    test run. This ensures all ranks fail together instead.
+    """
+    error = None
+    if comm.Get_rank() == 0:
+        try:
+            check()
+        except Exception:
+            error = traceback.format_exc()
+    error = comm.bcast(error)
+    if error is not None:
+        import pytest
+
+        pytest.fail(f"Check failed on rank 0:\n{error}", pytrace=False)
 
 
 if __name__ == "__main__":

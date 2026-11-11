@@ -43,7 +43,7 @@ def test_read_swift_fof_groupnr(filenames):
     sizes_from_grnr = psort.parallel_bincount(grnr, comm=comm)
     sizes_from_grnr = gather_array(sizes_from_grnr, comm=comm)
 
-    if comm_rank == 0:
+    def check():
         with h5py.File(fof_filename, "r") as fof:
             group_ids = fof["Groups/GroupIDs"][...]
             sizes = fof["Groups/Sizes"][...]
@@ -51,6 +51,8 @@ def test_read_swift_fof_groupnr(filenames):
         assert sizes_from_grnr.shape[0] == np.max(group_ids) + 1
         assert np.sum(sizes_from_grnr) == np.sum(sizes)
         assert np.all(sizes_from_grnr[group_ids] == sizes)
+
+    helpers.check_on_rank_zero(check, comm)
 
 
 @pytest.mark.mpi
@@ -86,20 +88,25 @@ def test_read_swift_fof_catalogue(filenames):
     is_central = gather("is_central")
     cofp = gather("cofp")
     search_radius = gather("search_radius")
+    centres = gather("Centres")
     radii = gather("Radii")
     masses = gather("Masses")
-    if comm_rank == 0:
+
+    def check():
         with h5py.File(fof_filename, "r") as fof:
             assert np.all(index == fof["Groups/GroupIDs"][...])
             assert np.all(nr_bound_part == fof["Groups/Sizes"][...])
             assert np.allclose(cofp, fof["Groups/Centres"][...] % boxsize.value)
             # The values passed through to the output are unmodified
+            assert np.allclose(centres, fof["Groups/Centres"][...])
             assert np.allclose(radii, fof["Groups/Radii"][...])
             assert np.allclose(masses, fof["Groups/Masses"][...])
             # The search radius must enclose all particles in the group
             assert np.all(search_radius >= fof["Groups/Radii"][...])
         assert np.all(is_central == 1)
         assert np.all(cofp >= 0) and np.all(cofp < boxsize.value)
+
+    helpers.check_on_rank_zero(check, comm)
 
 
 if __name__ == "__main__":
