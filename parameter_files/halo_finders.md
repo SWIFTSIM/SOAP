@@ -152,6 +152,30 @@ membership are not reliable for Rockstar, whereas properties which use all
 particles (e.g. spherical overdensities) are unaffected. See
 [Forouhar Moreno et al. 2025](https://arxiv.org/abs/2502.06932), §3.4 and §3.6.
 
+### FOF
+
+Friends-of-friends catalogues output by SWIFT. Each FOF group is treated
+as a single (central) halo. All the particles in a group are treated as
+bound to it, so the `BoundSubhalo` properties are computed using every
+particle in the FOF group.
+
+- **filename**: The path to the FOF catalogue, e.g.
+  `"{sim_dir}/{sim_name}/fof/fof_output_{snap_nr:04d}.hdf5"`. For
+  multi-file catalogues use `{file_nr}` for the file number. The catalogue
+  must contain the `Groups/Radii` dataset, which is missing from older
+  SWIFT outputs. This can be created with `misc/calculate_fof_radii.py`.
+
+When creating the membership files, `FOFGroupIDs` is read from the snapshot,
+or from the files in `GroupMembership/fof_ids_filename` if that is set. 
+The FOF group ID is also used as
+`InputHalos/HaloCatalogueIndex` in the SOAP catalogue.
+
+```
+HaloFinder:
+  type: FOF
+  filename: "{sim_dir}/{sim_name}/fof/fof_output_{snap_nr:04d}.hdf5"
+```
+
 ### Adding a new halo finder
 
 To add support for a new halo finder:

@@ -74,9 +74,8 @@ def test_read_gadget4_groupnr():
     nr_groups_from_subtab = comm.allreduce(len(nbound_from_subtab))
     if comm_rank == 0:
         print(f"Number of groups from fof_subhalo_tab = {nr_groups_from_subtab}")
-        if nr_groups_from_subtab != nr_groups_from_grnr:
-            print("Number of groups does not agree!", flush=True)
-            comm.Abort(1)
+    # Both values are the same on every rank, so all ranks fail together
+    assert nr_groups_from_subtab == nr_groups_from_grnr, "Number of groups differ"
 
     # Ensure nbound arrays are partitioned the same way
     nr_per_rank = comm.allgather(len(nbound_from_subtab))
@@ -88,3 +87,4 @@ def test_read_gadget4_groupnr():
     nr_different = comm.allreduce(np.sum(nbound_from_grnr != nbound_from_subtab))
     if comm_rank == 0:
         print(f"Number of group sizes which differ = {nr_different} (should be 0!)")
+    assert nr_different == 0

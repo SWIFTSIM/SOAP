@@ -5,6 +5,8 @@ import unyt
 
 from SOAP.core import shared_array, shared_mesh
 
+import helpers
+
 
 def make_test_dataset(boxsize, total_nr_points, centre, radius, box_wrap, comm):
     """
@@ -32,13 +34,16 @@ def make_test_dataset(boxsize, total_nr_points, centre, radius, box_wrap, comm):
     pos = shared_array.SharedArray(
         local_shape=(nr_points, 3), dtype=np.float64, units=radius.units, comm=comm
     )
-    if comm_rank == 0:
+
+    def initialise():
         # Rank 0 initializes all elements to avoid parallel RNG issues
         pos.full[:, :] = 2 * radius * np.random.random_sample(pos.full.shape) - radius
         pos.full[:, :] += centre[None, :].to(radius.units)
         if box_wrap:
             pos.full[:, :] = pos.full[:, :] % boxsize
             assert np.all((pos.full >= 0.0) & (pos.full < boxsize))
+
+    helpers.check_on_rank_zero(initialise, comm)
     pos.sync()
     comm.barrier()
     return pos
@@ -130,15 +135,10 @@ def _test_periodic_box(
     nr_failures = comm.allreduce(nr_failures)
 
     comm.barrier()
-    if comm_rank == 0:
-        if nr_failures == 0:
-            print(f"    OK")
-        else:
-            print(
-                f"    {nr_failures} of {nr_queries*comm_size} queries FAILED",
-                flush=True,
-            )
-            comm.Abort(1)
+    if (comm_rank == 0) and (nr_failures == 0):
+        print(f"    OK")
+    # nr_failures is the same on every rank, so all ranks fail together
+    assert nr_failures == 0, f"{nr_failures} of {nr_queries*comm_size} queries FAILED"
 
 
 @pytest.mark.mpi

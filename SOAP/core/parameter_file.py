@@ -52,6 +52,7 @@ _HALO_FINDER_KEYS = {
     "Subfind": set(),
     "SubfindEagle": set(),
     "Rockstar": set(),
+    "FOF": set(),
 }
 
 # Known parameter file structure, used by check_schema to flag typos. A value

@@ -47,14 +47,16 @@ def test_subhalo_rank(filename):
     all_ranks = comm.gather(subhalo_rank)
     all_host_ids = comm.gather(host_id)
     all_ids = comm.gather(subhalo_id)
-    if comm_rank == 0:
-        all_ranks = np.concatenate(all_ranks)
-        all_host_ids = np.concatenate(all_host_ids)
-        all_ids = np.concatenate(all_ids)
-        all_host_ids[all_host_ids < 0] = all_ids[all_host_ids < 0]
-        rank0 = all_ranks == 0
-        rank0_hosts = all_host_ids[rank0]
-        assert len(rank0_hosts) == len(np.unique(all_host_ids))
+
+    def check():
+        ranks = np.concatenate(all_ranks)
+        host_ids = np.concatenate(all_host_ids)
+        ids = np.concatenate(all_ids)
+        host_ids[host_ids < 0] = ids[host_ids < 0]
+        rank0_hosts = host_ids[ranks == 0]
+        assert len(rank0_hosts) == len(np.unique(host_ids))
+
+    helpers.check_on_rank_zero(check, comm)
 
 
 if __name__ == "__main__":

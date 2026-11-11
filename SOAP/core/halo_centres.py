@@ -17,6 +17,7 @@ from SOAP.catalogue_readers import (
     read_subfind,
     read_subfind_eagle,
     read_rockstar,
+    read_swift_fof,
 )
 from . import domain_decomposition
 from .combine_chunks import sub_snapnum
@@ -95,6 +96,10 @@ class SOCatalogue:
             )
         elif args.halo_format == "Rockstar":
             halo_data = read_rockstar.read_rockstar_catalogue(
+                comm, halo_basename, a_unit, registry, boxsize
+            )
+        elif args.halo_format == "FOF":
+            halo_data = read_swift_fof.read_swift_fof_catalogue(
                 comm, halo_basename, a_unit, registry, boxsize
             )
         else:
