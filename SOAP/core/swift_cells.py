@@ -342,11 +342,12 @@ class SWIFTCellGrid:
                 self.observer_position = unyt.unyt_array(
                     observer_position, units=comoving_length_unit
                 )
+                self.observer_position_from_lightcone = True
             except KeyError:
-                print(
-                    "Could not find lightcone observer position in snapshot file. Defaulting to centre of box."
-                )
+                # Default to the centre of the box. A warning gets printed in
+                # compute_halo_properties.py if self.observer_position is used
                 self.observer_position = 0.5 * unyt.unyt_array([self.boxsize] * 3)
+                self.observer_position_from_lightcone = False
 
             # Get the number of files
             self.nr_files = infile["Header"].attrs["NumFilesPerSnapshot"][0]

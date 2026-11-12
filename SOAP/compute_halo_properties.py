@@ -540,6 +540,15 @@ def compute_halo_properties():
                 "BoundSubhalo/EncloseRadius is not enabled. This means apertures with r > r_enclose will be calculated explicitly, rather than copying over values from smaller apertures"
             )
         category_filter.print_filters()
+        # The observer position is only used for DopplerB
+        doppler_enabled = (not args.dmo) and any(
+            hp.property_filters.get("DopplerB", False) for hp in so_props
+        )
+        if doppler_enabled and not cellgrid.observer_position_from_lightcone:
+            print(
+                "Could not find lightcone observer position in snapshot file. "
+                "Using the centre of the box as the observer position for DopplerB."
+            )
         cosmology_errors = parameter_file.check_cosmology(cellgrid.cosmology)
         if len(cosmology_errors):
             print("The snapshot cosmology is incompatible with some properties:")
