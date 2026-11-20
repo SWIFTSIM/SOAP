@@ -36,7 +36,7 @@ def check_membership(
         if not os.path.exists(hbt_filenames.format(file_nr=0)):
             raise RuntimeError("HBT files not found")
         with h5py.File(hbt_filenames.format(file_nr=0)) as infile:
-            nr_hbt_files = int(infile["NumberOfFiles"][...])
+            nr_hbt_files = int(infile["NumberOfFiles"][0])
     else:
         nr_hbt_files = None
     nr_hbt_files = comm.bcast(nr_hbt_files)
