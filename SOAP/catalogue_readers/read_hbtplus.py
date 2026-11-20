@@ -145,7 +145,7 @@ def read_hbtplus_groupnr(
             filename = basename if sorted_file else hbt_filename(basename, 0)
             with h5py.File(filename, "r") as infile:
                 if "Units" in infile:
-                    VelInKmS = float(infile["Units/VelInKmS"][...])
+                    VelInKmS = float(infile["Units/VelInKmS"][0])
         else:
             VelInKmS = None
         VelInKmS = comm.bcast(VelInKmS)
